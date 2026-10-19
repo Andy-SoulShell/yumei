@@ -241,8 +241,11 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         // 档位上限：Free 1 个、Plus 3 个、Pro 不限。
         // 自托管（BILLING_PROVIDER=none）不限。
+        const gfTier = await getTierLimits(ctx.user.id);
+        const maximum = isBillingEnforced()
+          ? gfTier.limits.maxGirlfriends
+          : null;
         if (isBillingEnforced()) {
-          const gfTier = await getTierLimits(ctx.user.id);
           if (gfTier.limits.maxGirlfriends !== null) {
             const existing = await getUserGirlfriends(ctx.user.id);
             if (existing.length >= gfTier.limits.maxGirlfriends) {
@@ -276,17 +279,20 @@ export const appRouter = router({
         );
 
         // 创建女友配置
-        const girlfriend = await createGirlfriend({
-          userId: ctx.user.id,
-          name: input.name,
-          personality: input.personality,
-          appearance: input.appearance,
-          interests: input.interests,
-          customPrompt: input.customPrompt || null,
-          referenceImageUrl: imageUrl,
-          referenceImageKey: fileKey,
-          isActive: true,
-        });
+        const girlfriend = await createGirlfriend(
+          {
+            userId: ctx.user.id,
+            name: input.name,
+            personality: input.personality,
+            appearance: input.appearance,
+            interests: input.interests,
+            customPrompt: input.customPrompt || null,
+            referenceImageUrl: imageUrl,
+            referenceImageKey: fileKey,
+            isActive: true,
+          },
+          maximum
+        );
 
         return girlfriend;
       }),
@@ -388,11 +394,16 @@ export const appRouter = router({
       return await getTrashGirlfriends(ctx.user.id);
     }),
 
-    /** 恢复当前用户回收站中的角色；当前未再次检查套餐数量。 */
+    /** 恢复当前用户回收站中的角色，数量上限在事务内重新检查。 */
     restore: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        await restoreGirlfriend(input.id, ctx.user.id);
+        const tier = await getTierLimits(ctx.user.id);
+        await restoreGirlfriend(
+          input.id,
+          ctx.user.id,
+          isBillingEnforced() ? tier.limits.maxGirlfriends : null
+        );
         return { success: true };
       }),
 

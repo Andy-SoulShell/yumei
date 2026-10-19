@@ -1,6 +1,7 @@
 /** 覆盖会话搜索与心情变化。 */
 
 import { describe, expect, it } from "vitest";
+import { createTestUser } from "./testFixtures";
 import { appRouter } from "./routers";
 import { createMessage } from "./db";
 import type { TrpcContext } from "./_core/context";
@@ -37,6 +38,7 @@ function createAuthContext(userId = 1): { ctx: TrpcContext } {
 describe("conversation.search", () => {
   it("should search conversations by keyword", async () => {
     const { ctx } = createAuthContext(55555);
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     // 先确保有默认女友
@@ -71,6 +73,7 @@ describe("conversation.search", () => {
 
   it("should return empty array for non-matching keyword", async () => {
     const { ctx } = createAuthContext(55555);
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     const results = await caller.conversation.search({
@@ -86,6 +89,7 @@ describe("conversation.search", () => {
 describe("mood system", () => {
   it("should update mood after sending a positive message", async () => {
     const { ctx } = createAuthContext(44401);
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     // 先确保有默认女友
@@ -116,6 +120,7 @@ describe("mood system", () => {
 
   it("should decrease mood score for negative messages", async () => {
     const { ctx } = createAuthContext(33301);
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     const gf = await caller.girlfriend.ensureDefault();
@@ -141,6 +146,7 @@ describe("mood system", () => {
 
   it("should get mood for a specific girlfriend", async () => {
     const { ctx } = createAuthContext(44401);
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     const gf = await caller.girlfriend.ensureDefault();
@@ -157,6 +163,7 @@ describe("mood system", () => {
 
   it("should get all moods for a user", async () => {
     const { ctx } = createAuthContext(44401);
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     const moods = await caller.mood.getAll();
@@ -168,6 +175,7 @@ describe("mood system", () => {
 
   it("should increment message counts correctly", async () => {
     const { ctx } = createAuthContext(22201);
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     const gf = await caller.girlfriend.ensureDefault();

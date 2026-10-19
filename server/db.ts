@@ -1,5 +1,6 @@
 /** 业务数据访问与状态写入。需要用户归属的底层方法由路由层先行校验。 */
 
+import { TRPCError } from "@trpc/server";
 import { eq, desc, and, like, sql, isNull, isNotNull, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
@@ -46,6 +47,69 @@ export async function getDb() {
   return _db;
 }
 
+/** 事务内的数据访问接口，用于将相关写入组成同一提交。 */
+export type DbTransaction = Parameters<
+  Parameters<NonNullable<Awaited<ReturnType<typeof getDb>>>["transaction"]>[0]
+>[0];
+
+/** 锁定真实用户行后执行事务，串行化同一用户的资源数量检查与写入。 */
+export async function withUserTransaction<T>(
+  userId: string,
+  action: (tx: DbTransaction) => Promise<T>
+): Promise<T> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.transaction(async tx => {
+    const [user] = await tx
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, userId))
+      .for("update");
+    if (!user)
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User no longer exists",
+      });
+    return action(tx);
+  });
+}
+
+/** 在用户锁内检查未删除角色数量，null 表示不限制。 */
+async function checkCompanionLimit(
+  tx: DbTransaction,
+  userId: string,
+  maximum: number | null
+) {
+  if (maximum === null) return;
+  const [row] = await tx
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(girlfriends)
+    .where(and(eq(girlfriends.userId, userId), isNull(girlfriends.deletedAt)));
+  if (Number(row.count) >= maximum)
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: `UPGRADE_REQUIRED: Your plan allows ${maximum} companion(s).`,
+    });
+}
+
+/** 在现有用户事务内插入并读取角色。 */
+async function insertGirlfriend(
+  tx: DbTransaction,
+  data: InsertGirlfriend
+): Promise<Girlfriend> {
+  if (data.isActive ?? true)
+    await tx
+      .update(girlfriends)
+      .set({ isActive: false })
+      .where(eq(girlfriends.userId, data.userId));
+  const [result] = await tx.insert(girlfriends).values(data);
+  const [created] = await tx
+    .select()
+    .from(girlfriends)
+    .where(eq(girlfriends.id, Number(result.insertId)));
+  return created;
+}
+
 // 用户资料。
 
 // Better-Auth 管理注册与登录，应用角色由数据库维护。
@@ -71,35 +135,15 @@ export async function setUserBirthDate(
 
 // 陪伴角色。
 
-/**
- * 创建角色并返回保存结果；激活新角色前取消该用户其他角色的激活状态。
- *
- * @remarks 多次写入尚未封装为一个事务，套餐数量限制在路由层检查。
- */
+/** 锁定用户后原子校验数量、切换激活状态并创建角色。 */
 export async function createGirlfriend(
-  data: InsertGirlfriend
+  data: InsertGirlfriend,
+  maximum: number | null = null
 ): Promise<Girlfriend> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  // 如果设置为激活，先将该用户的其他女友设为非激活
-  if (data.isActive) {
-    await db
-      .update(girlfriends)
-      .set({ isActive: false })
-      .where(eq(girlfriends.userId, data.userId));
-  }
-
-  const result = await db.insert(girlfriends).values(data);
-  const insertedId = Number(result[0].insertId);
-
-  const inserted = await db
-    .select()
-    .from(girlfriends)
-    .where(eq(girlfriends.id, insertedId))
-    .limit(1);
-
-  return inserted[0]!;
+  return withUserTransaction(data.userId, async tx => {
+    await checkCompanionLimit(tx, data.userId, maximum);
+    return insertGirlfriend(tx, data);
+  });
 }
 
 /** 读取用户未删除的角色；传入角色编号时按编号读取，否则查找激活角色。 */
@@ -482,18 +526,24 @@ export async function softDeleteGirlfriends(
   }
 }
 
-/** 按用户归属清除角色的删除时间，不自动重新激活角色或检查套餐数量。 */
+/** 恢复回收站角色时在用户事务内校验套餐数量；重复恢复不额外占用名额。 */
 export async function restoreGirlfriend(
   id: number,
-  userId: string
+  userId: string,
+  maximum: number | null = null
 ): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  await db
-    .update(girlfriends)
-    .set({ deletedAt: null })
-    .where(and(eq(girlfriends.id, id), eq(girlfriends.userId, userId)));
+  await withUserTransaction(userId, async tx => {
+    const [target] = await tx
+      .select()
+      .from(girlfriends)
+      .where(and(eq(girlfriends.id, id), eq(girlfriends.userId, userId)));
+    if (!target || !target.deletedAt) return;
+    await checkCompanionLimit(tx, userId, maximum);
+    await tx
+      .update(girlfriends)
+      .set({ deletedAt: null })
+      .where(eq(girlfriends.id, id));
+  });
 }
 
 /**
@@ -849,40 +899,24 @@ export async function getAllGirlfriendMoods(
 // 默认角色初始化。
 
 /**
- * 复用用户已有的未删除角色，否则惰性创建默认角色。
+ * 在用户事务锁内复用已有角色，否则惰性创建默认角色。
  *
- * @param createData - 仅在确认需要创建时执行，可在其中准备参考图
- * @remarks 查重与插入尚未使用事务或唯一约束，不能保证并发初始化只产生一条记录。
+ * @param createData - 仅胜出请求执行，用于准备参考图等默认资料
  */
 export async function createDefaultGirlfriend(
   userId: string,
   createData: () => Promise<InsertGirlfriend>
 ): Promise<Girlfriend> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  // 检查用户是否已有未删除的女友
-  const existing = await db
-    .select()
-    .from(girlfriends)
-    .where(and(eq(girlfriends.userId, userId), isNull(girlfriends.deletedAt)))
-    .limit(1);
-
-  if (existing.length > 0) {
-    return existing[0];
-  }
-
-  // 创建默认女友
-  const result = await db.insert(girlfriends).values(await createData());
-  const insertedId = Number(result[0].insertId);
-
-  const inserted = await db
-    .select()
-    .from(girlfriends)
-    .where(eq(girlfriends.id, insertedId))
-    .limit(1);
-
-  return inserted[0]!;
+  return withUserTransaction(userId, async tx => {
+    const [existing] = await tx
+      .select()
+      .from(girlfriends)
+      .where(and(eq(girlfriends.userId, userId), isNull(girlfriends.deletedAt)))
+      .limit(1);
+    if (existing) return existing;
+    const data = await createData();
+    return insertGirlfriend(tx, { ...data, userId });
+  });
 }
 
 // 站内通知。

@@ -1,5 +1,6 @@
 /** 覆盖回收站、批量删除及过期清理。 */
 
+import { createTestGirlfriend as createGirlfriend } from "./testFixtures";
 import { describe, it, expect } from "vitest";
 import {
   softDeleteGirlfriend,
@@ -10,7 +11,6 @@ import {
   cleanupExpiredTrash,
   getUserGirlfriends,
   getActiveGirlfriend,
-  createGirlfriend,
 } from "./db";
 
 // Use unique userIds to avoid conflicts with other tests.

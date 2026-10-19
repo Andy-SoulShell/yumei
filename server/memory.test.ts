@@ -1,5 +1,6 @@
 /** 覆盖记忆评分、提取解析、持久化和主动消息引用。 */
 
+import { createTestGirlfriend as createGirlfriend } from "./testFixtures";
 import { describe, expect, it } from "vitest";
 import { nanoid } from "nanoid";
 import {
@@ -19,11 +20,7 @@ import {
   setMemoryPinned,
   getFreshEventMemory,
 } from "./memory";
-import {
-  getDb,
-  checkAndCreateProactiveNotification,
-  createGirlfriend,
-} from "./db";
+import { getDb, checkAndCreateProactiveNotification } from "./db";
 
 // ---------------------------------------------------------------------------
 // Pure scoring (no DB)

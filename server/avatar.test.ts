@@ -1,6 +1,7 @@
 /** 覆盖角色头像上传与资料引用。 */
 
 import { describe, expect, it } from "vitest";
+import { createTestUser } from "./testFixtures";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
@@ -39,6 +40,7 @@ const TINY_PNG_BASE64 =
 describe("girlfriend.uploadAvatar", () => {
   it("should upload avatar for an existing girlfriend", async () => {
     const { ctx } = createAuthContext();
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     // 先创建一个女友
@@ -67,6 +69,7 @@ describe("girlfriend.uploadAvatar", () => {
 
   it("should support JPEG format", async () => {
     const { ctx } = createAuthContext();
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     const gf = await caller.girlfriend.create({
@@ -88,6 +91,7 @@ describe("girlfriend.uploadAvatar", () => {
 
   it("should support WebP format", async () => {
     const { ctx } = createAuthContext();
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     const gf = await caller.girlfriend.create({
@@ -109,6 +113,7 @@ describe("girlfriend.uploadAvatar", () => {
 
   it("should support GIF format", async () => {
     const { ctx } = createAuthContext();
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     const gf = await caller.girlfriend.create({
@@ -130,6 +135,7 @@ describe("girlfriend.uploadAvatar", () => {
 
   it("should reject unsupported image formats", async () => {
     const { ctx } = createAuthContext();
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     const gf = await caller.girlfriend.create({
@@ -152,6 +158,7 @@ describe("girlfriend.uploadAvatar", () => {
 
   it("should reject oversized images", async () => {
     const { ctx } = createAuthContext();
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     const gf = await caller.girlfriend.create({
@@ -178,6 +185,7 @@ describe("girlfriend.uploadAvatar", () => {
 describe("girlfriend.update with avatar fields", () => {
   it("should update girlfriend with avatar fields", async () => {
     const { ctx } = createAuthContext();
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     const gf = await caller.girlfriend.create({
@@ -200,6 +208,7 @@ describe("girlfriend.update with avatar fields", () => {
 
   it("should clear avatar by setting null", async () => {
     const { ctx } = createAuthContext();
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     const gf = await caller.girlfriend.create({
@@ -231,6 +240,7 @@ describe("girlfriend.update with avatar fields", () => {
 describe("girlfriend avatar in list", () => {
   it("should include avatarUrl in girlfriend list response", async () => {
     const { ctx } = createAuthContext();
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     // 创建一个女友

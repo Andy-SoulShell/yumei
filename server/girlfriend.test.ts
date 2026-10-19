@@ -1,6 +1,7 @@
 /** 覆盖角色创建及激活角色读取。 */
 
 import { describe, expect, it } from "vitest";
+import { createTestUser } from "./testFixtures";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
@@ -35,6 +36,7 @@ function createAuthContext(): { ctx: TrpcContext } {
 describe("girlfriend.create", () => {
   it("should create a girlfriend with valid input", async () => {
     const { ctx } = createAuthContext();
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     const result = await caller.girlfriend.create({
@@ -55,6 +57,7 @@ describe("girlfriend.create", () => {
 
   it("should reject creation without required fields", async () => {
     const { ctx } = createAuthContext();
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     await expect(
@@ -75,6 +78,7 @@ describe("girlfriend.getActive", () => {
     const { ctx } = createAuthContext();
     ctx.user!.id = "test-user-88888";
 
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     // 先创建一个女友
@@ -98,6 +102,7 @@ describe("girlfriend.getActive", () => {
     const { ctx } = createAuthContext();
     // 使用不同的用户 ID 确保没有女友配置
     ctx.user!.id = "test-user-999999";
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     const result = await caller.girlfriend.getActive();

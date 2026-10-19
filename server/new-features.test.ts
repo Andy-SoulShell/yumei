@@ -1,6 +1,7 @@
 /** 覆盖默认角色初始化、参考图与会话详情。 */
 
 import { describe, expect, it } from "vitest";
+import { createTestUser } from "./testFixtures";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 import { storageRead } from "./storage";
@@ -38,6 +39,7 @@ function createAuthContext(userId = 1): { ctx: TrpcContext } {
 describe("girlfriend.ensureDefault", () => {
   it("should create default girlfriend YUMEI for new user", async () => {
     const { ctx } = createAuthContext(88888);
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     const result = await caller.girlfriend.ensureDefault();
@@ -58,6 +60,7 @@ describe("girlfriend.ensureDefault", () => {
 
   it("should return existing girlfriend if one already exists", async () => {
     const { ctx } = createAuthContext(88888);
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     const existing = await caller.girlfriend.ensureDefault();
@@ -72,6 +75,7 @@ describe("girlfriend.ensureDefault", () => {
 describe("girlfriend.delete", () => {
   it("should create and then delete a girlfriend", async () => {
     const { ctx } = createAuthContext(77777);
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     // 先创建一个女友
@@ -101,6 +105,7 @@ describe("girlfriend.delete", () => {
 describe("conversation.listWithDetails", () => {
   it("should return conversations with last message info", async () => {
     const { ctx } = createAuthContext(66666);
+    await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
     // 先确保有默认女友

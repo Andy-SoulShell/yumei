@@ -1,5 +1,8 @@
 /** 用户偏好、BYOK 密钥、语音、主题、推送和套餐设置页面。 */
 
+import { KeyStatusIndicator } from "@/components/KeyStatusIndicator";
+import { useProviderKeyDrafts } from "@/hooks/useProviderKeyDrafts";
+import type { KeyName } from "@shared/providerKeys";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -31,8 +34,6 @@ import {
   ChevronUp,
   Sparkles,
   Star,
-  CheckCircle,
-  XCircle,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useState, useCallback, useMemo } from "react";
@@ -81,9 +82,18 @@ export default function Settings() {
   const [, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
 
+  const setKeyMutation = trpc.apiConfig.setKey.useMutation();
+  const {
+    drafts,
+    setDraft,
+    saveDrafts,
+    isSaving: isSavingKeys,
+  } = useProviderKeyDrafts(input => setKeyMutation.mutateAsync(input));
   // API 密钥输入状态。
-  const [falApiKey, setFalApiKey] = useState("");
-  const [openRouterKey, setOpenRouterKey] = useState("");
+  const falApiKey = drafts["fal"];
+  const setFalApiKey = (value: string) => setDraft("fal", value);
+  const openRouterKey = drafts["openrouter"];
+  const setOpenRouterKey = (value: string) => setDraft("openrouter", value);
   const [selectedModel, setSelectedModel] = useState("");
   const [modelSearch, setModelSearch] = useState("");
   const [showModelList, setShowModelList] = useState(false);
@@ -92,35 +102,37 @@ export default function Settings() {
   const [ttsProvider, setTtsProvider] = useState<TTSProvider>("browser");
 
   // Whisper 语音转写配置。
-  const [whisperApiKey, setWhisperApiKey] = useState("");
-  const [hasUnsavedWhisperChanges, setHasUnsavedWhisperChanges] =
-    useState(false);
+  const whisperApiKey = drafts["openai"];
+  const setWhisperApiKey = (value: string) => setDraft("openai", value);
+  const [whisperSettingsDirty, setHasUnsavedWhisperChanges] = useState(false);
   const [ttsAutoPlay, setTtsAutoPlay] = useState(() => {
     return localStorage.getItem("tts-autoplay") === "true";
   });
 
   // ElevenLabs 配置状态。
-  const [elevenlabsApiKey, setElevenlabsApiKey] = useState("");
+  const elevenlabsApiKey = drafts["elevenlabs"];
+  const setElevenlabsApiKey = (value: string) => setDraft("elevenlabs", value);
   const [elevenlabsVoiceId, setElevenlabsVoiceId] = useState("");
   const [elevenlabsVoiceName, setElevenlabsVoiceName] = useState("");
   const [showElevenLabsVoices, setShowElevenLabsVoices] = useState(false);
   const [elevenLabsSearch, setElevenLabsSearch] = useState("");
 
   // Fish Audio 配置状态。
-  const [fishAudioApiKey, setFishAudioApiKey] = useState("");
+  const fishAudioApiKey = drafts["fish-audio"];
+  const setFishAudioApiKey = (value: string) => setDraft("fish-audio", value);
   const [fishAudioModelId, setFishAudioModelId] = useState("");
   const [fishAudioModelName, setFishAudioModelName] = useState("");
   const [showFishAudioModels, setShowFishAudioModels] = useState(false);
   const [fishAudioSearch, setFishAudioSearch] = useState("");
 
   // LLM 配置变更追踪
-  const [hasUnsavedLlmChanges, setHasUnsavedLlmChanges] = useState(false);
+  const [llmSettingsDirty, setHasUnsavedLlmChanges] = useState(false);
 
   // 语音配置变更追踪
-  const [hasUnsavedVoiceChanges, setHasUnsavedVoiceChanges] = useState(false);
+  const [voiceSettingsDirty, setHasUnsavedVoiceChanges] = useState(false);
 
   // fal.ai 配置变更追踪
-  const [hasUnsavedFalChanges, setHasUnsavedFalChanges] = useState(false);
+  const [falSettingsDirty, setHasUnsavedFalChanges] = useState(false);
 
   // AI 行为设定变更追踪
   const [hasUnsavedAiChanges, setHasUnsavedAiChanges] = useState(false);
@@ -168,15 +180,22 @@ export default function Settings() {
     },
   ];
 
+  const hasUnsavedWhisperChanges = whisperSettingsDirty || !!whisperApiKey;
+
+  const hasUnsavedLlmChanges = llmSettingsDirty || !!openRouterKey;
+
+  const hasUnsavedVoiceChanges =
+    voiceSettingsDirty || !!(elevenlabsApiKey || fishAudioApiKey);
+
+  const hasUnsavedFalChanges = falSettingsDirty || !!falApiKey;
+
   // 加载已有偏好与密钥状态
   const { data: apiConfig, isLoading } = trpc.apiConfig.get.useQuery();
 
   // 服务端解析运营方或用户密钥，前端只获取可用状态。
   const usesDeepSeek = apiConfig?.chatProvider.name === "deepseek";
   const openRouterReady =
-    !!apiConfig?.chatProvider.configured ||
-    !!apiConfig?.keys.openrouter.isSet ||
-    openRouterKey.length > 10;
+    !!apiConfig?.chatProvider.configured || !!apiConfig?.keys.openrouter.isSet;
   const {
     data: modelsData,
     isLoading: modelsLoading,
@@ -187,8 +206,7 @@ export default function Settings() {
   });
 
   // ElevenLabs 声音列表
-  const elevenLabsReady =
-    !!apiConfig?.keys.elevenlabs.isSet || elevenlabsApiKey.length > 10;
+  const elevenLabsReady = !!apiConfig?.keys.elevenlabs.isSet;
   const {
     data: elevenLabsData,
     isLoading: elevenLabsLoading,
@@ -199,8 +217,7 @@ export default function Settings() {
   });
 
   // Fish Audio 模型列表
-  const fishAudioReady =
-    !!apiConfig?.keys["fish-audio"].isSet || fishAudioApiKey.length > 10;
+  const fishAudioReady = !!apiConfig?.keys["fish-audio"].isSet;
   const {
     data: fishAudioData,
     isLoading: fishAudioLoading,
@@ -210,58 +227,39 @@ export default function Settings() {
     { enabled: fishAudioReady, retry: false }
   );
 
-  // 偏好与密钥通过不同接口保存。
-  const updatePreferences = trpc.apiConfig.updatePreferences.useMutation({
-    onSuccess: () => {
-      toast.success("配置保存成功");
-    },
-    onError: error => {
-      toast.error(`保存失败：${error.message}`);
-    },
-  });
+  const updatePreferences = trpc.apiConfig.updatePreferences.useMutation();
 
-  const setKeyMutation = trpc.apiConfig.setKey.useMutation();
   const utils2 = trpc.useUtils();
 
-  /**
-   * 逐个保存输入框中非空的 BYOK 密钥，失败项单独提示。
-   *
-   * @returns 成功保存的密钥数量
-   * @remarks 只要有一项成功，当前实现就清空全部密钥输入，包括保存失败的项。
-   */
-  async function saveDirtyKeys() {
-    const pending: Array<{
-      name: "openrouter" | "fal" | "elevenlabs" | "fish-audio" | "openai";
-      value: string;
-    }> = [];
-    if (openRouterKey)
-      pending.push({ name: "openrouter", value: openRouterKey });
-    if (falApiKey) pending.push({ name: "fal", value: falApiKey });
-    if (elevenlabsApiKey)
-      pending.push({ name: "elevenlabs", value: elevenlabsApiKey });
-    if (fishAudioApiKey)
-      pending.push({ name: "fish-audio", value: fishAudioApiKey });
-    if (whisperApiKey) pending.push({ name: "openai", value: whisperApiKey });
+  /** 按当前分区保存草稿，失败项保留输入并返回结构化结果。 */
+  async function saveDirtyKeys(names?: readonly KeyName[]) {
+    const result = await saveDrafts(names);
+    if (result.saved.length) await utils2.apiConfig.get.invalidate();
+    for (const { name } of result.failed)
+      toast.error(`${name} 密钥保存失败，输入已保留，请重试`);
+    return result;
+  }
 
-    let saved = 0;
-    for (const { name, value } of pending) {
-      try {
-        await setKeyMutation.mutateAsync({ name, value });
-        saved++;
-      } catch (err: any) {
-        toast.error(`${name} 密钥保存失败：${err?.message ?? "unknown"}`);
-      }
+  /** 所有相关写入成功后才清除分区未保存提示并显示成功。 */
+  async function saveSection(
+    preferences:
+      | Parameters<typeof updatePreferences.mutateAsync>[0]
+      | undefined,
+    names: readonly KeyName[] | undefined,
+    onSaved: () => void,
+    message: string
+  ) {
+    try {
+      if (preferences) await updatePreferences.mutateAsync(preferences);
+      const result = await saveDirtyKeys(names);
+      if (result.failed.length) return false;
+      onSaved();
+      toast.success(message);
+      return true;
+    } catch {
+      toast.error("配置保存失败，请重试；未保存的输入会继续保留");
+      return false;
     }
-    if (saved > 0) {
-      // 有任意密钥保存成功就清空全部输入，再刷新脱敏状态；部分失败时也会清空。
-      setOpenRouterKey("");
-      setFalApiKey("");
-      setElevenlabsApiKey("");
-      setFishAudioApiKey("");
-      setWhisperApiKey("");
-      utils2.apiConfig.get.invalidate();
-    }
-    return saved;
   }
 
   // TTS 测试
@@ -339,22 +337,30 @@ export default function Settings() {
     return modelsData.models.find((m: ModelInfo) => m.id === selectedModel);
   }, [modelsData?.models, selectedModel]);
 
-  /** 先保存用户偏好，再逐项保存非空密钥；两个阶段不组成事务。 */
-  const handleSave = async () => {
-    // 偏好与密钥分别提交，避免普通偏好接口携带明文密钥。
-    await updatePreferences.mutateAsync({
-      llmModel: selectedModel || undefined,
-      ttsProvider,
-      elevenlabsVoiceId: elevenlabsVoiceId || undefined,
-      elevenlabsVoiceName: elevenlabsVoiceName || undefined,
-      fishAudioModelId: fishAudioModelId || undefined,
-      fishAudioModelName: fishAudioModelName || undefined,
-      globalPrompt: globalPrompt || null,
-      replyLanguage: replyLanguage || null,
-      replyLengthLimit: replyLengthLimit || null,
-    });
-    await saveDirtyKeys();
-  };
+  /** 保存全部分区；存在失败项时保留未保存提示。 */
+  const handleSave = async () =>
+    saveSection(
+      {
+        llmModel: selectedModel || undefined,
+        ttsProvider,
+        elevenlabsVoiceId: elevenlabsVoiceId || undefined,
+        elevenlabsVoiceName: elevenlabsVoiceName || undefined,
+        fishAudioModelId: fishAudioModelId || undefined,
+        fishAudioModelName: fishAudioModelName || undefined,
+        globalPrompt: globalPrompt || null,
+        replyLanguage: replyLanguage || null,
+        replyLengthLimit: replyLengthLimit || null,
+      },
+      undefined,
+      () => {
+        setHasUnsavedLlmChanges(false);
+        setHasUnsavedVoiceChanges(false);
+        setHasUnsavedWhisperChanges(false);
+        setHasUnsavedFalChanges(false);
+        setHasUnsavedAiChanges(false);
+      },
+      "全部配置已保存"
+    );
 
   const handleTtsToggle = useCallback((checked: boolean) => {
     setTtsAutoPlay(checked);
@@ -410,15 +416,14 @@ export default function Settings() {
     toast.info(`已选择模型：${modelId}，请点击"保存生效"确认`);
   };
 
-  /** 保存模型偏好和当前非空密钥，然后结束模型设置的未保存提示。 */
-  const handleSaveLlmConfig = async () => {
-    await updatePreferences.mutateAsync({
-      llmModel: selectedModel || undefined,
-    });
-    await saveDirtyKeys();
-    setHasUnsavedLlmChanges(false);
-    toast.success("LLM 配置已保存生效");
-  };
+  /** 保存模型分区，失败时保留分区未保存提示。 */
+  const handleSaveLlmConfig = () =>
+    saveSection(
+      { llmModel: selectedModel || undefined },
+      ["openrouter"],
+      () => setHasUnsavedLlmChanges(false),
+      "LLM 配置已保存"
+    );
 
   const handleSelectElevenLabsVoice = (voice: ElevenLabsVoice) => {
     setElevenlabsVoiceId(voice.id);
@@ -436,37 +441,40 @@ export default function Settings() {
     toast.info(`已选择声音：${model.name}，请点击"保存生效"确认`);
   };
 
-  /** 保存语音引擎和音色偏好，再保存当前非空密钥。 */
-  const handleSaveVoiceConfig = async () => {
-    await updatePreferences.mutateAsync({
-      ttsProvider,
-      elevenlabsVoiceId: elevenlabsVoiceId || undefined,
-      elevenlabsVoiceName: elevenlabsVoiceName || undefined,
-      fishAudioModelId: fishAudioModelId || undefined,
-      fishAudioModelName: fishAudioModelName || undefined,
-    });
-    await saveDirtyKeys();
-    setHasUnsavedVoiceChanges(false);
-    toast.success("语音配置已保存生效");
-  };
-
-  /** 保存当前非空密钥，并结束语音转写配置的未保存提示。 */
-  const handleSaveWhisperConfig = async () => {
-    await saveDirtyKeys();
-    setHasUnsavedWhisperChanges(false);
-    toast.success("语音转写配置已保存生效");
-  };
-
-  /** 保存全局提示词、语言与回复长度偏好，空文本按 null 提交。 */
-  const handleSaveAiConfig = async () => {
-    await updatePreferences.mutateAsync({
-      globalPrompt: globalPrompt || null,
-      replyLanguage: replyLanguage || null,
-      replyLengthLimit: replyLengthLimit || null,
-    });
-    setHasUnsavedAiChanges(false);
-    toast.success("AI 行为设定已保存生效");
-  };
+  /** 保存语音分区，只有相关密钥均成功才结束未保存提示。 */
+  const handleSaveVoiceConfig = () =>
+    saveSection(
+      {
+        ttsProvider,
+        elevenlabsVoiceId: elevenlabsVoiceId || undefined,
+        elevenlabsVoiceName: elevenlabsVoiceName || undefined,
+        fishAudioModelId: fishAudioModelId || undefined,
+        fishAudioModelName: fishAudioModelName || undefined,
+      },
+      ["elevenlabs", "fish-audio"],
+      () => setHasUnsavedVoiceChanges(false),
+      "语音配置已保存"
+    );
+  /** 保存语音转写密钥。 */
+  const handleSaveWhisperConfig = () =>
+    saveSection(
+      undefined,
+      ["openai"],
+      () => setHasUnsavedWhisperChanges(false),
+      "语音转写配置已保存"
+    );
+  /** 保存提示词等普通偏好，不处理其他分区的密钥草稿。 */
+  const handleSaveAiConfig = () =>
+    saveSection(
+      {
+        globalPrompt: globalPrompt || null,
+        replyLanguage: replyLanguage || null,
+        replyLengthLimit: replyLengthLimit || null,
+      },
+      [],
+      () => setHasUnsavedAiChanges(false),
+      "AI 行为设定已保存"
+    );
 
   // 模型收藏操作
   const toggleFavoriteModel = (modelId: string) => {
@@ -480,75 +488,14 @@ export default function Settings() {
     });
   };
 
-  // API Key 有效性状态派生
-  const openRouterKeyStatus = useMemo(() => {
-    if (!openRouterKey || openRouterKey.length <= 10) return "empty";
-    if (modelsLoading) return "loading";
-    if (modelsError) return "invalid";
-    if (modelsData) return "valid";
-    return "loading";
-  }, [openRouterKey, modelsLoading, modelsError, modelsData]);
-
-  const elevenLabsKeyStatus = useMemo(() => {
-    if (!elevenlabsApiKey || elevenlabsApiKey.length <= 10) return "empty";
-    if (elevenLabsLoading) return "loading";
-    if (elevenLabsError) return "invalid";
-    if (elevenLabsData) return "valid";
-    return "loading";
-  }, [elevenlabsApiKey, elevenLabsLoading, elevenLabsError, elevenLabsData]);
-
-  const fishAudioKeyStatus = useMemo(() => {
-    if (!fishAudioApiKey || fishAudioApiKey.length <= 10) return "empty";
-    if (fishAudioLoading) return "loading";
-    if (fishAudioError) return "invalid";
-    if (fishAudioData) return "valid";
-    return "loading";
-  }, [fishAudioApiKey, fishAudioLoading, fishAudioError, fishAudioData]);
-
-  // fal.ai key 简单格式验证（无对应的模型列表 API，仅检查格式）
-  const falKeyStatus = useMemo(() => {
-    if (!falApiKey || falApiKey.length === 0) return "empty";
-    if (falApiKey.length < 10) return "invalid";
-    return "valid";
-  }, [falApiKey]);
-
-  // API Key 状态指示器组件
-  /** 根据派生状态显示输入框提示，不代表当前输入已经过供应商实时校验。 */
-  const KeyStatusIndicator = ({ status }: { status: string }) => {
-    switch (status) {
-      case "valid":
-        return (
-          <span className="inline-flex items-center gap-1 text-xs text-green-600">
-            <CheckCircle className="w-3.5 h-3.5" />
-            已验证
-          </span>
-        );
-      case "invalid":
-        return (
-          <span className="inline-flex items-center gap-1 text-xs text-red-500">
-            <XCircle className="w-3.5 h-3.5" />
-            无效
-          </span>
-        );
-      case "loading":
-        return (
-          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            验证中...
-          </span>
-        );
-      default:
-        return null;
-    }
-  };
-
-  /** 保存当前非空密钥，并结束图片配置的未保存提示。 */
-  const handleSaveFalConfig = async () => {
-    // fal 无独立偏好字段，此操作只保存有改动的 BYOK 密钥。
-    await saveDirtyKeys();
-    setHasUnsavedFalChanges(false);
-    toast.success("fal.ai 配置已保存生效");
-  };
+  /** 保存图片分区的密钥，失败输入继续保留。 */
+  const handleSaveFalConfig = () =>
+    saveSection(
+      undefined,
+      ["fal"],
+      () => setHasUnsavedFalChanges(false),
+      "fal.ai 配置已保存"
+    );
 
   const formatPrice = (price: string) => {
     const num = parseFloat(price);
@@ -718,7 +665,11 @@ export default function Settings() {
                         className="flex items-center justify-between"
                       >
                         <span>ElevenLabs API Key</span>
-                        <KeyStatusIndicator status={elevenLabsKeyStatus} />
+                        <KeyStatusIndicator
+                          name="elevenlabs"
+                          value={elevenlabsApiKey}
+                          saved={apiConfig?.keys.elevenlabs?.isSet}
+                        />
                       </Label>
                       <Input
                         id="elevenlabsKey"
@@ -916,7 +867,11 @@ export default function Settings() {
                         className="flex items-center justify-between"
                       >
                         <span>Fish Audio API Key</span>
-                        <KeyStatusIndicator status={fishAudioKeyStatus} />
+                        <KeyStatusIndicator
+                          name="fish-audio"
+                          value={fishAudioApiKey}
+                          saved={apiConfig?.keys["fish-audio"]?.isSet}
+                        />
                       </Label>
                       <Input
                         id="fishAudioKey"
@@ -1099,7 +1054,7 @@ export default function Settings() {
                     <Button
                       className="w-full"
                       onClick={handleSaveVoiceConfig}
-                      disabled={updatePreferences.isPending}
+                      disabled={updatePreferences.isPending || isSavingKeys}
                       variant={hasUnsavedVoiceChanges ? "default" : "outline"}
                     >
                       {updatePreferences.isPending ? (
@@ -1174,7 +1129,7 @@ export default function Settings() {
                 <div className="pt-2">
                   <Button
                     onClick={handleSaveWhisperConfig}
-                    disabled={updatePreferences.isPending}
+                    disabled={updatePreferences.isPending || isSavingKeys}
                     className={`w-full ${
                       hasUnsavedWhisperChanges
                         ? "bg-primary hover:bg-primary/90"
@@ -1269,7 +1224,11 @@ export default function Settings() {
                     className="flex items-center justify-between"
                   >
                     <span>fal.ai API Key</span>
-                    <KeyStatusIndicator status={falKeyStatus} />
+                    <KeyStatusIndicator
+                      name="fal"
+                      value={falApiKey}
+                      saved={apiConfig?.keys.fal?.isSet}
+                    />
                   </Label>
                   <Input
                     id="falApiKey"
@@ -1293,7 +1252,7 @@ export default function Settings() {
                     <Button
                       className="w-full"
                       onClick={handleSaveFalConfig}
-                      disabled={updatePreferences.isPending}
+                      disabled={updatePreferences.isPending || isSavingKeys}
                       variant={hasUnsavedFalChanges ? "default" : "outline"}
                     >
                       {updatePreferences.isPending ? (
@@ -1358,7 +1317,11 @@ export default function Settings() {
                     className="flex items-center justify-between"
                   >
                     <span>OpenRouter API Key</span>
-                    <KeyStatusIndicator status={openRouterKeyStatus} />
+                    <KeyStatusIndicator
+                      name="openrouter"
+                      value={openRouterKey}
+                      saved={apiConfig?.keys.openrouter?.isSet}
+                    />
                   </Label>
                   <Input
                     id="openRouterKey"
@@ -1579,7 +1542,7 @@ export default function Settings() {
                     <Button
                       className="w-full"
                       onClick={handleSaveLlmConfig}
-                      disabled={updatePreferences.isPending}
+                      disabled={updatePreferences.isPending || isSavingKeys}
                       variant={hasUnsavedLlmChanges ? "default" : "outline"}
                     >
                       {updatePreferences.isPending ? (
@@ -1727,7 +1690,7 @@ export default function Settings() {
                   <Button
                     className="w-full"
                     onClick={handleSaveAiConfig}
-                    disabled={updatePreferences.isPending}
+                    disabled={updatePreferences.isPending || isSavingKeys}
                     variant={hasUnsavedAiChanges ? "default" : "outline"}
                   >
                     {updatePreferences.isPending ? (
@@ -1760,7 +1723,7 @@ export default function Settings() {
             <Button
               className="w-full"
               onClick={handleSave}
-              disabled={updatePreferences.isPending}
+              disabled={updatePreferences.isPending || isSavingKeys}
             >
               {updatePreferences.isPending ? (
                 <>

@@ -1,16 +1,8 @@
 /** Provider 密钥的服务端解析、保存与脱敏展示约定。 */
 
-/** 可持久化的用户 BYOK 密钥类型，与环境变量映射保持一致。 */
-export const KEY_NAMES = [
-  "openrouter", // OpenRouter 聊天
-  "fal", // 图像生成
-  "elevenlabs", // ElevenLabs 语音合成
-  "fish-audio", // Fish Audio 语音合成
-  "openai", // OpenAI Whisper 语音转写
-] as const;
-
-/** 受支持 Provider 密钥的稳定名称。 */
-export type KeyName = (typeof KEY_NAMES)[number];
+import type { KeyName } from "../../../shared/providerKeys";
+export { KEY_NAMES } from "../../../shared/providerKeys";
+export type { KeyName } from "../../../shared/providerKeys";
 
 /** 密钥解析范围：仅运营方，或指定用户并允许回退到运营方。 */
 export type KeyScope = "operator" | { userId: string };

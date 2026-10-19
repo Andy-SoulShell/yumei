@@ -5,71 +5,8 @@
     {
       "idx": 0,
       "version": "5",
-      "when": 1792397840785,
+      "when": 1792424252059,
       "tag": "0000_init",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "5",
-      "when": 1792402542555,
-      "tag": "0001_intimacy_decay_checkpoint",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "5",
-      "when": 1792403050370,
-      "tag": "0002_billing_event_order",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "5",
-      "when": 1792403291376,
-      "tag": "0003_media_cleanup_outbox",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "5",
-      "when": 1792403638590,
-      "tag": "0004_generation_settlement",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "5",
-      "when": 1792404368064,
-      "tag": "0005_transaction_indexes_and_upgrade",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "5",
-      "when": 1792406327668,
-      "tag": "0006_interface_preferences",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "5",
-      "when": 1792422787618,
-      "tag": "0007_server_relationship",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "5",
-      "when": 1792423126784,
-      "tag": "0008_media_lifecycle",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "5",
-      "when": 1792423343156,
-      "tag": "0009_media_schedule_precision",
       "breakpoints": true
     }
   ]

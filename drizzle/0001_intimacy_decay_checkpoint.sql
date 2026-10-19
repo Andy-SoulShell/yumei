@@ -1,1 +1,0 @@
-ALTER TABLE `girlfriends` ADD `lastDecayAt` timestamp;

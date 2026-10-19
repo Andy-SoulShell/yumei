@@ -540,3 +540,48 @@ export const voiceTranscriptions = mysqlTable(
   },
   table => ({ byExpiry: index("idx_transcription_expiry").on(table.expiresAt) })
 );
+
+/** 多实例共享的请求滑动窗口；过期窗口由后台清理。 */
+export const rateWindows = mysqlTable(
+  "rateWindows",
+  {
+    userId: varchar("userId", { length: 255 }).notNull(),
+    action: varchar("action", { length: 32 }).notNull(),
+    requests: json("requests").$type<number[]>().notNull(),
+    updatedAt: timestamp("updatedAt", { fsp: 3 })
+      .defaultNow()
+
+      .notNull(),
+  },
+  table => ({
+    userAction: uniqueIndex("uniq_rate_user_action").on(
+      table.userId,
+      table.action
+    ),
+    byUpdated: index("idx_rate_updated").on(table.updatedAt),
+  })
+);
+
+/** 长期记忆提取的持久任务；模型凭据按执行时的账号配置解析，不写入任务。 */
+export const memoryExtractionJobs = mysqlTable(
+  "memoryExtractionJobs",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    userId: varchar("userId", { length: 255 }).notNull(),
+    girlfriendId: int("girlfriendId").notNull(),
+    conversationId: int("conversationId").notNull(),
+    lastMessageId: int("lastMessageId").notNull(),
+    intimacyLevel: int("intimacyLevel").notNull(),
+    attempts: int("attempts").default(0).notNull(),
+    status: mysqlEnum("status", ["pending", "failed"])
+      .default("pending")
+      .notNull(),
+    leaseToken: varchar("leaseToken", { length: 36 }),
+    leaseUntil: timestamp("leaseUntil", { fsp: 3 }),
+    nextRunAt: timestamp("nextRunAt", { fsp: 3 }).defaultNow().notNull(),
+  },
+  table => ({
+    byNext: index("idx_memory_job_next").on(table.status, table.nextRunAt),
+    byRole: index("idx_memory_job_role").on(table.girlfriendId),
+  })
+);

@@ -39,7 +39,7 @@ try {
       );
   }
   const args = process.argv.slice(2);
-  if (args[0] === "--migrate") {
+  if (args[0] === "--migrate" || args[0] === "--reset") {
     const { createPool } = await import("mysql2/promise");
     const { drizzle } = await import("drizzle-orm/mysql2");
     const { migrate } = await import("drizzle-orm/mysql2/migrator");
@@ -49,6 +49,16 @@ try {
       connectionLimit: 2,
     });
     try {
+      if (args[0] === "--reset") {
+        if (!/^[a-zA-Z0-9_]+$/.test(database))
+          throw new Error("Unsupported test database name");
+        const name = "`" + database + "`";
+        await pool.query(`DROP DATABASE IF EXISTS ${name}`);
+        await pool.query(
+          `CREATE DATABASE ${name} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+        );
+        await pool.query(`USE ${name}`);
+      }
       await migrate(drizzle(pool), {
         migrationsFolder: path.join(root, "drizzle"),
       });

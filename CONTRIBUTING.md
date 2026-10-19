@@ -42,8 +42,15 @@ corepack pnpm install --frozen-lockfile
 # 启动开发服务器
 pnpm dev
 
+# 类型、lint 和格式检查（不修改文件）
+pnpm check
+
+# 自动修复可修复的 lint 问题，再统一格式
+pnpm lint:fix
+pnpm format
+
 # 运行测试
-pnpm test
+TZ=UTC pnpm test
 ```
 
 ## 代码规范
@@ -65,7 +72,10 @@ pnpm test
 ### 代码风格
 
 - 使用 TypeScript 严格模式
+- 使用 `pnpm typecheck` 检查源码、测试、数据库 schema 和 TypeScript 配置
+- 使用 ESLint 检查代码与 React Hooks：`pnpm lint`；自动修复：`pnpm lint:fix`
 - 使用 Prettier 格式化代码：`pnpm format`
+- 提交前运行 `pnpm check`，统一检查类型、lint 与格式；CI 同时执行生产构建
 - 前端组件使用函数式组件 + Hooks
 - 后端 API 使用 tRPC 过程定义
 - 数据库操作封装在 `server/db.ts` 中
@@ -73,8 +83,8 @@ pnpm test
 ### 测试要求
 
 - 新增功能必须附带对应的测试用例
-- 测试文件放在 `server/` 目录下，命名为 `*.test.ts`
-- 确保所有测试通过后再提交 PR：`pnpm test`
+- 测试文件放在 `server/` 或 `client/` 目录下，命名为 `*.test.ts` 或 `*.test.tsx`
+- 完整测试需通过环境变量提供已应用迁移的专用测试库 `DATABASE_URL`，并用 `TZ=UTC pnpm test` 执行
 
 ## 项目结构
 

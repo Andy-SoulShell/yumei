@@ -302,11 +302,26 @@ pnpm dev          # http://localhost:3000
 
 ```bash
 TZ=UTC pnpm test  # 365 个自动化测试；需传入专用测试库的 DATABASE_URL
-pnpm check        # 类型检查
+pnpm check        # 类型、lint、格式检查（不修改文件）
 pnpm build && pnpm start
 ```
 
 </details>
+
+## 开发检查
+
+项目使用 TypeScript strict、ESLint 和 Prettier；代码、测试文件、Drizzle schema 与根目录 TypeScript 配置均纳入检查。
+
+| 命令                | 用途                                                 |
+| ------------------- | ---------------------------------------------------- |
+| `pnpm typecheck`    | TypeScript 类型检查                                  |
+| `pnpm lint`         | ESLint 检查，包含 React Hooks 规则，任何警告均失败   |
+| `pnpm lint:fix`     | 自动修复 ESLint 可修复的问题                         |
+| `pnpm format`       | 按 Prettier 配置格式化文件                           |
+| `pnpm format:check` | 检查格式，不修改文件                                 |
+| `pnpm check`        | 依次执行类型、lint、格式检查，不依赖数据库或 API Key |
+
+`.editorconfig` 统一编码、缩进和换行；生成的迁移、快照、第三方补丁、ComfyUI 工作流及导入的产品/历史设计文档不参与格式化。GitHub Actions 在 push 和 Pull Request 时安装锁定依赖，运行 `pnpm check` 和生产构建。数据库相关功能测试仍需单独配置专用 MySQL 测试库。
 
 ---
 

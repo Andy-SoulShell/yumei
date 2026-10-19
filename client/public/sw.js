@@ -1,9 +1,9 @@
 /**
  * PWA 静态资源缓存、离线页面回退及 Web Push 展示。
  *
- * @remarks API 请求直接走网络；当前媒体缓存未按登录用户划分，也未随退出清空。
+ * @remarks 只缓存应用静态资源；私人媒体、API 和跨来源请求始终走网络。
  */
-const CACHE_NAME = "yumei-v1";
+const CACHE_NAME = "yumei-static-v2";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",
@@ -28,7 +28,7 @@ self.addEventListener("activate", event => {
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames
-          .filter(name => name !== CACHE_NAME)
+          .filter(name => name.startsWith("yumei-") && name !== CACHE_NAME)
           .map(name => caches.delete(name))
       );
     })
@@ -43,6 +43,10 @@ self.addEventListener("fetch", event => {
 
   // 写请求不进入离线缓存。
   if (request.method !== "GET") return;
+
+  // 不读取旧缓存，也不缓存带有私人内容或外部服务凭证的请求。
+  if (url.origin !== self.location.origin || url.pathname.startsWith("/files/"))
+    return;
 
   // API 始终交给网络处理。
   if (url.pathname.startsWith("/api/")) return;
@@ -68,10 +72,9 @@ self.addEventListener("fetch", event => {
 
   // 静态资源优先使用缓存，首次获取后保存。
   if (
-    url.pathname.match(
-      /\.(js|css|png|jpg|jpeg|svg|gif|webp|woff2?|ttf|eot|ico)$/
-    ) ||
-    url.pathname.startsWith("/assets/")
+    STATIC_ASSETS.includes(url.pathname) ||
+    url.pathname.startsWith("/assets/") ||
+    url.pathname.startsWith("/characters/")
   ) {
     event.respondWith(
       caches.match(request).then(cached => {
@@ -88,18 +91,7 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // 其余 GET 请求优先使用网络，失败时查询缓存。
-  event.respondWith(
-    fetch(request)
-      .then(response => {
-        if (response.ok) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
-        }
-        return response;
-      })
-      .catch(() => caches.match(request))
-  );
+  // 其余请求交给浏览器网络栈，不把未知内容纳入离线存储。
 });
 
 // 推送载荷包含标题、正文及可选的点击跳转地址。

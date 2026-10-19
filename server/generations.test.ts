@@ -2,7 +2,12 @@
 import axios from "axios";
 import { and, eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { generationRequests, selfies, usageMeters } from "../drizzle/schema";
+import {
+  conversations,
+  generationRequests,
+  selfies,
+  usageMeters,
+} from "../drizzle/schema";
 import { TIER_LIMITS } from "../shared/quotas";
 import {
   getDb,
@@ -28,6 +33,8 @@ import * as billing from "./billing";
 import {
   reserveGeneration,
   completeTextGeneration,
+  completeImageGeneration,
+  failImageGeneration,
   failGeneration,
   expireGenerations,
 } from "./generations";
@@ -84,6 +91,39 @@ afterEach(() => {
 });
 
 describe("generation settlement", () => {
+  it("updates conversation activity atomically for text, images and persisted failure messages", async () => {
+    const { userId, conversation } = await seed();
+    const db = (await getDb())!;
+    for (const kind of ["chat", "selfie", "failed"] as const) {
+      await db
+        .update(conversations)
+        .set({ updatedAt: new Date("2020-01-01T00:00:00Z") })
+        .where(eq(conversations.id, conversation.id));
+      const id = await reserveGeneration({
+        userId,
+        conversationId: conversation.id,
+        kind: kind === "chat" ? "chat" : "selfie",
+      });
+      if (kind === "chat")
+        await completeTextGeneration(id, userId, "hello", "reply");
+      else if (kind === "failed") await failImageGeneration(id, userId, "自拍");
+      else
+        await completeImageGeneration(id, userId, {
+          imageKey: "test-activity",
+          imageUrl: "https://example.test/photo",
+          prompt: "test",
+          userContext: "test",
+          mode: "direct",
+        });
+      const [saved] = await db
+        .select()
+        .from(conversations)
+        .where(eq(conversations.id, conversation.id));
+      expect(saved.updatedAt.getTime()).toBeGreaterThan(
+        new Date("2020-01-01").getTime()
+      );
+    }
+  });
   it("refunds failed LLM calls without writing fallback messages or leaking credentials, then charges only the successful retry", async () => {
     const { userId, conversation, caller } = await seed();
     const error = new axios.AxiosError(

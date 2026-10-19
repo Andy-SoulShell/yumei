@@ -319,6 +319,14 @@ export default function Chat() {
     },
   });
 
+  const refreshConversation = async () => {
+    await Promise.all([
+      refetchMessages(),
+      utils.conversation.listWithDetails.invalidate(),
+      utils.conversation.list.invalidate(),
+    ]);
+  };
+
   const sendMessage = trpc.chat.sendMessage.useMutation({
     onMutate: () => {
       pendingMessageAfterId.current = chatMessages?.at(-1)?.id || 0;
@@ -326,7 +334,7 @@ export default function Chat() {
       scrollToBottom();
     },
     onSuccess: async data => {
-      await refetchMessages();
+      await refreshConversation();
       if (data.imageGeneration) {
         await selfieQuota.refetch();
         if (data.imageGeneration === "completed") {
@@ -421,7 +429,7 @@ export default function Chat() {
 
   const generateSelfie = trpc.selfie.generate.useMutation({
     onSuccess: async () => {
-      await refetchMessages();
+      await refreshConversation();
       await selfieQuota.refetch();
       toast.success(t("chat:selfieGenerated"));
       scrollToBottom();
@@ -467,7 +475,7 @@ export default function Chat() {
   // 合照生成
   const generateCouple = trpc.selfie.generateCouple.useMutation({
     onSuccess: async () => {
-      await refetchMessages();
+      await refreshConversation();
       await selfieQuota.refetch();
       toast.success(t("chat:couplePhotoGenerated"));
       scrollToBottom();

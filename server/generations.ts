@@ -189,6 +189,10 @@ async function insertMessage(tx: DbTransaction, data: InsertMessage) {
     .select()
     .from(messages)
     .where(eq(messages.id, Number(result.insertId)));
+  await tx
+    .update(conversations)
+    .set({ updatedAt: new Date() })
+    .where(eq(conversations.id, data.conversationId));
   return message;
 }
 

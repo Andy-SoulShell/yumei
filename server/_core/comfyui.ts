@@ -41,7 +41,15 @@ export async function buildImageWorkflow(params: {
   mode: ImageGenerationMode;
   prompt: string;
   references?: string[];
+  seed?: number;
 }): Promise<Workflow> {
+  if (
+    params.seed !== undefined &&
+    (!Number.isSafeInteger(params.seed) ||
+      params.seed < 0 ||
+      params.seed >= 2 ** 48)
+  )
+    throw new Error("图片种子必须为 0 到 2^48 之间的整数");
   const file =
     params.mode === "text" ? "qwen-image-text.json" : "qwen-image-edit.json";
   const dir = process.env.COMFYUI_WORKFLOW_DIR || "workflows/comfyui";
@@ -50,7 +58,7 @@ export async function buildImageWorkflow(params: {
   );
   const encoder = params.mode === "text" ? "459:452" : "459:474";
   workflow[encoder].inputs.prompt = params.prompt;
-  workflow["459:458"].inputs.seed = randomInt(0, 2 ** 48 - 1);
+  workflow["459:458"].inputs.seed = params.seed ?? randomInt(0, 2 ** 48 - 1);
   workflow[OUTPUT_NODE].inputs.filename_prefix = `yumei/${randomUUID()}`;
   if (params.mode === "reference") {
     if (!params.references?.length)
@@ -104,6 +112,7 @@ export class ComfyUIClient {
     prompt: string;
     mode: ImageGenerationMode;
     references?: ImageInput[];
+    seed?: number;
   }): Promise<Buffer> {
     const deadline = Date.now() + (this.options.timeoutMs ?? 600_000);
     const requestOptions = () => ({

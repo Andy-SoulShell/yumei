@@ -10,6 +10,8 @@
 
 ## 视觉规则
 
+选项图统一为 YUMEI 自带 ComfyUI 生成的 `studio-v2` 素材，共 124 张，保持 512×800 完整画幅。统一浅暖灰背景、柔和左上方光线、深蓝与米白服装基调；写实与动漫保留各自的表现方式。发型采用头肩视角，体型采用完整站姿，模板通过服装与相关道具呈现身份。
+
 - 字号：标题 22px、区域标题 20px、正文 14px、辅助文字 12px；手机标题缩至 18px。
 - 间距：8 / 12 / 16 / 24px；圆角：8 / 12px。
 - 色彩：复用 YUMEI 主题变量；选中状态使用主色边框与勾选标识。
@@ -36,3 +38,11 @@
 生成与接口：`node node_modules/vitest/vitest.mjs run --config vitest.creator.config.ts`。接口测试使用替身，不写应用数据库。fal 的纯文字端点及 PNG 输出参数依据[官方接口文档](https://fal.ai/models/xai/grok-imagine-image/api)。
 
 浏览器验证覆盖桌面与手机的选项显示、前后步、摘要和固定操作区；类型检查、静态检查和构建应同时通过。
+
+## 素材重生成
+
+`node node_modules/tsx/dist/cli.mjs scripts/regenerate-creator-assets.ts` 复用项目的 `ComfyUIClient` 和 Qwen Image 2.1 工作流，读取现有环境配置。逐张保存进度，重新运行会跳过提示词、种子与成品一致的已完成项；`--only` 可指定分支或选项前缀。固定分支种子使同组构图与人物风格更稳定，明确的属性描述优先于通用美术规范。
+
+生成稿与审看图保存在忽略目录 `output/creator/generated-v2/`。`scripts/creator-assets-media.py` 使用 Pillow 验证尺寸、哈希和非空画面，并生成逐组审看图；只有全部 124 张完成后，`--publish` 才会将完整画面编码为 WebP，替换站内素材。提示词、种子、原稿及 WebP 哈希见 `creator-assets-v2.json`。
+
+原始 PNG 的画面内容由 YUMEI 生图链路生成，Pillow 仅负责检查、审看图排版及 WebP 编码。选项 URL 带素材版本参数，刷新后直接读取新图。

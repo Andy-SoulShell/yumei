@@ -22,6 +22,18 @@ afterEach(() => {
 });
 
 describe("Qwen Image workflow adaptation", () => {
+  it("supports reproducible catalogue seeds without changing the workflow defaults", async () => {
+    const workflow = await buildImageWorkflow({
+      mode: "text",
+      prompt: "catalogue",
+      seed: 12345,
+    });
+    expect(workflow["459:458"].inputs.seed).toBe(12345);
+    for (const seed of [-1, 0.1, 2 ** 48, NaN])
+      await expect(
+        buildImageWorkflow({ mode: "text", prompt: "catalogue", seed })
+      ).rejects.toThrow("种子");
+  });
   it("uses the requested text without demo prompts or prompt enhancer nodes", async () => {
     const workflow = await buildImageWorkflow({
       mode: "text",

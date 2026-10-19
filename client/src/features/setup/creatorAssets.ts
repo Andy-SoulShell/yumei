@@ -1,4 +1,5 @@
 /** 角色创建器的本地图片选项。 */
+export const CREATOR_ASSET_VERSION = "studio-v2";
 export type CreatorGender = "female" | "male";
 export type CreatorStyle = "realistic" | "anime";
 export type CreatorCategory =

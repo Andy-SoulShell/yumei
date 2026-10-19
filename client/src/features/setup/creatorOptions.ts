@@ -1,6 +1,7 @@
 import type { Translator } from "@shared/i18n";
 import { enCreator } from "@shared/locales/creator";
 import {
+  CREATOR_ASSET_VERSION,
   CREATOR_IMAGE_GROUPS,
   type CreatorCategory,
   type CreatorGender,
@@ -31,7 +32,10 @@ export function creatorOptions(
         group.style === style &&
         group.category === category
     )?.options ?? []
-  );
+  ).map(option => ({
+    ...option,
+    imageUrl: `${option.imageUrl}?v=${CREATOR_ASSET_VERSION}`,
+  }));
 }
 
 /** 将偏好标签转为生成形象使用的文字描述。 */

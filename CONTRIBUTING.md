@@ -37,7 +37,8 @@
 cd /path/to/yumei
 
 # 安装依赖
-corepack pnpm install --frozen-lockfile
+corepack enable
+pnpm install --frozen-lockfile
 
 # 启动开发服务器
 pnpm dev

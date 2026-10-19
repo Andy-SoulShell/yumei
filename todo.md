@@ -1,21 +1,23 @@
-# YUMEI — 状态与待办
+# YUMEI 状态与待办
 
-v1–v3 的功能清单（对话、自拍、语音、多女友、亲密度等）已全部完成，历史见
-[`CHANGELOG.md`](CHANGELOG.md)。v4 的生产化重构（自托管、记忆、订阅、体验）
-也已落地，里程碑 M1–M4 见 `README.md` 的 Project status。
+当前为 YUMEI v1.0.0 初始代码基线，后续以 [PRD v0.6](docs/亚洲版成人AI角色陪伴产品_PRD_v0.6.md) 为产品目标。已有功能和部署方式见 [README.md](README.md)。
 
-## 已完成（v4 / M1–M4）
+## 已完成
 
-- [x] M1 独立可用：邮箱登录、本地/S3 存储、OpenRouter 唯一 AI 路径、
-      服务端限流+配额、Docker、合规三件套
-- [x] M2 长期记忆：提取 / 注入 / 「她记得你的事」页面 / 记忆型主动消息
-- [x] M3 订阅：Lemon Squeezy 三档 + 档位配额 + 自托管全解锁
-- [x] M4 体验：亲密度解锁自拍姿势 / 合照 / 语音往返 / Web Push
+- [x] YUMEI 命名、默认角色、独立配置与初始化迁移
+- [x] 邮箱登录、本地/S3 存储、Docker 部署与健康检查
+- [x] 聊天、自拍、语音、长期记忆、亲密度、订阅和推送的现有实现迁入
+- [x] TypeScript strict、ESLint、Prettier 与 GitHub Actions 检查及构建
+- [x] 清理演示页面、未引用组件、无用依赖、调试补丁和失效文档
 
-## 待办（非阻塞的加固项）
+## 待办
 
-- [ ] 数据层：外键 + 热路径索引 + 事务（Phase 2）
-- [ ] 架构：拆分 routers.ts / db.ts，Provider 超时重试熔断（Phase 3）
-- [ ] 运维：GitHub Actions CI、结构化日志（pino）、Sentry（Phase 5）
-- [ ] 前端：拆分 Settings/Home/Chat 巨型组件，全量 i18n（en + zh）（Phase 6）
-- [ ] 合规：账号数据导出 / 删除（Phase 6）
+- [ ] 修复应用与 MySQL 不同时区下的主动通知每日频控
+- [ ] 在 CI 中接入独立 MySQL，运行完整功能测试
+- [ ] 数据层补充外键、热路径索引和事务
+- [ ] 拆分 `routers.ts`、`db.ts` 与大型页面组件
+- [ ] 补充 Provider 超时、重试与故障处理
+- [ ] 完善结构化日志和错误监控
+- [ ] 完整中英文国际化
+- [ ] 账号数据导出和删除
+- [ ] 按 PRD 逐项核对并实现后续产品能力

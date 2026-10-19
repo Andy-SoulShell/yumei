@@ -139,7 +139,7 @@ async function makeGirlfriend(userId: string) {
 
 describe("memory storage (DB)", () => {
   it("inserts new memories and reinforces near-duplicates", async () => {
-    if (!(await getDb())) return;
+    if (!(await getDb())) throw new Error("DATABASE_URL required");
     const userId = `mem-user-${nanoid(8)}`;
     const gf = await makeGirlfriend(userId);
 
@@ -161,7 +161,7 @@ describe("memory storage (DB)", () => {
   });
 
   it("enforces level-based capacity, sparing pinned rows", async () => {
-    if (!(await getDb())) return;
+    if (!(await getDb())) throw new Error("DATABASE_URL required");
     const userId = `mem-user-${nanoid(8)}`;
     const gf = await makeGirlfriend(userId);
 
@@ -186,7 +186,7 @@ describe("memory storage (DB)", () => {
   });
 
   it("builds a relevance-ranked prompt block and refreshes recall time", async () => {
-    if (!(await getDb())) return;
+    if (!(await getDb())) throw new Error("DATABASE_URL required");
     const userId = `mem-user-${nanoid(8)}`;
     const gf = await makeGirlfriend(userId);
 
@@ -214,14 +214,14 @@ describe("memory storage (DB)", () => {
   });
 
   it("returns empty block when there are no memories", async () => {
-    if (!(await getDb())) return;
+    if (!(await getDb())) throw new Error("DATABASE_URL required");
     const userId = `mem-user-${nanoid(8)}`;
     const gf = await makeGirlfriend(userId);
     expect(await buildMemoryPromptBlock(userId, gf.id, "你好", 1)).toBe("");
   });
 
   it("delete removes only the caller's memory", async () => {
-    if (!(await getDb())) return;
+    if (!(await getDb())) throw new Error("DATABASE_URL required");
     const userId = `mem-user-${nanoid(8)}`;
     const gf = await makeGirlfriend(userId);
     await storeExtractedMemories(userId, gf.id, [
@@ -240,7 +240,7 @@ describe("memory storage (DB)", () => {
 
 describe("proactive notifications reference memories", () => {
   it("mentions a fresh event memory in the notification", async () => {
-    if (!(await getDb())) return;
+    if (!(await getDb())) throw new Error("DATABASE_URL required");
     const userId = `mem-user-${nanoid(8)}`;
     const gf = await makeGirlfriend(userId);
     await storeExtractedMemories(userId, gf.id, [

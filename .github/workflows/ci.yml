@@ -10,6 +10,22 @@ permissions:
 jobs:
   checks:
     runs-on: ubuntu-latest
+    env:
+      TZ: UTC
+      DATABASE_URL: mysql://root:ci-test-password@127.0.0.1:3306/yumei_test
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_DATABASE: yumei_test
+          MYSQL_ROOT_PASSWORD: ci-test-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pci-test-password --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
@@ -18,4 +34,7 @@ jobs:
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+      - run: pnpm db:migrate
+      - run: pnpm test
+      - run: TZ=Asia/Shanghai pnpm test server/notification-frequency.test.ts
       - run: pnpm build

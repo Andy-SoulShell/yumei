@@ -1,209 +1,78 @@
-/** 覆盖模拟供应商余额响应解析，当前不覆盖实际业务计量接口。 */
+/** 通过真实业务接口验证套餐用量、BYOK 状态和升级入口。 */
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { appRouter } from "./routers";
+import { createTestUser } from "./testFixtures";
+import { tryConsumeDailyMeter } from "./_core/quota";
+import { keyProvider } from "./_core/keyProvider";
+import type { TrpcContext } from "./_core/context";
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import axios from "axios";
+async function userCaller() {
+  const userId = await createTestUser();
+  return {
+    userId,
+    caller: appRouter.createCaller({
+      user: { id: userId },
+      req: {},
+      res: {},
+    } as TrpcContext),
+  };
+}
+afterEach(() => vi.unstubAllEnvs());
 
-vi.mock("axios");
-const mockedAxios = vi.mocked(axios, true);
-
-describe("API Usage Queries", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  describe("OpenRouter Credits", () => {
-    it("should parse OpenRouter credits response correctly", async () => {
-      mockedAxios.get.mockResolvedValueOnce({
-        data: {
-          data: {
-            total_credits: 100.5,
-            total_usage: 25.75,
-          },
-        },
-      });
-
-      const response = await axios.get("https://openrouter.ai/api/v1/credits", {
-        headers: { Authorization: "Bearer test-key" },
-      });
-
-      const data = response.data.data;
-      expect(data.total_credits).toBe(100.5);
-      expect(data.total_usage).toBe(25.75);
-      expect(data.total_credits - data.total_usage).toBeCloseTo(74.75);
+describe("usage APIs", () => {
+  it("returns the real free daily counters and no paid checkout links", async () => {
+    vi.stubEnv("BILLING_PROVIDER", "free");
+    const { userId, caller } = await userCaller();
+    await tryConsumeDailyMeter(userId, "chat", 30, 4);
+    await tryConsumeDailyMeter(userId, "selfie", 1);
+    const info = await caller.billing.getInfo();
+    expect(info.tier).toBe("free");
+    expect(info.usage).toMatchObject({
+      chatToday: 4,
+      chatLimit: 30,
+      selfiesUsed: 1,
+      selfieLimit: 1,
+      selfiePeriod: "day",
     });
-
-    it("should handle OpenRouter 401 error", async () => {
-      mockedAxios.get.mockRejectedValueOnce({
-        response: { status: 401 },
-      });
-
-      try {
-        await axios.get("https://openrouter.ai/api/v1/credits", {
-          headers: { Authorization: "Bearer invalid-key" },
-        });
-        expect.unreachable("Should have thrown");
-      } catch (error: any) {
-        expect(error.response.status).toBe(401);
-      }
-    });
-
-    it("should handle OpenRouter 403 error for non-management keys", async () => {
-      mockedAxios.get.mockRejectedValueOnce({
-        response: { status: 403 },
-      });
-
-      try {
-        await axios.get("https://openrouter.ai/api/v1/credits", {
-          headers: { Authorization: "Bearer non-management-key" },
-        });
-        expect.unreachable("Should have thrown");
-      } catch (error: any) {
-        expect(error.response.status).toBe(403);
-      }
+    expect(info.checkoutUrls).toEqual({ plus: null, pro: null });
+    expect(await caller.selfie.quota()).toMatchObject({
+      used: 1,
+      remaining: 0,
+      unlimited: false,
     });
   });
 
-  describe("ElevenLabs Usage", () => {
-    it("should parse ElevenLabs subscription response correctly", async () => {
-      mockedAxios.get.mockResolvedValueOnce({
-        data: {
-          tier: "starter",
-          character_count: 3500,
-          character_limit: 15000,
-          status: "active",
-        },
-      });
-
-      const response = await axios.get(
-        "https://api.elevenlabs.io/v1/user/subscription",
-        {
-          headers: { "xi-api-key": "test-key" },
-        }
-      );
-
-      const data = response.data;
-      expect(data.tier).toBe("starter");
-      expect(data.character_count).toBe(3500);
-      expect(data.character_limit).toBe(15000);
-      expect(data.character_limit - data.character_count).toBe(11500);
-      expect(data.status).toBe("active");
-    });
-
-    it("should handle ElevenLabs 401 error", async () => {
-      mockedAxios.get.mockRejectedValueOnce({
-        response: { status: 401 },
-      });
-
-      try {
-        await axios.get("https://api.elevenlabs.io/v1/user/subscription", {
-          headers: { "xi-api-key": "invalid-key" },
-        });
-        expect.unreachable("Should have thrown");
-      } catch (error: any) {
-        expect(error.response.status).toBe(401);
-      }
-    });
-
-    it("should calculate usage percentage correctly", () => {
-      const characterCount = 12000;
-      const characterLimit = 15000;
-      const usagePercent = (characterCount / characterLimit) * 100;
-      expect(usagePercent).toBe(80);
-    });
+  it("reports saved BYOK without exposing credentials and isolates other users", async () => {
+    vi.stubEnv("BILLING_PROVIDER", "free");
+    vi.stubEnv(
+      "KEY_ENCRYPTION_KEY",
+      "test-api-usage-encryption-secret-at-least-32-characters"
+    );
+    const first = await userCaller();
+    const second = await userCaller();
+    await keyProvider.setUserKey(
+      first.userId,
+      "openrouter",
+      "sk-or-v1-private-test-key"
+    );
+    await tryConsumeDailyMeter(first.userId, "chat", 30, 3);
+    const info = await first.caller.billing.getInfo();
+    expect(info.byok.chat).toBe(true);
+    expect(JSON.stringify(info)).not.toContain("private-test-key");
+    const other = await second.caller.billing.getInfo();
+    expect(other.byok.chat).toBe(false);
+    expect(other.usage.chatToday).toBe(0);
   });
 
-  describe("Fish Audio Credits", () => {
-    it("should parse Fish Audio credit response correctly", async () => {
-      mockedAxios.get.mockResolvedValueOnce({
-        data: {
-          _id: "abc123",
-          user_id: "user123",
-          credit: "45.6789",
-          has_free_credit: true,
-        },
-      });
-
-      const response = await axios.get(
-        "https://api.fish.audio/wallet/self/api-credit",
-        {
-          headers: { Authorization: "Bearer test-key" },
-        }
-      );
-
-      const data = response.data;
-      const credit = parseFloat(data.credit);
-      expect(credit).toBeCloseTo(45.6789);
-      expect(data.has_free_credit).toBe(true);
+  it("returns unlocked self-host limits without creating fake subscription data", async () => {
+    vi.stubEnv("BILLING_PROVIDER", "none");
+    const { caller } = await userCaller();
+    const info = await caller.billing.getInfo();
+    expect(info).toMatchObject({
+      mode: "none",
+      tier: "pro",
+      subscription: null,
     });
-
-    it("should handle Fish Audio credit as string", async () => {
-      mockedAxios.get.mockResolvedValueOnce({
-        data: {
-          credit: "0.0000",
-          has_free_credit: false,
-        },
-      });
-
-      const response = await axios.get(
-        "https://api.fish.audio/wallet/self/api-credit",
-        {
-          headers: { Authorization: "Bearer test-key" },
-        }
-      );
-
-      const credit = parseFloat(response.data.credit);
-      expect(credit).toBe(0);
-      expect(response.data.has_free_credit).toBe(false);
-    });
-
-    it("should handle Fish Audio 401 error", async () => {
-      mockedAxios.get.mockRejectedValueOnce({
-        response: { status: 401 },
-      });
-
-      try {
-        await axios.get("https://api.fish.audio/wallet/self/api-credit", {
-          headers: { Authorization: "Bearer invalid-key" },
-        });
-        expect.unreachable("Should have thrown");
-      } catch (error: any) {
-        expect(error.response.status).toBe(401);
-      }
-    });
-  });
-
-  describe("Usage Display Logic", () => {
-    it("should flag low balance for OpenRouter when remaining < 1", () => {
-      const totalCredits = 10;
-      const totalUsage = 9.5;
-      const remaining = totalCredits - totalUsage;
-      expect(remaining).toBeLessThan(1);
-    });
-
-    it("should flag low balance for ElevenLabs when remaining < 1000 chars", () => {
-      const characterCount = 14500;
-      const characterLimit = 15000;
-      const remaining = characterLimit - characterCount;
-      expect(remaining).toBeLessThan(1000);
-    });
-
-    it("should flag low balance for Fish Audio when credit < 1", () => {
-      const credit = 0.5;
-      expect(credit).toBeLessThan(1);
-    });
-
-    it("should determine progress bar color based on usage ratio", () => {
-      const getBarColor = (used: number, total: number) => {
-        const ratio = total > 0 ? used / total : 0;
-        if (ratio > 0.9) return "red";
-        if (ratio > 0.7) return "orange";
-        return "normal";
-      };
-
-      expect(getBarColor(95, 100)).toBe("red");
-      expect(getBarColor(80, 100)).toBe("orange");
-      expect(getBarColor(50, 100)).toBe("normal");
-      expect(getBarColor(0, 0)).toBe("normal");
-    });
+    expect(await caller.selfie.quota()).toMatchObject({ unlimited: true });
   });
 });

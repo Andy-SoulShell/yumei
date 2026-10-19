@@ -105,16 +105,16 @@ pnpm db:migrate
 | `pnpm build`                        | 构建前端和服务端                              |
 | `pnpm start`                        | 启动生产构建                                  |
 
-生成的迁移、快照、ComfyUI JSON 工作流及两份导入的产品文档不参与格式化。GitHub Actions 在 push 和 Pull Request 时运行 `pnpm check` 和生产构建。
+生成的迁移、快照、ComfyUI JSON 工作流及两份导入的产品文档不参与格式化。GitHub Actions 在 push 和 Pull Request 时运行静态检查、测试库迁移、完整测试、时区专项和生产构建。
 
-完整测试需要**已应用迁移的专用 MySQL 测试库**，测试会写入数据。Vitest 不会自动加载 `.env` 中的数据库连接，请显式传入：
+完整测试需要**已应用迁移的专用 MySQL 测试库**，库名必须包含 `test`，测试会写入数据。启动时会检查连通性和迁移校验和，缺少配置或迁移不匹配会失败。Vitest 不会自动加载 `.env` 中的数据库连接，请显式传入：
 
 ```bash
 DATABASE_URL=mysql://root:testpass@127.0.0.1:3306/yumei_test TZ=UTC pnpm db:migrate
 DATABASE_URL=mysql://root:testpass@127.0.0.1:3306/yumei_test TZ=UTC pnpm test
 ```
 
-应用与 MySQL 均使用 UTC 时已通过完整测试。应用为 Asia/Shanghai、MySQL 为 UTC 时，现有主动通知每日频控测试会失败；时区一致性修复列入 [待办](todo.md)。本地验证未调用真实 AI、支付或邮件服务。
+完整测试在 UTC 下运行；通知频控还会单独以 Asia/Shanghai 应用时区验证。数据库日期编解码和连接会话统一 UTC。CI 会创建独立 MySQL、应用迁移并执行完整测试。本地回归不调用真实 AI、支付或邮件服务。
 
 ## 项目结构
 

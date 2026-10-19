@@ -104,7 +104,9 @@ TZ=UTC pnpm test
 
 - 新增功能必须附带对应的测试用例
 - 测试文件放在 `server/` 或 `client/` 目录下，命名为 `*.test.ts` 或 `*.test.tsx`
-- 完整测试需通过环境变量提供已应用迁移的专用测试库 `DATABASE_URL`，并用 `TZ=UTC pnpm test` 执行
+- 完整测试需提供专用 MySQL 8 测试库 `DATABASE_URL`，库名必须包含 `test`；禁止使用当前应用库。先执行 `pnpm db:migrate`，再用 `TZ=UTC pnpm test` 运行测试。
+- 测试启动会检查数据库连通性及当前全部迁移的校验和；缺少配置、连不上或未迁移时直接失败，不能静默当作测试通过。
+- CI 自动创建独立 MySQL，执行迁移、完整测试和上海时区通知回归；AI 和发信服务使用测试替身，不使用真实运营密钥。
 
 ## 项目结构
 

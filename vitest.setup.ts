@@ -5,7 +5,7 @@ process.env.JWT_SECRET ??=
   "test-jwt-secret-not-used-for-real-signing-padded-padded-padded";
 process.env.NODE_ENV ??= "test";
 
-// 集成测试需显式提供已迁移的专用 MySQL 测试库；纯单元测试可省略。
+// 全局启动检查要求显式提供已迁移的专用 MySQL 测试库，库名须包含 test。
 
 // 上传测试会实际写入文件，默认使用当前进程专属的临时目录。
 process.env.STORAGE_DRIVER ??= "local";

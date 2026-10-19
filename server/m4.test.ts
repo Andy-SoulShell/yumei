@@ -77,7 +77,7 @@ describe("selfie pose library", () => {
   });
 
   it("rejects a locked pose server-side (LEVEL_LOCKED)", async () => {
-    if (!(await getDb())) return;
+    if (!(await getDb())) throw new Error("DATABASE_URL required");
     const userId = `m4-user-${nanoid(8)}`;
     const { convo } = await seedGirlfriendAndConversation(userId, 1);
     const caller = appRouter.createCaller(createAuthContext(userId).ctx);
@@ -92,7 +92,7 @@ describe("selfie pose library", () => {
   });
 
   it("rejects unknown pose ids", async () => {
-    if (!(await getDb())) return;
+    if (!(await getDb())) throw new Error("DATABASE_URL required");
     const userId = `m4-user-${nanoid(8)}`;
     const { convo } = await seedGirlfriendAndConversation(userId, 1);
     const caller = appRouter.createCaller(createAuthContext(userId).ctx);
@@ -109,7 +109,7 @@ describe("selfie pose library", () => {
 
 describe("couple photo gating", () => {
   it("requires pro tier when billing is enforced", async () => {
-    if (!(await getDb())) return;
+    if (!(await getDb())) throw new Error("DATABASE_URL required");
     process.env.BILLING_PROVIDER = "free"; // everyone free, no BYOK
     const userId = `m4-user-${nanoid(8)}`;
     const { convo } = await seedGirlfriendAndConversation(userId, 1);
@@ -125,7 +125,7 @@ describe("couple photo gating", () => {
   });
 
   it("rejects unsupported photo formats before any spend", async () => {
-    if (!(await getDb())) return;
+    if (!(await getDb())) throw new Error("DATABASE_URL required");
     // self-host mode: no tier gate, format check is the next stop
     process.env.BILLING_PROVIDER = "none";
     const userId = `m4-user-${nanoid(8)}`;
@@ -149,7 +149,7 @@ describe("web push", () => {
   });
 
   it("saves, reports, and removes subscriptions with ownership", async () => {
-    if (!(await getDb())) return;
+    if (!(await getDb())) throw new Error("DATABASE_URL required");
     const userId = `m4-push-${nanoid(8)}`;
     const endpoint = `https://push.example.com/ep/${nanoid(12)}`;
 
@@ -170,7 +170,7 @@ describe("web push", () => {
   });
 
   it("upserts on duplicate endpoints", async () => {
-    if (!(await getDb())) return;
+    if (!(await getDb())) throw new Error("DATABASE_URL required");
     const userId = `m4-push-${nanoid(8)}`;
     const endpoint = `https://push.example.com/ep/${nanoid(12)}`;
     await savePushSubscription(userId, {

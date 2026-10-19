@@ -1,10 +1,11 @@
 /** 基于事务清理任务回收媒体，保留仍被其他记录引用的共享文件。 */
-import { and, eq, or, sql } from "drizzle-orm";
+import { and, eq, or, sql, isNull, lte } from "drizzle-orm";
 import {
   girlfriends,
   mediaDeletions,
   messages,
   selfies,
+  voiceTranscriptions,
 } from "../drizzle/schema";
 import { getDb, withUserTransaction, type DbTransaction } from "./db";
 import { storageDelete } from "./storage";
@@ -41,12 +42,15 @@ async function hasReferences(
 export async function isMediaPendingDeletion(key: string): Promise<boolean> {
   const db = await getDb();
   if (!db) return false;
-  const [task] = await db
-    .select({ key: mediaDeletions.key })
+  const [pending] = await db
+    .select()
     .from(mediaDeletions)
-    .where(eq(mediaDeletions.key, key))
-    .limit(1);
-  return !!task && !(await hasReferences(db, key));
+    .where(eq(mediaDeletions.key, key));
+  return (
+    !!pending &&
+    (pending.deleting || pending.availableAt.getTime() <= Date.now()) &&
+    !(await hasReferences(db, key))
+  );
 }
 
 /** 将临时或写入失败的文件交给持久清理队列，不删除仍有业务引用的对象。 */
@@ -59,8 +63,8 @@ export async function queueMediaDeletion(
   for (const key of Array.from(new Set(keys.filter(Boolean)))) {
     await db
       .insert(mediaDeletions)
-      .values({ userId, key })
-      .onDuplicateKeyUpdate({ set: { key } });
+      .values({ userId, key, availableAt: new Date() })
+      .onDuplicateKeyUpdate({ set: { key, availableAt: new Date() } });
   }
   await flushMediaDeletions(userId);
 }
@@ -72,27 +76,57 @@ export async function flushMediaDeletions(userId?: string): Promise<void> {
   const tasks = await db
     .select()
     .from(mediaDeletions)
-    .where(userId ? eq(mediaDeletions.userId, userId) : undefined)
+    .where(
+      and(
+        userId ? eq(mediaDeletions.userId, userId) : undefined,
+        lte(mediaDeletions.availableAt, new Date()),
+        or(
+          isNull(mediaDeletions.leaseUntil),
+          lte(mediaDeletions.leaseUntil, new Date())
+        )
+      )
+    )
     .orderBy(mediaDeletions.updatedAt)
     .limit(20);
   for (const task of tasks) {
     try {
-      await withUserTransaction(task.userId, async tx => {
+      const claimed = await withUserTransaction(task.userId, async tx => {
         const [pending] = await tx
           .select()
           .from(mediaDeletions)
           .where(eq(mediaDeletions.key, task.key))
           .for("update");
-        if (!pending) return;
-        if (!(await hasReferences(tx, task.key))) await storageDelete(task.key);
-        await tx.delete(mediaDeletions).where(eq(mediaDeletions.key, task.key));
+        if (
+          !pending ||
+          (pending.leaseUntil && pending.leaseUntil.getTime() > Date.now())
+        )
+          return false;
+        if (await hasReferences(tx, task.key)) {
+          await tx
+            .delete(mediaDeletions)
+            .where(eq(mediaDeletions.key, task.key));
+          return false;
+        }
+        await tx
+          .update(mediaDeletions)
+          .set({ deleting: true, leaseUntil: new Date(Date.now() + 60_000) })
+          .where(eq(mediaDeletions.key, task.key));
+        return true;
       });
+      if (!claimed) continue;
+      await storageDelete(task.key);
+      await db.delete(mediaDeletions).where(eq(mediaDeletions.key, task.key));
     } catch (error) {
       await db
         .update(mediaDeletions)
         .set({
           attempts: sql`${mediaDeletions.attempts} + 1`,
           updatedAt: new Date(),
+          leaseUntil: null,
+          availableAt: new Date(
+            Date.now() +
+              Math.min(3_600_000, 1000 * 2 ** Math.min(task.attempts, 12))
+          ),
         })
         .where(
           and(
@@ -115,6 +149,11 @@ export function startMediaCleanupScheduler(): () => void {
       await flushMediaDeletions();
       const { expireGenerations } = await import("./generations");
       await expireGenerations();
+      const db = await getDb();
+      if (db)
+        await db
+          .delete(voiceTranscriptions)
+          .where(lte(voiceTranscriptions.expiresAt, new Date()));
     } catch (error) {
       log.error("[media] cleanup unavailable", providerErrorSummary(error));
     } finally {

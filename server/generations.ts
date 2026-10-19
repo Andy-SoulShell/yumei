@@ -162,8 +162,8 @@ async function cleanupMedia(
     if (key)
       await tx
         .insert(mediaDeletions)
-        .values({ key, userId: request.userId })
-        .onDuplicateKeyUpdate({ set: { key } });
+        .values({ key, userId: request.userId, availableAt: new Date() })
+        .onDuplicateKeyUpdate({ set: { key, availableAt: new Date() } });
   }
 }
 

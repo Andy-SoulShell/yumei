@@ -1,4 +1,5 @@
 import { awardIntimacy } from "./relationship";
+import { publishMedia } from "./managedMedia";
 import { BusinessRuleError } from "./_core/businessError";
 import { PROACTIVE_MESSAGES, proactiveTitle } from "../shared/notifications";
 import type { LocalizedMessage } from "../shared/i18n";
@@ -153,6 +154,7 @@ async function insertGirlfriend(
   tx: DbTransaction,
   data: InsertGirlfriend
 ): Promise<Girlfriend> {
+  await publishMedia(tx, data.userId, [data.referenceImageKey, data.avatarKey]);
   if (data.isActive ?? true)
     await tx
       .update(girlfriends)
@@ -274,7 +276,17 @@ export async function updateGirlfriend(
         .set({ isActive: false })
         .where(eq(girlfriends.userId, userId));
     }
+    await publishMedia(tx, userId, [data.avatarKey]);
     await tx.update(girlfriends).set(data).where(eq(girlfriends.id, id));
+    if (
+      target.avatarKey &&
+      data.avatarKey !== undefined &&
+      target.avatarKey !== data.avatarKey
+    )
+      await tx
+        .insert(mediaDeletions)
+        .values({ key: target.avatarKey, userId })
+        .onDuplicateKeyUpdate({ set: { availableAt: new Date() } });
     const profileFields = [
       "name",
       "personality",

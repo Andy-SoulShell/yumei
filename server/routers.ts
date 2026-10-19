@@ -1,3 +1,4 @@
+import { putStagedMedia } from "./managedMedia";
 import { saveTranscription, validateTranscription } from "./transcriptions";
 import { BusinessRuleError } from "./_core/businessError";
 /** 业务 tRPC 路由入口，组织认证、角色、聊天、图片、记忆、套餐与语音流程。 */
@@ -306,27 +307,39 @@ export const appRouter = router({
         }
         const fileKey = `girlfriend-${ctx.user.id}-${nanoid()}.${mimeType.split("/")[1]}`;
 
-        const { url: imageUrl } = await storagePut(
+        const { url: imageUrl } = await putStagedMedia(
+          ctx.user.id,
           fileKey,
           imageBuffer,
           mimeType
         );
 
         // 创建女友配置
-        const girlfriend = await createGirlfriend(
-          {
-            userId: ctx.user.id,
-            name: input.name,
-            personality: input.personality,
-            appearance: input.appearance,
-            interests: input.interests,
-            customPrompt: input.customPrompt || null,
-            referenceImageUrl: imageUrl,
-            referenceImageKey: fileKey,
-            isActive: true,
-          },
-          maximum
-        );
+        let girlfriend;
+        try {
+          girlfriend = await createGirlfriend(
+            {
+              userId: ctx.user.id,
+              name: input.name,
+              personality: input.personality,
+              appearance: input.appearance,
+              interests: input.interests,
+              customPrompt: input.customPrompt || null,
+              referenceImageUrl: imageUrl,
+              referenceImageKey: fileKey,
+              isActive: true,
+            },
+            maximum
+          );
+        } catch (error) {
+          await queueMediaDeletion(ctx.user.id, [fileKey]).catch(cleanupError =>
+            log.error(
+              "[media] failed upload will retry",
+              providerErrorSummary(cleanupError)
+            )
+          );
+          throw error;
+        }
 
         return girlfriend;
       }),
@@ -352,8 +365,8 @@ export const appRouter = router({
           interests: z.string().optional(),
           customPrompt: z.string().max(300).nullable().optional(),
           isActive: z.boolean().optional(),
-          avatarUrl: z.string().nullable().optional(),
-          avatarKey: z.string().nullable().optional(),
+          avatarUrl: z.null().optional(),
+          avatarKey: z.null().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -377,6 +390,11 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
+        if (!(await getActiveGirlfriend(ctx.user.id, input.girlfriendId)))
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Companion not found",
+          });
         // 验证文件大小（Base64 编码后约为原始大小的 4/3，10MB 原始文件 ≈ 13.33MB Base64）
         const maxBase64Size = (10 * 1024 * 1024 * 4) / 3; // ~13.33MB
         if (input.imageBase64.length > maxBase64Size) {
@@ -390,17 +408,29 @@ export const appRouter = router({
             : input.mimeType.split("/")[1];
         const fileKey = `avatar-${ctx.user.id}-${input.girlfriendId}-${nanoid()}.${ext}`;
 
-        const { url: avatarUrl } = await storagePut(
+        const { url: avatarUrl } = await putStagedMedia(
+          ctx.user.id,
           fileKey,
           imageBuffer,
           input.mimeType
         );
 
         // 更新女友记录
-        await updateGirlfriend(input.girlfriendId, ctx.user.id, {
-          avatarUrl,
-          avatarKey: fileKey,
-        });
+        try {
+          await updateGirlfriend(input.girlfriendId, ctx.user.id, {
+            avatarUrl,
+            avatarKey: fileKey,
+          });
+        } catch (error) {
+          await queueMediaDeletion(ctx.user.id, [fileKey]).catch(cleanupError =>
+            log.error(
+              "[media] failed avatar will retry",
+              providerErrorSummary(cleanupError)
+            )
+          );
+          throw error;
+        }
+        await flushMediaDeletions(ctx.user.id);
 
         return { avatarUrl, avatarKey: fileKey };
       }),
@@ -454,7 +484,8 @@ export const appRouter = router({
       const girlfriend = await createDefaultGirlfriend(
         ctx.user.id,
         async () => {
-          const reference = await storagePut(
+          const reference = await putStagedMedia(
+            ctx.user.id,
             `default-yumei-${ctx.user.id}-${nanoid()}.jpg`,
             await readDefaultReference(),
             "image/jpeg"
@@ -1574,10 +1605,12 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
             // 上传音频到 S3
             const audioBuffer = Buffer.from(response.data);
             const fileKey = `tts-${ctx.user.id}-${nanoid()}.mp3`;
-            const { url } = await storagePut(
+            const { url } = await putStagedMedia(
+              ctx.user.id,
               fileKey,
               audioBuffer,
-              "audio/mpeg"
+              "audio/mpeg",
+              24 * 60 * 60_000
             );
 
             return { audioUrl: url, provider: "elevenlabs" as const };
@@ -1618,10 +1651,12 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
             // 上传音频到 S3
             const audioBuffer = Buffer.from(response.data);
             const fileKey = `tts-${ctx.user.id}-${nanoid()}.mp3`;
-            const { url } = await storagePut(
+            const { url } = await putStagedMedia(
+              ctx.user.id,
               fileKey,
               audioBuffer,
-              "audio/mpeg"
+              "audio/mpeg",
+              24 * 60 * 60_000
             );
 
             return { audioUrl: url, provider: "fishaudio" as const };
@@ -1683,34 +1718,17 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
           });
         }
 
-        // 3. 上传到 S3
-        const ext = input.mimeType.includes("webm")
-          ? "webm"
-          : input.mimeType.includes("mp4")
-            ? "m4a"
-            : input.mimeType.includes("ogg")
-              ? "ogg"
-              : "audio";
-        const fileKey = `voice-messages/${ctx.user.id}/${Date.now()}-${nanoid(8)}.${ext}`;
-        const { url: audioUrl } = await storagePut(
-          fileKey,
-          audioBuffer,
-          input.mimeType
-        );
-
-        // 4. 解析 OpenAI Whisper 密钥：用户 BYOK → 运营方 OPERATOR_OPENAI_KEY。
         const whisperApiKey = sttKey.value;
-        if (!whisperApiKey) {
+        if (!whisperApiKey)
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
             message:
-              "Voice transcription is not configured yet: no OpenAI key available. Set OPERATOR_OPENAI_KEY on the server, or add your own key in Settings.",
+              "Voice transcription is not configured yet: no OpenAI key available.",
           });
-        }
 
         const result = await transcribeWithOpenAI(
           {
-            audioUrl,
+            audio: { data: audioBuffer, mimeType: input.mimeType },
             language: input.language,
             prompt: "这是一段与 AI 女友的日常对话语音消息",
           },
@@ -1721,7 +1739,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         if ("error" in result) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: (result as any).error,
+            message: result.error,
           });
         }
 
@@ -1729,9 +1747,9 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         // 7. 返回转写结果及仅由服务端签发的一次性行为凭据。
         return {
           transcriptionId,
-          text: (result as any).text?.trim() || "",
-          language: (result as any).language || "unknown",
-          duration: (result as any).duration || 0,
+          text: result.text?.trim() || "",
+          language: result.language || "unknown",
+          duration: result.duration || 0,
         };
       }),
   }),

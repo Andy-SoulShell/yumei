@@ -151,6 +151,10 @@ describe("media cleanup", () => {
     expect(job.attempts).toBe(1);
     expect(await isMediaPendingDeletion(reference.key)).toBe(true);
     remove.mockRestore();
+    await db
+      .update(mediaDeletions)
+      .set({ availableAt: new Date("2020-01-01") })
+      .where(eq(mediaDeletions.key, reference.key));
     await flushMediaDeletions(gf.userId);
     expect(await isMediaPendingDeletion(reference.key)).toBe(false);
     await expect(storage.storageRead(reference.key)).rejects.toThrow();

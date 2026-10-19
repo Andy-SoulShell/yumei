@@ -183,7 +183,7 @@ describe("girlfriend.uploadAvatar", () => {
 });
 
 describe("girlfriend.update with avatar fields", () => {
-  it("should update girlfriend with avatar fields", async () => {
+  it("rejects assigning arbitrary media URLs and keys", async () => {
     const { ctx } = createAuthContext();
     await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
@@ -196,14 +196,13 @@ describe("girlfriend.update with avatar fields", () => {
       referenceImageMimeType: "image/png",
     });
 
-    // 更新头像字段
-    const result = await caller.girlfriend.update({
-      id: gf.id,
-      avatarUrl: "https://example.com/avatar.png",
-      avatarKey: "avatar-test-key.png",
-    });
-
-    expect(result.success).toBe(true);
+    await expect(
+      caller.girlfriend.update({
+        id: gf.id,
+        avatarUrl: "https://example.com/avatar.png",
+        avatarKey: "foreign-key",
+      } as any)
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
   it("should clear avatar by setting null", async () => {
@@ -220,10 +219,10 @@ describe("girlfriend.update with avatar fields", () => {
     });
 
     // 先设置头像
-    await caller.girlfriend.update({
-      id: gf.id,
-      avatarUrl: "https://example.com/avatar.png",
-      avatarKey: "avatar-test-key.png",
+    await caller.girlfriend.uploadAvatar({
+      girlfriendId: gf.id,
+      imageBase64: TINY_PNG_BASE64,
+      mimeType: "image/png",
     });
 
     // 清除头像

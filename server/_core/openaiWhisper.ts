@@ -1,10 +1,10 @@
-/** 下载已上传的语音并调用 OpenAI Whisper，向路由返回结构化结果或错误。 */
+/** 使用内存中的录音调用 OpenAI Whisper，返回结构化结果或错误。 */
 
-/** 语音转写输入，包含可下载地址与可选语言、上下文提示。 */
+/** 语音转写输入，包含录音字节与可选语言、上下文提示。 */
 
 export type TranscribeOptions = {
-  /** 服务端能够下载的音频地址。 */
-  audioUrl: string;
+  /** 已通过业务层校验的录音字节；不写入公开存储。 */
+  audio: { data: Uint8Array; mimeType: string };
   /** 可选的转写语言代码，例如 zh 或 en。 */
   language?: string;
   /** 辅助识别专有词或语境的可选文本。 */
@@ -53,11 +53,11 @@ export type TranscriptionError = {
 };
 
 /**
- * 下载音频后调用 Whisper，并返回成功结果或结构化错误。
+ * 使用录音字节调用 Whisper，并返回成功结果或结构化错误。
  *
- * @param options - 可访问的音频地址、语言及可选提示词
+ * @param options - 录音字节、语言及可选提示词
  * @param apiKey - 仅供服务端使用的 OpenAI 密钥
- * @remarks 下载后检查二十五 MB 上限；当前下载和转写请求未设置独立超时。
+ * @remarks 不保存原始录音；转写最多等待六十秒。
  */
 export async function transcribeWithOpenAI(
   options: TranscribeOptions,
@@ -73,43 +73,18 @@ export async function transcribeWithOpenAI(
       };
     }
 
-    // 从给定地址下载音频。
-    let audioBuffer: Buffer;
-    let mimeType: string;
-    try {
-      const response = await fetch(options.audioUrl);
-      if (!response.ok) {
-        return {
-          error: "Failed to download audio file",
-          code: "INVALID_FORMAT",
-          details: `HTTP ${response.status}: ${response.statusText}`,
-        };
-      }
-
-      audioBuffer = Buffer.from(await response.arrayBuffer());
-      mimeType = response.headers.get("content-type") || "audio/mpeg";
-
-      // 按当前实现的 25 MB 上限校验文件大小。
-      const sizeMB = audioBuffer.length / (1024 * 1024);
-      if (sizeMB > 25) {
-        return {
-          error: "Audio file exceeds OpenAI's maximum size limit",
-          code: "FILE_TOO_LARGE",
-          details: `File size is ${sizeMB.toFixed(2)}MB, maximum allowed is 25MB`,
-        };
-      }
-    } catch (error) {
+    const audioBuffer = Buffer.from(options.audio.data);
+    const mimeType = options.audio.mimeType;
+    if (audioBuffer.length > 25 * 1024 * 1024)
       return {
-        error: "Failed to fetch audio file",
-        code: "SERVICE_ERROR",
-        details: error instanceof Error ? error.message : "Unknown error",
+        error: "Audio file exceeds maximum size",
+        code: "FILE_TOO_LARGE",
       };
-    }
 
     // 使用 multipart 表单上传到 Whisper 接口。
     const formData = new FormData();
 
-    // 将下载内容封装为音频文件。
+    // 将录音字节封装为音频文件。
     const filename = `audio.${getFileExtension(mimeType)}`;
     const audioBlob = new Blob([new Uint8Array(audioBuffer)], {
       type: mimeType,
@@ -136,6 +111,7 @@ export async function transcribeWithOpenAI(
           Authorization: `Bearer ${apiKey}`,
         },
         body: formData,
+        signal: AbortSignal.timeout(60_000),
       }
     );
 

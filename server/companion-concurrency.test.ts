@@ -7,6 +7,7 @@ import {
   getUserGirlfriends,
   restoreGirlfriend,
   softDeleteGirlfriend,
+  updateGirlfriend,
 } from "./db";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
@@ -22,6 +23,37 @@ const profile = {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("companion lifecycle concurrency", () => {
+  it("serializes active switches and preserves state when the target is invalid", async () => {
+    const userId = await createTestUser();
+    const first = await createGirlfriend({ ...profile, userId });
+    const second = await createGirlfriend({ ...profile, userId });
+    const otherId = await createTestUser();
+    const foreign = await createGirlfriend({ ...profile, userId: otherId });
+    for (const id of [-1, foreign.id]) {
+      await expect(
+        updateGirlfriend(id, userId, { isActive: true })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      expect(
+        (await getUserGirlfriends(userId))
+          .filter(role => role.isActive)
+          .map(role => role.id)
+      ).toEqual([second.id]);
+    }
+    await Promise.all(
+      Array.from({ length: 8 }, (_, index) =>
+        updateGirlfriend(index % 2 ? first.id : second.id, userId, {
+          isActive: true,
+        })
+      )
+    );
+    expect(
+      (await getUserGirlfriends(userId)).filter(role => role.isActive)
+    ).toHaveLength(1);
+    await softDeleteGirlfriend(first.id, userId);
+    await expect(
+      updateGirlfriend(first.id, userId, { isActive: true })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
   it("runs the default factory once and returns one role to all callers", async () => {
     const userId = await createTestUser();
     const factory = vi.fn(async () => ({ ...profile, userId }));

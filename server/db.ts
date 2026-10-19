@@ -244,28 +244,38 @@ export async function getUserGirlfriends(
 /**
  * 按用户归属更新角色，切换激活状态时先停用同用户的其他角色。
  *
- * @remarks 目标更新与其他角色停用是独立操作，数据字段的可写范围由调用方限制。
+ * @remarks 在用户事务锁内先验证目标，失败及并发切换不会破坏激活状态。
  */
 export async function updateGirlfriend(
   id: number,
   userId: string,
   data: Partial<InsertGirlfriend>
 ): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  // 如果设置为激活，先将该用户的其他女友设为非激活
-  if (data.isActive) {
-    await db
-      .update(girlfriends)
-      .set({ isActive: false })
-      .where(eq(girlfriends.userId, userId));
-  }
-
-  await db
-    .update(girlfriends)
-    .set(data)
-    .where(and(eq(girlfriends.id, id), eq(girlfriends.userId, userId)));
+  await withUserTransaction(userId, async tx => {
+    const [target] = await tx
+      .select()
+      .from(girlfriends)
+      .where(
+        and(
+          eq(girlfriends.id, id),
+          eq(girlfriends.userId, userId),
+          isNull(girlfriends.deletedAt)
+        )
+      )
+      .for("update");
+    if (!target)
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Companion not found",
+      });
+    if (data.isActive) {
+      await tx
+        .update(girlfriends)
+        .set({ isActive: false })
+        .where(eq(girlfriends.userId, userId));
+    }
+    await tx.update(girlfriends).set(data).where(eq(girlfriends.id, id));
+  });
 }
 
 // 会话与消息。

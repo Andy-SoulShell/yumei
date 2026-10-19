@@ -1,7 +1,9 @@
 /** 自拍姿势、生图方式与合照上传的选择弹窗。 */
 
+import { Input } from "@/components/ui/input";
 import { useI18n } from "@/lib/i18n";
 import { useRef, useState } from "react";
+import { RadioGroup, RadioGroupChoice } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -62,28 +64,21 @@ export function SelfiePoseDialog({
 
         {supportsTextToImage && (
           <div className="space-y-2">
-            <div
+            <RadioGroup
               className="grid grid-cols-2 gap-2"
-              role="group"
               aria-label={t("生图方式")}
+              value={selectedMode}
+              onValueChange={value =>
+                setGenerationMode(value as "reference" | "text")
+              }
             >
-              <Button
-                type="button"
-                variant={selectedMode === "reference" ? "default" : "outline"}
-                aria-pressed={selectedMode === "reference"}
-                onClick={() => setGenerationMode("reference")}
-              >
+              <RadioGroupChoice variant="segment" value="reference">
                 {t("参考图生图")}
-              </Button>
-              <Button
-                type="button"
-                variant={selectedMode === "text" ? "default" : "outline"}
-                aria-pressed={selectedMode === "text"}
-                onClick={() => setGenerationMode("text")}
-              >
+              </RadioGroupChoice>
+              <RadioGroupChoice variant="segment" value="text">
                 {t("文生图")}
-              </Button>
-            </div>
+              </RadioGroupChoice>
+            </RadioGroup>
             <p className="text-xs text-muted-foreground">
               {t("默认生成 9:16 竖屏照片。")}
               {selectedMode === "reference"
@@ -97,14 +92,16 @@ export function SelfiePoseDialog({
           {SELFIE_POSES.map(pose => {
             const locked = pose.minLevel > intimacyLevel;
             return (
-              <button
-                key={pose.id}
+              <Button
+                variant="plain"
+                size="none"
                 type="button"
+                key={pose.id}
                 disabled={locked}
                 title={
                   locked
                     ? t("亲密度 Lv.{v0} 解锁", { v0: pose.minLevel })
-                    : pose.label
+                    : t(pose.label)
                 }
                 className={`flex flex-col items-center gap-1 rounded-lg border p-3 text-sm transition-colors ${
                   locked
@@ -134,13 +131,13 @@ export function SelfiePoseDialog({
                     ·
                   </span>
                 )}
-              </button>
+              </Button>
             );
           })}
         </div>
 
         <div className="border-t pt-3">
-          <input
+          <Input
             ref={fileInputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp"

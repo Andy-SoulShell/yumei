@@ -3,6 +3,13 @@
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { trpc } from "@/lib/trpc";
@@ -205,7 +212,6 @@ export default function Chat() {
     playbackSpeed,
     updateSpeed,
   } = useTTS();
-  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
 
   const [message, setMessage] = useState("");
   const [inputMode, setInputMode] = useState<"text" | "voice">(() => {
@@ -739,7 +745,10 @@ export default function Chat() {
               const level = girlfriend.intimacyLevel || 1;
               const info = getLevelInfo(level);
               return (
-                <button
+                <Button
+                  variant="plain"
+                  size="none"
+                  type="button"
                   className={`text-xs flex items-center gap-0.5 ${info.color} hover:opacity-80 transition-opacity`}
                   onClick={() => setShowIntimacyPanel(true)}
                   title={t("亲密度: {v0} Lv.{v1}", {
@@ -752,7 +761,7 @@ export default function Chat() {
                     {t("Lv.")}
                     {level}
                   </span>
-                </button>
+                </Button>
               );
             })()}
           </div>
@@ -810,39 +819,42 @@ export default function Chat() {
         </Button>
 
         {/* 播放速度控制 */}
-        <div className="relative">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs font-mono px-1.5 sm:px-2 h-8"
-            onClick={() => setShowSpeedMenu(!showSpeedMenu)}
-            title={t("语音播放速度")}
-          >
-            {playbackSpeed}
-            {t("x")}
-          </Button>
-          {showSpeedMenu && (
-            <div className="absolute right-0 top-full mt-1 bg-popover text-popover-foreground border rounded-lg shadow-lg z-50 py-1 min-w-[80px]">
-              {SPEED_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  className={`w-full text-left px-3 py-1.5 text-sm hover:bg-accent transition-colors ${
-                    playbackSpeed === opt.value
-                      ? "text-primary font-semibold bg-primary/5"
-                      : ""
-                  }`}
-                  onClick={() => {
-                    updateSpeed(opt.value);
-                    setShowSpeedMenu(false);
-                    toast.success(t("播放速度已设为 {v0}", { v0: opt.label }));
-                  }}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs font-mono px-1.5 sm:px-2 h-8"
+              aria-label={t("语音播放速度")}
+              title={t("语音播放速度")}
+            >
+              {playbackSpeed}
+              {t("x")}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuRadioGroup
+              value={String(playbackSpeed)}
+              onValueChange={value => {
+                const option = SPEED_OPTIONS.find(
+                  option => String(option.value) === value
+                );
+                if (!option) return;
+                updateSpeed(option.value);
+                toast.success(t("播放速度已设为 {v0}", { v0: option.label }));
+              }}
+            >
+              {SPEED_OPTIONS.map(option => (
+                <DropdownMenuRadioItem
+                  key={option.value}
+                  value={String(option.value)}
                 >
-                  {opt.label}
-                </button>
+                  {option.label}
+                </DropdownMenuRadioItem>
               ))}
-            </div>
-          )}
-        </div>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <Button
           variant="ghost"
@@ -928,12 +940,25 @@ export default function Chat() {
                   >
                     {msg.imageUrl ? (
                       <div className="space-y-2">
-                        <img
-                          src={msg.imageUrl}
-                          alt={t("Selfie")}
-                          className="rounded-lg max-w-full max-h-[65vh] w-auto h-auto object-contain cursor-pointer"
-                          onClick={() => window.open(msg.imageUrl!, "_blank")}
-                        />
+                        <Button
+                          asChild
+                          variant="plain"
+                          size="none"
+                          className="block h-auto max-w-full rounded-lg"
+                        >
+                          <a
+                            href={msg.imageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={t("Selfie")}
+                          >
+                            <img
+                              src={msg.imageUrl}
+                              alt={t("Selfie")}
+                              className="rounded-lg max-w-full max-h-[65vh] w-auto h-auto object-contain"
+                            />
+                          </a>
+                        </Button>
                         {msg.content && msg.content !== "[自拍照片]" && (
                           <p className="text-sm">{msg.content}</p>
                         )}
@@ -949,7 +974,10 @@ export default function Chat() {
                   {msg.role === "assistant" &&
                     msg.content &&
                     msg.content !== "[自拍照片]" && (
-                      <button
+                      <Button
+                        variant="plain"
+                        size="none"
+                        type="button"
                         onClick={() => handleSpeakMessage(msg.content)}
                         className="self-start ml-1 text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
                         title={t("播放语音{v0}", {
@@ -961,7 +989,7 @@ export default function Chat() {
                         ) : (
                           <Volume2 className="w-3.5 h-3.5" />
                         )}
-                      </button>
+                      </Button>
                     )}
                 </div>
 
@@ -1070,14 +1098,16 @@ export default function Chat() {
               </a>
             </p>
           </div>
-          <button
+          <Button
+            variant="plain"
+            size="none"
             type="button"
             className="opacity-60 hover:opacity-100 shrink-0"
             onClick={() => setShowCrisisAlert(false)}
             aria-label={t("关闭提示")}
           >
             ✕
-          </button>
+          </Button>
         </div>
       )}
 

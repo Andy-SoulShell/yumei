@@ -185,55 +185,64 @@ export function NotificationBell() {
           ) : (
             <div className="divide-y divide-border">
               {notifications.map((notif: any) => (
-                <button
+                <div
                   key={notif.id}
-                  className={`w-full text-left px-4 py-3 hover:bg-accent/50 transition-colors ${
-                    !notif.isRead ? "bg-primary/5" : ""
-                  }`}
-                  onClick={() => handleNotificationClick(notif)}
+                  className="group flex items-start gap-1 pr-2"
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 shrink-0">
-                      {NOTIFICATION_ICONS[notif.type] ||
-                        NOTIFICATION_ICONS.random}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-sm font-medium truncate ${
-                            !notif.isRead
-                              ? "text-foreground"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          {translateNotificationTitle(notif.title, locale)}
-                        </span>
-                        {!notif.isRead && (
-                          <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
-                        )}
+                  <Button
+                    variant="plain"
+                    size="none"
+                    type="button"
+                    className={`block min-w-0 flex-1 text-left px-4 py-3 hover:bg-accent/50 transition-colors ${
+                      !notif.isRead ? "bg-primary/5" : ""
+                    }`}
+                    onClick={() => handleNotificationClick(notif)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 shrink-0">
+                        {NOTIFICATION_ICONS[notif.type] ||
+                          NOTIFICATION_ICONS.random}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                        {t(notif.content)}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground/60 mt-1">
-                        {formatTime(notif.createdAt)}
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-sm font-medium truncate ${
+                              !notif.isRead
+                                ? "text-foreground"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {translateNotificationTitle(notif.title, locale)}
+                          </span>
+                          {!notif.isRead && (
+                            <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                          {t(notif.content)}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground/60 mt-1">
+                          {formatTime(notif.createdAt)}
+                        </p>
+                      </div>
                     </div>
-                    {!notif.isRead && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100"
-                        onClick={e => {
-                          e.stopPropagation();
-                          markRead.mutate({ id: notif.id });
-                        }}
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                </button>
+                  </Button>
+                  {!notif.isRead && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={t("标记已读")}
+                      title={t("标记已读")}
+                      className="mt-3 h-7 w-7 shrink-0"
+                      onClick={e => {
+                        e.stopPropagation();
+                        markRead.mutate({ id: notif.id });
+                      }}
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
+                </div>
               ))}
             </div>
           )}

@@ -50,7 +50,9 @@ export function SelfieGalleryGrid({
           key={selfie.id}
           className="mb-2 sm:mb-3 break-inside-avoid overflow-hidden gap-0 py-0"
         >
-          <button
+          <Button
+            variant="plain"
+            size="none"
             type="button"
             className="block w-full cursor-zoom-in focus-visible:outline-2 focus-visible:outline-primary focus-visible:-outline-offset-2"
             onClick={() =>
@@ -65,7 +67,7 @@ export function SelfieGalleryGrid({
               decoding="async"
               className="block w-full h-auto"
             />
-          </button>
+          </Button>
           <div className="p-2 sm:p-2.5 text-xs text-muted-foreground space-y-1">
             <div className="flex items-center gap-1">
               <p

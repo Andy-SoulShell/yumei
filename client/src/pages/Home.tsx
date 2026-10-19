@@ -942,7 +942,11 @@ export default function Home() {
                 className="pl-9 pr-8 h-9"
               />
               {searchKeyword && (
-                <button
+                <Button
+                  variant="plain"
+                  size="none"
+                  type="button"
+                  aria-label={t("清除搜索")}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   onClick={() => {
                     setSearchKeyword("");
@@ -951,7 +955,7 @@ export default function Home() {
                   }}
                 >
                   <X className="w-4 h-4" />
-                </button>
+                </Button>
               )}
             </div>
           </SheetHeader>
@@ -1008,7 +1012,10 @@ export default function Home() {
                 )}
                 <div className="divide-y">
                   {displayConversations.map(convo => (
-                    <button
+                    <Button
+                      variant="plain"
+                      size="none"
+                      type="button"
                       key={convo.id}
                       className="w-full text-left px-4 py-3 hover:bg-accent/50 transition-colors flex items-center gap-3"
                       onClick={() => {
@@ -1055,7 +1062,7 @@ export default function Home() {
                           </p>
                         )}
                       </div>
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>

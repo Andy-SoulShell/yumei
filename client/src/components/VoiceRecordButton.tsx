@@ -1,5 +1,6 @@
 /** 按住录音、上滑取消与松手提交的指针交互组件。 */
 
+import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { Loader2, Mic } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
@@ -45,9 +46,14 @@ export function VoiceRecordButton({
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (disabled) return;
+      if (
+        disabled ||
+        isActiveRef.current ||
+        (e.pointerType === "mouse" && e.button !== 0)
+      )
+        return;
       e.preventDefault();
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      e.currentTarget.setPointerCapture(e.pointerId);
       startYRef.current = e.clientY;
       isActiveRef.current = true;
       setCancelZone(false);
@@ -76,6 +82,14 @@ export function VoiceRecordButton({
     setCancelZone(false);
   }, [cancelZone, onCancel, onEnd]);
 
+  /** 系统取消手势、失焦或 Escape 时丢弃录音，避免误发送。 */
+  const cancelRecording = useCallback(() => {
+    if (!isActiveRef.current) return;
+    isActiveRef.current = false;
+    setCancelZone(false);
+    onCancel();
+  }, [onCancel]);
+
   // 转写中状态
   if (isTranscribing) {
     return (
@@ -89,7 +103,9 @@ export function VoiceRecordButton({
   }
 
   return (
-    <button
+    <Button
+      variant="plain"
+      size="none"
       type="button"
       disabled={disabled}
       className={`flex-1 h-11 rounded-full flex items-center justify-center gap-2 
@@ -106,7 +122,27 @@ export function VoiceRecordButton({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
+      onPointerCancel={cancelRecording}
+      onLostPointerCapture={cancelRecording}
+      onBlur={cancelRecording}
+      onKeyDown={event => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          cancelRecording();
+          return;
+        }
+        if (event.key !== " " && event.key !== "Enter") return;
+        event.preventDefault();
+        if (disabled || event.repeat || isActiveRef.current) return;
+        isActiveRef.current = true;
+        setCancelZone(false);
+        onStart();
+      }}
+      onKeyUp={event => {
+        if (event.key !== " " && event.key !== "Enter") return;
+        event.preventDefault();
+        handlePointerUp();
+      }}
     >
       {isRecording ? (
         <>
@@ -146,6 +182,6 @@ export function VoiceRecordButton({
           100% { height: 18px; }
         }
       `}</style>
-    </button>
+    </Button>
   );
 }

@@ -1,7 +1,7 @@
 /** 捕获子组件渲染异常并展示刷新入口，不处理事件或异步请求错误。 */
 
+import { Button } from "@/components/ui/button";
 import { translate } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import { Component, ReactNode } from "react";
 
@@ -59,17 +59,14 @@ class ErrorBoundary extends Component<Props, State> {
               </pre>
             </div>
 
-            <button
+            <Button
+              type="button"
               onClick={() => window.location.reload()}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-lg",
-                "bg-primary text-primary-foreground",
-                "hover:opacity-90 cursor-pointer"
-              )}
+              className="gap-2"
             >
               <RotateCcw size={16} />
               {t("Reload Page")}
-            </button>
+            </Button>
           </div>
         </div>
       );

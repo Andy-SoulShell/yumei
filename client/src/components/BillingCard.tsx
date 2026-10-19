@@ -14,7 +14,7 @@ import { TIER_LABELS, TIER_PRICES } from "../../../shared/quotas";
 import { Crown, Sparkles } from "lucide-react";
 
 /**
- * 订阅与用量卡片（M3）。三种模式：
+ * 订阅与用量卡片。三种模式：
  * - free：展示免费档用量，提示运营方尚未开通订阅
  * - none：自托管，全部解锁
  * - lemonsqueezy：档位 + 用量条 + 升级按钮（80% 用量软提醒）

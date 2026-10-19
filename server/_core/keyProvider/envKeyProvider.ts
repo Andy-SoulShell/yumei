@@ -15,21 +15,8 @@ import {
 } from "./types";
 
 /**
- * EnvKeyProvider — operator keys come from environment variables; user
- * BYOK keys come from the encrypted `userKeys` table.
- *
- * Operator env-var convention:
- *   `OPERATOR_OPENROUTER_KEY`, `OPERATOR_FAL_KEY`, `OPERATOR_ELEVENLABS_KEY`,
- *   `OPERATOR_FISH_AUDIO_KEY`, `OPERATOR_OPENAI_KEY`.
- *
- * In dev, these are typically blank; the chat / image / TTS / STT routes
- * then have nothing to call and surface a clear "operator key not
- * configured" error to the user (Phase 1c will add subscription gating
- * around this UX).
- *
- * For commercial deployment, a `KmsKeyProvider` driver will replace this
- * one — same interface, master keys read from AWS KMS or GCP KMS instead
- * of process.env. Selection is via the `KEY_PROVIDER` env var (Phase 1c).
+ * Resolves user BYOK credentials from encrypted storage before falling back
+ * to the operator's OPERATOR_* environment variables.
  */
 
 const OPERATOR_ENV: Record<KeyName, string> = {

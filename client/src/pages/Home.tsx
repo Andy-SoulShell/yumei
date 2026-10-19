@@ -475,7 +475,7 @@ export default function Home() {
             立即开始
           </Button>
 
-          {/* M1-6 合规披露 */}
+          {/* 合规披露 */}
           <p className="text-xs text-muted-foreground">
             18+ only · Companions are AI-generated, not real people ·
             我们不会用你的聊天内容训练任何模型
@@ -488,7 +488,7 @@ export default function Home() {
   // 已登录 - 女友列表
   return (
     <div className="min-h-screen bg-background">
-      {/* M1-6：一次性 18+ 年龄确认（服务端同样强制） */}
+      {/* 一次性 18+ 年龄确认（服务端同样强制） */}
       <AgeGate />
       {/* 顶部导航栏 */}
       <header

@@ -18,14 +18,12 @@ CREATE TABLE `accounts` (
 CREATE TABLE `apiConfigs` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`userId` varchar(255) NOT NULL,
-	`llmApiUrl` varchar(500),
 	`llmModel` varchar(200),
 	`ttsProvider` enum('browser','elevenlabs','fishaudio') NOT NULL DEFAULT 'browser',
 	`elevenlabsVoiceId` varchar(200),
 	`elevenlabsVoiceName` varchar(200),
 	`fishAudioModelId` varchar(200),
 	`fishAudioModelName` varchar(200),
-	`whisperProvider` enum('manus','openai') NOT NULL DEFAULT 'manus',
 	`globalPrompt` text,
 	`replyLanguage` varchar(50) DEFAULT '中文',
 	`replyLengthLimit` varchar(50) DEFAULT '50-100字',
@@ -203,19 +201,16 @@ CREATE TABLE `userKeys` (
 --> statement-breakpoint
 CREATE TABLE `users` (
 	`id` varchar(255) NOT NULL,
-	`openId` varchar(64),
 	`name` text,
 	`email` varchar(320) NOT NULL,
 	`emailVerified` boolean NOT NULL DEFAULT false,
 	`image` text,
-	`loginMethod` varchar(64),
 	`role` enum('user','admin') NOT NULL DEFAULT 'user',
 	`birthDate` date,
 	`createdAt` timestamp NOT NULL DEFAULT (now()),
 	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
 	`lastSignedIn` timestamp NOT NULL DEFAULT (now()),
 	CONSTRAINT `users_id` PRIMARY KEY(`id`),
-	CONSTRAINT `users_openId_unique` UNIQUE(`openId`),
 	CONSTRAINT `users_email_unique` UNIQUE(`email`)
 );
 --> statement-breakpoint

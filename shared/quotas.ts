@@ -1,9 +1,7 @@
 /**
- * Usage quotas and rate limits (M1-3, tiers added in M3).
- *
- * Numbers follow ADR 0005. BYOK users bypass usage meters entirely
- * (ADR 0002) — their traffic never spends operator money — but
- * per-minute rate limits still apply to protect the server itself.
+ * Subscription limits and request caps.
+ * BYOK bypasses the corresponding provider's usage meter; request rate limits
+ * still apply to protect the server.
  */
 
 export const TIERS = ["free", "plus", "pro"] as const;
@@ -22,7 +20,7 @@ export type TierLimits = {
   voiceTranscription: boolean;
   /** Premium TTS providers usable on the operator's keys. */
   ttsProviders: ReadonlyArray<"elevenlabs" | "fishaudio">;
-  /** Free tier is locked to the cheap default model (ADR 0005). */
+  /** Free tier is locked to the cheap default model. */
   modelLocked: boolean;
 };
 
@@ -62,7 +60,7 @@ export const TIER_LABELS: Record<Tier, string> = {
   pro: "Pro",
 };
 
-/** Placeholder prices from ADR 0005 (confirmed at launch). */
+/** Display prices; the configured checkout determines the charged amount. */
 export const TIER_PRICES: Record<Tier, string> = {
   free: "$0",
   plus: "$9.99/月",
@@ -71,13 +69,7 @@ export const TIER_PRICES: Record<Tier, string> = {
 
 export const FREE_TIER_DEFAULT_MODEL = "openai/gpt-4o-mini";
 
-/** @deprecated M3: use TIER_LIMITS.free — kept for existing imports. */
-export const FREE_TIER = {
-  dailyMessages: TIER_LIMITS.free.dailyMessages!,
-  dailySelfies: TIER_LIMITS.free.dailySelfies!,
-} as const;
-
-/** Per-user, per-minute request caps on hot procedures (issue #5). */
+/** Per-user, per-minute request caps on hot procedures. */
 export const RATE_LIMITS_PER_MINUTE = {
   chat: 20,
   selfie: 3,

@@ -5,17 +5,9 @@ import { ENV } from "./env";
 import { log } from "./log";
 
 /**
- * Read path for stored files (M1-2).
- *
- * All persisted file URLs look like `${PUBLIC_URL}/files/<key>`.
- *   - local driver: stream the file from disk;
- *   - s3 driver: 302 to a short-lived presigned URL, so buckets stay
- *     private and nothing long-lived leaks into chat logs.
- *
- * Keys embed a nanoid, so URLs are unguessable — the same model the
- * old Forge proxy used. External AI services (fal.ai reference images)
- * must be able to fetch these URLs, so no session is required here.
- * Per-user ACLs / app-signed URLs are issue #12.
+ * Serves stored files by key: local streams or short-lived S3 redirects.
+ * External AI services fetch these URLs without a session. Uploaded media
+ * uses random keys; possession of the URL grants read access.
  */
 
 const MIME_BY_EXT: Record<string, string> = {

@@ -58,7 +58,7 @@ function useTTS() {
   const { data: apiConfig } = trpc.apiConfig.get.useQuery();
   const ttsGenerate = trpc.tts.generate.useMutation();
 
-  // Phase 1b-i: apiConfig.get now returns { preferences, keys }.
+  // apiConfig.get now returns { preferences, keys }.
   const ttsProvider = apiConfig?.preferences?.ttsProvider || "browser";
 
   // 更新播放速度
@@ -210,7 +210,7 @@ export default function Chat() {
   const [showCrisisAlert, setShowCrisisAlert] = useState(false);
   const [showPoseDialog, setShowPoseDialog] = useState(false);
   const { data: apiConfig } = trpc.apiConfig.get.useQuery();
-  // M4-3：语音输入的消息，回复自动朗读（即使未开自动播放）
+  // 语音输入的消息，回复自动朗读（即使未开自动播放）
   const lastInputWasVoiceRef = useRef(false);
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [levelUpLevel, setLevelUpLevel] = useState(1);
@@ -336,8 +336,7 @@ export default function Chat() {
         });
       }
 
-      // 朗读 AI 回复：开启了自动播放，或这条消息来自语音输入（M4-3
-      // 语音往返 —— 用语音说话，就用语音回你）。
+      // 开启自动播放或使用语音输入时，自动朗读 AI 回复。
       if (
         (autoPlay || lastInputWasVoiceRef.current) &&
         data.assistantMessage?.content
@@ -349,7 +348,7 @@ export default function Chat() {
       }
       lastInputWasVoiceRef.current = false;
 
-      // M1-6 / SB 243：检测到自残/危机表达时展示求助资源。
+      // / SB 243：检测到自残/危机表达时展示求助资源。
       if (data.safetyNotice) {
         setShowCrisisAlert(true);
       }
@@ -420,7 +419,7 @@ export default function Chat() {
     },
   });
 
-  // M4-2：合照生成
+  // 合照生成
   const generateCouple = trpc.selfie.generateCouple.useMutation({
     onSuccess: async () => {
       await refetchMessages();
@@ -503,7 +502,7 @@ export default function Chat() {
     }
   };
 
-  // M4-1：相机按钮改为打开姿势选择器；姿势随亲密度解锁。
+  // 相机按钮改为打开姿势选择器；姿势随亲密度解锁。
   const handleSelectPose = (
     poseId: string,
     generationMode: "reference" | "text"
@@ -524,7 +523,7 @@ export default function Chat() {
     });
   };
 
-  // M4-2：合照 —— 用户照片转 base64 后与她同框。
+  // 合照 —— 用户照片转 base64 后与她同框。
   const handleCouplePhoto = (file: File) => {
     if (!currentConversationId) return;
     const reader = new FileReader();
@@ -578,7 +577,7 @@ export default function Chat() {
           onSuccess: data => {
             setIsTranscribing(false);
             if (data.text) {
-              // 自动发送转写文字（M4-3：标记语音来源，回复将自动朗读）
+              // 自动发送转写文字
               lastInputWasVoiceRef.current = true;
               sendMessage.mutate({
                 conversationId: currentConversationId!,
@@ -726,7 +725,7 @@ export default function Chat() {
               "在线"
             )}
             {ttsLabel ? ` · 语音: ${ttsLabel}` : ""}
-            {/* M1-6 / SB 243：AI 身份常驻披露 */}
+            {/* / SB 243：AI 身份常驻披露 */}
             <span className="opacity-70"> · AI 虚拟角色，非真人</span>
           </p>
         </div>
@@ -1005,7 +1004,7 @@ export default function Chat() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* M1-6 / SB 243：危机干预资源提示（由 shared/safety.ts 提供检测结果） */}
+      {/* / SB 243：危机干预资源提示（由 shared/safety.ts 提供检测结果） */}
       {showCrisisAlert && (
         <div className="mx-3 sm:mx-4 mb-2 rounded-lg border border-amber-400/50 bg-amber-50 dark:bg-amber-950/40 px-3 py-2.5 text-xs sm:text-sm text-amber-900 dark:text-amber-100 flex items-start gap-2">
           <Heart className="w-4 h-4 mt-0.5 shrink-0" />
@@ -1150,7 +1149,7 @@ export default function Chat() {
         )}
       </form>
 
-      {/* 拍照姿势选择器（M4-1/2） */}
+      {/* 拍照姿势选择器 */}
       <SelfiePoseDialog
         open={showPoseDialog}
         onOpenChange={setShowPoseDialog}

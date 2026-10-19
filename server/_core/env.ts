@@ -3,7 +3,7 @@
  *
  * If validation fails the module throws `EnvValidationError` with a multi-line
  * message describing every problem. The server bootstrap lets the throw
- * propagate so the process exits before any request is served — see issue #6.
+ * propagate so the process exits before any request is served.
  *
  * Tests preload required vars in `vitest.setup.ts` so importing this module
  * inside the test runner never throws.
@@ -78,7 +78,7 @@ function loadEnv() {
     );
   }
 
-  // --- Required outside test: KEY_ENCRYPTION_KEY (Phase 1b-i / issue #2) ---
+  // --- Required outside test: KEY_ENCRYPTION_KEY ---
   if ((env.NODE_ENV ?? "development") !== "test") {
     if (!env.KEY_ENCRYPTION_KEY) {
       issues.push(
@@ -112,7 +112,7 @@ function loadEnv() {
     }
   }
 
-  // --- Email delivery (Phase 1b-ii.1 / ADR 0006) ---
+  // --- Email delivery ---
   // Local Docker runs may explicitly print links with EMAIL_PROVIDER=stdout.
   // Other production deployments still require a real email driver.
   if (nodeEnv === "production" && env.EMAIL_PROVIDER !== "stdout") {
@@ -136,7 +136,7 @@ function loadEnv() {
     }
   }
 
-  // --- Storage (M1-2) -----------------------------------------------------
+  // --- Storage -----------------------------------------------------
   // `local` writes to disk; `s3` targets AWS S3 or any S3-compatible
   // endpoint. Test mode defaults to a per-run temp dir so suites never
   // touch a real bucket or the repo tree.
@@ -158,7 +158,7 @@ function loadEnv() {
     env.STORAGE_LOCAL_DIR ??
     (nodeEnv === "test" ? `/tmp/yumei-test-uploads` : "./data/uploads");
 
-  // --- Billing (M3 / ADR 0004) ----------------------------------------------
+  // --- Billing ----------------------------------------------
   // "free" (default): free-tier caps for everyone, no paid tiers.
   // "none": self-host mode — all features unlocked, no metering.
   // "lemonsqueezy": full subscription billing (requires webhook secret).

@@ -39,7 +39,7 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 /**
- * Boot self-checks (M1-5). Fail fast on broken config instead of
+ * Boot self-checks. Fail fast on broken config instead of
  * "starting" into a state where every request errors.
  */
 async function runBootChecks() {
@@ -97,7 +97,7 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-  // Health probes (M1-5): /healthz is liveness (always cheap 200),
+  // Health probes: /healthz is liveness (always cheap 200),
   // /readyz pings the DB so orchestrators can gate traffic on it.
   app.get("/healthz", (_req, res) => {
     res.json({ ok: true });
@@ -114,14 +114,14 @@ async function startServer() {
   });
 
   // CSRF: set the double-submit cookie on every request — must run before
-  // any state-changing handler. See server/_core/csrf.ts (issue #8).
+  // any state-changing handler. See server/_core/csrf.ts.
   app.use(csrfCookieMiddleware);
   // Better-Auth handles /api/auth/* (magic-link, session, etc.).
   // Mounted before tRPC so auth endpoints are not behind CSRF verify.
   if (auth) {
     app.all("/api/auth/*", toNodeHandler(auth.handler));
   }
-  // Stored file reads (local stream / S3 presigned redirect). See M1-2.
+  // Stored file reads (local stream / S3 presigned redirect).
   registerFileRoutes(app);
   // tRPC API — verify CSRF token on every state-changing request.
   app.use(
@@ -144,7 +144,7 @@ async function startServer() {
   let port = preferredPort;
   if (!(await isPortAvailable(preferredPort))) {
     if (ENV.isProduction) {
-      // issue #25: silently drifting off $PORT in production means the
+      // Silently drifting off $PORT in production means the
       // load balancer routes traffic into the void. Fail loudly instead.
       throw new Error(
         `Port ${preferredPort} is already in use. Refusing to auto-shift ports in production.`
@@ -158,7 +158,7 @@ async function startServer() {
     console.log(`Server running on http://localhost:${port}/`);
   });
 
-  // M4-4: hourly proactive-message push (no-op without VAPID keys).
+  // hourly proactive-message push (no-op without VAPID keys).
   startProactivePushScheduler();
 
   // Graceful shutdown: stop accepting connections, drain, exit.

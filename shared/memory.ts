@@ -30,7 +30,7 @@ export const EXTRACTION_EVERY_N_MESSAGES = 10;
 export const MEMORY_MAX_LENGTH = 200;
 
 /**
- * M2-5 intimacy tie-in: higher levels remember more…
+ * intimacy tie-in: higher levels remember more…
  * level 1 → 30 memories, level 10 → 120.
  */
 export function memoryCapacity(intimacyLevel: number): number {

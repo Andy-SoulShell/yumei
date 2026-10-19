@@ -1,5 +1,5 @@
 /**
- * Symmetric encryption for at-rest secrets (issue #2).
+ * Symmetric encryption for at-rest secrets.
  *
  * Algorithm: AES-256-GCM (AEAD).
  *   - 256-bit key derived from `KEY_ENCRYPTION_KEY` via scrypt with a

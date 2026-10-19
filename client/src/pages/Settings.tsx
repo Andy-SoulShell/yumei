@@ -84,9 +84,6 @@ export default function Settings() {
   const [ttsProvider, setTtsProvider] = useState<TTSProvider>("browser");
 
   // Whisper 语音转写配置 states
-  const [whisperProvider, setWhisperProvider] = useState<"manus" | "openai">(
-    "manus"
-  );
   const [whisperApiKey, setWhisperApiKey] = useState("");
   const [hasUnsavedWhisperChanges, setHasUnsavedWhisperChanges] =
     useState(false);
@@ -163,7 +160,7 @@ export default function Settings() {
     },
   ];
 
-  // 加载已有配置（Phase 1b-i shape: { preferences, keys }）
+  // 加载已有偏好与密钥状态
   const { data: apiConfig, isLoading } = trpc.apiConfig.get.useQuery();
 
   // 服务端解析运营方或用户密钥，前端只获取可用状态。
@@ -205,7 +202,7 @@ export default function Settings() {
     { enabled: fishAudioReady, retry: false }
   );
 
-  // Phase 1b-i (issue #2): preferences vs keys are now separate mutations.
+  // preferences vs keys are now separate mutations.
   const updatePreferences = trpc.apiConfig.updatePreferences.useMutation({
     onSuccess: () => {
       toast.success("配置保存成功");
@@ -274,7 +271,7 @@ export default function Settings() {
       setSelectedModel(apiConfig.preferences?.llmModel || "");
     }
     if (apiConfig?.preferences) {
-      // Phase 1b-i: per-user keys no longer round-trip to the client.
+      // per-user keys no longer round-trip to the client.
       // The plaintext input fields stay empty on load; if the user has
       // a saved key the UI shows "(已保存 · 末四位 XXXX)" derived from
       // `apiConfig.keys[name].lastFour`. Typing into the field again
@@ -288,7 +285,6 @@ export default function Settings() {
       setGlobalPrompt(p.globalPrompt || "");
       setReplyLanguage(p.replyLanguage || "");
       setReplyLengthLimit(p.replyLengthLimit || "");
-      setWhisperProvider((p.whisperProvider as "manus" | "openai") || "manus");
     }
   }, [apiConfig]);
 
@@ -341,7 +337,7 @@ export default function Settings() {
   }, [modelsData?.models, selectedModel]);
 
   const handleSave = async () => {
-    // Phase 1b-i: preferences and keys are saved through separate
+    // preferences and keys are saved through separate
     // endpoints so the wire never carries plaintext key + non-key payload
     // in the same call.
     await updatePreferences.mutateAsync({
@@ -450,9 +446,6 @@ export default function Settings() {
   };
 
   const handleSaveWhisperConfig = async () => {
-    await updatePreferences.mutateAsync({
-      whisperProvider,
-    });
     await saveDirtyKeys();
     setHasUnsavedWhisperChanges(false);
     toast.success("语音转写配置已保存生效");
@@ -481,9 +474,9 @@ export default function Settings() {
   };
 
   // ============ API 用量查询 ============
-  // Phase 1b-i (issue #2/#3) removed the per-provider credits/usage tRPC
+  // Phase 1b-i removed the per-provider credits/usage tRPC
   // routes. Real per-user usage will surface through the subscription
-  // quota meters built in Phase 1c (issue #10). For now these UI fields
+  // quota meters built in Phase 1c. For now these UI fields
   // render as "—" / "loading off". The visual section below will be
   // rebuilt in Phase 6 when Settings.tsx is decomposed.
   const openRouterCredits = undefined as
@@ -650,10 +643,10 @@ export default function Settings() {
           </div>
         ) : (
           <>
-            {/* ========== 订阅与用量（M3） ========== */}
+            {/* ========== 订阅与用量 ========== */}
             <BillingCard />
 
-            {/* ========== 推送通知（M4-4） ========== */}
+            {/* ========== 推送通知 ========== */}
             <PushCard />
 
             {/* ========== 语音设置 ========== */}
@@ -1192,7 +1185,6 @@ export default function Settings() {
                     value={whisperApiKey}
                     onChange={e => {
                       setWhisperApiKey(e.target.value);
-                      setWhisperProvider("openai");
                       setHasUnsavedWhisperChanges(true);
                     }}
                   />

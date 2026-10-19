@@ -12,7 +12,7 @@ import {
 } from "./db";
 
 // Use unique userIds to avoid conflicts with other tests.
-// users.id is varchar(255) since the Better-Auth migration (0013).
+// Better-Auth uses string user IDs.
 const TEST_USER_ID = "test-user-99900";
 const TEST_USER_ID_2 = "test-user-99901";
 const TEST_USER_ID_3 = "test-user-99902";

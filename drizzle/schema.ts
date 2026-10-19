@@ -10,31 +10,15 @@ import {
   boolean,
 } from "drizzle-orm/mysql-core";
 
-/**
- * Core user table backing auth flow.
- *
- * Phase 1b-ii.1 (issue #7 / ADR 0006) reshapes the auth path from
- * Manus OAuth to Better-Auth. The columns Better-Auth requires
- * (`emailVerified`, `image`) are added below; the legacy `openId` /
- * `loginMethod` columns are kept so historical data isn't lost (they
- * become unused on new logins). Better-Auth uses `id` as the canonical
- * user identifier going forward.
- *
- * `id` is `varchar(255)` so Better-Auth can manage all four auth tables
- * (`users` / `sessions` / `accounts` / `verifications`) under a single
- * id type. YUMEI's 0000_init migration creates this final schema directly.
- */
+/** Better-Auth user profile and application role. IDs are shared across auth tables. */
 export const users = mysqlTable("users", {
   id: varchar("id", { length: 255 }).primaryKey(),
-  // Legacy from the Manus OAuth path; left in place but no longer read.
-  openId: varchar("openId", { length: 64 }).unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }).notNull().unique(),
   emailVerified: boolean("emailVerified").default(false).notNull(),
   image: text("image"),
-  loginMethod: varchar("loginMethod", { length: 64 }), // legacy
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
-  // M1-6 age gate: set once via auth.confirmAge (validated 18+ server-
+  // Age gate: set once via auth.confirmAge (validated 18+ server-
   // side). AI routes refuse to run while this is null.
   birthDate: date("birthDate"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -46,8 +30,8 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 /**
- * Better-Auth session table. Sessions are looked up by `id` (the value
- * the client sends in its session cookie). One row per active session
+ * Better-Auth session table. Sessions are looked up by the `token`
+ * carried in the session cookie. One row per active session
  * per device. `expiresAt` is hard-deleted by Better-Auth's cleanup.
  */
 export const sessions = mysqlTable("sessions", {
@@ -63,11 +47,7 @@ export const sessions = mysqlTable("sessions", {
 
 export type Session = typeof sessions.$inferSelect;
 
-/**
- * Better-Auth `accounts` table — links external identities (OAuth
- * providers, future passkey) to a user. Phase 1b-ii.1 only writes
- * rows for the `magic-link` provider; Phase 1b-ii.2 adds GitHub.
- */
+/** Better-Auth account records; password and social login are not enabled. */
 export const accounts = mysqlTable("accounts", {
   id: varchar("id", { length: 255 }).primaryKey(),
   userId: varchar("userId", { length: 255 }).notNull(),
@@ -109,11 +89,11 @@ export const girlfriends = mysqlTable("girlfriends", {
   personality: text("personality").notNull(), // 性格描述，用于 LLM 系统提示词
   appearance: text("appearance").notNull(), // 外貌描述，用于图片生成
   interests: text("interests"), // 兴趣爱好
-  referenceImageUrl: text("referenceImageUrl").notNull(), // S3 上的参考图片 URL
-  referenceImageKey: varchar("referenceImageKey", { length: 500 }).notNull(), // S3 文件 key
+  referenceImageUrl: text("referenceImageUrl").notNull(), // 通过文件路由访问的参考图 URL
+  referenceImageKey: varchar("referenceImageKey", { length: 500 }).notNull(), // 存储文件 key
   customPrompt: text("customPrompt"), // 个体定制提示词，追加在全局提示词之后
-  avatarUrl: text("avatarUrl"), // 头像图片 URL（S3）
-  avatarKey: varchar("avatarKey", { length: 500 }), // 头像 S3 文件 key
+  avatarUrl: text("avatarUrl"), // 头像图片 URL
+  avatarKey: varchar("avatarKey", { length: 500 }), // 头像存储文件 key
   intimacyLevel: int("intimacyLevel").default(1).notNull(), // 亲密度等级 1-10
   intimacyPoints: int("intimacyPoints").default(0).notNull(), // 亲密度经验值
   lastInteractionAt: timestamp("lastInteractionAt"), // 最后互动时间
@@ -153,7 +133,7 @@ export const messages = mysqlTable("messages", {
   role: mysqlEnum("role", ["user", "assistant"]).notNull(),
   content: text("content").notNull(), // 文本消息内容
   imageUrl: text("imageUrl"), // 如果是图片消息，存储图片 URL
-  imageKey: varchar("imageKey", { length: 500 }), // S3 文件 key
+  imageKey: varchar("imageKey", { length: 500 }), // 存储文件 key
   selfieMode: mysqlEnum("selfieMode", ["mirror", "direct"]), // 自拍模式（如果是自拍）
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -181,19 +161,10 @@ export const selfies = mysqlTable("selfies", {
 export type Selfie = typeof selfies.$inferSelect;
 export type InsertSelfie = typeof selfies.$inferInsert;
 
-/**
- * API configurations table
- *
- * Stores per-user provider PREFERENCES (which model, which voice).
- * Per-user API KEYS used to live here as plaintext varchar columns —
- * see issue #2. Phase 1b-i (this commit) moved those to the encrypted
- * `userKeys` table. The only secret-shaped columns left are model /
- * voice IDs, which are not credentials.
- */
+/** Per-user model, voice and prompt preferences. Credentials live in userKeys. */
 export const apiConfigs = mysqlTable("apiConfigs", {
   id: int("id").autoincrement().primaryKey(),
   userId: varchar("userId", { length: 255 }).notNull().unique(),
-  llmApiUrl: varchar("llmApiUrl", { length: 500 }), // LLM API URL (defaults to OpenRouter)
   llmModel: varchar("llmModel", { length: 200 }), // 用户选择的模型 ID（如 openai/gpt-4o）
   // TTS 语音配置
   ttsProvider: mysqlEnum("ttsProvider", ["browser", "elevenlabs", "fishaudio"])
@@ -203,10 +174,6 @@ export const apiConfigs = mysqlTable("apiConfigs", {
   elevenlabsVoiceName: varchar("elevenlabsVoiceName", { length: 200 }),
   fishAudioModelId: varchar("fishAudioModelId", { length: 200 }),
   fishAudioModelName: varchar("fishAudioModelName", { length: 200 }),
-  // 语音转写配置
-  whisperProvider: mysqlEnum("whisperProvider", ["manus", "openai"])
-    .default("manus")
-    .notNull(),
   // 全局提示词配置
   globalPrompt: text("globalPrompt"),
   replyLanguage: varchar("replyLanguage", { length: 50 }).default("中文"),
@@ -309,7 +276,7 @@ export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
 
 /**
- * Usage meters (M1-3 / issue #5, reused by subscription quotas in M3).
+ * Usage meters.
  *
  * One row per (user, period, meter). `period` is a UTC day (`YYYY-MM-DD`)
  * for daily free-tier caps; monthly billing meters will use `YYYY-MM`.
@@ -340,7 +307,7 @@ export type UsageMeter = typeof usageMeters.$inferSelect;
 export type InsertUsageMeter = typeof usageMeters.$inferInsert;
 
 /**
- * Long-term memories (M2). One row per extracted fact/preference/event/
+ * Long-term memories. One row per extracted fact/preference/event/
  * relationship note about the user, scoped to a companion. Selection and
  * scoring live in shared/memory.ts + server/memory.ts. `pinned` rows are
  * user-curated: never auto-evicted, scoring bonus at recall time.
@@ -379,7 +346,7 @@ export type Memory = typeof memories.$inferSelect;
 export type InsertMemory = typeof memories.$inferInsert;
 
 /**
- * Subscriptions (M3 / ADR 0004): one row per user, driven entirely by
+ * Subscriptions: one row per user, driven entirely by
  * Lemon Squeezy webhooks. `status` mirrors LS subscription statuses;
  * "service until period end" on cancellation comes from honoring
  * `endsAt` rather than the status alone. Self-host deployments
@@ -415,7 +382,7 @@ export type Subscription = typeof subscriptions.$inferSelect;
 export type InsertSubscription = typeof subscriptions.$inferInsert;
 
 /**
- * Web Push subscriptions (M4-4). One row per browser endpoint; a user
+ * Web Push subscriptions. One row per browser endpoint; a user
  * can have several (phone + desktop). Endpoints are pruned when a push
  * delivery returns 404/410.
  */

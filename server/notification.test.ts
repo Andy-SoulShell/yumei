@@ -6,12 +6,10 @@ type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
 function createAuthContext(userId = 9901): { ctx: TrpcContext } {
   const user: AuthenticatedUser = {
-    // users.id is varchar(255) since the Better-Auth migration (0013).
+    // Better-Auth uses string user IDs.
     id: `notif-user-${userId}`,
-    openId: `notif-test-user-${userId}`,
     email: `notiftest${userId}@example.com`,
     name: "Notif Test User",
-    loginMethod: "manus",
     role: "user",
     createdAt: new Date(),
     updatedAt: new Date(),

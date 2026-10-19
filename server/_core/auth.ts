@@ -8,23 +8,9 @@ import { sendMagicLinkEmail } from "./email";
 import { getTrustedAuthOrigins } from "./authOrigins";
 
 /**
- * Better-Auth instance (issue #7 / ADR 0006).
- *
- * Replaces the previous Manus OAuth + custom JWT cookie flow with a
- * library-managed session store backed by the `sessions` table. The
- * client interacts with this entirely through `/api/auth/*` HTTP
- * endpoints; there's no manual cookie work in the rest of the app.
- *
- * Phase 1b-ii.1 (this commit) ships email magic-link only. Phase 1b-ii.2
- * adds GitHub OAuth via the same instance's `socialProviders` block.
+ * Better-Auth email magic-link authentication backed by Drizzle/MySQL.
+ * No auth instance is created when tests omit DATABASE_URL.
  */
-
-// Lazy DB construction for the auth adapter — same approach as the
-// existing `getDb()` helper in `server/db.ts`. Better-Auth requires a
-// concrete drizzle instance at config time, but in test mode we don't
-// have one, so we hand it a stub that throws on use. The auth handlers
-// are only mounted in dev/prod (see server/_core/index.ts), and tests
-// do not exercise them directly.
 function getAuthDb() {
   if (!ENV.databaseUrl) {
     return null;
@@ -52,9 +38,7 @@ export const auth = authDb
           verification: schema.verifications,
         },
       }),
-      // Phase 1b-ii.1: `users.id` is `varchar(255)` so Better-Auth manages
-      // ids uniformly across all four auth tables (users / sessions /
-      // accounts / verifications). See ADR 0006; YUMEI creates these tables in 0000_init.
+      // YUMEI uses varchar IDs consistently across all four auth tables.
       baseURL: BASE_URL,
       // Session-token signing secret. Reuses JWT_SECRET (validated >= 32
       // chars at boot) so self-hosters manage one fewer variable.
@@ -81,7 +65,7 @@ export const auth = authDb
         : [BASE_URL, `http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`],
       plugins: [
         magicLink({
-          // 15 minutes per ADR 0005 / Phase 1b-ii spec.
+          // Login links expire after 15 minutes.
           expiresIn: 60 * 15,
           disableSignUp: false, // anyone with an email can sign in
           sendMagicLink: async ({ email, url }) => {

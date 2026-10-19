@@ -1,12 +1,6 @@
 /**
- * KeyProvider abstraction — see ADR 0002 ("operator-managed keys + BYOK")
- * and issues #2, #3.
- *
- * The default execution path uses the operator's master key for the given
- * provider. A user who has explicitly opted in to BYOK (via Settings)
- * shadows that with their own key. A KeyProvider implementation can read
- * operator keys from anywhere (env vars, KMS, …); user keys live in the
- * `userKeys` DB table, encrypted at rest with `server/_core/encryption.ts`.
+ * Server-side credential resolver. User BYOK keys override operator keys
+ * and are encrypted in the userKeys table.
  */
 
 /**
@@ -21,7 +15,7 @@ export const KEY_NAMES = [
   "fal", // image generation
   "elevenlabs", // TTS provider 1
   "fish-audio", // TTS provider 2
-  "openai", // OpenAI Whisper STT (and possibly TTS later)
+  "openai", // OpenAI Whisper transcription
 ] as const;
 
 export type KeyName = (typeof KEY_NAMES)[number];
@@ -42,7 +36,7 @@ export interface KeyProvider {
    * Resolve a key. Resolution order:
    *   1. If `scope = { userId }` and the user has a BYOK key for `name`,
    *      decrypt and return it.
-   *   2. Else if the operator has set the key for `name` (env var or KMS),
+   *   2. Else if the operator has set the key for `name`,
    *      return it.
    *   3. Else return null.
    *

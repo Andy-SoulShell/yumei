@@ -14,7 +14,7 @@
 
 YUMEI 使用 Better-Auth 邮箱 magic-link 登录，登录链接有效期为 15 分钟。会话存储在数据库，通过 HttpOnly Cookie 识别；生产部署应使用 HTTPS，并设置正确的 `BETTER_AUTH_URL`。
 
-业务接口使用 `protectedProcedure` 及用户归属校验隔离角色、对话、照片和密钥；写操作执行 CSRF 校验。退出登录会撤销服务端会话并清理会话 Cookie。
+业务接口使用 `protectedProcedure` 及用户归属校验隔离角色、对话、照片和密钥；写操作执行 CSRF 校验。tRPC 退出登录接口会清理会话 Cookie。
 
 ## API Key 与数据处理
 

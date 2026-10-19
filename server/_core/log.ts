@@ -1,14 +1,6 @@
 /**
- * Log utility with PII / secret redaction (issue #11).
- *
- * This is a Phase-1a stop-gap: it wraps `console.{error,warn,log}` and
- * scrubs known-sensitive keys from any object passed to the call. Phase 5
- * (issue #31) replaces this with `pino` + a proper redaction pipeline +
- * request IDs + JSON output.
- *
- * Use `log.error / log.warn / log.info` in place of `console.error / warn / log`
- * anywhere you might log error objects, request bodies, user records, or
- * results from third-party APIs.
+ * Wrap console logging with recursive masking for sensitive fields and email addresses.
+ * Use this for errors, request data, user records and third-party API responses.
  */
 
 /** Exact key names that always get masked, regardless of value type. */

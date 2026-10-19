@@ -12,7 +12,7 @@ import { RATE_LIMITS_PER_MINUTE } from "../../shared/quotas";
 import { getDb } from "../db";
 import { nanoid } from "nanoid";
 
-describe("checkRateLimit (issue #5)", () => {
+describe("checkRateLimit", () => {
   beforeEach(() => resetRateLimits());
 
   it("allows requests under the per-minute cap", () => {
@@ -63,7 +63,7 @@ describe("cooldowns (intimacy anti-farming)", () => {
   });
 });
 
-describe("daily meters (free-tier caps, ADR 0005)", () => {
+describe("daily meters (free-tier caps, )", () => {
   it("returns a YYYY-MM-DD period key", () => {
     expect(todayUTC()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });

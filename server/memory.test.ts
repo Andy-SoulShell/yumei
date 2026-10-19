@@ -63,7 +63,7 @@ describe("shared/memory scoring", () => {
     );
   });
 
-  it("capacity and k scale with intimacy level (M2-5)", () => {
+  it("capacity and k scale with intimacy level", () => {
     expect(memoryCapacity(1)).toBe(30);
     expect(memoryCapacity(10)).toBe(120);
     expect(memoryInjectionK(1)).toBe(5);
@@ -239,7 +239,7 @@ describe("memory storage (DB)", () => {
   });
 });
 
-describe("proactive notifications reference memories (M2-4)", () => {
+describe("proactive notifications reference memories", () => {
   it("mentions a fresh event memory in the notification", async () => {
     if (!(await getDb())) return;
     const userId = `mem-user-${nanoid(8)}`;

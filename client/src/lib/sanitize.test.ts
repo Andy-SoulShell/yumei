@@ -4,14 +4,14 @@ import { describe, it, expect } from "vitest";
 import { sanitizeForMarkdown } from "./sanitize";
 
 /**
- * Tests for issue #9: stored XSS via LLM-emitted HTML in chat messages.
+ * Tests for: stored XSS via LLM-emitted HTML in chat messages.
  *
  * `dompurify` requires a DOM. The vitest config defaults to a node
  * environment for server tests; this file opts into jsdom via the
  * `@vitest-environment jsdom` directive above.
  */
 
-describe("sanitizeForMarkdown (issue #9)", () => {
+describe("sanitizeForMarkdown", () => {
   it("preserves plain text and markdown syntax verbatim", () => {
     expect(sanitizeForMarkdown("**bold**")).toBe("**bold**");
     expect(sanitizeForMarkdown("# heading")).toBe("# heading");

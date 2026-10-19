@@ -38,7 +38,7 @@ queryClient.getMutationCache().subscribe(event => {
 
 /**
  * Read a cookie by name from `document.cookie`. Returns undefined if not set.
- * Used to echo the CSRF token in the X-CSRF-Token header (issue #8).
+ * Used to echo the CSRF token in the X-CSRF-Token header.
  */
 function readCookie(name: string): string | undefined {
   if (typeof document === "undefined") return undefined;

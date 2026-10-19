@@ -1,5 +1,5 @@
 /**
- * Self-harm safety protocol (M1-6).
+ * Self-harm safety protocol.
  *
  * Detection is a conservative keyword screen over the user's message.
  * On match, the chat response carries `safetyNotice: true` and the UI

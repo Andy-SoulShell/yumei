@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * Tests for the email driver abstraction (Phase 1b-ii.1 / ADR 0006).
+ * Tests for the email driver abstraction.
  *
  * `email.ts` reads env vars eagerly inside `getDriver()` and caches the
  * resolved driver on a module-level singleton. To exercise different

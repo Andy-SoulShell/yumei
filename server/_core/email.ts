@@ -4,7 +4,7 @@ import { ENV } from "./env";
 import { log } from "./log";
 
 /**
- * Email sender abstraction (Phase 1b-ii.1 / ADR 0006).
+ * Email sender abstraction.
  *
  * Two drivers ship in this PR:
  *   - **Resend** — the recommended default. Set `RESEND_API_KEY`

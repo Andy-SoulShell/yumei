@@ -20,7 +20,7 @@ import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 
 /**
- * 「她记得你的事」(M2-3)。
+ * 「她记得你的事」。
  *
  * Memory transparency page: everything the companion has learned about
  * the user, grouped by category — deletable and pinnable. This doubles

@@ -1,16 +1,9 @@
 import type { KeyName } from "./types";
 
 /**
- * Lightweight format-only validation for BYOK keys (Phase 1b-i, issue #3).
- *
- * Real "is this key valid for that provider" validation requires a live
- * test call to the provider. For the initial cut we just enforce shape
- * (prefix, length) so obviously bad values don't get persisted. Phase 1b-i+
- * can replace this with real `verify()` calls per provider once the
- * Provider abstraction (Phase 3, issue #22) lands and gives us a clean
- * place to put them.
- *
- * Throws with a user-readable message on failure.
+ * Checks BYOK key shape (prefix and length) before persistence.
+ * This does not call the provider or verify account access.
+ * Throws a user-readable message on failure.
  */
 export async function validateProviderKey(
   name: KeyName,

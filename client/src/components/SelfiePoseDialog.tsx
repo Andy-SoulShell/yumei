@@ -12,7 +12,7 @@ import { SELFIE_POSES } from "../../../shared/selfiePoses";
 import { Lock, Users } from "lucide-react";
 
 /**
- * 拍照选择器（M4-1/2）：姿势随亲密度解锁，合照为 Pro/BYOK 专属。
+ * 拍照选择器：姿势随亲密度解锁，合照为 Pro/BYOK 专属。
  * 锁定项保持可见 —— 「还差 X 级解锁」本身就是养成动力。
  */
 export function SelfiePoseDialog({

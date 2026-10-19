@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * Tests for the Better-Auth instance + session helper (Phase 1b-ii.1).
+ * Tests for the Better-Auth instance + session helper.
  *
  * `auth.ts` constructs the Better-Auth instance lazily based on whether
  * `DATABASE_URL` is set. In test mode (NODE_ENV=test, no DATABASE_URL),

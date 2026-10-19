@@ -26,7 +26,7 @@ afterEach(() => {
   _resetEncryptionForTests();
 });
 
-describe("encryption (issue #2)", () => {
+describe("encryption", () => {
   it("round-trips a simple string", async () => {
     const blob = await encrypt("sk-or-v1-abcdef123456");
     const back = await decrypt(blob);

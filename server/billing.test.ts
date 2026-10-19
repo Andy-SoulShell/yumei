@@ -208,7 +208,7 @@ describe("webhook state machine (DB)", () => {
   });
 });
 
-describe("tier limits shape (ADR 0005)", () => {
+describe("tier limits shape", () => {
   it("matches the frozen tier table", () => {
     expect(TIER_LIMITS.free.dailyMessages).toBe(30);
     expect(TIER_LIMITS.free.dailySelfies).toBe(1);

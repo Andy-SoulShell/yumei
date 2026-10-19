@@ -2,7 +2,7 @@ import DOMPurify from "dompurify";
 
 /**
  * Strip raw HTML from LLM-generated content before it reaches Streamdown
- * (issue #9).
+ *.
  *
  * Why: Streamdown is configured with `rehype-raw` internally, so any HTML
  * tags embedded in an assistant message render as actual HTML. An attacker

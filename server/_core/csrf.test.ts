@@ -7,7 +7,7 @@ import {
 } from "./csrf";
 
 /**
- * Tests for issue #8: CSRF protection (double-submit token).
+ * Tests for: CSRF protection (double-submit token).
  *
  * Each test fabricates a minimal Express-shaped req/res and asserts the
  * middleware behavior (cookie setting, allow/deny on POST, GET pass-through).
@@ -57,7 +57,7 @@ function makeRes(): FakeRes {
   return res;
 }
 
-describe("csrfCookieMiddleware (issue #8)", () => {
+describe("csrfCookieMiddleware", () => {
   it("sets a fresh csrf_token cookie when one is missing", () => {
     const req = makeReq();
     const res = makeRes();
@@ -97,7 +97,7 @@ describe("csrfCookieMiddleware (issue #8)", () => {
   });
 });
 
-describe("csrfVerifyMiddleware (issue #8)", () => {
+describe("csrfVerifyMiddleware", () => {
   it("passes GET / HEAD / OPTIONS through without checks", () => {
     for (const method of ["GET", "HEAD", "OPTIONS"]) {
       const req = makeReq({ method });

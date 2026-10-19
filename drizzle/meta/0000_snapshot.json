@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "77e3e94b-1840-4500-bcb2-0f5e84a6f323",
+  "id": "8ce3f96c-3ce0-4afa-b071-a11c730f4b45",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "accounts": {
@@ -132,13 +132,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "llmApiUrl": {
-          "name": "llmApiUrl",
-          "type": "varchar(500)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "llmModel": {
           "name": "llmModel",
           "type": "varchar(200)",
@@ -181,14 +174,6 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
-        },
-        "whisperProvider": {
-          "name": "whisperProvider",
-          "type": "enum('manus','openai')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'manus'"
         },
         "globalPrompt": {
           "name": "globalPrompt",
@@ -1341,13 +1326,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "openId": {
-          "name": "openId",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "name": {
           "name": "name",
           "type": "text",
@@ -1373,13 +1351,6 @@
         "image": {
           "name": "image",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "loginMethod": {
-          "name": "loginMethod",
-          "type": "varchar(64)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -1436,12 +1407,6 @@
         }
       },
       "uniqueConstraints": {
-        "users_openId_unique": {
-          "name": "users_openId_unique",
-          "columns": [
-            "openId"
-          ]
-        },
         "users_email_unique": {
           "name": "users_email_unique",
           "columns": [

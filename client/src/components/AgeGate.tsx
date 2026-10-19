@@ -12,12 +12,12 @@ import {
 } from "@/components/ui/dialog";
 
 /**
- * One-time 18+ age confirmation (M1-6 compliance).
+ * One-time 18+ age confirmation.
  *
  * Shown when the signed-in user has no confirmed birth date. The server
  * refuses AI routes until auth.confirmAge succeeds, so this gate is a
  * UX affordance on top of a real server-side check — not the check
- * itself. Copy is English-first per the M1 launch decision.
+ * itself. Copy is currently English-first.
  */
 export function AgeGate() {
   const { user, refresh, logout } = useAuth();

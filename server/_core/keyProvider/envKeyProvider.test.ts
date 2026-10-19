@@ -3,14 +3,7 @@ import { _resetEncryptionForTests } from "../encryption";
 import { EnvKeyProvider } from "./envKeyProvider";
 import * as dbModule from "../../db";
 
-/**
- * Tests for the EnvKeyProvider operator-key resolution path.
- *
- * The user-key path (DB read/write/decrypt) is exercised end-to-end in
- * `apiConfig` router tests once we wire that up — testcontainers on
- * Phase 4 will give us a hermetic DB. For now we cover what doesn't
- * require a real DB.
- */
+/** Unit tests for environment-key resolution and mocked encrypted user-key storage. */
 
 const ORIGINAL_ENV = { ...process.env };
 

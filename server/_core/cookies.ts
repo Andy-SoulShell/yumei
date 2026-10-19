@@ -19,14 +19,8 @@ export function getSessionCookieOptions(
   return {
     httpOnly: true,
     path: "/",
-    // SameSite=Lax blocks the cookie from being sent on cross-site POST/etc.,
-    // which is the foundation of CSRF protection (issue #8). The previous
-    // `none` value required `secure: true` to be accepted by modern browsers
-    // and meanwhile permitted arbitrary cross-site embedding.
-    //
-    // yumei is a same-origin app — frontend and tRPC backend are served by
-    // the same Express process — so Lax is the right default. If we ever
-    // ship a separately-hosted client, we'll reconsider via a feature flag.
+    // The frontend and API share an origin. Lax excludes cross-site POSTs;
+    // the CSRF middleware adds explicit token checks for writes.
     sameSite: "lax",
     secure: isSecureRequest(req),
   };

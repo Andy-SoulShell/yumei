@@ -10,12 +10,10 @@ function createAuthContext(overrides?: Partial<AuthenticatedUser>): {
 } {
   const user = {
     id: "safety-test-user",
-    openId: null,
     email: "safety@example.com",
     emailVerified: true,
     image: null,
     name: "Safety Tester",
-    loginMethod: null,
     role: "user",
     birthDate: new Date("1990-01-01"),
     createdAt: new Date(),
@@ -33,7 +31,7 @@ function createAuthContext(overrides?: Partial<AuthenticatedUser>): {
   };
 }
 
-describe("detectSelfHarm (M1-6 / SB 243)", () => {
+describe("detectSelfHarm", () => {
   it("flags Chinese crisis expressions", () => {
     expect(detectSelfHarm("我最近总觉得活不下去了")).toBe(true);
     expect(detectSelfHarm("有时候真的不想活了")).toBe(true);
@@ -59,7 +57,7 @@ describe("safety system clause", () => {
   });
 });
 
-describe("age gate (M1-6)", () => {
+describe("age gate", () => {
   it("rejects under-18 birth dates in auth.confirmAge", async () => {
     const { ctx } = createAuthContext();
     const caller = appRouter.createCaller(ctx);

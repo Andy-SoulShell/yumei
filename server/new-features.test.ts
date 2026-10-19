@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
+import { storageRead } from "./storage";
+import { readDefaultReference } from "./characterPresets";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
 function createAuthContext(userId = 1): { ctx: TrpcContext } {
   const user: AuthenticatedUser = {
-    // users.id is varchar(255) since the Better-Auth migration (0013).
+    // Better-Auth uses string user IDs.
     id: String(userId),
-    openId: `test-user-${userId}`,
     email: `test${userId}@example.com`,
     name: "Test User",
-    loginMethod: "manus",
     role: "user",
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -45,16 +45,24 @@ describe("girlfriend.ensureDefault", () => {
     expect(result.personality).toContain("活泼开朗");
     expect(result.userId).toBe("88888");
     expect(result.isActive).toBe(true);
+    expect(result.referenceImageKey).toMatch(/^default-yumei-88888-.*\.jpg$/);
+    expect(result.referenceImageUrl).toContain(
+      `/files/${result.referenceImageKey}`
+    );
+    const storedReference = await storageRead(result.referenceImageKey);
+    expect(storedReference).toEqual(await readDefaultReference());
+    expect(storedReference.subarray(0, 2)).toEqual(Buffer.from([255, 216]));
   });
 
   it("should return existing girlfriend if one already exists", async () => {
     const { ctx } = createAuthContext(88888);
     const caller = appRouter.createCaller(ctx);
 
-    // 第二次调用应返回已有的
+    const existing = await caller.girlfriend.ensureDefault();
     const result = await caller.girlfriend.ensureDefault();
 
-    expect(result).toBeDefined();
+    expect(result.id).toBe(existing.id);
+    expect(result.referenceImageKey).toBe(existing.referenceImageKey);
     expect(result.name).toBe("YUMEI");
   });
 });

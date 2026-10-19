@@ -1,5 +1,5 @@
 /**
- * Long-term memory service (M2): extraction, selection, recall, capacity.
+ * Long-term memory service: extraction, selection, recall, capacity.
  *
  * Extraction is fire-and-forget from the chat path — a cheap LLM pass
  * over the recent window that returns structured JSON. Failures are
@@ -333,7 +333,7 @@ export async function buildMemoryPromptBlock(
 }
 
 // ---------------------------------------------------------------------------
-// CRUD for the memories page (M2-3)
+// CRUD for the memories page
 // ---------------------------------------------------------------------------
 
 export async function listMemories(
@@ -376,7 +376,7 @@ export async function setMemoryPinned(
     .where(and(eq(memories.id, id), eq(memories.userId, userId)));
 }
 
-/** Most recent high-value "event" memory — used by proactive messages (M2-4). */
+/** Most recent high-value "event" memory — used by proactive messages. */
 export async function getFreshEventMemory(
   userId: string,
   girlfriendId: number

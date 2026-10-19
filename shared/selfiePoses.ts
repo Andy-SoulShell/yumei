@@ -1,5 +1,5 @@
 /**
- * Intimacy-gated selfie pose library (M4-1).
+ * Intimacy-gated selfie pose library.
  *
  * The intimacy levels have promised these unlocks since v3.0
  * (`shared/intimacy.ts` → unlocks: 撒娇 Lv2 / 亲密 Lv3 / 诱惑 Lv5) — this

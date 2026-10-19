@@ -1,24 +1,7 @@
 /**
- * Object storage with pluggable drivers (M1-2, replaces the Manus Forge
- * storage proxy).
- *
- * Drivers, selected by `STORAGE_DRIVER`:
- *   - `local` (default): files land on disk under `STORAGE_LOCAL_DIR`.
- *     Suitable for self-hosting and dev.
- *   - `s3`: AWS S3 or any S3-compatible endpoint (R2, MinIO) via
- *     `S3_BUCKET` / `S3_REGION` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY`
- *     / optional `S3_ENDPOINT`.
- *
- * Both drivers return the same *stable* public URL shape:
- *   `${PUBLIC_URL}/files/<key>`
- * The `/files` route (server/_core/files.ts) streams from disk or
- * redirects to a short-lived presigned S3 URL. Persisting the stable URL
- * in the DB means the storage backend can change without a data
- * migration, and private S3 buckets work because presigning happens at
- * read time.
- *
- * Keys embed a nanoid, so URLs are unguessable. Per-user read ACLs and
- * signed app-level URLs are tracked separately (issue #12).
+ * Local disk and S3-compatible object storage.
+ * Persisted URLs use /files/<key>; the file route streams local bytes or
+ * redirects to a short-lived S3 URL. Keys must remain relative and traversal-free.
  */
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";

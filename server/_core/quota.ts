@@ -1,14 +1,13 @@
 /**
- * Server-side rate limiting and daily usage meters (M1-3 / issue #5).
+ * Server-side rate limiting and daily usage meters.
  *
  * Two layers:
  *   1. `checkRateLimit` — in-memory, per-user, per-minute sliding window.
  *      Protects the server and upstream providers from bursts. Process-
- *      local by design; a multi-instance deployment moves this to Redis
- *      (tracked for Phase 5).
+ *      local by design; multi-instance deployments need shared state.
  *   2. `consumeDailyMeter` / `tryConsumeDailyMeter` — persistent daily
- *      counters in the `usageMeters` table. These are the free-tier caps
- *      from ADR 0005 and survive restarts. Increments are atomic upserts,
+ *      counters in the `usageMeters` table that survive restarts.
+ *      Increments are atomic upserts,
  *      so caps hold under concurrent requests.
  *
  * Test mode without a DB skips meters (same carve-out as db.ts).

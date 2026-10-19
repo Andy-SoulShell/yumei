@@ -6,7 +6,6 @@ import {
   type ImageInput,
 } from "./comfyui";
 import { storageRead } from "../storage";
-import { DEFAULT_GIRLFRIEND } from "../../shared/defaultGirlfriend";
 
 export type ImageProvider = {
   name: "fal" | "comfyui";
@@ -35,25 +34,7 @@ export async function resolveImageProvider(
 type Reference = { key: string; url: string };
 
 async function readReference(reference: Reference): Promise<ImageInput> {
-  let data: Buffer;
-  // The bundled default companion has an external reference, not a storage key.
-  // All user uploads are read by key, without fetching arbitrary user URLs.
-  if (
-    reference.url === DEFAULT_GIRLFRIEND.referenceImageUrl &&
-    reference.key.startsWith("default-yumei-")
-  ) {
-    const response = await axios.get<ArrayBuffer>(
-      DEFAULT_GIRLFRIEND.referenceImageUrl,
-      {
-        responseType: "arraybuffer",
-        timeout: 30_000,
-        maxContentLength: 25 * 1024 * 1024,
-      }
-    );
-    data = Buffer.from(response.data);
-  } else {
-    data = await storageRead(reference.key);
-  }
+  const data = await storageRead(reference.key);
   const mimeType = data.subarray(0, 4).equals(Buffer.from([137, 80, 78, 71]))
     ? "image/png"
     : data[0] === 255 && data[1] === 216

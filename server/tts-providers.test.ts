@@ -6,10 +6,8 @@ import type { TrpcContext } from "./_core/context";
 function createAuthContext(): { ctx: TrpcContext } {
   const user = {
     id: "test-user-1",
-    openId: "test-user",
     email: "test@example.com",
     name: "Test User",
-    loginMethod: "manus",
     role: "user" as const,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -33,10 +31,9 @@ function createAuthContext(): { ctx: TrpcContext } {
   return { ctx };
 }
 
-describe("TTS Providers - API Configuration Schema (Phase 1b-i shape)", () => {
+describe("TTS Providers - API Configuration Schema", () => {
   it("apiConfig.updatePreferences accepts ttsProvider field", async () => {
-    // Phase 1b-i renamed `apiConfig.upsert` to `updatePreferences` and
-    // dropped key fields from the input schema (now under setKey/clearKey).
+    // Preferences and keys use separate mutations.
     const { ctx } = createAuthContext();
     const caller = appRouter.createCaller(ctx);
     expect(caller.apiConfig.updatePreferences).toBeDefined();
@@ -79,14 +76,14 @@ describe("TTS Providers - API Configuration Schema (Phase 1b-i shape)", () => {
   });
 });
 
-describe("TTS Providers - ElevenLabs Voice List API (Phase 1b-i)", () => {
+describe("TTS Providers - ElevenLabs Voice List API", () => {
   it("listElevenLabsVoices is exposed (replacing fetchElevenLabsVoices)", async () => {
     const { ctx } = createAuthContext();
     const caller = appRouter.createCaller(ctx);
     expect(caller.apiConfig.listElevenLabsVoices).toBeDefined();
   });
 
-  it("listElevenLabsVoices does NOT accept apiKey on the wire (issue #3)", async () => {
+  it("listElevenLabsVoices does NOT accept apiKey on the wire", async () => {
     // Without operator key + no BYOK in this fake context, the resolver
     // returns null, so the call is rejected with PRECONDITION_FAILED.
     const { ctx } = createAuthContext();
@@ -95,15 +92,9 @@ describe("TTS Providers - ElevenLabs Voice List API (Phase 1b-i)", () => {
       /ElevenLabs key not configured/
     );
   });
-
-  // Note: we don't `toBeUndefined()`-check the legacy procs because
-  // tRPC v11's caller is a recursive Proxy — every property access
-  // produces a function-like proxy regardless of whether the procedure
-  // exists. Calling that proxy is what surfaces the NOT_FOUND. Coverage
-  // for "no longer exists" is the rejection assertions above.
 });
 
-describe("TTS Providers - Fish Audio Model List API (Phase 1b-i)", () => {
+describe("TTS Providers - Fish Audio Model List API", () => {
   it("listFishAudioModels is exposed (replacing fetchFishAudioModels)", async () => {
     const { ctx } = createAuthContext();
     const caller = appRouter.createCaller(ctx);
@@ -118,18 +109,8 @@ describe("TTS Providers - Fish Audio Model List API (Phase 1b-i)", () => {
     );
   });
 
-  // (legacy fetchFishAudioModels removal is exercised via the
-  // PRECONDITION_FAILED assertions above; see the note in the
-  // ElevenLabs describe-block.)
-
   it("listFishAudioModels accepts an optional search parameter", async () => {
-    // Phase 1b-i (issue #3) renamed `fetchFishAudioModels({ apiKey, search })`
-    // to `listFishAudioModels({ search })` and removed `apiKey` from the
-    // wire input — the server resolves the key via KeyProvider. Without
-    // any operator key configured + no BYOK in this test setup, the call
-    // is expected to reject with PRECONDITION_FAILED, which proves both
-    // (a) the new procedure shape is correct and (b) the legacy raw-key
-    // surface is gone.
+    // Missing credentials should be rejected after validating the search input.
     const { ctx } = createAuthContext();
     const caller = appRouter.createCaller(ctx);
     await expect(
@@ -163,7 +144,7 @@ describe("TTS Providers - Router Structure", () => {
     expect(caller.tts.generate).toBeDefined();
   });
 
-  it("should have apiConfig router with list* TTS queries (Phase 1b-i shape)", async () => {
+  it("should have apiConfig router with list* TTS queries", async () => {
     const { ctx } = createAuthContext();
     const caller = appRouter.createCaller(ctx);
 

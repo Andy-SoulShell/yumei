@@ -4,7 +4,7 @@ import type { Request, Response, NextFunction } from "express";
 import { isSecureRequest } from "./cookies";
 
 /**
- * CSRF protection — double-submit token (issue #8).
+ * CSRF protection — double-submit token.
  *
  * Strategy:
  *   1. `csrfCookieMiddleware` runs on every request. If the request has no

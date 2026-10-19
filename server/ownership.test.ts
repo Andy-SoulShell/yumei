@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import type { User } from "../drizzle/schema";
 
 /**
- * Regression test for issue #4: ownership-before-write.
+ * Regression test for: ownership-before-write.
  *
  * The v3.0 implementations of `chat.sendMessage` and `selfie.generate`
  * accepted any `conversationId` from the client and only verified
@@ -30,11 +30,11 @@ import { appRouter } from "./routers";
 
 const fakeUser: User = {
   id: "test-user-42",
-  openId: "test-openid-42",
+
   name: "Tester",
   email: "ownership@example.com",
-  loginMethod: null,
-  // M1-6: AI routes require a confirmed 18+ birth date.
+
+  // AI routes require a confirmed 18+ birth date.
   birthDate: new Date("1990-01-01"),
   createdAt: new Date(),
   lastSignedIn: new Date(),
@@ -56,7 +56,7 @@ const callOrder: string[] = [];
 beforeEach(() => {
   callOrder.length = 0;
   vi.restoreAllMocks();
-  // M1-3: chat.sendMessage resolves the LLM key before any reads/writes.
+  // chat.sendMessage resolves the LLM key before any reads/writes.
   // Provide a fake operator key so these tests exercise the ownership
   // path rather than failing at the key precondition.
   process.env.OPERATOR_OPENROUTER_KEY = "sk-or-test-fake-operator-key";
@@ -66,7 +66,7 @@ afterEach(() => {
   delete process.env.OPERATOR_OPENROUTER_KEY;
 });
 
-describe("issue #4: ownership-before-write", () => {
+describe(": ownership-before-write", () => {
   describe("chat.sendMessage", () => {
     it("calls getConversation BEFORE createMessage", async () => {
       vi.spyOn(db, "getConversation").mockImplementation(async () => {

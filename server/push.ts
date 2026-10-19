@@ -1,5 +1,5 @@
 /**
- * Web Push delivery (M4-4).
+ * Web Push delivery.
  *
  * Requires VAPID keys — generate once with `npx web-push generate-vapid-keys`
  * and set VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY (+ optional VAPID_SUBJECT,
@@ -139,7 +139,7 @@ export async function sendPushToUser(
 }
 
 // ---------------------------------------------------------------------------
-// Proactive-message scheduler (M4-4, completes M2-4)
+// Proactive-message scheduler
 // ---------------------------------------------------------------------------
 
 let schedulerTimer: NodeJS.Timeout | null = null;

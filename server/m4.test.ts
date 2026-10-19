@@ -17,12 +17,10 @@ type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 function createAuthContext(userId: string): { ctx: TrpcContext } {
   const user = {
     id: userId,
-    openId: null,
     email: `${userId}@example.com`,
     emailVerified: true,
     image: null,
     name: "M4 Tester",
-    loginMethod: null,
     role: "user",
     birthDate: new Date("1990-01-01"),
     createdAt: new Date(),
@@ -60,7 +58,7 @@ afterEach(() => {
   delete process.env.BILLING_PROVIDER;
 });
 
-describe("selfie pose library (M4-1)", () => {
+describe("selfie pose library", () => {
   it("exposes the intimacy-promised poses at the right levels", () => {
     expect(getPose("aegyo")?.minLevel).toBe(2); // 解锁「撒娇」Lv2
     expect(getPose("intimate")?.minLevel).toBe(3); // 解锁「亲密」Lv3
@@ -106,7 +104,7 @@ describe("selfie pose library (M4-1)", () => {
   });
 });
 
-describe("couple photo gating (M4-2)", () => {
+describe("couple photo gating", () => {
   it("requires pro tier when billing is enforced", async () => {
     if (!(await getDb())) return;
     process.env.BILLING_PROVIDER = "free"; // everyone free, no BYOK
@@ -141,7 +139,7 @@ describe("couple photo gating (M4-2)", () => {
   });
 });
 
-describe("web push (M4-4)", () => {
+describe("web push", () => {
   it("is dormant without VAPID keys", () => {
     expect(isPushConfigured()).toBe(false);
     expect(getVapidPublicKey()).toBeNull();

@@ -17,10 +17,8 @@ function createAuthContext(): {
 
   const user: AuthenticatedUser = {
     id: "test-user-1",
-    openId: "sample-user",
     email: "sample@example.com",
     name: "Sample User",
-    loginMethod: "manus",
     role: "user",
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -47,18 +45,17 @@ function createAuthContext(): {
 }
 
 describe("auth.logout", () => {
-  it("clears Better-Auth session cookies + the legacy v3 cookie", async () => {
+  it("clears Better-Auth session cookies", async () => {
     const { ctx, clearedCookies } = createAuthContext();
     const caller = appRouter.createCaller(ctx);
 
     const result = await caller.auth.logout();
 
     expect(result).toEqual({ success: true });
-    expect(clearedCookies).toHaveLength(3);
+    expect(clearedCookies).toHaveLength(2);
     expect(clearedCookies.map(c => c.name)).toEqual([
       "better-auth.session_token",
       "better-auth.session_data",
-      "app_session_id",
     ]);
     expect(clearedCookies[0]?.options).toMatchObject({
       maxAge: -1,

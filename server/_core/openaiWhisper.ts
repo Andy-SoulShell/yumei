@@ -5,8 +5,7 @@
  * for users who prefer to use their own OpenAI API keys.
  */
 
-// Transcription types (moved here from the deleted Manus voiceTranscription
-// module in M1-3 — OpenAI Whisper is now the only STT path).
+// OpenAI Whisper transcription request and response types.
 export type TranscribeOptions = {
   audioUrl: string; // URL to the audio file
   language?: string; // Optional: language code (e.g. "en", "zh")

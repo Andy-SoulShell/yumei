@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 /**
- * Tests for issue #6: JWT_SECRET fail-fast at boot.
+ * Tests for: JWT_SECRET fail-fast at boot.
  *
  * `env.ts` parses `process.env` at module load. To exercise different
  * `process.env` shapes we save/restore env, then `vi.resetModules()` and
@@ -26,7 +26,7 @@ afterEach(() => {
   Object.assign(process.env, ORIGINAL_ENV);
 });
 
-describe("env validation (issue #6)", () => {
+describe("env validation", () => {
   it.each(["invalid", "ftp://comfy:8188", "http://user:password@comfy:8188"])(
     "rejects invalid ComfyUI addresses: %s",
     async url => {
@@ -79,7 +79,7 @@ describe("env validation (issue #6)", () => {
     );
   });
 
-  it("does NOT require DATABASE_URL in test mode (Phase-4 carve-out)", async () => {
+  it("does NOT require DATABASE_URL in test mode", async () => {
     process.env.JWT_SECRET = "a".repeat(32);
     process.env.NODE_ENV = "test";
     // No DATABASE_URL set.
@@ -121,17 +121,17 @@ describe("env validation (issue #6)", () => {
     process.env.KEY_ENCRYPTION_KEY = "y".repeat(64);
     process.env.DATABASE_URL = "mysql://x";
     process.env.NODE_ENV = "production";
-    // Phase 1b-ii.1: production also requires email config (ADR 0006).
+    // production also requires email config.
     process.env.EMAIL_FROM = "noreply@example.com";
     process.env.RESEND_API_KEY = "re_test_key";
-    // M1: production also requires the public deployment URL.
+    // production also requires the public deployment URL.
     process.env.BETTER_AUTH_URL = "https://yumei.example.com";
     const { ENV } = await import("./env");
     expect(ENV.isProduction).toBe(true);
     expect(ENV.isTest).toBe(false);
   });
 
-  it("requires EMAIL_FROM in production (Phase 1b-ii.1 / ADR 0006)", async () => {
+  it("requires EMAIL_FROM in production", async () => {
     process.env.JWT_SECRET = "x".repeat(64);
     process.env.KEY_ENCRYPTION_KEY = "y".repeat(64);
     process.env.DATABASE_URL = "mysql://x";
@@ -143,7 +143,7 @@ describe("env validation (issue #6)", () => {
     );
   });
 
-  it("requires an email driver in production (Phase 1b-ii.1 / ADR 0006)", async () => {
+  it("requires an email driver in production", async () => {
     process.env.JWT_SECRET = "x".repeat(64);
     process.env.KEY_ENCRYPTION_KEY = "y".repeat(64);
     process.env.DATABASE_URL = "mysql://x";
@@ -170,7 +170,7 @@ describe("env validation (issue #6)", () => {
     expect(ENV.isProduction).toBe(true);
   });
 
-  it("requires BETTER_AUTH_URL in production (M1)", async () => {
+  it("requires BETTER_AUTH_URL in production", async () => {
     process.env.JWT_SECRET = "x".repeat(64);
     process.env.KEY_ENCRYPTION_KEY = "y".repeat(64);
     process.env.DATABASE_URL = "mysql://x";
@@ -183,7 +183,7 @@ describe("env validation (issue #6)", () => {
     );
   });
 
-  it("requires S3 config when STORAGE_DRIVER=s3 (M1-2)", async () => {
+  it("requires S3 config when STORAGE_DRIVER=s3", async () => {
     process.env.JWT_SECRET = "x".repeat(64);
     process.env.NODE_ENV = "test";
     process.env.STORAGE_DRIVER = "s3";
@@ -193,7 +193,7 @@ describe("env validation (issue #6)", () => {
     );
   });
 
-  it("rejects KEY_ENCRYPTION_KEY equal to JWT_SECRET (Phase 1b-i)", async () => {
+  it("rejects KEY_ENCRYPTION_KEY equal to JWT_SECRET", async () => {
     const same = "z".repeat(64);
     process.env.JWT_SECRET = same;
     process.env.KEY_ENCRYPTION_KEY = same;

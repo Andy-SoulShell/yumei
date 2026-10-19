@@ -34,7 +34,7 @@ export async function generateConversationSelfie(
   input: SelfieInput,
   chatContent?: string
 ) {
-  // 0a. 年龄门（M1-6）+ 服务端限流（issue #5）。
+  // 0a. 年龄门 + 服务端限流。
   if (!user.birthDate)
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
@@ -42,7 +42,7 @@ export async function generateConversationSelfie(
     });
   checkRateLimit(user.id, "selfie");
 
-  // 0b. 验证对话所有权 — 见 issue #4。selfie.generate 此前会无条件
+  // 0b. 验证对话所有权。selfie.generate 此前会无条件
   // INSERT 一条 assistant message 到 input.conversationId，攻击者可借此
   // 把"自拍消息"写进任意对话。
   const conversation = await getConversation(input.conversationId, user.id);
@@ -65,7 +65,7 @@ export async function generateConversationSelfie(
     });
   }
 
-  // 1b. 姿势等级门（M4-1）：解锁进度由亲密度决定，服务端强制。
+  // 1b. 姿势等级门：解锁进度由亲密度决定，服务端强制。
   let pose: ReturnType<typeof getPose> | undefined;
   if (input.poseId) {
     pose = getPose(input.poseId);
@@ -98,7 +98,7 @@ export async function generateConversationSelfie(
     });
   }
 
-  // 2b. 档位自拍额度（M3 / ADR 0005）：免费档按日、付费档按月。
+  // 2b. 档位自拍额度：免费档按日、付费档按月。
   // BYOK fal 用户和自托管（BILLING_PROVIDER=none）跳过。
   const selfieTier = await getTierLimits(user.id);
   if (isBillingEnforced() && !imageProvider.isByok) {
@@ -140,7 +140,7 @@ export async function generateConversationSelfie(
           content: chatContent,
         });
 
-  // 3. 使用 Clawra 提示词模板生成提示词（M4-1：姿势片段 + 用户场景）
+  // 3. 使用 自拍提示词模板生成提示词
   const combinedContext = pose
     ? sceneContext.trim()
       ? `${pose.promptFragment}, ${sceneContext.trim()}`

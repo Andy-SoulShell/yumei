@@ -41,12 +41,7 @@ export async function getDb() {
 
 // ============ User Functions ============
 //
-// Phase 1b-ii.1 (ADR 0006) moved user CRUD to Better-Auth — see
-// `server/_core/auth.ts`. The `upsertUser` / `getUserByOpenId`
-// helpers from the Manus OAuth path were deleted with the rest of
-// `oauth.ts` / `sdk.ts`. The auto-promote-to-admin behavior keyed on
-// `OWNER_OPEN_ID` is gone; admin elevation now happens manually
-// (issue #16 will add an admin CLI).
+// Better-Auth owns account creation and login; application roles are managed in the database.
 
 export async function getUserById(id: string) {
   const db = await getDb();
@@ -56,7 +51,7 @@ export async function getUserById(id: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-/** M1-6 age gate: birth date is validated as 18+ in auth.confirmAge. */
+/** Age gate: birth date is validated as 18+ in auth.confirmAge. */
 export async function setUserBirthDate(
   userId: string,
   birthDate: Date
@@ -786,7 +781,7 @@ export async function getAllGirlfriendMoods(
 
 export async function createDefaultGirlfriend(
   userId: string,
-  data: InsertGirlfriend
+  createData: () => Promise<InsertGirlfriend>
 ): Promise<Girlfriend> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -803,7 +798,7 @@ export async function createDefaultGirlfriend(
   }
 
   // 创建默认女友
-  const result = await db.insert(girlfriends).values(data);
+  const result = await db.insert(girlfriends).values(await createData());
   const insertedId = Number(result[0].insertId);
 
   const inserted = await db
@@ -938,7 +933,7 @@ export function getRandomProactiveMessage(
 }
 
 // 检查是否应该发送主动消息（基于上次聊天时间和心情）
-// M2-4：优先引用最近的 event 类记忆（"你上次说的面试怎么样了？"），
+// 优先引用最近的 event 类记忆（"你上次说的面试怎么样了？"），
 // 并把频率收紧为每用户每天最多 1 条 —— 主动消息的价值在于"她记得"，
 // 不在于数量；高频模板消息是同类产品差评的高发区。
 export async function checkAndCreateProactiveNotification(
@@ -973,7 +968,7 @@ export async function checkAndCreateProactiveNotification(
     );
   if ((todayCount[0]?.count ?? 0) >= 1) return null;
 
-  // M2-4：有新鲜的 event 记忆时，主动消息引用它
+  // 有新鲜的 event 记忆时，主动消息引用它
   const { getFreshEventMemory } = await import("./memory");
   const eventMemory = await getFreshEventMemory(userId, gf.id);
   if (eventMemory) {

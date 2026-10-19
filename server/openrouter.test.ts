@@ -9,12 +9,10 @@ import { appRouter } from "./routers";
 
 const user: NonNullable<TrpcContext["user"]> = {
   id: "openrouter-test-user",
-  openId: null,
   email: "openrouter@example.com",
   emailVerified: true,
   name: "Test User",
   image: null,
-  loginMethod: null,
   role: "user",
   birthDate: null,
   createdAt: new Date(),
@@ -42,14 +40,12 @@ describe("OpenRouter API integration", () => {
     const saved: ApiConfig = {
       id: 1,
       userId: user.id,
-      llmApiUrl: null,
       llmModel: "openai/gpt-4o-mini",
       ttsProvider: "browser",
       elevenlabsVoiceId: null,
       elevenlabsVoiceName: null,
       fishAudioModelId: null,
       fishAudioModelName: null,
-      whisperProvider: "openai",
       globalPrompt: null,
       replyLanguage: null,
       replyLengthLimit: null,

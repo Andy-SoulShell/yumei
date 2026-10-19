@@ -7,12 +7,10 @@ type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
 function createAuthContext(userId = 1): { ctx: TrpcContext } {
   const user: AuthenticatedUser = {
-    // users.id is varchar(255) since the Better-Auth migration (0013).
+    // Better-Auth uses string user IDs.
     id: String(userId),
-    openId: `test-user-${userId}`,
     email: `test${userId}@example.com`,
     name: "Test User",
-    loginMethod: "manus",
     role: "user",
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -49,7 +47,7 @@ describe("conversation.search", () => {
     });
 
     // 直接写入一条包含特定关键词的消息（不走 chat.sendMessage —
-    // M1-3 起该路径要求配置 OpenRouter key，且测试不应触网）
+    // 起该路径要求配置 OpenRouter key，且测试不应触网）
     await createMessage({
       conversationId: convo.id,
       role: "user",

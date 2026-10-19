@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { redact } from "./log";
 
-describe("log.redact (issue #11)", () => {
+describe("log.redact", () => {
   it("masks API key fields by exact name", () => {
     const out = redact({
       llmApiKey: "sk-or-v1-abcdef123456789",

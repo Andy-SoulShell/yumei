@@ -1,5 +1,5 @@
 /**
- * Subscription billing (M3 / ADR 0002, 0004, 0005).
+ * Subscription billing.
  *
  * Modes, selected by BILLING_PROVIDER (read at call time for testability):
  *   - "free" (default): no paid tiers; every non-BYOK user gets the

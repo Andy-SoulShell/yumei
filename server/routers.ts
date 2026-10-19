@@ -58,7 +58,7 @@ import {
 } from "./memory";
 import { DEFAULT_GIRLFRIEND } from "../shared/defaultGirlfriend";
 import { getCharacterPreset } from "../shared/characterPresets";
-import { readPresetReference } from "./characterPresets";
+import { readDefaultReference, readPresetReference } from "./characterPresets";
 import {
   POINTS_RULES,
   DAILY_POINTS_LIMIT,
@@ -107,7 +107,7 @@ import { transcribeWithOpenAI } from "./_core/openaiWhisper";
 
 // 明确的自拍请求和相机按钮共用同一生图流程；日常聊天词不会触发生图。
 
-// M1-6 年龄门（18+）：产品定位成人陪伴，AI 路由在用户确认年龄前拒绝
+// 年龄门（18+）：产品定位成人陪伴，AI 路由在用户确认年龄前拒绝
 // 服务。birthDate 在 auth.confirmAge 里做服务端 18+ 校验后写入。
 function ensureAgeConfirmed(user: { birthDate: Date | string | null }) {
   if (!user.birthDate) {
@@ -136,7 +136,7 @@ export const appRouter = router({
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
 
-    // M1-6: one-time 18+ confirmation. Validated server-side; the date
+    // one-time 18+ confirmation. Validated server-side; the date
     // itself is only used to prove majority (SB 243 baseline).
     confirmAge: protectedProcedure
       .input(
@@ -168,7 +168,7 @@ export const appRouter = router({
     logout: publicProcedure.mutation(({ ctx }) => {
       // Defense-in-depth — Better-Auth's own /api/auth/sign-out is the
       // primary signout path; this clears the same cookies for clients
-      // that hit tRPC directly. See ADR 0006.
+      // that hit tRPC directly.
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie("better-auth.session_token", {
         ...cookieOptions,
@@ -178,8 +178,6 @@ export const appRouter = router({
         ...cookieOptions,
         maxAge: -1,
       });
-      // Also clear the legacy v3 cookie if any client still has it.
-      ctx.res.clearCookie("app_session_id", { ...cookieOptions, maxAge: -1 });
       return {
         success: true,
       } as const;
@@ -216,7 +214,7 @@ export const appRouter = router({
           )
       )
       .mutation(async ({ ctx, input }) => {
-        // 档位上限（M3 / ADR 0005）：Free 1 个、Plus 3 个、Pro 不限。
+        // 档位上限：Free 1 个、Plus 3 个、Pro 不限。
         // 自托管（BILLING_PROVIDER=none）不限。
         if (isBillingEnforced()) {
           const gfTier = await getTierLimits(ctx.user.id);
@@ -383,16 +381,26 @@ export const appRouter = router({
 
     // 确保默认女友存在（登录后调用）
     ensureDefault: protectedProcedure.mutation(async ({ ctx }) => {
-      const girlfriend = await createDefaultGirlfriend(ctx.user.id, {
-        userId: ctx.user.id,
-        name: DEFAULT_GIRLFRIEND.name,
-        personality: DEFAULT_GIRLFRIEND.personality,
-        appearance: DEFAULT_GIRLFRIEND.appearance,
-        interests: DEFAULT_GIRLFRIEND.interests,
-        referenceImageUrl: DEFAULT_GIRLFRIEND.referenceImageUrl,
-        referenceImageKey: `default-yumei-${ctx.user.id}`,
-        isActive: true,
-      });
+      const girlfriend = await createDefaultGirlfriend(
+        ctx.user.id,
+        async () => {
+          const reference = await storagePut(
+            `default-yumei-${ctx.user.id}-${nanoid()}.jpg`,
+            await readDefaultReference(),
+            "image/jpeg"
+          );
+          return {
+            userId: ctx.user.id,
+            name: DEFAULT_GIRLFRIEND.name,
+            personality: DEFAULT_GIRLFRIEND.personality,
+            appearance: DEFAULT_GIRLFRIEND.appearance,
+            interests: DEFAULT_GIRLFRIEND.interests,
+            referenceImageUrl: reference.url,
+            referenceImageKey: reference.key,
+            isActive: true,
+          };
+        }
+      );
       return girlfriend;
     }),
 
@@ -444,7 +452,7 @@ export const appRouter = router({
             message: "无效的经验值类型",
           });
 
-        // 服务端防刷分（M1-3 / issue #5）：冷却与每日上限过去只由前端
+        // 服务端防刷分：冷却与每日上限过去只由前端
         // "自觉"遵守，直连 tRPC 即可绕过。现在由服务端强制，超限时静默
         // 返回 0 分（不报错——加分是聊天的副作用，不该打断主流程）。
         const skipped = (reason: string) => ({
@@ -627,7 +635,7 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
-        // 0. 年龄门（M1-6）+ 服务端限流（issue #5）。
+        // 0. 年龄门 + 服务端限流。
         ensureAgeConfirmed(ctx.user);
         checkRateLimit(ctx.user.id, "chat");
 
@@ -651,7 +659,7 @@ export const appRouter = router({
           };
         }
 
-        // 0b. 提前解析 LLM 密钥（M1-3）：BYOK → 运营方 key。缺 key 要在
+        // 0b. 提前解析 LLM 密钥：BYOK → 运营方 key。缺 key 要在
         // 任何写入/扣配额之前失败，避免半截对话和白烧额度。
         const chatProvider = await resolveChatProvider(ctx.user.id);
         if (!chatProvider.apiKey) {
@@ -661,7 +669,7 @@ export const appRouter = router({
           });
         }
 
-        // 1. 验证对话所有权（必须在写入前完成 — 见 issue #4）
+        // 1. 验证对话所有权（必须在写入前完成）
         // 之前的实现顺序是 createMessage → getConversation，这意味着任何登录用户
         // 传一个别人的 conversationId 也能成功 INSERT 一条 user message 进对方对话。
         const conversation = await getConversation(
@@ -686,8 +694,8 @@ export const appRouter = router({
           });
         }
 
-        // 2b. 档位日配额（M3 / ADR 0005）。BYOK 用户自付 API 成本，跳过
-        // 用量计量（ADR 0002）；限流仍然生效。BILLING_PROVIDER=none 的
+        // 2b. 档位日配额。BYOK 用户自付 API 成本，跳过
+        // 用量计量；限流仍然生效。BILLING_PROVIDER=none 的
         // 自托管部署完全不计量。
         const userKeyInfo = await keyProvider.describeUserKeys(ctx.user.id);
         const isByokChat = userKeyInfo.openrouter?.isSet === true;
@@ -707,7 +715,7 @@ export const appRouter = router({
         }
 
         // 2. 保存用户消息（所有权已校验）
-        // TODO(phase-2 / issue #17): 把 user msg + assistant msg 包进同一个事务，
+        // TODO: 把 user msg + assistant msg 包进同一个事务，
         // 避免 LLM 调用失败时留下半截对话。
         const userMessage = await createMessage({
           conversationId: input.conversationId,
@@ -755,7 +763,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
           systemPrompt += `\n\n【${girlfriend.name}专属指令】\n${girlfriend.customPrompt}`;
         }
 
-        // 长期记忆注入（M2-2）：按相关性取 top-k，等级越高记得越多。
+        // 长期记忆注入：按相关性取 top-k，等级越高记得越多。
         // 失败不阻塞聊天。
         try {
           systemPrompt += await buildMemoryPromptBlock(
@@ -771,7 +779,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
           );
         }
 
-        // 安全条款（M1-6 / SB 243）：常驻，且排在所有用户可控提示词之后，
+        // 安全条款：常驻，且排在所有用户可控提示词之后，
         // 避免被全局/个体提示词覆盖。
         systemPrompt += `\n${SAFETY_SYSTEM_CLAUSE}`;
 
@@ -794,7 +802,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
           const response = await axios.post(
             `${chatProvider.baseUrl}/chat/completions`,
             {
-              // 免费档锁定 gpt-4o-mini（成本上限依据，ADR 0005）；
+              // 免费档锁定 gpt-4o-mini（控制成本）；
               // 付费档 / BYOK / 自托管可自由选模型。
               model:
                 chatProvider.name === "deepseek"
@@ -812,7 +820,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${chatProvider.apiKey}`,
               },
-              // 上游挂起不该占死 Express worker（issue #22 的最小版）。
+              // 上游挂起不该占死 Express worker。
               timeout: 60_000,
             }
           );
@@ -833,7 +841,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
           content: aiResponse,
         });
 
-        // 9. 异步记忆提取（M2-1）：每 10 条消息触发一次，不阻塞响应。
+        // 9. 异步记忆提取：每 10 条消息触发一次，不阻塞响应。
         maybeExtractMemories({
           userId: ctx.user.id,
           girlfriendId: girlfriend.id,
@@ -860,7 +868,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
           conversationId: z.number(),
           userContext: z.string(), // 用户的上下文描述，如 "wearing a red dress"
           generationMode: z.enum(["reference", "text"]).default("reference"),
-          // M4-1：亲密度解锁的姿势 id（shared/selfiePoses.ts）
+          // 亲密度解锁的姿势 id（shared/selfiePoses.ts）
           poseId: z.string().optional(),
         })
       )
@@ -868,9 +876,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         generateConversationSelfie(ctx.user, input)
       ),
 
-    // 合照（M4-2）：用户上传自己的照片，和她同框。Kissable 用这一个
-    // 功能立住差异化；我们的 fal edit 管线天然支持双图输入。
-    // Pro 档专属（BYOK fal / 自托管除外）。
+    // 合照使用双参考图；仅 Pro、BYOK fal 或自托管模式可用。
     generateCouple: protectedProcedure
       .input(
         z.object({
@@ -1031,7 +1037,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         return { selfie, message };
       }),
 
-    // 剩余自拍额度（M1-4 相机按钮 / M3 档位化）。免费档按日，付费档按月；
+    // 剩余自拍额度。免费档按日，付费档按月；
     // BYOK fal 用户和自托管无上限。
     quota: protectedProcedure.query(async ({ ctx }) => {
       const keys = await keyProvider.describeUserKeys(ctx.user.id);
@@ -1087,7 +1093,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
       }),
   }),
 
-  // ============ Web Push (M4-4) ============
+  // ============ Web Push ============
   push: router({
     // VAPID 公钥（未配置时返回 null，前端隐藏开关）
     publicKey: publicProcedure.query(() => ({
@@ -1122,7 +1128,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
     })),
   }),
 
-  // ============ Billing (M3 / ADR 0004) ============
+  // ============ Billing ============
   billing: router({
     // 当前档位、用量与升级入口（Settings 订阅卡片用）
     getInfo: protectedProcedure.query(async ({ ctx }) => {
@@ -1198,15 +1204,8 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
   }),
 
   // ============ API Configuration ============
-  // Phase 1b-i (issues #2 + #3) reshape:
-  //   - Plaintext per-user API keys removed from `apiConfigs`. They live
-  //     encrypted in the `userKeys` table now, accessed via KeyProvider.
-  //   - The legacy `fetch*` routes that took a raw `apiKey` argument from
-  //     the client are GONE — they were the open-proxy described in #3.
-  //     Replacements (`listModels`, `listElevenLabsVoices`, etc.) resolve
-  //     the key server-side via the user's BYOK or the operator default.
-  //   - `get` returns preferences plus a `keys` map of mask info; never
-  //     plaintext.
+  // Preferences and encrypted keys are saved separately; provider queries
+  // resolve credentials on the server, never from raw client key arguments.
   apiConfig: router({
     // Get user preferences + per-key descriptions (no plaintext keys).
     get: protectedProcedure.query(async ({ ctx }) => {
@@ -1245,7 +1244,6 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
           elevenlabsVoiceName: z.string().optional(),
           fishAudioModelId: z.string().optional(),
           fishAudioModelName: z.string().optional(),
-          whisperProvider: z.enum(["manus", "openai"]).optional(),
           globalPrompt: z.string().max(500).nullable().optional(),
           replyLanguage: z.string().max(50).nullable().optional(),
           replyLengthLimit: z.string().max(50).nullable().optional(),
@@ -1269,10 +1267,8 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         })
       )
       .mutation(async ({ ctx, input }) => {
-        // Optional: provider-specific validation (#3 — we replace the
-        // legacy "test on every keystroke" pattern with a single explicit
-        // validation on submit). Failures bubble as TRPCError so the UI
-        // can show "key invalid".
+        // Validate provider-specific key format on explicit submission.
+        // Failures bubble as TRPCError for the settings UI.
         try {
           await validateProviderKey(input.name, input.value);
         } catch (err: any) {
@@ -1299,7 +1295,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
       }),
 
     // List models for the selected chat provider. Resolves the key server-side; no
-    // `apiKey` input on the wire (issue #3).
+    // `apiKey` input on the wire.
     listModels: protectedProcedure.query(async ({ ctx }) => {
       const chatProvider = await resolveChatProvider(ctx.user.id);
       const apiKey = chatProvider.apiKey;
@@ -1449,13 +1445,6 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
           });
         }
       }),
-
-    // The legacy `fetchOpenRouterCredits`, `fetchElevenLabsUsage`, and
-    // `fetchFishAudioCredits` routes are intentionally NOT recreated.
-    // Per-user usage will be surfaced through the subscription quota
-    // meters built in Phase 1c (issue #10), not via raw provider account
-    // peeks. Self-hosters who really want raw credits can call the
-    // providers directly with their BYOK key.
   }),
 
   // ============ Mood System ============
@@ -1663,7 +1652,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
       return { success: true };
     }),
 
-    // 检查并生成主动通知（前端定时调用；M4-4 起同时推送到已订阅设备）
+    // 检查并生成主动通知，同时推送到已订阅设备
     checkProactive: protectedProcedure.mutation(async ({ ctx }) => {
       const notification = await checkAndCreateProactiveNotification(
         ctx.user.id
@@ -1689,7 +1678,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         })
       )
       .mutation(async ({ ctx, input }) => {
-        // 服务端限流（issue #5）。
+        // 服务端限流。
         checkRateLimit(ctx.user.id, "tts");
 
         const apiConfig = await getUserApiConfig(ctx.user.id);
@@ -1699,7 +1688,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
 
         const provider = apiConfig.ttsProvider || "browser";
 
-        // 档位门槛（M3 / ADR 0005）：ElevenLabs 需 Plus+，Fish Audio 需
+        // 档位门槛：ElevenLabs 需 Plus+，Fish Audio 需
         // Pro；对应 BYOK key 或自托管模式除外。
         if (
           isBillingEnforced() &&
@@ -1722,7 +1711,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         }
 
         if (provider === "elevenlabs") {
-          // Phase 1b-i: resolve key via KeyProvider (BYOK → operator).
+          // resolve key via KeyProvider (BYOK → operator).
           const elevenKey = await keyProvider.get(
             { userId: ctx.user.id },
             "elevenlabs"
@@ -1833,11 +1822,11 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         })
       )
       .mutation(async ({ input, ctx }) => {
-        // 0. 年龄门（M1-6）+ 服务端限流（issue #5）。
+        // 0. 年龄门 + 服务端限流。
         ensureAgeConfirmed(ctx.user);
         checkRateLimit(ctx.user.id, "transcribe");
 
-        // 0b. 档位门槛（M3 / ADR 0005）：免费档不含语音转写；
+        // 0b. 档位门槛：免费档不含语音转写；
         // BYOK openai key 或自托管模式除外。
         const sttKeys = await keyProvider.describeUserKeys(ctx.user.id);
         if (isBillingEnforced() && sttKeys.openai?.isSet !== true) {
@@ -1878,9 +1867,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
           input.mimeType
         );
 
-        // 4. 解析 Whisper 密钥（M1-3：唯一路径是 OpenAI Whisper；
-        // Manus 内置转写已删除）。BYOK openai key → 运营方 OPERATOR_OPENAI_KEY。
-        // 旧配置里 whisperProvider=manus 的用户自动走同一路径。
+        // 4. 解析 OpenAI Whisper 密钥：用户 BYOK → 运营方 OPERATOR_OPENAI_KEY。
         const whisperApiKey = await keyProvider.get(
           { userId: ctx.user.id },
           "openai"

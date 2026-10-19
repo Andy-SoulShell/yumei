@@ -7,10 +7,8 @@ type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 function createAuthContext(): { ctx: TrpcContext } {
   const user: AuthenticatedUser = {
     id: "test-user-1",
-    openId: "test-user",
     email: "test@example.com",
     name: "Test User",
-    loginMethod: "manus",
     role: "user",
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -74,7 +72,7 @@ describe("girlfriend.getActive", () => {
     // 使用唯一用户 ID 避免数据污染
     const { ctx } = createAuthContext();
     ctx.user!.id = "test-user-88888";
-    ctx.user!.openId = "test-getactive-user";
+
     const caller = appRouter.createCaller(ctx);
 
     // 先创建一个女友

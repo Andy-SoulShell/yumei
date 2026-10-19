@@ -6,6 +6,5 @@ export const DEFAULT_GIRLFRIEND = {
   appearance:
     "紫色长发，紫色眼睛，皮肤白皙，身材娇小可爱。喜欢穿休闲风格的衣服，经常戴着猫耳发饰。",
   interests: "游戏、动漫、音乐、美食探店、摄影、旅行",
-  referenceImageUrl:
-    "https://files.manuscdn.com/user_upload_by_module/session_file/310519663213781898/psXoakKLmXxGzMTf.png",
+  referenceImageUrl: "/characters/yumei.jpg",
 };

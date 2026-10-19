@@ -297,4 +297,23 @@ describe("companion creation", () => {
       }
     }
   });
+
+  it("renders all image options together without browsing pages", async () => {
+    await settle(() => root.render(<Setup />));
+    await click("下一步");
+    await click("从头自定义");
+    const choices = container.querySelector(
+      '[role="radiogroup"][aria-label="气质"]'
+    )!;
+    expect(choices.querySelectorAll('[role="radio"]')).toHaveLength(9);
+    expect(choices.querySelectorAll("img")).toHaveLength(9);
+    expect(choices.getAttribute("data-count")).toBe("9");
+    expect(container.querySelector(".creator-browse-controls")).toBeNull();
+    await click("下一步");
+    expect(
+      container.querySelectorAll(
+        '[role="radiogroup"][aria-label="体型"] [role="radio"]'
+      )
+    ).toHaveLength(5);
+  });
 });

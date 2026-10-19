@@ -6,19 +6,6 @@ const entries = {
     "選択すると自動で次へ。各項目はいつでも変更できます。",
     "선택하면 자동으로 다음으로 이동하며, 항목을 눌러 수정할 수 있어요.",
   ],
-  browseOptions: [
-    "Browse all options",
-    "左右浏览全部选项",
-    "すべての選択肢を見る",
-    "모든 옵션 둘러보기",
-  ],
-  previousOptions: [
-    "Previous options",
-    "前面的选项",
-    "前の選択肢",
-    "이전 옵션",
-  ],
-  nextOptions: ["More options", "后面的选项", "次の選択肢", "다음 옵션"],
   title: [
     "Create your companion",
     "创建专属角色",

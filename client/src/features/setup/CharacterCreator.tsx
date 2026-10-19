@@ -7,13 +7,11 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  ChevronLeft,
-  ChevronRight,
   Loader2,
   Sparkles,
   UserRound,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CharacterDetails } from "./CharacterDetails";
 import {
@@ -59,127 +57,47 @@ function ImageChoices({
   t: Translator;
   wide?: boolean;
 }) {
-  const listRef = useRef<HTMLDivElement>(null);
-  const [range, setRange] = useState({ start: 0, visible: options.length });
-  const measure = useCallback(() => {
-    const list = listRef.current;
-    if (!list) return;
-    const visible = Math.min(
-      options.length,
-      Number(getComputedStyle(list).getPropertyValue("--creator-visible")) || 2
-    );
-    const card = list.querySelector<HTMLElement>('[role="radio"]');
-    const gap = parseFloat(getComputedStyle(list).columnGap) || 12;
-    const start = card?.offsetWidth
-      ? Math.round(list.scrollLeft / (card.offsetWidth + gap))
-      : 0;
-    setRange(current =>
-      current.start === start && current.visible === visible
-        ? current
-        : { start, visible }
-    );
-  }, [options.length]);
-  useEffect(() => {
-    measure();
-    const observer = new ResizeObserver(measure);
-    if (listRef.current) observer.observe(listRef.current);
-    return () => observer.disconnect();
-  }, [measure]);
-  const browse = (direction: number) => {
-    const list = listRef.current;
-    const cards = list?.querySelectorAll<HTMLElement>('[role="radio"]');
-    if (!list || !cards?.length) return;
-    const target = Math.max(
-      0,
-      Math.min(
-        options.length - range.visible,
-        range.start + direction * range.visible
-      )
-    );
-    list.scrollTo({
-      left: cards[target].offsetLeft - cards[0].offsetLeft,
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "auto"
-        : "smooth",
-    });
-  };
   if (!options.length) return null;
   return (
-    <div className="creator-option-browser">
-      <RadioGroup
-        ref={listRef}
-        aria-label={label}
-        value={value ?? ""}
-        onValueChange={id => {
-          const option = options.find(item => item.id === id);
-          if (option) onChange(option);
-        }}
-        className={cn("creator-choices", wide && "is-wide")}
-        onScroll={measure}
-      >
-        {options.map(option => (
-          <RadioGroupChoice
-            key={option.id}
-            value={option.id}
-            aria-label={creatorLabel(option.id, t)}
-            className="creator-choice"
-            onClick={() => {
-              if (value === option.id) onChange(option);
-            }}
-          >
-            <img
-              src={option.imageUrl}
-              alt={creatorLabel(option.id, t)}
-              width={512}
-              height={800}
-            />
-            <span className="creator-choice-label">
-              {creatorLabel(option.id, t)}
+    <RadioGroup
+      aria-label={label}
+      value={value ?? ""}
+      onValueChange={id => {
+        const option = options.find(item => item.id === id);
+        if (option) onChange(option);
+      }}
+      className={cn("creator-choices", wide && "is-wide")}
+      data-count={options.length}
+    >
+      {options.map(option => (
+        <RadioGroupChoice
+          key={option.id}
+          value={option.id}
+          aria-label={creatorLabel(option.id, t)}
+          className="creator-choice"
+          onClick={() => {
+            if (value === option.id) onChange(option);
+          }}
+        >
+          <img
+            src={option.imageUrl}
+            alt={creatorLabel(option.id, t)}
+            width={512}
+            height={800}
+          />
+          <span className="creator-choice-label">
+            {creatorLabel(option.id, t)}
+          </span>
+          {value === option.id && (
+            <span className="creator-check" aria-hidden="true">
+              <Check size={13} />
             </span>
-            {value === option.id && (
-              <span className="creator-check" aria-hidden="true">
-                <Check size={13} />
-              </span>
-            )}
-          </RadioGroupChoice>
-        ))}
-      </RadioGroup>
-      {options.length > range.visible && (
-        <div className="creator-browse-controls">
-          <span>{t("creator:browseOptions")}</span>
-          <div>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label={t("creator:previousOptions")}
-              disabled={range.start === 0}
-              onClick={() => browse(-1)}
-            >
-              <ChevronLeft size={16} />
-            </Button>
-            <span aria-live="polite">
-              {range.start + 1}–
-              {Math.min(range.start + range.visible, options.length)} /{" "}
-              {options.length}
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label={t("creator:nextOptions")}
-              disabled={range.start + range.visible >= options.length}
-              onClick={() => browse(1)}
-            >
-              <ChevronRight size={16} />
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
+          )}
+        </RadioGroupChoice>
+      ))}
+    </RadioGroup>
   );
 }
-
 /** 图片只解释偏好标签；新角色形象由文字设定独立生成。 */
 export function CharacterCreator({ state }: { state: SetupController }) {
   const { t } = state;

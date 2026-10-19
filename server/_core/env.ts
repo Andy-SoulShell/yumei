@@ -131,7 +131,7 @@ function loadEnv() {
 
     if (!hasResend && !hasSmtp) {
       issues.push(
-        "Email: Production requires either RESEND_API_KEY, or EMAIL_PROVIDER=smtp with SMTP_HOST + SMTP_USER + SMTP_PASS. See ADR 0006."
+        "Email: Production requires either RESEND_API_KEY, or EMAIL_PROVIDER=smtp with SMTP_HOST + SMTP_USER + SMTP_PASS. See .env.example."
       );
     }
   }

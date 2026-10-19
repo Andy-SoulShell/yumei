@@ -1,7 +1,7 @@
 /**
  * Long-term memory system — shared constants and pure scoring (M2).
  *
- * Design (docs/开发计划.md M2): memories are structured rows extracted
+ * Memories are structured rows extracted
  * from conversations by a cheap LLM pass, then injected into the chat
  * system prompt by relevance. No vector database — at the per-companion
  * capacity below, in-process scoring over all rows is plenty.

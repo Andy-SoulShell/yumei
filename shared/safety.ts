@@ -1,12 +1,6 @@
 /**
  * Self-harm safety protocol (M1-6).
  *
- * California SB 243 (§22602(b)) requires companion-chatbot operators to
- * maintain — and publish — a protocol that prevents the production of
- * suicide/self-harm content and refers users expressing suicidal
- * ideation to crisis services. The published protocol lives in
- * `docs/SAFETY.md`; this module is its implementation.
- *
  * Detection is a conservative keyword screen over the user's message.
  * On match, the chat response carries `safetyNotice: true` and the UI
  * shows crisis resources. The system prompt also carries a standing

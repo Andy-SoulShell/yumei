@@ -1005,7 +1005,7 @@ export default function Chat() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* M1-6 / SB 243：危机干预资源提示（协议见 docs/SAFETY.md） */}
+      {/* M1-6 / SB 243：危机干预资源提示（由 shared/safety.ts 提供检测结果） */}
       {showCrisisAlert && (
         <div className="mx-3 sm:mx-4 mb-2 rounded-lg border border-amber-400/50 bg-amber-50 dark:bg-amber-950/40 px-3 py-2.5 text-xs sm:text-sm text-amber-900 dark:text-amber-100 flex items-start gap-2">
           <Heart className="w-4 h-4 mt-0.5 shrink-0" />

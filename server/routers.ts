@@ -776,7 +776,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         systemPrompt += `\n${SAFETY_SYSTEM_CLAUSE}`;
 
         // 自残/危机表达检测：命中时响应会带 safetyNotice，前端展示
-        // 危机干预资源（协议全文见 docs/SAFETY.md）。
+        // 危机干预资源提示，由 shared/safety.ts 的检测结果触发。
         const safetyNotice = detectSelfHarm(input.content);
 
         // 6. 构建消息历史

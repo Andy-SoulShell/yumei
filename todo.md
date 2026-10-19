@@ -12,7 +12,7 @@ v1–v3 的功能清单（对话、自拍、语音、多女友、亲密度等）
 - [x] M3 订阅：Lemon Squeezy 三档 + 档位配额 + 自托管全解锁
 - [x] M4 体验：亲密度解锁自拍姿势 / 合照 / 语音往返 / Web Push
 
-## 待办（非阻塞的加固项，对应 REFACTORING.md 的剩余 Phase）
+## 待办（非阻塞的加固项）
 
 - [ ] 数据层：外键 + 热路径索引 + 事务（Phase 2）
 - [ ] 架构：拆分 routers.ts / db.ts，Provider 超时重试熔断（Phase 3）

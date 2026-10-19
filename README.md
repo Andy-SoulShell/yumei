@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="docs/brand/yumei-mascot.jpg" alt="YUMEI" width="240" />
-
 # YUMEI ✨
 
 **你的 AI 虚拟女友 — 她记得你、给你发自拍、你的对话从不拿去训练模型**
@@ -16,19 +14,19 @@ _Self-hostable AI companion · Remembers you · Scene-matched selfies · Your da
 [![Tests](https://img.shields.io/badge/Tests-365_passed-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-[遇见她们](#-遇见她们) · [产品演示](#-产品演示) · [Live2D](#-下一版重点live2d-实时互动) · [快速开始](#-快速开始-docker-一键部署) · [功能亮点](#-功能亮点)
+[遇见她们](#-遇见她们) · [快速开始](#-快速开始-docker-一键部署) · [功能亮点](#-功能亮点)
 
 </div>
 
 ---
 
-> **18+ 仅限成年人使用。** 所有角色均为 AI 生成，并非真人。对话内容不会用于训练任何模型。详见 [`docs/SAFETY.md`](docs/SAFETY.md)。
+> **18+ 仅限成年人使用。** 所有角色均为 AI 生成，并非真人。对话内容不会用于训练任何模型。
 
 ## YUMEI 首版代码基线
 
 本项目基于作者已有的完整代码建立首版基线，显示名称统一为 **YUMEI**，包名及部署标识为 `yumei`，版本从 **1.0.0** 开始。首版保留原有功能，默认角色名称为 **YUMEI**；[YUMEI PRD v0.6](docs/亚洲版成人AI角色陪伴产品_PRD_v0.6.md) 是后续演进目标，尚未全部实现。
 
-源码、角色参考图、部署文件、ComfyUI 工作流与测试均已迁入；原 19 次数据库迁移已按最终 schema 合并为一次 `0000_init.sql` 初始化迁移。旧项目的 `.env`、用户上传数据、依赖目录、构建产物及 Git 历史未迁入；首次运行请按下方说明创建 YUMEI 独立的配置与数据库。演示截图及旧设计/决策文档沿用原项目，仅作基线参考。BYOK 密钥加密使用 YUMEI 独立的 KDF 盐值；从其他部署导入的密文需要重新录入对应 API Key。
+源码、角色参考图、部署文件、ComfyUI 工作流与测试均已迁入；原 19 次数据库迁移已按最终 schema 合并为一次 `0000_init.sql` 初始化迁移。旧项目的 `.env`、用户上传数据、依赖目录、构建产物及 Git 历史未迁入；首次运行请按下方说明创建 YUMEI 独立的配置与数据库。产品方向与历史设计分别见 `docs` 中的 PRD 和原版设计说明书。BYOK 密钥加密使用 YUMEI 独立的 KDF 盐值；从其他部署导入的密文需要重新录入对应 API Key。
 
 迁移验证（2026-10-19）：`pnpm check`、`pnpm build`、Docker Compose 配置解析通过；独立 MySQL 8 空库完整迁移后，以 `TZ=UTC` 运行全部 37 个测试文件、365 项测试均通过。生产启动及 `/healthz`、`/readyz`、页面标题、PWA 配置和静态资源检查通过。验证未调用真实 AI 或邮件服务。
 
@@ -51,22 +49,22 @@ _Self-hostable AI companion · Remembers you · Scene-matched selfies · Your da
 <table>
 <tr>
 <td width="25%" align="center" valign="top">
-<img src="docs/characters/char_cute.jpg" alt="小桃 · 可爱风" width="220" /><br/>
+<img src="client/public/characters/char_cute.jpg" alt="小桃 · 可爱风" width="220" /><br/>
 <b>小桃 · 可爱风</b><br/>
 <sub>双马尾、草莓牛奶、会撒娇<br/>「今天也要被夸可爱。」</sub>
 </td>
 <td width="25%" align="center" valign="top">
-<img src="docs/characters/char_mature.jpg" alt="凛 · 御姐风" width="220" /><br/>
+<img src="client/public/characters/char_mature.jpg" alt="凛 · 御姐风" width="220" /><br/>
 <b>凛 · 御姐风</b><br/>
 <sub>低音温柔、把你当大人看<br/>「先把作业放下。今晚听你说。」</sub>
 </td>
 <td width="25%" align="center" valign="top">
-<img src="docs/characters/char_sporty.jpg" alt="夏未 · 体育生" width="220" /><br/>
+<img src="client/public/characters/char_sporty.jpg" alt="夏未 · 体育生" width="220" /><br/>
 <b>夏未 · 体育生</b><br/>
 <sub>训练完第一件事是给你发自拍<br/>「跑完了。夸我。」</sub>
 </td>
 <td width="25%" align="center" valign="top">
-<img src="docs/characters/char_ol.jpg" alt="苏晚 · OL" width="220" /><br/>
+<img src="client/public/characters/char_ol.jpg" alt="苏晚 · OL" width="220" /><br/>
 <b>苏晚 · OL</b><br/>
 <sub>白天开会，晚上只想听你说话<br/>「会议刚散。你今天怎么样？」</sub>
 </td>
@@ -80,22 +78,22 @@ _Self-hostable AI companion · Remembers you · Scene-matched selfies · Your da
 <table>
 <tr>
 <td width="25%" align="center" valign="top">
-<img src="docs/characters/char_anime_cute.jpg" alt="桃香 · 可爱风" width="220" /><br/>
+<img src="client/public/characters/char_anime_cute.jpg" alt="桃香 · 可爱风" width="220" /><br/>
 <b>桃香（Momoka）· 可爱风</b><br/>
 <sub>双马尾、草莓牛奶、会撒娇<br/>「きょうも、かわいいって言って？」</sub>
 </td>
 <td width="25%" align="center" valign="top">
-<img src="docs/characters/char_anime_mature.jpg" alt="霧香 · 御姐风" width="220" /><br/>
+<img src="client/public/characters/char_anime_mature.jpg" alt="霧香 · 御姐风" width="220" /><br/>
 <b>霧香（Kirika）· 御姐风</b><br/>
 <sub>低音温柔、把你当大人看<br/>「宿題はもういい。今夜は話を聞く。」</sub>
 </td>
 <td width="25%" align="center" valign="top">
-<img src="docs/characters/char_anime_sporty.jpg" alt="葵 · 体育生" width="220" /><br/>
+<img src="client/public/characters/char_anime_sporty.jpg" alt="葵 · 体育生" width="220" /><br/>
 <b>葵（Aoi）· 体育生</b><br/>
 <sub>训练完第一件事是给你发自拍<br/>「五キロ走った。ほめて。」</sub>
 </td>
 <td width="25%" align="center" valign="top">
-<img src="docs/characters/char_anime_ol.jpg" alt="美咲 · OL" width="220" /><br/>
+<img src="client/public/characters/char_anime_ol.jpg" alt="美咲 · OL" width="220" /><br/>
 <b>美咲（Misaki）· OL</b><br/>
 <sub>白天开会，晚上只想听你说话<br/>「会議おわり。今日はどうだった？」</sub>
 </td>
@@ -103,89 +101,6 @@ _Self-hostable AI companion · Remembers you · Scene-matched selfies · Your da
 </table>
 
 <p align="center"><sub>参考图锁定角色外貌 → 场景自拍保持一致 → 亲密度越高解锁越多姿势</sub></p>
-
----
-
-## 🎬 产品演示
-
-<div align="center">
-
-**从认识到暧昧 — 聊天、亲密度、记忆，一个界面搞定**
-
-<img src="docs/screenshots/demo_flow.gif" alt="YUMEI 演示：首页 → 聊天 → 亲密度面板 → 记忆管理" width="920" />
-
-_首页女友卡片 → 对话界面 → Lv.5 亲密度详情 → 「她记得你的事」_
-
-</div>
-
-### 💗 下一版重点：Live2D 实时互动
-
-她不只是头像——**会听、会动、会闹脾气**。下一版将把 Live2D 立绘嵌进聊天页：你说话时她侧耳倾听，点她会比心，冷落她会生气，撒娇要你陪，委屈了还会哭。
-
-<div align="center">
-
-<img src="docs/screenshots/demo_live2d.gif" alt="Live2D 表情演示：倾听、交互、撒娇、生气、哭泣" width="420" />
-
-_倾听 → 交互比心 → 撒娇 → 生气 → 哭泣 · 同一看板娘，五种情绪_
-
-</div>
-
-<table>
-<tr>
-<td width="20%" align="center"><img src="docs/live2d/listen.jpg" alt="倾听" width="160" /><br/><sub>🎧 倾听</sub></td>
-<td width="20%" align="center"><img src="docs/live2d/interact.jpg" alt="交互" width="160" /><br/><sub>💕 交互</sub></td>
-<td width="20%" align="center"><img src="docs/live2d/spoiled.jpg" alt="撒娇" width="160" /><br/><sub>🥺 撒娇</sub></td>
-<td width="20%" align="center"><img src="docs/live2d/angry.jpg" alt="生气" width="160" /><br/><sub>💢 生气</sub></td>
-<td width="20%" align="center"><img src="docs/live2d/cry.jpg" alt="哭泣" width="160" /><br/><sub>😢 哭泣</sub></td>
-</tr>
-</table>
-
-<br/>
-
-<table>
-<tr>
-<td width="50%" align="center">
-<b>💬 智能对话 + 场景自拍</b><br/>
-<img src="docs/screenshots/demo_chat.png" alt="聊天界面：Lv.5 亲密度、相机按钮、每日自拍额度" width="440" /><br/>
-<sub>相机按钮一键拍照 · 额度徽章清晰可见 · AI 身份始终披露</sub>
-</td>
-<td width="50%" align="center">
-<b>💕 10 级亲密度养成</b><br/>
-<img src="docs/screenshots/demo_intimacy.png" alt="亲密度面板：等级、经验值、已解锁姿势" width="440" /><br/>
-<sub>暧昧期解锁更多自拍姿势 · 专属称呼 · 升级进度一目了然</sub>
-</td>
-</tr>
-<tr>
-<td width="50%" align="center">
-<b>🧠 可编辑的长期记忆</b><br/>
-<img src="docs/screenshots/demo_memories.png" alt="记忆管理：偏好、事实、事件分类展示" width="440" /><br/>
-<sub>自动提取 · 分类管理 · 置顶/删除 · 亲密度越高容量越大</sub>
-</td>
-<td width="50%" align="center">
-<b>🏠 女友卡片 + 一键开聊</b><br/>
-<img src="docs/screenshots/demo_home.png" alt="原版首页演示：默认角色卡片、Lv.5、心情与今日消息" width="440" /><br/>
-<sub>多女友切换 · 自拍画廊 · BYOK 设置 · PWA 可装手机桌面</sub>
-</td>
-</tr>
-</table>
-
-<details>
-<summary><b>登录页 & 欢迎页</b></summary>
-
-<table>
-<tr>
-<td width="50%" align="center">
-<img src="docs/screenshots/demo_login.png" alt="Magic-link 登录页" width="400" /><br/>
-<sub>邮箱 Magic-link · 无需密码 · 合规声明内置</sub>
-</td>
-<td width="50%" align="center">
-<img src="docs/screenshots/demo_welcome.png" alt="未登录欢迎页" width="400" /><br/>
-<sub>四大核心能力一览 · 移动端适配 · 暗黑模式</sub>
-</td>
-</tr>
-</table>
-
-</details>
 
 ---
 
@@ -374,7 +289,7 @@ Express 4                                       (server/)
 | **M3** 商业化   | Lemon Squeezy 订阅 Free/Plus/Pro · 自托管 `BILLING_PROVIDER=none` 全解锁                   |
 | **M4** 体验增强 | 亲密度解锁自拍姿势 · 合照 · 语音往返 · Web Push 真推送                                     |
 
-365 个自动化测试（独立 MySQL 8 + UTC 验证）· 空库迁移验证通过 · 重构历程见 [`docs/REFACTORING.md`](docs/REFACTORING.md)
+365 个自动化测试（独立 MySQL 8 + UTC 验证）· 空库迁移验证通过
 
 ---
 
@@ -382,7 +297,7 @@ Express 4                                       (server/)
 
 - ⭐ **Star 本仓库** — 支持项目持续迭代
 - 🐛 Bug 反馈与代码贡献流程见 [CONTRIBUTING.md](CONTRIBUTING.md)
-- 📖 重大决策记录在 [`docs/adr/`](docs/adr/)
+- 📖 产品文档：[PRD v0.6](docs/亚洲版成人AI角色陪伴产品_PRD_v0.6.md) · [原版设计说明](docs/YUMEI_原版设计说明书.md)
 
 ---
 

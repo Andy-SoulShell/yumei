@@ -22,6 +22,13 @@
       "when": 1792403050370,
       "tag": "0002_billing_event_order",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1792403291376,
+      "tag": "0003_media_cleanup_outbox",
+      "breakpoints": true
     }
   ]
 }

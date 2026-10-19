@@ -3,6 +3,7 @@
 import type { Express, Request, Response } from "express";
 import path from "node:path";
 import { localFileStream, s3PresignedGetUrl } from "../storage";
+import { isMediaPendingDeletion } from "../mediaCleanup";
 import { ENV } from "./env";
 import { log } from "./log";
 
@@ -33,6 +34,11 @@ export function registerFileRoutes(app: Express) {
         res.status(400).json({ error: "Invalid file key" });
         return;
       }
+      res.setHeader("Cache-Control", "private, no-store");
+      if (await isMediaPendingDeletion(key)) {
+        res.status(404).json({ error: "File not found" });
+        return;
+      }
       if (ENV.storageDriver === "s3") {
         const url = await s3PresignedGetUrl(key);
         res.redirect(302, url);
@@ -46,8 +52,8 @@ export function registerFileRoutes(app: Express) {
       }
       const mime = MIME_BY_EXT[path.extname(key).toLowerCase()];
       res.setHeader("Content-Type", mime ?? "application/octet-stream");
-      // 文件通常使用随机唯一键，响应按不可变资源缓存一天。
-      res.setHeader("Cache-Control", "private, max-age=86400, immutable");
+      // 避免浏览器在删除后继续从长期 HTTP 缓存展示私人媒体。
+      res.setHeader("Cache-Control", "private, no-store");
       stream.on("error", () => {
         if (!res.headersSent) res.status(500).json({ error: "Read failed" });
         res.end();

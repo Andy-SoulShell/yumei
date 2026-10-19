@@ -1,6 +1,6 @@
 /** 本地磁盘与 S3 兼容存储的统一接口，区分持久文件地址和临时读取地址。 */
 
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { createReadStream, existsSync } from "node:fs";
 import path from "node:path";
 import { ENV } from "./_core/env";
@@ -167,4 +167,19 @@ export async function storageRead(relKey: string): Promise<Buffer> {
   );
   if (!result.Body) throw new Error("Stored reference image is empty");
   return Buffer.from(await result.Body.transformToByteArray());
+}
+
+/** 幂等删除存储对象；本地文件缺失也视为成功，S3 删除最多等待三十秒。 */
+export async function storageDelete(relKey: string): Promise<void> {
+  const key = normalizeKey(relKey);
+  if (!key) throw new Error("Empty storage key");
+  if (ENV.storageDriver !== "s3") {
+    await rm(localPathFor(key), { force: true });
+    return;
+  }
+  const { client, mod } = await getS3();
+  await client.send(
+    new mod.DeleteObjectCommand({ Bucket: ENV.s3Bucket, Key: key }),
+    { abortSignal: AbortSignal.timeout(30_000) }
+  );
 }

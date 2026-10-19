@@ -403,7 +403,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    /** 按用户归属永久删除指定角色的部分关联记录。 */
+    /** 按用户归属永久删除角色及关联记录，并回收无引用媒体。 */
     permanentDelete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
@@ -1093,7 +1093,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         return await getGirlfriendSelfies(input.girlfriendId);
       }),
 
-    /** 按用户归属删除相册记录，当前不删除实际图片对象。 */
+    /** 按用户归属删除相册记录，并回收已无其他引用的媒体。 */
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {

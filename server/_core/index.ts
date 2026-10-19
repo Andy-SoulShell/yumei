@@ -11,6 +11,7 @@ import { toNodeHandler } from "better-auth/node";
 import { sql } from "drizzle-orm";
 import { csrfCookieMiddleware, csrfVerifyMiddleware } from "./csrf";
 import { auth } from "./auth";
+import { startMediaCleanupScheduler } from "../mediaCleanup";
 import { registerBillingRoutes } from "../billing";
 import { startProactivePushScheduler } from "../push";
 import { registerFileRoutes } from "./files";
@@ -158,10 +159,12 @@ async function startServer() {
 
   // 每小时检查主动消息推送；缺少配对 VAPID 密钥时不启动调度。
   startProactivePushScheduler();
+  const stopMediaCleanup = startMediaCleanupScheduler();
 
   // 收到退出信号后停止接收新连接，等待现有连接处理完毕。
   const shutdown = (signal: string) => {
     console.log(`[boot] ${signal} received, shutting down`);
+    stopMediaCleanup();
     server.close(() => process.exit(0));
     // 最多等待十秒，避免挂起的上游请求阻止退出。
     setTimeout(() => process.exit(1), 10_000).unref();

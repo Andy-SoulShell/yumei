@@ -385,3 +385,12 @@ export const billingEvents = mysqlTable("billingEvents", {
   occurredAt: timestamp("occurredAt", { fsp: 3 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
+
+/** 与业务删除同时写入的媒体清理任务，失败后可由后台重试。 */
+export const mediaDeletions = mysqlTable("mediaDeletions", {
+  key: varchar("key", { length: 500 }).primaryKey(),
+  userId: varchar("userId", { length: 255 }).notNull(),
+  attempts: int("attempts").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});

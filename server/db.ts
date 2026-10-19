@@ -1,7 +1,17 @@
 /** 业务数据访问与状态写入。需要用户归属的底层方法由路由层先行校验。 */
 
 import { TRPCError } from "@trpc/server";
-import { eq, desc, and, like, sql, isNull, isNotNull, lte } from "drizzle-orm";
+import {
+  eq,
+  desc,
+  and,
+  like,
+  sql,
+  isNull,
+  isNotNull,
+  lte,
+  inArray,
+} from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createUtcMysqlPool } from "./_core/mysql";
 import {
@@ -14,6 +24,8 @@ import {
   girlfriendMoods,
   notifications,
   usageMeters,
+  memories,
+  mediaDeletions,
   type Girlfriend,
   type InsertGirlfriend,
   type Conversation,
@@ -429,14 +441,23 @@ export async function getGirlfriendSelfies(
     .orderBy(desc(selfies.createdAt));
 }
 
-/** 按用户归属删除相册记录，当前不删除存储中的图片文件。 */
+/** 按用户归属删除自拍记录，并回收不再被角色、会话或相册引用的媒体。 */
 export async function deleteSelfie(id: number, userId: string): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  await db
-    .delete(selfies)
-    .where(and(eq(selfies.id, id), eq(selfies.userId, userId)));
+  await withUserTransaction(userId, async tx => {
+    const [photo] = await tx
+      .select()
+      .from(selfies)
+      .where(and(eq(selfies.id, id), eq(selfies.userId, userId)))
+      .for("update");
+    if (!photo) return;
+    await tx.delete(selfies).where(eq(selfies.id, id));
+    await tx
+      .insert(mediaDeletions)
+      .values({ key: photo.imageKey, userId })
+      .onDuplicateKeyUpdate({ set: { key: photo.imageKey } });
+  });
+  const { flushMediaDeletions } = await import("./mediaCleanup");
+  await flushMediaDeletions(userId);
 }
 
 // API 偏好配置。
@@ -553,57 +574,87 @@ export async function restoreGirlfriend(
   });
 }
 
-/**
- * 依次删除所属角色的消息、会话、相册、心情与角色记录。
- *
- * @remarks 当前不清理记忆、通知和实际媒体文件，且各步骤未使用统一事务。
- */
+/** 在用户事务内删除角色全部关联记录，并写入可重试的媒体清理任务。 */
 export async function permanentDeleteGirlfriend(
   id: number,
   userId: string
 ): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  // 1. 获取该女友的所有对话 ID
-  const convos = await db
-    .select({ id: conversations.id })
-    .from(conversations)
-    .where(
-      and(eq(conversations.girlfriendId, id), eq(conversations.userId, userId))
+  await withUserTransaction(userId, async tx => {
+    const [gf] = await tx
+      .select()
+      .from(girlfriends)
+      .where(and(eq(girlfriends.id, id), eq(girlfriends.userId, userId)))
+      .for("update");
+    if (!gf) return;
+    const convos = await tx
+      .select({ id: conversations.id })
+      .from(conversations)
+      .where(
+        and(
+          eq(conversations.girlfriendId, id),
+          eq(conversations.userId, userId)
+        )
+      );
+    const ids = convos.map(c => c.id);
+    const photos = await tx
+      .select({ key: selfies.imageKey })
+      .from(selfies)
+      .where(and(eq(selfies.girlfriendId, id), eq(selfies.userId, userId)));
+    const imageMessages = ids.length
+      ? await tx
+          .select({ key: messages.imageKey })
+          .from(messages)
+          .where(inArray(messages.conversationId, ids))
+      : [];
+    const keys = new Set(
+      [
+        gf.referenceImageKey,
+        gf.avatarKey,
+        ...photos.map(p => p.key),
+        ...imageMessages.map(m => m.key),
+      ].filter((key): key is string => !!key)
     );
-
-  const convoIds = convos.map(c => c.id);
-
-  // 2. 删除所有对话中的消息
-  for (const convoId of convoIds) {
-    await db.delete(messages).where(eq(messages.conversationId, convoId));
-  }
-
-  // 3. 删除所有对话
-  for (const convoId of convoIds) {
-    await db.delete(conversations).where(eq(conversations.id, convoId));
-  }
-
-  // 4. 删除所有自拍
-  await db
-    .delete(selfies)
-    .where(and(eq(selfies.girlfriendId, id), eq(selfies.userId, userId)));
-
-  // 5. 删除心情记录
-  await db
-    .delete(girlfriendMoods)
-    .where(
-      and(
-        eq(girlfriendMoods.girlfriendId, id),
-        eq(girlfriendMoods.userId, userId)
-      )
-    );
-
-  // 6. 永久删除女友
-  await db
-    .delete(girlfriends)
-    .where(and(eq(girlfriends.id, id), eq(girlfriends.userId, userId)));
+    if (ids.length)
+      await tx.delete(messages).where(inArray(messages.conversationId, ids));
+    await tx
+      .delete(conversations)
+      .where(
+        and(
+          eq(conversations.girlfriendId, id),
+          eq(conversations.userId, userId)
+        )
+      );
+    await tx
+      .delete(selfies)
+      .where(and(eq(selfies.girlfriendId, id), eq(selfies.userId, userId)));
+    await tx
+      .delete(memories)
+      .where(and(eq(memories.girlfriendId, id), eq(memories.userId, userId)));
+    await tx
+      .delete(notifications)
+      .where(
+        and(
+          eq(notifications.girlfriendId, id),
+          eq(notifications.userId, userId)
+        )
+      );
+    await tx
+      .delete(girlfriendMoods)
+      .where(
+        and(
+          eq(girlfriendMoods.girlfriendId, id),
+          eq(girlfriendMoods.userId, userId)
+        )
+      );
+    await tx.delete(girlfriends).where(eq(girlfriends.id, id));
+    for (const key of Array.from(keys))
+      await tx
+        .insert(mediaDeletions)
+        .values({ key, userId })
+        .onDuplicateKeyUpdate({ set: { key } });
+  });
+  const { flushMediaDeletions } = await import("./mediaCleanup");
+  await flushMediaDeletions(userId);
 }
 
 /** 按删除时间倒序读取当前用户的回收站角色。 */

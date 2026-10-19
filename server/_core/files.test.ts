@@ -4,6 +4,9 @@ import express from "express";
 import { createServer } from "node:http";
 import { once } from "node:events";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
+import { mediaDeletions } from "../../drizzle/schema";
+import { getDb } from "../db";
 import { registerFileRoutes } from "./files";
 import { storagePut } from "../storage";
 
@@ -28,6 +31,17 @@ afterAll(async () => {
 });
 
 describe("file HTTP route", () => {
+  it("hides an unreferenced file pending deletion even if storage deletion is delayed", async () => {
+    const key = `file-route/deleted-${crypto.randomUUID()}.png`;
+    await storagePut(key, "private");
+    const db = (await getDb())!;
+    await db
+      .insert(mediaDeletions)
+      .values({ key, userId: "deleted-file-test" });
+    expect((await fetch(`${baseUrl}/files/${key}`)).status).toBe(404);
+    await db.delete(mediaDeletions).where(eq(mediaDeletions.key, key));
+  });
+
   it("survives a decoded percent sign and remains healthy", async () => {
     expect((await fetch(`${baseUrl}/files/%25`)).status).toBe(404);
     expect(await (await fetch(`${baseUrl}/healthz`)).json()).toEqual({

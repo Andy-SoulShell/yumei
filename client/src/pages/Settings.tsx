@@ -1,3 +1,4 @@
+import { useSettingsDraft } from "@/hooks/useSettingsDraft";
 import { apiErrorMessage } from "@/lib/errors";
 import { LANGUAGES } from "@shared/locales";
 import { selectSpeechVoice } from "@/lib/speech";
@@ -47,7 +48,7 @@ import {
   Star,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -94,6 +95,44 @@ export default function Settings() {
   const [, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
 
+  const { data: apiConfig, isLoading } = trpc.apiConfig.get.useQuery();
+  const remotePreferences = useMemo(
+    () =>
+      apiConfig
+        ? {
+            llmModel:
+              apiConfig.chatProvider.name === "deepseek"
+                ? apiConfig.chatProvider.model
+                : apiConfig.preferences?.llmModel || "",
+            ttsProvider: (apiConfig.preferences?.ttsProvider ||
+              "browser") as TTSProvider,
+            elevenlabsVoiceId: apiConfig.preferences?.elevenlabsVoiceId || "",
+            elevenlabsVoiceName:
+              apiConfig.preferences?.elevenlabsVoiceName || "",
+            fishAudioModelId: apiConfig.preferences?.fishAudioModelId || "",
+            fishAudioModelName: apiConfig.preferences?.fishAudioModelName || "",
+            globalPrompt: apiConfig.preferences?.globalPrompt || "",
+            replyLanguage: apiConfig.preferences?.replyLanguage || "",
+            replyLengthLimit: apiConfig.preferences?.replyLengthLimit || "",
+          }
+        : undefined,
+    [apiConfig]
+  );
+  const settingsDraft = useSettingsDraft(
+    {
+      llmModel: "",
+      ttsProvider: "browser" as TTSProvider,
+      elevenlabsVoiceId: "",
+      elevenlabsVoiceName: "",
+      fishAudioModelId: "",
+      fishAudioModelName: "",
+      globalPrompt: "",
+      replyLanguage: "",
+      replyLengthLimit: "",
+    },
+    remotePreferences
+  );
+
   const setKeyMutation = trpc.apiConfig.setKey.useMutation();
   const {
     drafts,
@@ -106,11 +145,11 @@ export default function Settings() {
   const setFalApiKey = (value: string) => setDraft("fal", value);
   const openRouterKey = drafts["openrouter"];
   const setOpenRouterKey = (value: string) => setDraft("openrouter", value);
-  const [selectedModel, setSelectedModel] = useState("");
+  const [selectedModel, setSelectedModel] = settingsDraft.field("llmModel");
   const [modelSearch, setModelSearch] = useState("");
 
   // 语音合成偏好。
-  const [ttsProvider, setTtsProvider] = useState<TTSProvider>("browser");
+  const [ttsProvider, setTtsProvider] = settingsDraft.field("ttsProvider");
 
   // Whisper 语音转写配置。
   const whisperApiKey = drafts["openai"];
@@ -123,28 +162,43 @@ export default function Settings() {
   // ElevenLabs 配置状态。
   const elevenlabsApiKey = drafts["elevenlabs"];
   const setElevenlabsApiKey = (value: string) => setDraft("elevenlabs", value);
-  const [elevenlabsVoiceId, setElevenlabsVoiceId] = useState("");
-  const [elevenlabsVoiceName, setElevenlabsVoiceName] = useState("");
+  const [elevenlabsVoiceId, setElevenlabsVoiceId] =
+    settingsDraft.field("elevenlabsVoiceId");
+  const [elevenlabsVoiceName, setElevenlabsVoiceName] = settingsDraft.field(
+    "elevenlabsVoiceName"
+  );
   const [elevenLabsSearch, setElevenLabsSearch] = useState("");
 
   // Fish Audio 配置状态。
   const fishAudioApiKey = drafts["fish-audio"];
   const setFishAudioApiKey = (value: string) => setDraft("fish-audio", value);
-  const [fishAudioModelId, setFishAudioModelId] = useState("");
-  const [fishAudioModelName, setFishAudioModelName] = useState("");
+  const [fishAudioModelId, setFishAudioModelId] =
+    settingsDraft.field("fishAudioModelId");
+  const [fishAudioModelName, setFishAudioModelName] =
+    settingsDraft.field("fishAudioModelName");
   const [fishAudioSearch, setFishAudioSearch] = useState("");
 
   // LLM 配置变更追踪
-  const [llmSettingsDirty, setHasUnsavedLlmChanges] = useState(false);
+  const llmSettingsDirty = settingsDraft.isDirty(["llmModel"]);
 
   // 语音配置变更追踪
-  const [voiceSettingsDirty, setHasUnsavedVoiceChanges] = useState(false);
+  const voiceSettingsDirty = settingsDraft.isDirty([
+    "ttsProvider",
+    "elevenlabsVoiceId",
+    "elevenlabsVoiceName",
+    "fishAudioModelId",
+    "fishAudioModelName",
+  ]);
 
   // fal.ai 配置变更追踪
   const [falSettingsDirty, setHasUnsavedFalChanges] = useState(false);
 
   // AI 行为设定变更追踪
-  const [hasUnsavedAiChanges, setHasUnsavedAiChanges] = useState(false);
+  const hasUnsavedAiChanges = settingsDraft.isDirty([
+    "globalPrompt",
+    "replyLanguage",
+    "replyLengthLimit",
+  ]);
 
   // 模型收藏列表（localStorage 存储）
   const [favoriteModels, setFavoriteModels] = useState<string[]>(() => {
@@ -156,9 +210,11 @@ export default function Settings() {
   });
 
   // 全局提示词状态。
-  const [globalPrompt, setGlobalPrompt] = useState("");
-  const [replyLanguage, setReplyLanguage] = useState("");
-  const [replyLengthLimit, setReplyLengthLimit] = useState("");
+  const [globalPrompt, setGlobalPrompt] = settingsDraft.field("globalPrompt");
+  const [replyLanguage, setReplyLanguage] =
+    settingsDraft.field("replyLanguage");
+  const [replyLengthLimit, setReplyLengthLimit] =
+    settingsDraft.field("replyLengthLimit");
   const [showAdvancedPrompt, setShowAdvancedPrompt] = useState(false);
 
   // 快捷模板
@@ -199,7 +255,6 @@ export default function Settings() {
   const hasUnsavedFalChanges = falSettingsDirty || !!falApiKey;
 
   // 加载已有偏好与密钥状态
-  const { data: apiConfig, isLoading } = trpc.apiConfig.get.useQuery();
 
   // 服务端解析运营方或用户密钥，前端只获取可用状态。
   const usesDeepSeek = apiConfig?.chatProvider.name === "deepseek";
@@ -265,7 +320,14 @@ export default function Settings() {
     message: string
   ) {
     try {
-      if (preferences) await updatePreferences.mutateAsync(preferences);
+      if (preferences) {
+        const submitted = { ...settingsDraft.value };
+        await updatePreferences.mutateAsync(preferences);
+        settingsDraft.acknowledge(
+          Object.keys(preferences) as (keyof typeof submitted)[],
+          submitted
+        );
+      }
       const result = await saveDirtyKeys(names);
       if (result.failed.length) return false;
       onSaved();
@@ -285,26 +347,6 @@ export default function Settings() {
       );
     },
   });
-
-  useEffect(() => {
-    if (apiConfig?.chatProvider.name === "deepseek") {
-      setSelectedModel(apiConfig.chatProvider.model);
-    } else if (apiConfig) {
-      setSelectedModel(apiConfig.preferences?.llmModel || "");
-    }
-    if (apiConfig?.preferences) {
-      // 不向前端回传已保存的明文密钥，只展示末四位；再次输入并保存即替换密钥。
-      const p = apiConfig.preferences;
-      setTtsProvider((p.ttsProvider as TTSProvider) || "browser");
-      setElevenlabsVoiceId(p.elevenlabsVoiceId || "");
-      setElevenlabsVoiceName(p.elevenlabsVoiceName || "");
-      setFishAudioModelId(p.fishAudioModelId || "");
-      setFishAudioModelName(p.fishAudioModelName || "");
-      setGlobalPrompt(p.globalPrompt || "");
-      setReplyLanguage(p.replyLanguage || "");
-      setReplyLengthLimit(p.replyLengthLimit || "");
-    }
-  }, [apiConfig]);
 
   // 过滤 OpenRouter 模型
   const filteredModels = useMemo(() => {
@@ -370,11 +412,8 @@ export default function Settings() {
       },
       undefined,
       () => {
-        setHasUnsavedLlmChanges(false);
-        setHasUnsavedVoiceChanges(false);
         setHasUnsavedWhisperChanges(false);
         setHasUnsavedFalChanges(false);
-        setHasUnsavedAiChanges(false);
       },
       t("settings:allSettingsSaved")
     );
@@ -426,7 +465,6 @@ export default function Settings() {
 
   const handleSelectModel = (modelId: string) => {
     setSelectedModel(modelId);
-    setHasUnsavedLlmChanges(true);
     toast.info(
       t("settings:selectedClickSaveChangesToApply", { name: modelId })
     );
@@ -437,14 +475,13 @@ export default function Settings() {
     saveSection(
       { llmModel: selectedModel || undefined },
       ["openrouter"],
-      () => setHasUnsavedLlmChanges(false),
+      () => {},
       t("settings:modelSettingsSaved")
     );
 
   const handleSelectElevenLabsVoice = (voice: ElevenLabsVoice) => {
     setElevenlabsVoiceId(voice.id);
     setElevenlabsVoiceName(voice.name);
-    setHasUnsavedVoiceChanges(true);
     toast.info(
       t("settings:selectedVoiceClickSaveChangesToApply", { name: voice.name })
     );
@@ -453,7 +490,6 @@ export default function Settings() {
   const handleSelectFishAudioModel = (model: FishAudioModel) => {
     setFishAudioModelId(model.id);
     setFishAudioModelName(model.name);
-    setHasUnsavedVoiceChanges(true);
     toast.info(
       t("settings:selectedVoiceClickSaveChangesToApply", { name: model.name })
     );
@@ -470,7 +506,7 @@ export default function Settings() {
         fishAudioModelName: fishAudioModelName || undefined,
       },
       ["elevenlabs", "fish-audio"],
-      () => setHasUnsavedVoiceChanges(false),
+      () => {},
       t("settings:voiceSettingsSaved")
     );
   /** 保存语音转写密钥。 */
@@ -490,7 +526,7 @@ export default function Settings() {
         replyLengthLimit: replyLengthLimit || null,
       },
       [],
-      () => setHasUnsavedAiChanges(false),
+      () => {},
       t("settings:aiBehaviorSettingsSaved")
     );
 
@@ -630,7 +666,6 @@ export default function Settings() {
                     value={ttsProvider}
                     onValueChange={value => {
                       setTtsProvider(value as TTSProvider);
-                      setHasUnsavedVoiceChanges(true);
                     }}
                     className="grid gap-3"
                   >
@@ -715,7 +750,6 @@ export default function Settings() {
                         value={elevenlabsApiKey}
                         onChange={e => {
                           setElevenlabsApiKey(e.target.value);
-                          setHasUnsavedVoiceChanges(true);
                         }}
                       />
                       <p className="text-xs text-muted-foreground">
@@ -844,7 +878,6 @@ export default function Settings() {
                         value={fishAudioApiKey}
                         onChange={e => {
                           setFishAudioApiKey(e.target.value);
-                          setHasUnsavedVoiceChanges(true);
                         }}
                       />
                       <p className="text-xs text-muted-foreground">
@@ -1195,7 +1228,6 @@ export default function Settings() {
                     value={openRouterKey}
                     onChange={e => {
                       setOpenRouterKey(e.target.value);
-                      setHasUnsavedLlmChanges(true);
                     }}
                   />
                   <p className="text-xs text-muted-foreground">
@@ -1369,7 +1401,6 @@ export default function Settings() {
                     value={globalPrompt}
                     onChange={e => {
                       setGlobalPrompt(e.target.value);
-                      setHasUnsavedAiChanges(true);
                     }}
                     rows={4}
                     maxLength={500}
@@ -1405,7 +1436,6 @@ export default function Settings() {
                         key={tpl.label}
                         onClick={() => {
                           setGlobalPrompt(tpl.text);
-                          setHasUnsavedAiChanges(true);
                           toast.success(
                             t("settings:templateApplied", { name: tpl.label })
                           );
@@ -1456,7 +1486,6 @@ export default function Settings() {
                         value={replyLanguage}
                         onChange={e => {
                           setReplyLanguage(e.target.value);
-                          setHasUnsavedAiChanges(true);
                         }}
                         maxLength={50}
                       />
@@ -1473,7 +1502,6 @@ export default function Settings() {
                         value={replyLengthLimit}
                         onChange={e => {
                           setReplyLengthLimit(e.target.value);
-                          setHasUnsavedAiChanges(true);
                         }}
                         maxLength={50}
                       />

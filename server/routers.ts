@@ -1158,8 +1158,8 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
     /** 先校验角色归属，再读取该角色的相册记录。 */
     listByGirlfriend: protectedProcedure
       .input(z.object({ girlfriendId: z.number() }))
-      .query(async ({ input }) => {
-        return await getGirlfriendSelfies(input.girlfriendId);
+      .query(async ({ ctx, input }) => {
+        return await getGirlfriendSelfies(input.girlfriendId, ctx.user.id);
       }),
 
     /** 按用户归属删除相册记录，并回收已无其他引用的媒体。 */

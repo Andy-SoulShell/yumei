@@ -469,17 +469,24 @@ export async function getUserSelfies(userId: string): Promise<Selfie[]> {
     .orderBy(desc(selfies.createdAt));
 }
 
-/** 按角色编号读取相册记录；调用方必须先校验角色归属。 */
+/** 仅返回当前用户拥有且未删除的角色相册，拒绝读取其他账号的记录。 */
 export async function getGirlfriendSelfies(
-  girlfriendId: number
+  girlfriendId: number,
+  userId: string
 ): Promise<Selfie[]> {
   const db = await getDb();
   if (!db) return [];
 
+  const role = await getActiveGirlfriend(userId, girlfriendId);
+  if (!role)
+    throw new TRPCError({ code: "NOT_FOUND", message: "Companion not found" });
+
   return db
     .select()
     .from(selfies)
-    .where(eq(selfies.girlfriendId, girlfriendId))
+    .where(
+      and(eq(selfies.girlfriendId, girlfriendId), eq(selfies.userId, userId))
+    )
     .orderBy(desc(selfies.createdAt));
 }
 

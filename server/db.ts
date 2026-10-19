@@ -1,3 +1,5 @@
+/** 业务数据访问与状态写入。需要用户归属的底层方法由路由层先行校验。 */
+
 import { eq, desc, and, like, sql, isNull, isNotNull, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
@@ -27,6 +29,11 @@ import {
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
+/**
+ * 按需创建并缓存 MySQL 连接实例，未设置连接时返回 null。
+ *
+ * @remarks 创建实例不等于连接已通过健康检查，连通性由启动探针验证。
+ */
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
@@ -39,10 +46,11 @@ export async function getDb() {
   return _db;
 }
 
-// ============ User Functions ============
-//
-// Better-Auth owns account creation and login; application roles are managed in the database.
+// 用户资料。
 
+// Better-Auth 管理注册与登录，应用角色由数据库维护。
+
+/** 按认证系统的用户标识读取应用用户资料，未找到时返回 undefined。 */
 export async function getUserById(id: string) {
   const db = await getDb();
   if (!db) return undefined;
@@ -51,7 +59,7 @@ export async function getUserById(id: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-/** Age gate: birth date is validated as 18+ in auth.confirmAge. */
+/** 保存用户的出生日期；调用方负责校验日期和成年条件。 */
 export async function setUserBirthDate(
   userId: string,
   birthDate: Date
@@ -61,8 +69,13 @@ export async function setUserBirthDate(
   await db.update(users).set({ birthDate }).where(eq(users.id, userId));
 }
 
-// ============ Girlfriend Functions ============
+// 陪伴角色。
 
+/**
+ * 创建角色并返回保存结果；激活新角色前取消该用户其他角色的激活状态。
+ *
+ * @remarks 多次写入尚未封装为一个事务，套餐数量限制在路由层检查。
+ */
 export async function createGirlfriend(
   data: InsertGirlfriend
 ): Promise<Girlfriend> {
@@ -89,6 +102,7 @@ export async function createGirlfriend(
   return inserted[0]!;
 }
 
+/** 读取用户未删除的角色；传入角色编号时按编号读取，否则查找激活角色。 */
 export async function getActiveGirlfriend(
   userId: string,
   girlfriendId?: number
@@ -113,6 +127,7 @@ export async function getActiveGirlfriend(
   return result[0];
 }
 
+/** 按创建时间倒序列出用户未删除的角色。 */
 export async function getUserGirlfriends(
   userId: string
 ): Promise<Girlfriend[]> {
@@ -126,6 +141,11 @@ export async function getUserGirlfriends(
     .orderBy(desc(girlfriends.createdAt));
 }
 
+/**
+ * 按用户归属更新角色，切换激活状态时先停用同用户的其他角色。
+ *
+ * @remarks 目标更新与其他角色停用是独立操作，数据字段的可写范围由调用方限制。
+ */
 export async function updateGirlfriend(
   id: number,
   userId: string,
@@ -148,9 +168,13 @@ export async function updateGirlfriend(
     .where(and(eq(girlfriends.id, id), eq(girlfriends.userId, userId)));
 }
 
-// ============ Conversation Functions ============
+// 会话与消息。
 
-/** Serialize first visits so repeated clicks cannot create duplicate conversations. */
+/**
+ * 在事务中锁定所属角色，复用最近会话或创建首个会话。
+ *
+ * @returns 角色存在且属于用户时返回会话，否则返回 undefined
+ */
 export async function resumeConversation(
   userId: string,
   girlfriendId: number
@@ -195,6 +219,7 @@ export async function resumeConversation(
   });
 }
 
+/** 创建会话并返回保存结果；角色归属由调用方先行校验。 */
 export async function createConversation(
   data: InsertConversation
 ): Promise<Conversation> {
@@ -213,6 +238,7 @@ export async function createConversation(
   return inserted[0]!;
 }
 
+/** 按最近更新时间倒序读取当前用户的全部会话。 */
 export async function getUserConversations(
   userId: string
 ): Promise<Conversation[]> {
@@ -226,6 +252,7 @@ export async function getUserConversations(
     .orderBy(desc(conversations.updatedAt));
 }
 
+/** 按会话编号及用户归属读取记录，未找到时返回 undefined。 */
 export async function getConversation(
   id: number,
   userId: string
@@ -242,8 +269,13 @@ export async function getConversation(
   return result[0];
 }
 
-// ============ Message Functions ============
+// 消息。
 
+/**
+ * 保存消息并更新所属会话的活动时间。
+ *
+ * @remarks 不在此处校验会话归属，消息写入与时间更新也不是同一事务。
+ */
 export async function createMessage(data: InsertMessage): Promise<Message> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -265,6 +297,7 @@ export async function createMessage(data: InsertMessage): Promise<Message> {
   return inserted[0]!;
 }
 
+/** 按创建时间正序读取会话全部消息；调用方必须先验证会话归属。 */
 export async function getConversationMessages(
   conversationId: number
 ): Promise<Message[]> {
@@ -278,6 +311,11 @@ export async function getConversationMessages(
     .orderBy(messages.createdAt);
 }
 
+/**
+ * 读取会话最近若干条消息并按时间正序返回；归属由调用方校验。
+ *
+ * @param limit - 需要读取的最大消息条数
+ */
 export async function getRecentMessages(
   conversationId: number,
   limit: number
@@ -295,8 +333,9 @@ export async function getRecentMessages(
   return allMessages.reverse(); // 返回时按时间正序
 }
 
-// ============ Selfie Functions ============
+// 自拍。
 
+/** 保存生成图片的相册元数据；文件写入和用户归属由调用方处理。 */
 export async function createSelfie(data: InsertSelfie): Promise<Selfie> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -313,6 +352,7 @@ export async function createSelfie(data: InsertSelfie): Promise<Selfie> {
   return inserted[0]!;
 }
 
+/** 按创建时间倒序读取用户的相册记录。 */
 export async function getUserSelfies(userId: string): Promise<Selfie[]> {
   const db = await getDb();
   if (!db) return [];
@@ -324,6 +364,7 @@ export async function getUserSelfies(userId: string): Promise<Selfie[]> {
     .orderBy(desc(selfies.createdAt));
 }
 
+/** 按角色编号读取相册记录；调用方必须先校验角色归属。 */
 export async function getGirlfriendSelfies(
   girlfriendId: number
 ): Promise<Selfie[]> {
@@ -337,6 +378,7 @@ export async function getGirlfriendSelfies(
     .orderBy(desc(selfies.createdAt));
 }
 
+/** 按用户归属删除相册记录，当前不删除存储中的图片文件。 */
 export async function deleteSelfie(id: number, userId: string): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -346,8 +388,13 @@ export async function deleteSelfie(id: number, userId: string): Promise<void> {
     .where(and(eq(selfies.id, id), eq(selfies.userId, userId)));
 }
 
-// ============ API Config Functions ============
+// API 偏好配置。
 
+/**
+ * 读取后创建或更新用户的模型、语音及提示词偏好。
+ *
+ * @remarks 不保存 API 密钥；首次并发写入仍受 userId 唯一约束限制。
+ */
 export async function upsertApiConfig(
   data: InsertApiConfig
 ): Promise<ApiConfig> {
@@ -387,6 +434,7 @@ export async function upsertApiConfig(
   }
 }
 
+/** 读取用户偏好，尚未保存时返回 undefined。 */
 export async function getUserApiConfig(
   userId: string
 ): Promise<ApiConfig | undefined> {
@@ -402,9 +450,9 @@ export async function getUserApiConfig(
   return result[0];
 }
 
-// ============ Soft Delete Girlfriend (Trash) ============
+// 角色软删除与回收站。
 
-/** 软删除：设置 deletedAt 时间戳，保留 7 天可恢复 */
+/** 按用户归属将角色移入回收站，并取消其激活状态。 */
 export async function softDeleteGirlfriend(
   id: number,
   userId: string
@@ -418,7 +466,7 @@ export async function softDeleteGirlfriend(
     .where(and(eq(girlfriends.id, id), eq(girlfriends.userId, userId)));
 }
 
-/** 批量软删除 */
+/** 依次将指定角色移入当前用户的回收站；多条记录分别写入。 */
 export async function softDeleteGirlfriends(
   ids: number[],
   userId: string
@@ -434,7 +482,7 @@ export async function softDeleteGirlfriends(
   }
 }
 
-/** 恢复女友：清除 deletedAt */
+/** 按用户归属清除角色的删除时间，不自动重新激活角色或检查套餐数量。 */
 export async function restoreGirlfriend(
   id: number,
   userId: string
@@ -448,7 +496,11 @@ export async function restoreGirlfriend(
     .where(and(eq(girlfriends.id, id), eq(girlfriends.userId, userId)));
 }
 
-/** 永久删除：级联清除所有关联数据 */
+/**
+ * 依次删除所属角色的消息、会话、相册、心情与角色记录。
+ *
+ * @remarks 当前不清理记忆、通知和实际媒体文件，且各步骤未使用统一事务。
+ */
 export async function permanentDeleteGirlfriend(
   id: number,
   userId: string
@@ -497,7 +549,7 @@ export async function permanentDeleteGirlfriend(
     .where(and(eq(girlfriends.id, id), eq(girlfriends.userId, userId)));
 }
 
-/** 获取回收站列表（已软删除的女友） */
+/** 按删除时间倒序读取当前用户的回收站角色。 */
 export async function getTrashGirlfriends(
   userId: string
 ): Promise<Girlfriend[]> {
@@ -513,7 +565,11 @@ export async function getTrashGirlfriends(
     .orderBy(desc(girlfriends.deletedAt));
 }
 
-/** 清理过期回收站项目（超过 7 天的永久删除） */
+/**
+ * 永久删除当前用户回收站中已满七天的角色。
+ *
+ * @returns 本次找到并完成处理的过期角色数量
+ */
 export async function cleanupExpiredTrash(userId: string): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
@@ -538,8 +594,13 @@ export async function cleanupExpiredTrash(userId: string): Promise<number> {
   return expired.length;
 }
 
-// ============ Conversations with Last Message ============
+// 包含末条消息的会话列表。
 
+/**
+ * 读取用户会话并逐条补充最近消息与角色展示信息。
+ *
+ * @remarks 当前对每个会话额外查询消息和角色，尚未分页。
+ */
 export async function getConversationsWithLastMessage(userId: string): Promise<
   (Conversation & {
     lastMessage?: string;
@@ -595,8 +656,13 @@ export async function getConversationsWithLastMessage(userId: string): Promise<
   return result;
 }
 
-// ============ Search Conversations ============
+// 会话搜索。
 
+/**
+ * 按关键词匹配消息，再按用户归属筛选并补充会话信息。
+ *
+ * @remarks 当前先扫描全局匹配消息；LIKE 通配符未进行字面量转义，也未分页。
+ */
 export async function searchConversations(
   userId: string,
   keyword: string
@@ -694,8 +760,9 @@ export async function searchConversations(
   return result.filter((r): r is NonNullable<typeof r> => r !== null);
 }
 
-// ============ Girlfriend Mood Functions ============
+// 角色心情。
 
+/** 按用户和角色编号读取心情记录。 */
 export async function getGirlfriendMood(
   userId: string,
   girlfriendId: number
@@ -717,6 +784,7 @@ export async function getGirlfriendMood(
   return result[0];
 }
 
+/** 读取后创建或更新角色心情及对话计数；调用方负责角色归属。 */
 export async function upsertGirlfriendMood(
   data: InsertGirlfriendMood
 ): Promise<GirlfriendMood> {
@@ -765,6 +833,7 @@ export async function upsertGirlfriendMood(
   }
 }
 
+/** 读取当前用户的全部角色心情记录。 */
 export async function getAllGirlfriendMoods(
   userId: string
 ): Promise<GirlfriendMood[]> {
@@ -777,8 +846,14 @@ export async function getAllGirlfriendMoods(
     .where(eq(girlfriendMoods.userId, userId));
 }
 
-// ============ Create Default Girlfriend ============
+// 默认角色初始化。
 
+/**
+ * 复用用户已有的未删除角色，否则惰性创建默认角色。
+ *
+ * @param createData - 仅在确认需要创建时执行，可在其中准备参考图
+ * @remarks 查重与插入尚未使用事务或唯一约束，不能保证并发初始化只产生一条记录。
+ */
 export async function createDefaultGirlfriend(
   userId: string,
   createData: () => Promise<InsertGirlfriend>
@@ -810,8 +885,9 @@ export async function createDefaultGirlfriend(
   return inserted[0]!;
 }
 
-// ============ Notifications ============
+// 站内通知。
 
+/** 保存一条站内通知并返回数据库记录。 */
 export async function createNotification(
   data: InsertNotification
 ): Promise<Notification> {
@@ -830,6 +906,7 @@ export async function createNotification(
   return inserted[0]!;
 }
 
+/** 按创建时间倒序读取当前用户最近的站内通知。 */
 export async function getUserNotifications(
   userId: string,
   limit = 20
@@ -845,6 +922,7 @@ export async function getUserNotifications(
     .limit(limit);
 }
 
+/** 统计当前用户尚未读过的站内通知数量。 */
 export async function getUnreadNotificationCount(
   userId: string
 ): Promise<number> {
@@ -861,6 +939,7 @@ export async function getUnreadNotificationCount(
   return result[0]?.count ?? 0;
 }
 
+/** 按用户归属将指定通知标记为已读。 */
 export async function markNotificationRead(
   id: number,
   userId: string
@@ -874,6 +953,7 @@ export async function markNotificationRead(
     .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
 }
 
+/** 将当前用户的全部通知标记为已读。 */
 export async function markAllNotificationsRead(userId: string): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -917,6 +997,7 @@ const PROACTIVE_MESSAGES = {
   ],
 };
 
+/** 从指定通知类型的模板中随机选择正文，并附上类型标题。 */
 export function getRandomProactiveMessage(
   type: keyof typeof PROACTIVE_MESSAGES
 ): { title: string; content: string } {
@@ -936,6 +1017,12 @@ export function getRandomProactiveMessage(
 // 优先引用最近的 event 类记忆（"你上次说的面试怎么样了？"），
 // 并把频率收紧为每用户每天最多 1 条 —— 主动消息的价值在于"她记得"，
 // 不在于数量；高频模板消息是同类产品差评的高发区。
+/**
+ * 根据角色、记忆和心情生成一条主动通知。
+ *
+ * @returns 不满足生成条件时返回 null
+ * @remarks 每日上限使用 UTC 零点与数据库时间比较；检查与写入是独立操作。
+ */
 export async function checkAndCreateProactiveNotification(
   userId: string
 ): Promise<Notification | null> {
@@ -1025,7 +1112,7 @@ export async function checkAndCreateProactiveNotification(
   return notification;
 }
 
-// ============ Intimacy Functions ============
+// 亲密度。
 
 import {
   getLevelByPoints,
@@ -1034,7 +1121,9 @@ import {
 } from "../shared/intimacy";
 
 /**
- * 获取女友的亲密度信息（含衰减计算）
+ * 读取角色亲密度，并在发生衰减时写回经验和等级。
+ *
+ * @remarks 此查询有持久化副作用；衰减基准目前仍为最后互动时间。
  */
 export async function getIntimacyInfo(girlfriendId: number, userId: string) {
   const db = await getDb();
@@ -1089,8 +1178,9 @@ export async function getIntimacyInfo(girlfriendId: number, userId: string) {
 }
 
 /**
- * 增加亲密度经验值
- * @returns 新的亲密度信息和是否升级
+ * 按用户归属增加角色经验，并更新等级、连续互动天数和互动时间。
+ *
+ * @remarks 夜间会追加三点经验；每日额度和行为有效性由调用方校验，写入采用读取后覆盖。
  */
 export async function addIntimacyPoints(
   girlfriendId: number,
@@ -1174,7 +1264,9 @@ export async function addIntimacyPoints(
 }
 
 /**
- * 获取女友基础亲密度数据（不含衰减计算，用于列表展示）
+ * 按角色编号读取基础亲密度信息，不计算衰减。
+ *
+ * @remarks 此方法不验证用户归属，调用方需要先行校验。
  */
 export async function getGirlfriendIntimacy(girlfriendId: number): Promise<{
   intimacyLevel: number;

@@ -1,6 +1,8 @@
-// v2 (M4-4): fixed icon filenames (issue #34 — the old list referenced
-// /icon-192x192.png which never existed, so cache.addAll rejected and the
-// service worker never installed), added Web Push handlers.
+/**
+ * PWA 静态资源缓存、离线页面回退及 Web Push 展示。
+ *
+ * @remarks API 请求直接走网络；当前媒体缓存未按登录用户划分，也未随退出清空。
+ */
 const CACHE_NAME = "yumei-v1";
 const STATIC_ASSETS = [
   "/",
@@ -10,7 +12,7 @@ const STATIC_ASSETS = [
   "/icon-512.png",
 ];
 
-// Install - cache static assets
+// 安装时缓存入口页面、图标和 Manifest。
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
@@ -20,7 +22,7 @@ self.addEventListener("install", event => {
   self.skipWaiting();
 });
 
-// Activate - clean old caches
+// 激活时移除其他缓存版本。
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -34,21 +36,21 @@ self.addEventListener("activate", event => {
   self.clients.claim();
 });
 
-// Fetch - network first, fallback to cache
+// 按请求类型选择网络优先或缓存优先策略。
 self.addEventListener("fetch", event => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests
+  // 写请求不进入离线缓存。
   if (request.method !== "GET") return;
 
-  // Skip API calls - always go to network
+  // API 始终交给网络处理。
   if (url.pathname.startsWith("/api/")) return;
 
-  // Skip WebSocket and OAuth
+  // 跳过 WebSocket 与包含 OAuth 标记的请求。
   if (url.pathname.startsWith("/ws") || url.pathname.includes("oauth")) return;
 
-  // For navigation requests (HTML pages) - network first
+  // 页面导航优先使用网络，离线时回退到已缓存页面。
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
@@ -64,7 +66,7 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // For static assets - cache first, then network
+  // 静态资源优先使用缓存，首次获取后保存。
   if (
     url.pathname.match(
       /\.(js|css|png|jpg|jpeg|svg|gif|webp|woff2?|ttf|eot|ico)$/
@@ -86,7 +88,7 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // Default - network first
+  // 其余 GET 请求优先使用网络，失败时查询缓存。
   event.respondWith(
     fetch(request)
       .then(response => {
@@ -100,7 +102,7 @@ self.addEventListener("fetch", event => {
   );
 });
 
-// Web Push (M4-4) — payload: { title, body, url? }
+// 推送载荷包含标题、正文及可选的点击跳转地址。
 self.addEventListener("push", event => {
   let data;
   try {

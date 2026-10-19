@@ -1,3 +1,5 @@
+/** 覆盖计费模式、套餐映射、签名与订阅更新。 */
+
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createHmac } from "node:crypto";
 import { nanoid } from "nanoid";

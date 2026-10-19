@@ -1,3 +1,5 @@
+/** 覆盖敏感字段与邮箱脱敏。 */
+
 import { describe, it, expect } from "vitest";
 import { redact } from "./log";
 

@@ -1,19 +1,14 @@
-/**
- * Environment-variable validation. Runs at module load.
- *
- * If validation fails the module throws `EnvValidationError` with a multi-line
- * message describing every problem. The server bootstrap lets the throw
- * propagate so the process exits before any request is served.
- *
- * Tests preload required vars in `vitest.setup.ts` so importing this module
- * inside the test runner never throws.
- */
+/** 在模块加载时校验运行配置，统一导出存储、数据库和认证所需变量。 */
 
 const NODE_ENVS = ["development", "test", "production"] as const;
+/** 应用支持的运行环境标识。 */
 type NodeEnv = (typeof NODE_ENVS)[number];
 
+/** 汇总启动配置问题的错误，便于一次定位全部缺失项。 */
 export class EnvValidationError extends Error {
+  /** 本次配置校验发现的全部问题。 */
   readonly issues: string[];
+  /** 将多项配置错误合并为可读的启动失败信息。 */
   constructor(issues: string[]) {
     super(
       "Invalid environment configuration:\n" +
@@ -25,6 +20,11 @@ export class EnvValidationError extends Error {
   }
 }
 
+/**
+ * 读取进程环境并集中校验，配置不合法时阻止启动。
+ *
+ * @throws {@link EnvValidationError} 配置缺失、格式不符或选项不受支持时抛出。
+ */
 function loadEnv() {
   const issues: string[] = [];
   const env = process.env;
@@ -67,7 +67,7 @@ function loadEnv() {
     );
   }
 
-  // --- Required: JWT_SECRET ---
+  // 所有环境均要求会话签名密钥。
   if (!env.JWT_SECRET) {
     issues.push(
       "JWT_SECRET: JWT_SECRET is required. Generate with `openssl rand -hex 32` and set it in .env."
@@ -78,7 +78,7 @@ function loadEnv() {
     );
   }
 
-  // --- Required outside test: KEY_ENCRYPTION_KEY ---
+  // 测试以外必须提供独立的用户密钥加密主密钥。
   if ((env.NODE_ENV ?? "development") !== "test") {
     if (!env.KEY_ENCRYPTION_KEY) {
       issues.push(
@@ -95,7 +95,7 @@ function loadEnv() {
     }
   }
 
-  // --- NODE_ENV must be a known value (or absent → defaults) ---
+  // 未设置时默认为开发环境；拒绝未支持的运行环境。
   const nodeEnv = (env.NODE_ENV ?? "development") as NodeEnv;
   if (!NODE_ENVS.includes(nodeEnv)) {
     issues.push(
@@ -103,7 +103,7 @@ function loadEnv() {
     );
   }
 
-  // --- DATABASE_URL: required in dev/prod; relaxed in test ---
+  // 开发和生产必须提供数据库连接；纯单元测试可省略。
   if (nodeEnv !== "test") {
     if (env.DATABASE_URL === undefined) {
       issues.push("DATABASE_URL: DATABASE_URL is required (set in .env).");
@@ -112,9 +112,7 @@ function loadEnv() {
     }
   }
 
-  // --- Email delivery ---
-  // Local Docker runs may explicitly print links with EMAIL_PROVIDER=stdout.
-  // Other production deployments still require a real email driver.
+  // 本机 Docker 可显式选择 stdout；生产真实发信必须配置邮件服务。
   if (nodeEnv === "production" && env.EMAIL_PROVIDER !== "stdout") {
     if (!env.EMAIL_FROM) {
       issues.push(
@@ -136,10 +134,7 @@ function loadEnv() {
     }
   }
 
-  // --- Storage -----------------------------------------------------
-  // `local` writes to disk; `s3` targets AWS S3 or any S3-compatible
-  // endpoint. Test mode defaults to a per-run temp dir so suites never
-  // touch a real bucket or the repo tree.
+  // local 写入磁盘，s3 使用兼容对象存储；测试默认写入临时目录。
   const storageDriver = (env.STORAGE_DRIVER ?? "local") as "local" | "s3";
   if (!["local", "s3"].includes(storageDriver)) {
     issues.push(
@@ -151,17 +146,13 @@ function loadEnv() {
       issues.push("S3_BUCKET: required when STORAGE_DRIVER=s3.");
     if (!env.S3_REGION)
       issues.push("S3_REGION: required when STORAGE_DRIVER=s3.");
-    // Access keys are optional on purpose: AWS deployments may use an
-    // instance profile / IRSA instead of static credentials.
+    // 静态凭据可省略，AWS 部署也可使用实例角色或工作负载身份。
   }
   const storageLocalDir =
     env.STORAGE_LOCAL_DIR ??
     (nodeEnv === "test" ? `/tmp/yumei-test-uploads` : "./data/uploads");
 
-  // --- Billing ----------------------------------------------
-  // "free" (default): free-tier caps for everyone, no paid tiers.
-  // "none": self-host mode — all features unlocked, no metering.
-  // "lemonsqueezy": full subscription billing (requires webhook secret).
+  // free 默认执行免费额度；none 开放自托管能力；lemonsqueezy 接入订阅。
   const billingProvider = env.BILLING_PROVIDER ?? "free";
   if (!["free", "none", "lemonsqueezy"].includes(billingProvider)) {
     issues.push(
@@ -174,9 +165,7 @@ function loadEnv() {
     );
   }
 
-  // --- Public URL ----------------------------------------------------------
-  // Where this deployment is reachable. Magic-link emails and stored file
-  // URLs are built from it. Falls back to localhost:PORT for dev.
+  // 登录链接和媒体 URL 共用公开地址；开发环境回退到 localhost:PORT。
   const publicUrl =
     env.BETTER_AUTH_URL ?? `http://localhost:${env.PORT || "3000"}`;
   if (nodeEnv === "production" && !env.BETTER_AUTH_URL) {
@@ -206,4 +195,5 @@ function loadEnv() {
   } as const;
 }
 
+/** 模块加载时生成的配置快照，修改环境变量后需要重新加载模块或重启进程。 */
 export const ENV = loadEnv();

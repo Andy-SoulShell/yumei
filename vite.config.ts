@@ -1,3 +1,5 @@
+/** 前端构建、开发服务器与共享路径别名配置。 */
+
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
@@ -20,9 +22,7 @@ export default defineConfig({
   },
   server: {
     host: true,
-    // Extra host for tunnel-based testing (e.g. trycloudflare.com), set via
-    // VITE_EXTRA_ALLOWED_HOST. Production serves static files and doesn't
-    // consult this list.
+    // 通过进程变量允许额外开发主机；生产静态服务不读取此列表。
     allowedHosts: process.env.VITE_EXTRA_ALLOWED_HOST
       ? [process.env.VITE_EXTRA_ALLOWED_HOST, "localhost", "127.0.0.1"]
       : ["localhost", "127.0.0.1"],

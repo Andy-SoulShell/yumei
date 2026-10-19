@@ -1,3 +1,5 @@
+/** 覆盖回收站、批量删除及过期清理。 */
+
 import { describe, it, expect } from "vitest";
 import {
   softDeleteGirlfriend,

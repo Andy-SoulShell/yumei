@@ -1,42 +1,24 @@
+/** 为业务写请求提供 Cookie 与请求头双提交令牌校验。 */
+
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { parse as parseCookieHeader } from "cookie";
 import type { Request, Response, NextFunction } from "express";
 import { isSecureRequest } from "./cookies";
 
-/**
- * CSRF protection — double-submit token.
- *
- * Strategy:
- *   1. `csrfCookieMiddleware` runs on every request. If the request has no
- *      `csrf_token` cookie, it generates a fresh random token and sets it
- *      via Set-Cookie. The cookie is non-HttpOnly so client-side JS can
- *      read it; that's by design — it has to echo the value in a header.
- *   2. `csrfVerifyMiddleware` runs in front of `/api/trpc/*` and other
- *      state-changing routes. On POST it requires:
- *        - the request to carry the `csrf_token` cookie, AND
- *        - the request to carry an `X-CSRF-Token` header equal to the
- *          cookie's value (constant-time compared).
- *      A cross-site attacker cannot read the cookie due to same-origin
- *      policy on `document.cookie`, so they cannot forge the header.
- *
- * The very first request from a fresh client must be a top-level GET
- * (typically `/`) — that returns the cookie. Subsequent tRPC POSTs
- * succeed. Direct cross-site POSTs without the page-load handshake
- * are rejected with HTTP 403.
- *
- * Better-Auth endpoints use their own origin checks and are mounted
- * separately from the tRPC CSRF verifier.
- */
+/** 保存 CSRF 随机令牌的非 HttpOnly Cookie 名称。 */
 
 export const CSRF_COOKIE = "csrf_token";
+/** 客户端回传 CSRF 令牌时使用的请求头名称。 */
 export const CSRF_HEADER = "x-csrf-token";
 
-const TOKEN_BYTES = 24; // 192-bit; base64url => 32 chars
+const TOKEN_BYTES = 24; // 192 位随机量，base64url 编码为 32 个字符
 
+/** 生成二十四字节随机令牌并编码为 base64url。 */
 function generateToken(): string {
   return randomBytes(TOKEN_BYTES).toString("base64url");
 }
 
+/** 从请求 Cookie 头解析指定名称的值。 */
 function readCookie(req: Request, name: string): string | undefined {
   const header = req.headers.cookie;
   if (!header) return undefined;
@@ -44,14 +26,13 @@ function readCookie(req: Request, name: string): string | undefined {
   return parsed[name];
 }
 
+/** 使用恒定时间比较令牌内容，长度不同时消耗一次比较后返回 false。 */
 function constantTimeEqual(a: string, b: string): boolean {
-  // timingSafeEqual requires equal-length buffers. Pad to the same length
-  // before comparison so callers with different-length inputs always lose
-  // in constant time relative to each input length.
+  // timingSafeEqual 仅接受等长 Buffer；长度不同时执行一次自身比较再拒绝。
   const ab = Buffer.from(a);
   const bb = Buffer.from(b);
   if (ab.length !== bb.length) {
-    // Burn cycles equivalent to a real comparison so timing doesn't leak length.
+    // 消耗一次比较；这里不填充输入，也不保证不同长度请求的总耗时相同。
     timingSafeEqual(ab, ab);
     return false;
   }
@@ -59,8 +40,9 @@ function constantTimeEqual(a: string, b: string): boolean {
 }
 
 /**
- * Sets a `csrf_token` cookie on the response if the request didn't carry
- * one. Always calls `next()`. Must run BEFORE `csrfVerifyMiddleware`.
+ * 缺少 CSRF Cookie 时写入随机令牌，再继续处理请求。
+ *
+ * @remarks 必须在业务写请求校验中间件之前注册。
  */
 export function csrfCookieMiddleware(
   req: Request,
@@ -70,7 +52,7 @@ export function csrfCookieMiddleware(
   const existing = readCookie(req, CSRF_COOKIE);
   if (!existing) {
     res.cookie(CSRF_COOKIE, generateToken(), {
-      httpOnly: false, // JS must read it to echo in the X-CSRF-Token header
+      httpOnly: false, // 前端需要读取后放入 X-CSRF-Token 请求头
       sameSite: "lax",
       secure: isSecureRequest(req),
       path: "/",
@@ -80,9 +62,9 @@ export function csrfCookieMiddleware(
 }
 
 /**
- * Verifies that the CSRF cookie and header are both present and equal.
- * Only enforced on state-changing methods (POST / PUT / PATCH / DELETE).
- * GET / HEAD / OPTIONS pass through.
+ * 校验写请求中的 CSRF Cookie 与请求头是否相同，缺失或不符时返回 403。
+ *
+ * @remarks GET、HEAD 与 OPTIONS 放行；Better-Auth 使用独立的来源校验流程。
  */
 export function csrfVerifyMiddleware(
   req: Request,

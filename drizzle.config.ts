@@ -1,3 +1,5 @@
+/** Drizzle 的 MySQL schema 与迁移目录配置，连接字符串从环境读取。 */
+
 import "dotenv/config";
 import { defineConfig } from "drizzle-kit";
 

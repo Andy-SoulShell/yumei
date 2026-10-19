@@ -1,15 +1,19 @@
+/** 需要用户明确确认或取消的模态对话框。 */
+
 import * as React from "react";
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
+/** 需要确认的模态对话框根节点。 */
 function AlertDialog({
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
   return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />;
 }
 
+/** 触发确认弹窗的交互入口。 */
 function AlertDialogTrigger({
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Trigger>) {
@@ -18,6 +22,7 @@ function AlertDialogTrigger({
   );
 }
 
+/** 将确认弹窗渲染到独立的浮层容器。 */
 function AlertDialogPortal({
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Portal>) {
@@ -26,6 +31,7 @@ function AlertDialogPortal({
   );
 }
 
+/** 确认弹窗的背景遮罩。 */
 function AlertDialogOverlay({
   className,
   ...props
@@ -42,6 +48,7 @@ function AlertDialogOverlay({
   );
 }
 
+/** 组合遮罩和内容浮层的确认弹窗主体。 */
 function AlertDialogContent({
   className,
   ...props
@@ -61,6 +68,7 @@ function AlertDialogContent({
   );
 }
 
+/** 确认弹窗的标题与说明布局。 */
 function AlertDialogHeader({
   className,
   ...props
@@ -74,6 +82,7 @@ function AlertDialogHeader({
   );
 }
 
+/** 确认与取消操作的响应式布局。 */
 function AlertDialogFooter({
   className,
   ...props
@@ -90,6 +99,7 @@ function AlertDialogFooter({
   );
 }
 
+/** 提供可访问名称的确认弹窗标题。 */
 function AlertDialogTitle({
   className,
   ...props
@@ -103,6 +113,7 @@ function AlertDialogTitle({
   );
 }
 
+/** 提供辅助说明的确认弹窗正文。 */
 function AlertDialogDescription({
   className,
   ...props
@@ -116,6 +127,7 @@ function AlertDialogDescription({
   );
 }
 
+/** 执行确认动作的按钮样式封装。 */
 function AlertDialogAction({
   className,
   ...props
@@ -128,6 +140,7 @@ function AlertDialogAction({
   );
 }
 
+/** 取消并关闭确认弹窗的按钮封装。 */
 function AlertDialogCancel({
   className,
   ...props

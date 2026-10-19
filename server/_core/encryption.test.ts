@@ -1,3 +1,5 @@
+/** 覆盖密钥派生、加解密、编码与脱敏。 */
+
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   encrypt,

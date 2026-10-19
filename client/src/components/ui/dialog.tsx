@@ -1,9 +1,11 @@
+/** 普通对话框与输入法组合状态协调。 */
+
 import { cn } from "@/lib/utils";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { XIcon } from "lucide-react";
 import * as React from "react";
 
-// Context to track composition state across dialog children
+// 在对话框子组件之间共享输入法组合状态。
 const DialogCompositionContext = React.createContext<{
   isComposing: () => boolean;
   setComposing: (composing: boolean) => void;
@@ -16,9 +18,11 @@ const DialogCompositionContext = React.createContext<{
   markCompositionEnd: () => {},
 });
 
+/** 读取最近对话框的输入法组合状态协调接口。 */
 export const useDialogComposition = () =>
   React.useContext(DialogCompositionContext);
 
+/** 提供输入法状态上下文的普通对话框根节点。 */
 function Dialog({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Root>) {
@@ -53,24 +57,28 @@ function Dialog({
   );
 }
 
+/** 触发普通对话框的交互入口。 */
 function DialogTrigger({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Trigger>) {
   return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />;
 }
 
+/** 将普通对话框内容渲染到浮层容器。 */
 function DialogPortal({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Portal>) {
   return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />;
 }
 
+/** 触发普通对话框关闭的交互入口。 */
 function DialogClose({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Close>) {
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />;
 }
 
+/** 普通对话框背景遮罩及开关动画。 */
 function DialogOverlay({
   className,
   ...props
@@ -89,6 +97,7 @@ function DialogOverlay({
 
 DialogOverlay.displayName = "DialogOverlay";
 
+/** 组合弹窗主体、关闭按钮和输入法 Escape 保护。 */
 function DialogContent({
   className,
   children,
@@ -102,17 +111,16 @@ function DialogContent({
 
   const handleEscapeKeyDown = React.useCallback(
     (e: KeyboardEvent) => {
-      // Check both the native isComposing property and our context state
-      // This handles Safari's timing issues with composition events
+      // 同时检查原生事件与上下文状态，兼容 Safari 组合事件时序。
       const isCurrentlyComposing = (e as any).isComposing || isComposing();
 
-      // If IME is composing, prevent dialog from closing
+      // 输入法组合期间阻止 Escape 关闭弹窗。
       if (isCurrentlyComposing) {
         e.preventDefault();
         return;
       }
 
-      // Call user's onEscapeKeyDown if provided
+      // 其余情况继续传递调用方的 Escape 回调。
       onEscapeKeyDown?.(e);
     },
     [isComposing, onEscapeKeyDown]
@@ -145,6 +153,7 @@ function DialogContent({
   );
 }
 
+/** 普通对话框的标题与说明布局。 */
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -155,6 +164,7 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
+/** 普通对话框底部操作布局。 */
 function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -168,6 +178,7 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
+/** 提供可访问名称的普通对话框标题。 */
 function DialogTitle({
   className,
   ...props
@@ -181,6 +192,7 @@ function DialogTitle({
   );
 }
 
+/** 普通对话框的辅助说明文本。 */
 function DialogDescription({
   className,
   ...props

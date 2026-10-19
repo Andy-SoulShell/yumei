@@ -1,3 +1,5 @@
+/** 从屏幕边缘展开的对话框面板。 */
+
 "use client";
 
 import * as React from "react";
@@ -6,28 +8,33 @@ import { XIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
+/** 侧边面板的状态根节点。 */
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />;
 }
 
+/** 触发侧边面板展开的交互入口。 */
 function SheetTrigger({
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Trigger>) {
   return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />;
 }
 
+/** 触发侧边面板关闭的交互入口。 */
 function SheetClose({
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Close>) {
   return <SheetPrimitive.Close data-slot="sheet-close" {...props} />;
 }
 
+/** 将侧边面板渲染到独立浮层容器。 */
 function SheetPortal({
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Portal>) {
   return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />;
 }
 
+/** 侧边面板的背景遮罩。 */
 function SheetOverlay({
   className,
   ...props
@@ -44,6 +51,7 @@ function SheetOverlay({
   );
 }
 
+/** 根据 side 展示从对应边缘展开的面板主体。 */
 function SheetContent({
   className,
   children,
@@ -81,6 +89,7 @@ function SheetContent({
   );
 }
 
+/** 侧边面板的标题与说明布局。 */
 function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -91,6 +100,7 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
+/** 侧边面板底部的操作布局。 */
 function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -101,6 +111,7 @@ function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
+/** 提供可访问名称的侧边面板标题。 */
 function SheetTitle({
   className,
   ...props
@@ -114,6 +125,7 @@ function SheetTitle({
   );
 }
 
+/** 侧边面板的辅助说明文本。 */
 function SheetDescription({
   className,
   ...props

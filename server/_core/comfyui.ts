@@ -1,16 +1,23 @@
+/** 将内置 Qwen 工作流适配为 ComfyUI 任务，并处理参考图上传和结果轮询。 */
+
 import axios from "axios";
 import { randomInt, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
+/** 图片生成方式：使用参考图或仅使用文字提示词。 */
 export type ImageGenerationMode = "reference" | "text";
+/** 一张参考图的原始字节与 MIME 类型。 */
 export type ImageInput = { data: Buffer; mimeType: string };
+/** ComfyUI API 格式的节点映射，键为节点标识。 */
 type Workflow = Record<
   string,
   { class_type: string; inputs: Record<string, unknown> }
 >;
+/** ComfyUI 历史记录中描述输出文件位置的字段。 */
 type OutputImage = { filename: string; subfolder?: string; type: string };
+/** 轮询任务时需要读取的执行状态、错误与输出节点。 */
 type HistoryEntry = {
   status?: {
     completed?: boolean;
@@ -24,7 +31,12 @@ const OUTPUT_NODE = "461";
 const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
-/** Adapt the supplied Qwen workflows without retaining their demo images. */
+/**
+ * 读取内置工作流并替换提示词、随机种子、输出前缀及参考图节点。
+ *
+ * @throws 参考图模式缺少图片时抛出错误。
+ * @remarks 修改内存中的节点副本，不回写工作流模板。
+ */
 export async function buildImageWorkflow(params: {
   mode: ImageGenerationMode;
   prompt: string;
@@ -59,10 +71,16 @@ export async function buildImageWorkflow(params: {
   return workflow;
 }
 
+/**
+ * 负责上传参考图、提交任务、轮询执行状态并下载 PNG 结果的客户端。
+ *
+ * @remarks 每次 generate 独立提交任务；轮询期限到达时尝试删除本任务排队项，不能中断已执行任务。
+ */
 export class ComfyUIClient {
   private readonly baseUrl: string;
   private readonly headers: Record<string, string>;
 
+  /** 保存基础地址、可选 Bearer 凭据和等待配置，时间参数单位均为毫秒。 */
   constructor(
     private readonly options: {
       baseUrl: string;
@@ -77,6 +95,11 @@ export class ComfyUIClient {
       : {};
   }
 
+  /**
+   * 上传参考图、提交并轮询本次生成任务，成功时返回经签名头检查的 PNG 字节。
+   *
+   * @throws 任务执行失败、连接异常或超过总等待期限时抛出经过脱敏的错误。
+   */
   async generate(params: {
     prompt: string;
     mode: ImageGenerationMode;
@@ -179,7 +202,7 @@ export class ComfyUIClient {
           )
         );
       }
-      // Delete only this pending task; never interrupt another user's running job.
+      // 只尝试移除本任务的排队项，避免中断其他用户正在执行的任务。
       await axios
         .post(
           `${this.baseUrl}/queue`,

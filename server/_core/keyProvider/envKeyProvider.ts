@@ -1,3 +1,5 @@
+/** 从环境读取运营方密钥，从加密数据库记录读取用户 BYOK 密钥。 */
+
 import { and, eq } from "drizzle-orm";
 import { userKeys } from "../../../drizzle/schema";
 import { getDb } from "../../db";
@@ -14,10 +16,7 @@ import {
   type KeyScope,
 } from "./types";
 
-/**
- * Resolves user BYOK credentials from encrypted storage before falling back
- * to the operator's OPERATOR_* environment variables.
- */
+/** Provider 名称到运营方环境变量的固定映射。 */
 
 const OPERATOR_ENV: Record<KeyName, string> = {
   openrouter: "OPERATOR_OPENROUTER_KEY",
@@ -27,25 +26,26 @@ const OPERATOR_ENV: Record<KeyName, string> = {
   openai: "OPERATOR_OPENAI_KEY",
 };
 
+/** 优先解密用户 BYOK，缺少用户配置时回退为对应运营方环境变量。 */
 export class EnvKeyProvider implements KeyProvider {
+  /** 按用户 BYOK 优先、运营方默认其次的顺序解析明文，均未配置时返回 null。 */
   async get(scope: KeyScope, name: KeyName): Promise<string | null> {
     if (scope === "operator") {
       return readOperatorKey(name);
     }
-    // User-scoped: BYOK first, fall back to operator default.
+    // 用户范围优先读取 BYOK，无法读取时回退运营方密钥。
     const userValue = await readUserKey(scope.userId, name);
     if (userValue) return userValue;
     return readOperatorKey(name);
   }
 
+  /** 加密保存用户密钥并更新末四位展示信息，空密钥或不支持的名称会被拒绝。 */
   async setUserKey(
     userId: string,
     name: KeyName,
     plaintext: string
   ): Promise<void> {
-    // Input validation runs before any DB lookup so misuse surfaces with
-    // a meaningful error even in environments where the DB isn't wired
-    // (test mode, misconfigured deployment).
+    // 先校验输入，再访问数据库，使无数据库环境也能获得明确的格式错误。
     if (!plaintext) {
       throw new Error("Cannot store an empty key. Use clearUserKey instead.");
     }
@@ -59,7 +59,7 @@ export class EnvKeyProvider implements KeyProvider {
     const encryptedValue = await encryptToString(plaintext);
     const lastFour = computeLastFour(plaintext);
 
-    // MySQL upsert: insert; on conflict (userId, name), update value.
+    // 以用户和密钥名称为唯一组合，冲突时更新已有密文。
     await db
       .insert(userKeys)
       .values({ userId, name, encryptedValue, lastFour })
@@ -68,6 +68,7 @@ export class EnvKeyProvider implements KeyProvider {
       });
   }
 
+  /** 按用户和 Provider 删除 BYOK；后续请求将回退到运营方配置。 */
   async clearUserKey(userId: string, name: KeyName): Promise<void> {
     const db = await getDb();
     if (!db) return; // silent no-op in test mode (no DB)
@@ -76,6 +77,7 @@ export class EnvKeyProvider implements KeyProvider {
       .where(and(eq(userKeys.userId, userId), eq(userKeys.name, name)));
   }
 
+  /** 列出支持密钥的设置状态、末四位和记录创建时间，不解密完整值。 */
   async describeUserKeys(
     userId: string
   ): Promise<Record<KeyName, KeyDescription>> {
@@ -105,14 +107,16 @@ export class EnvKeyProvider implements KeyProvider {
   }
 }
 
-// ---- helpers ---------------------------------------------------------------
+// 密钥存储与解密辅助函数。
 
+/** 读取指定 Provider 的运营方环境变量，空值返回 null。 */
 function readOperatorKey(name: KeyName): string | null {
   const envVar = OPERATOR_ENV[name];
   const value = process.env[envVar];
   return value && value.length > 0 ? value : null;
 }
 
+/** 读取并解密用户密钥；无记录或解密失败时返回 null，当前不记录解密失败原因。 */
 async function readUserKey(
   userId: string,
   name: KeyName
@@ -131,13 +135,10 @@ async function readUserKey(
   try {
     return await decryptFromString(row[0].encryptedValue);
   } catch {
-    // Tampered ciphertext, wrong master key, or anything else — treat as
-    // "no key available" rather than crash the request. The error already
-    // means BYOK can't be honored; downstream code will fall back to
-    // operator key (or 402 / "no key configured" upstream).
+    // 密文损坏或主密钥不匹配时静默返回空值，下游可能改用运营方密钥。
     return null;
   }
 }
 
-/** Singleton — the rest of the server imports this directly. */
+/** 供业务模块共享的默认环境变量与数据库密钥解析实例。 */
 export const keyProvider: KeyProvider = new EnvKeyProvider();

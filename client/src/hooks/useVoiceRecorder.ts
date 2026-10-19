@@ -1,11 +1,19 @@
+/** 浏览器麦克风录音与资源管理，返回录音字节供业务层上传转写。 */
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+/** 一次有效录音的 Blob 与实际编码 MIME 类型。 */
 interface VoiceRecorderResult {
   blob: Blob;
   mimeType: string;
 }
 
+/**
+ * 管理麦克风授权、录音时长与编码选择，并提供开始、停止和取消操作。
+ *
+ * @remarks duration 单位为秒；六十秒时触发注册回调，停止录音由回调执行；卸载会清理音轨与计时器。
+ */
 export function useVoiceRecorder() {
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -28,6 +36,7 @@ export function useVoiceRecorder() {
   }, []);
 
   // 清理资源
+  /** 停止音轨并清空录音数据和计时器，重置界面录音状态。 */
   const cleanup = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -48,6 +57,7 @@ export function useVoiceRecorder() {
   }, []);
 
   // 开始录音
+  /** 申请麦克风并按支持情况选择编码，开始收集音频片段。 */
   const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -118,6 +128,7 @@ export function useVoiceRecorder() {
   }, [cleanup]);
 
   // 停止录音并返回音频数据
+  /** 停止录音并等待完整 Blob，未开始录音时返回 null。 */
   const stopRecording = useCallback((): Promise<VoiceRecorderResult | null> => {
     return new Promise(resolve => {
       const recorder = mediaRecorderRef.current;
@@ -139,6 +150,7 @@ export function useVoiceRecorder() {
   }, [cleanup]);
 
   // 取消录音
+  /** 停止并丢弃当前录音，不触发业务提交回调。 */
   const cancelRecording = useCallback(() => {
     const recorder = mediaRecorderRef.current;
     if (recorder && recorder.state !== "inactive") {
@@ -150,6 +162,7 @@ export function useVoiceRecorder() {
   }, [cleanup]);
 
   // 注册最大时长回调
+  /** 注册达到六十秒时的回调，由调用方决定如何结束和提交录音。 */
   const setOnMaxDuration = useCallback((callback: () => void) => {
     onMaxDurationRef.current = callback;
   }, []);

@@ -1,3 +1,5 @@
+/** 覆盖会话搜索与心情变化。 */
+
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import { createMessage } from "./db";

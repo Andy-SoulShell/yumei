@@ -1,3 +1,5 @@
+/** 覆盖角色头像上传与资料引用。 */
+
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";

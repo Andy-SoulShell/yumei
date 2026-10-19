@@ -1,3 +1,5 @@
+/** 展示当前登录用户的套餐、实际用量与可用升级入口。 */
+
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,10 +16,9 @@ import { TIER_LABELS, TIER_PRICES } from "../../../shared/quotas";
 import { Crown, Sparkles } from "lucide-react";
 
 /**
- * 订阅与用量卡片。三种模式：
- * - free：展示免费档用量，提示运营方尚未开通订阅
- * - none：自托管，全部解锁
- * - lemonsqueezy：档位 + 用量条 + 升级按钮（80% 用量软提醒）
+ * 读取套餐及用量接口并显示额度、临近上限提示和配置的升级链接。
+ *
+ * @remarks free 展示免费额度；none 展示全解锁状态；只有订阅模式展示结账入口。
  */
 export function BillingCard() {
   const { user } = useAuth();

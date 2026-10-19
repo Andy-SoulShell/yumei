@@ -1,3 +1,5 @@
+/** 业务 tRPC 路由入口，组织认证、角色、聊天、图片、记忆、套餐与语音流程。 */
+
 import { getSessionCookieOptions } from "./_core/cookies";
 import {
   keyProvider,
@@ -109,6 +111,11 @@ import { transcribeWithOpenAI } from "./_core/openaiWhisper";
 
 // 年龄门（18+）：产品定位成人陪伴，AI 路由在用户确认年龄前拒绝
 // 服务。birthDate 在 auth.confirmAge 里做服务端 18+ 校验后写入。
+/**
+ * 要求用户已保存成年确认日期，缺少时抛出 AGE_CONFIRMATION_REQUIRED。
+ *
+ * @remarks 此处检查是否存在日期，实际年龄计算在确认接口执行。
+ */
 function ensureAgeConfirmed(user: { birthDate: Date | string | null }) {
   if (!user.birthDate) {
     throw new TRPCError({
@@ -118,6 +125,7 @@ function ensureAgeConfirmed(user: { birthDate: Date | string | null }) {
   }
 }
 
+/** 按 UTC 年月日计算截至当前日期的完整周岁。 */
 function yearsSince(date: Date): number {
   const now = new Date();
   let years = now.getUTCFullYear() - date.getUTCFullYear();
@@ -131,13 +139,15 @@ function yearsSince(date: Date): number {
   return years;
 }
 
+/** 前后端共享的业务路由树，资源归属与功能权限在具体过程内校验。 */
 export const appRouter = router({
   system: systemRouter,
+  /** 当前用户资料、成年确认与退出操作。 */
   auth: router({
+    /** 返回上下文中已解析的应用用户，未登录时返回 null。 */
     me: publicProcedure.query(opts => opts.ctx.user),
 
-    // one-time 18+ confirmation. Validated server-side; the date
-    // itself is only used to prove majority (SB 243 baseline).
+    /** 校验输入日期及周岁，保存当前用户的成年确认日期。 */
     confirmAge: protectedProcedure
       .input(
         z.object({
@@ -165,10 +175,13 @@ export const appRouter = router({
         return { ok: true as const };
       }),
 
+    /**
+     * 清理当前请求对应的会话 Cookie 并返回成功。
+     *
+     * @remarks 当前不撤销数据库会话，也未处理 HTTPS 环境的安全前缀 Cookie。
+     */
     logout: publicProcedure.mutation(({ ctx }) => {
-      // Defense-in-depth — Better-Auth's own /api/auth/sign-out is the
-      // primary signout path; this clears the same cookies for clients
-      // that hit tRPC directly.
+      // 此入口目前只清理固定名称的 Cookie；会话撤销和 HTTPS 前缀处理待补齐。
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie("better-auth.session_token", {
         ...cookieOptions,
@@ -184,9 +197,10 @@ export const appRouter = router({
     }),
   }),
 
-  // ============ Girlfriend Management ============
+  // 陪伴角色管理。
+  /** 角色资料、参考图、回收站与亲密度操作。 */
   girlfriend: router({
-    // 创建女友配置
+    /** 校验当前套餐角色数量，保存选定或上传的参考图并创建角色。 */
     create: protectedProcedure
       .input(
         z
@@ -266,17 +280,17 @@ export const appRouter = router({
         return girlfriend;
       }),
 
-    // 获取当前激活的女友
+    /** 读取当前用户激活且未删除的角色。 */
     getActive: protectedProcedure.query(async ({ ctx }) => {
       return await getActiveGirlfriend(ctx.user.id);
     }),
 
-    // 获取所有女友列表
+    /** 读取当前用户未删除的角色列表。 */
     list: protectedProcedure.query(async ({ ctx }) => {
       return await getUserGirlfriends(ctx.user.id);
     }),
 
-    // 更新女友配置
+    /** 更新当前用户所属角色的可编辑资料。 */
     update: protectedProcedure
       .input(
         z.object({
@@ -297,7 +311,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    // 上传女友头像
+    /** 校验角色归属和文件大小，上传头像并更新角色引用。 */
     uploadAvatar: protectedProcedure
       .input(
         z.object({
@@ -340,7 +354,7 @@ export const appRouter = router({
         return { avatarUrl, avatarKey: fileKey };
       }),
 
-    // 软删除女友（移入回收站，7天后自动永久删除）
+    /** 按用户归属将单个角色移入回收站。 */
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
@@ -348,7 +362,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    // 批量软删除
+    /** 按用户归属批量将角色移入回收站。 */
     batchDelete: protectedProcedure
       .input(z.object({ ids: z.array(z.number()).min(1) }))
       .mutation(async ({ ctx, input }) => {
@@ -356,14 +370,14 @@ export const appRouter = router({
         return { success: true, count: input.ids.length };
       }),
 
-    // 获取回收站列表
+    /** 清理过期回收站记录后返回当前用户的回收站列表。 */
     trash: protectedProcedure.query(async ({ ctx }) => {
       // 先自动清理超过 7 天的项目
       await cleanupExpiredTrash(ctx.user.id);
       return await getTrashGirlfriends(ctx.user.id);
     }),
 
-    // 从回收站恢复
+    /** 恢复当前用户回收站中的角色；当前未再次检查套餐数量。 */
     restore: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
@@ -371,7 +385,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    // 永久删除（从回收站彻底清除）
+    /** 按用户归属永久删除指定角色的部分关联记录。 */
     permanentDelete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
@@ -379,7 +393,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    // 确保默认女友存在（登录后调用）
+    /** 复用已有角色，或在需要时上传内置参考图并创建默认 YUMEI。 */
     ensureDefault: protectedProcedure.mutation(async ({ ctx }) => {
       const girlfriend = await createDefaultGirlfriend(
         ctx.user.id,
@@ -406,7 +420,7 @@ export const appRouter = router({
 
     // ============ 亲密度系统 ============
 
-    // 获取亲密度信息（含衰减计算）
+    /** 读取并计算角色亲密度、衰减和升级进度；底层查询可能写回衰减。 */
     getIntimacy: protectedProcedure
       .input(z.object({ girlfriendId: z.number() }))
       .query(async ({ ctx, input }) => {
@@ -425,7 +439,11 @@ export const appRouter = router({
         };
       }),
 
-    // 增加亲密度经验值
+    /**
+     * 根据客户端上报行为计算经验，检查冷却及每日计量后写入亲密度。
+     *
+     * @remarks 行为是否真实发生、夜间额外加分和数据库写入一致性仍需进一步加固。
+     */
     addPoints: protectedProcedure
       .input(
         z.object({
@@ -544,9 +562,10 @@ export const appRouter = router({
       }),
   }),
 
-  // ============ Conversation Management ============
+  // 会话管理。
+  /** 会话创建、延续、历史读取与搜索。 */
   conversation: router({
-    // 常规入口延续最近的会话；没有历史记录时才创建第一条。
+    /** 校验角色归属后复用最近会话，首次创建通过事务内角色行锁串行化。 */
     resume: protectedProcedure
       .input(z.object({ girlfriendId: z.number().int().positive() }))
       .mutation(async ({ ctx, input }) => {
@@ -561,7 +580,7 @@ export const appRouter = router({
           });
         return conversation;
       }),
-    // 创建新对话
+    /** 校验角色归属后显式新建会话。 */
     create: protectedProcedure
       .input(
         z.object({
@@ -586,24 +605,24 @@ export const appRouter = router({
         });
       }),
 
-    // 获取对话列表
+    /** 读取当前用户的全部会话。 */
     list: protectedProcedure.query(async ({ ctx }) => {
       return await getUserConversations(ctx.user.id);
     }),
 
-    // 获取对话列表（包含最后一条消息和女友信息）
+    /** 读取当前用户会话并补充最近消息及角色信息。 */
     listWithDetails: protectedProcedure.query(async ({ ctx }) => {
       return await getConversationsWithLastMessage(ctx.user.id);
     }),
 
-    // 获取单个对话
+    /** 按用户归属读取单个会话。 */
     get: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ ctx, input }) => {
         return await getConversation(input.id, ctx.user.id);
       }),
 
-    // 获取对话消息
+    /** 校验会话归属后读取其全部消息。 */
     getMessages: protectedProcedure
       .input(z.object({ conversationId: z.number() }))
       .query(async ({ ctx, input }) => {
@@ -616,7 +635,7 @@ export const appRouter = router({
         return await getConversationMessages(input.conversationId);
       }),
 
-    // 搜索对话（按消息内容关键词）
+    /** 按当前用户归属返回关键词命中的会话信息。 */
     search: protectedProcedure
       .input(z.object({ keyword: z.string().min(1).max(100) }))
       .query(async ({ ctx, input }) => {
@@ -624,9 +643,14 @@ export const appRouter = router({
       }),
   }),
 
-  // ============ Chat ============
+  // 聊天。
+  /** 消息发送及文字触发的自拍流程。 */
   chat: router({
-    // 发送消息并获取 AI 回复
+    /**
+     * 检查成年状态与归属，按明确意图选择自拍或模型回复，并保存消息。
+     *
+     * @remarks 当前先扣额度；模型失败会保存固定兜底回复并返回成功，已扣额度不退，消息写入也未合并为事务。
+     */
     sendMessage: protectedProcedure
       .input(
         z.object({
@@ -715,8 +739,7 @@ export const appRouter = router({
         }
 
         // 2. 保存用户消息（所有权已校验）
-        // TODO: 把 user msg + assistant msg 包进同一个事务，
-        // 避免 LLM 调用失败时留下半截对话。
+        // TODO: 将用户与助手消息的最终写入组成事务；模型失败目前另存兜底回复。
         const userMessage = await createMessage({
           conversationId: input.conversationId,
           role: "user",
@@ -860,8 +883,9 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
   }),
 
   // ============ Selfie Generation ============
+  /** 相机自拍、合照、相册及图片额度查询。 */
   selfie: router({
-    // 生成自拍
+    /** 由相机入口生成图片，复用聊天自拍的归属、姿势及计量检查。 */
     generate: protectedProcedure
       .input(
         z.object({
@@ -876,7 +900,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         generateConversationSelfie(ctx.user, input)
       ),
 
-    // 合照使用双参考图；仅 Pro、BYOK fal 或自托管模式可用。
+    /** 校验 Pro 或 BYOK 权益后上传用户参考图并生成合照。 */
     generateCouple: protectedProcedure
       .input(
         z.object({
@@ -1037,8 +1061,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         return { selfie, message };
       }),
 
-    // 剩余自拍额度。免费档按日，付费档按月；
-    // BYOK fal 用户和自托管无上限。
+    /** 读取当前用户的剩余图片额度与 Provider 能力，供相机入口显示。 */
     quota: protectedProcedure.query(async ({ ctx }) => {
       const keys = await keyProvider.describeUserKeys(ctx.user.id);
       if (!isBillingEnforced() || keys.fal?.isSet === true) {
@@ -1072,19 +1095,19 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
       };
     }),
 
-    // 获取自拍列表
+    /** 读取当前用户的相册记录。 */
     list: protectedProcedure.query(async ({ ctx }) => {
       return await getUserSelfies(ctx.user.id);
     }),
 
-    // 获取指定女友的自拍列表
+    /** 先校验角色归属，再读取该角色的相册记录。 */
     listByGirlfriend: protectedProcedure
       .input(z.object({ girlfriendId: z.number() }))
       .query(async ({ input }) => {
         return await getGirlfriendSelfies(input.girlfriendId);
       }),
 
-    // 删除自拍
+    /** 按用户归属删除相册记录，当前不删除实际图片对象。 */
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
@@ -1094,13 +1117,14 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
   }),
 
   // ============ Web Push ============
+  /** 浏览器推送公钥与当前用户的端点订阅管理。 */
   push: router({
-    // VAPID 公钥（未配置时返回 null，前端隐藏开关）
+    /** 返回可公开的 VAPID 公钥，未配置时为 null。 */
     publicKey: publicProcedure.query(() => ({
       key: getVapidPublicKey(),
     })),
 
-    // 保存浏览器推送订阅
+    /** 为当前用户保存浏览器推送端点及加密字段。 */
     subscribe: protectedProcedure
       .input(
         z.object({
@@ -1113,7 +1137,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         return { success: true };
       }),
 
-    // 取消订阅
+    /** 仅删除当前用户拥有的指定浏览器端点。 */
     unsubscribe: protectedProcedure
       .input(z.object({ endpoint: z.string().max(500) }))
       .mutation(async ({ ctx, input }) => {
@@ -1121,7 +1145,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         return { success: true };
       }),
 
-    // 当前用户是否已有订阅端点
+    /** 返回当前用户是否有订阅及推送功能是否配置。 */
     status: protectedProcedure.query(async ({ ctx }) => ({
       subscribed: await hasPushSubscription(ctx.user.id),
       configured: getVapidPublicKey() !== null,
@@ -1129,8 +1153,9 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
   }),
 
   // ============ Billing ============
+  /** 当前套餐、持久化用量与已配置的升级入口。 */
   billing: router({
-    // 当前档位、用量与升级入口（Settings 订阅卡片用）
+    /** 读取当前用户档位、订阅快照、BYOK 标识和用量，按模式提供结账地址。 */
     getInfo: protectedProcedure.query(async ({ ctx }) => {
       const mode = getBillingMode();
       const { tier, limits } = await getTierLimits(ctx.user.id);
@@ -1178,15 +1203,16 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
   }),
 
   // ============ Long-term Memory (M2) ============
+  /** 当前用户的角色记忆列表与置顶、删除操作。 */
   memory: router({
-    // 「她记得你的事」列表（置顶优先，其次按权重）
+    /** 按当前用户和角色编号读取记忆列表。 */
     list: protectedProcedure
       .input(z.object({ girlfriendId: z.number() }))
       .query(async ({ ctx, input }) => {
         return await listMemories(ctx.user.id, input.girlfriendId);
       }),
 
-    // 删除一条记忆（用户对自己的数据有完全控制权）
+    /** 按当前用户归属删除一条记忆。 */
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
@@ -1194,7 +1220,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         return { success: true };
       }),
 
-    // 置顶/取消置顶：置顶的记忆不会被容量淘汰，回忆时加权
+    /** 按当前用户归属更新记忆置顶状态。 */
     setPinned: protectedProcedure
       .input(z.object({ id: z.number(), pinned: z.boolean() }))
       .mutation(async ({ ctx, input }) => {
@@ -1204,10 +1230,9 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
   }),
 
   // ============ API Configuration ============
-  // Preferences and encrypted keys are saved separately; provider queries
-  // resolve credentials on the server, never from raw client key arguments.
+  /** 用户普通偏好、加密密钥及供应商模型列表。 */
   apiConfig: router({
-    // Get user preferences + per-key descriptions (no plaintext keys).
+    /** 返回普通偏好、密钥脱敏状态和已解析 Provider 信息，不回传完整密钥。 */
     get: protectedProcedure.query(async ({ ctx }) => {
       const config = await getUserApiConfig(ctx.user.id);
       const keys = await keyProvider.describeUserKeys(ctx.user.id);
@@ -1231,8 +1256,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
       };
     }),
 
-    // Update non-secret preferences (model id, voice id, prompts, etc.).
-    // Key fields no longer accepted here — see `setKey` / `clearKey`.
+    /** 校验可编辑字段后保存用户普通偏好，不接收完整密钥。 */
     updatePreferences: protectedProcedure
       .input(
         z.object({
@@ -1256,9 +1280,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         });
       }),
 
-    // Set / replace a user's BYOK key. Stored encrypted; plaintext never
-    // returned to the client again. The server validates the value with a
-    // single test call to the provider before persisting.
+    /** 检查 Provider 密钥基本格式，再交由密钥 Provider 加密保存。 */
     setKey: protectedProcedure
       .input(
         z.object({
@@ -1281,8 +1303,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         return { ok: true as const };
       }),
 
-    // Remove a user's BYOK key. After this, calls fall back to operator
-    // default (or fail if no operator key is configured).
+    /** 删除指定用户密钥，后续可回退到运营方默认凭据。 */
     clearKey: protectedProcedure
       .input(
         z.object({
@@ -1294,8 +1315,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         return { ok: true as const };
       }),
 
-    // List models for the selected chat provider. Resolves the key server-side; no
-    // `apiKey` input on the wire.
+    /** 使用服务端解析的凭据读取或构造模型列表。 */
     listModels: protectedProcedure.query(async ({ ctx }) => {
       const chatProvider = await resolveChatProvider(ctx.user.id);
       const apiKey = chatProvider.apiKey;
@@ -1359,7 +1379,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
       }
     }),
 
-    // List ElevenLabs voices via server-resolved key.
+    /** 使用已保存用户凭据或运营方凭据读取 ElevenLabs 音色列表。 */
     listElevenLabsVoices: protectedProcedure.query(async ({ ctx }) => {
       const apiKey = await keyProvider.get(
         { userId: ctx.user.id },
@@ -1400,7 +1420,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
       }
     }),
 
-    // List Fish Audio voice models via server-resolved key.
+    /** 使用服务端凭据读取 Fish Audio 音色列表，并支持搜索。 */
     listFishAudioModels: protectedProcedure
       .input(z.object({ search: z.string().optional() }))
       .query(async ({ ctx, input }) => {
@@ -1448,20 +1468,25 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
   }),
 
   // ============ Mood System ============
+  /** 当前用户角色的心情状态与基于消息的变化规则。 */
   mood: router({
-    // 获取指定女友的心情
+    /** 按当前用户和角色编号读取心情。 */
     get: protectedProcedure
       .input(z.object({ girlfriendId: z.number() }))
       .query(async ({ ctx, input }) => {
         return await getGirlfriendMood(ctx.user.id, input.girlfriendId);
       }),
 
-    // 获取所有女友的心情
+    /** 读取当前用户的全部角色心情。 */
     getAll: protectedProcedure.query(async ({ ctx }) => {
       return await getAllGirlfriendMoods(ctx.user.id);
     }),
 
-    // 更新心情（在发送消息后调用）
+    /**
+     * 根据客户端上报消息与本地日期更新心情和消息计数。
+     *
+     * @remarks 当前未验证真实消息记录或角色是否存在，仅按当前用户写入心情表。
+     */
     update: protectedProcedure
       .input(
         z.object({
@@ -1626,19 +1651,20 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
       }),
   }),
 
-  // ============ Notifications ============
+  // 站内通知。
+  /** 站内通知的读取、已读标记与主动生成。 */
   notification: router({
-    // 获取通知列表
+    /** 读取当前用户最近的站内通知。 */
     list: protectedProcedure.query(async ({ ctx }) => {
       return await getUserNotifications(ctx.user.id);
     }),
 
-    // 获取未读通知数量
+    /** 统计当前用户未读通知数量。 */
     unreadCount: protectedProcedure.query(async ({ ctx }) => {
       return await getUnreadNotificationCount(ctx.user.id);
     }),
 
-    // 标记单条通知为已读
+    /** 按用户归属标记指定通知为已读。 */
     markRead: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
@@ -1646,13 +1672,13 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         return { success: true };
       }),
 
-    // 标记所有通知为已读
+    /** 将当前用户全部通知标记为已读。 */
     markAllRead: protectedProcedure.mutation(async ({ ctx }) => {
       await markAllNotificationsRead(ctx.user.id);
       return { success: true };
     }),
 
-    // 检查并生成主动通知，同时推送到已订阅设备
+    /** 尝试生成主动站内通知，成功后异步向已订阅端点投递。 */
     checkProactive: protectedProcedure.mutation(async ({ ctx }) => {
       const notification = await checkAndCreateProactiveNotification(
         ctx.user.id
@@ -1669,8 +1695,9 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
   }),
 
   // ============ TTS 语音生成 ============
+  /** 按用户选择的朗读供应商生成语音。 */
   tts: router({
-    // 生成语音
+    /** 检查请求频率、套餐与文本长度后生成语音，并保存可播放文件。 */
     generate: protectedProcedure
       .input(
         z.object({
@@ -1812,7 +1839,9 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
   }),
 
   // ========== 语音转写 ==========
+  /** 上传录音及服务端语音转写。 */
   voice: router({
+    /** 校验成年状态、套餐及上传大小后保存录音，再调用 OpenAI Whisper 转写。 */
     transcribe: protectedProcedure
       .input(
         z.object({
@@ -1906,4 +1935,5 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
       }),
   }),
 });
+/** 客户端生成类型安全查询和 mutation 所使用的路由类型。 */
 export type AppRouter = typeof appRouter;

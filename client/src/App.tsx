@@ -1,3 +1,5 @@
+/** 组合全局主题、提示与路由，移动端在非首页启用边缘返回手势。 */
+
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
@@ -13,6 +15,7 @@ import Memories from "./pages/Memories";
 import Settings from "./pages/Settings";
 import { useSwipeBack } from "@/hooks/useGestures";
 
+/** 声明页面路由，并按当前路径控制全局返回手势。 */
 function Router() {
   const [location] = useLocation();
   // 在非首页启用左滑返回手势
@@ -35,6 +38,7 @@ function Router() {
   );
 }
 
+/** 应用级组件树，提供错误边界、主题、悬浮提示与消息提示容器。 */
 function App() {
   return (
     <ErrorBoundary>

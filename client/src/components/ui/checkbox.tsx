@@ -1,9 +1,12 @@
+/** 带勾选指示与焦点样式的复选框。 */
+
 import * as React from "react";
 import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
 import { CheckIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
+/** 封装勾选状态、禁用样式和选中指示的复选框。 */
 function Checkbox({
   className,
   ...props

@@ -1,7 +1,6 @@
-/**
- * 亲密度等级系统常量和工具函数
- * 共享模块，前后端通用
- */
+/** 亲密度等级、经验规则与纯计算函数，供前后端共用。 */
+
+/** 一个亲密度等级的分数门槛、展示信息与解锁内容。 */
 
 // ========== 等级定义 ==========
 
@@ -16,6 +15,7 @@ export interface IntimacyLevel {
   unlocks: string[]; // 解锁内容
 }
 
+/** 按升级门槛升序排列的十级关系定义。 */
 export const INTIMACY_LEVELS: IntimacyLevel[] = [
   {
     level: 1,
@@ -121,6 +121,7 @@ export const INTIMACY_LEVELS: IntimacyLevel[] = [
 
 // ========== 经验值规则 ==========
 
+/** 一种互动行为的基础分、额外加分条件和频次限制。 */
 export interface PointsRule {
   type: string;
   basePoints: number;
@@ -130,6 +131,7 @@ export interface PointsRule {
   dailyLimit?: number; // 每日上限
 }
 
+/** 互动行为的经验配置；服务端按行为类型解释规则。 */
 export const POINTS_RULES: Record<string, PointsRule> = {
   text_message: {
     type: "text_message",
@@ -186,17 +188,18 @@ export const POINTS_RULES: Record<string, PointsRule> = {
 };
 
 // 每日经验值总上限
+/** 每用户每日经验计量的上限，单位为经验点。 */
 export const DAILY_POINTS_LIMIT = 200;
 
 // 衰减规则
+/** 未互动的宽限期，单位为完整天数。 */
 export const DECAY_START_DAYS = 7; // 超过 7 天未互动开始衰减
+/** 宽限期结束后每日扣除的经验点数。 */
 export const DECAY_POINTS_PER_DAY = 5; // 每天衰减 5 点
 
 // ========== 工具函数 ==========
 
-/**
- * 根据经验值获取对应等级
- */
+/** 根据累计经验选择已达到的最高等级；低于首级门槛时返回首级。 */
 export function getLevelByPoints(points: number): IntimacyLevel {
   let result = INTIMACY_LEVELS[0];
   for (const level of INTIMACY_LEVELS) {
@@ -209,9 +212,7 @@ export function getLevelByPoints(points: number): IntimacyLevel {
   return result;
 }
 
-/**
- * 获取指定等级的信息
- */
+/** 按从 1 开始的等级编号读取定义，并将编号限制在现有等级范围内。 */
 export function getLevelInfo(level: number): IntimacyLevel {
   return INTIMACY_LEVELS[
     Math.min(Math.max(level - 1, 0), INTIMACY_LEVELS.length - 1)
@@ -219,25 +220,23 @@ export function getLevelInfo(level: number): IntimacyLevel {
 }
 
 /**
- * 获取下一等级的信息（如果已满级返回 null）
+ * 获取当前等级之后的定义，满级时返回 null。
+ *
+ * @param currentLevel - 从 1 开始的等级编号，调用方应传入有效整数
  */
 export function getNextLevel(currentLevel: number): IntimacyLevel | null {
   if (currentLevel >= 10) return null;
   return INTIMACY_LEVELS[currentLevel]; // level 是 1-indexed, array 是 0-indexed
 }
 
-/**
- * 计算距离下一级还需要多少经验值
- */
+/** 计算距离下一等级还需的经验点数，满级时返回 null。 */
 export function getPointsToNextLevel(currentPoints: number): number | null {
   const nextLevel = getNextLevel(getLevelByPoints(currentPoints).level);
   if (!nextLevel) return null;
   return nextLevel.requiredPoints - currentPoints;
 }
 
-/**
- * 计算当前等级的进度百分比（0-100）
- */
+/** 计算当前等级区间内的进度，返回 0 至 100 的整数百分比。 */
 export function getLevelProgress(currentPoints: number): number {
   const currentLevel = getLevelByPoints(currentPoints);
   const nextLevel = getNextLevel(currentLevel.level);
@@ -250,16 +249,16 @@ export function getLevelProgress(currentPoints: number): number {
   return Math.min(Math.max(Math.round(progress), 0), 100);
 }
 
-/**
- * 判断是否为夜间时段（22:00-02:00）
- */
+/** 判断传入时间在运行环境本地时区是否处于 22:00 至次日 02:00。 */
 export function isNightTime(date: Date = new Date()): boolean {
   const hour = date.getHours();
   return hour >= 22 || hour < 2;
 }
 
 /**
- * 计算衰减后的经验值
+ * 根据未互动时长计算经验衰减，最低保留当前等级的起始经验。
+ *
+ * @remarks 纯计算，不记录已扣除的衰减；持久化调用方需管理衰减基准。
  */
 export function calculateDecay(
   currentPoints: number,
@@ -289,9 +288,7 @@ export function calculateDecay(
   return { points: newPoints, decayed: actualDecay };
 }
 
-/**
- * 获取等级对应的渐变色（用于进度条）
- */
+/** 读取等级进度条的 Tailwind 渐变类，未知等级使用首级颜色。 */
 export function getLevelGradient(level: number): string {
   const gradients: Record<number, string> = {
     1: "from-gray-400 to-gray-500",

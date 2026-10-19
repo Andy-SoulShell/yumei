@@ -1,3 +1,5 @@
+/** 覆盖默认角色初始化、参考图与会话详情。 */
+
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";

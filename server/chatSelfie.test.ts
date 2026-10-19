@@ -1,3 +1,5 @@
+/** 覆盖聊天触发自拍的意图、上下文与失败反馈。 */
+
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import axios from "axios";
 import { appRouter } from "./routers";

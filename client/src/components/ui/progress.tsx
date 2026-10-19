@@ -1,8 +1,11 @@
+/** 零到一百范围内的进度展示。 */
+
 import * as React from "react";
 import * as ProgressPrimitive from "@radix-ui/react-progress";
 
 import { cn } from "@/lib/utils";
 
+/** 按百分比位移展示进度条，未提供值时以零展示。 */
 function Progress({
   className,
   value,

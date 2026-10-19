@@ -1,3 +1,5 @@
+/** 当前浏览器的 Web Push 订阅开关与授权提示。 */
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +13,7 @@ import { trpc } from "@/lib/trpc";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+/** 将 VAPID 公钥的 base64url 文本转换为浏览器推送接口接受的字节。 */
 function urlBase64ToUint8Array(base64: string): Uint8Array {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
   const normalized = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -20,11 +23,7 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
   return bytes;
 }
 
-/**
- * 推送通知开关。她的主动消息（早安/惦记你的事）会推送到
- * 这台设备 —— 这是 M2 记忆系统的送达通道。运营方未配置 VAPID 密钥
- * 时整卡隐藏。
- */
+/** 在浏览器支持且配置公钥时显示推送开关，保存或移除本设备订阅。 */
 export function PushCard() {
   const utils = trpc.useUtils();
   const { data: status } = trpc.push.status.useQuery();

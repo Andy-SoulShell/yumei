@@ -1,3 +1,5 @@
+/** 覆盖多角色、偏好、会话与相册访问。 */
+
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";

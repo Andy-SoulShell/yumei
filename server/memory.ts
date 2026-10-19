@@ -1,10 +1,4 @@
-/**
- * Long-term memory service: extraction, selection, recall, capacity.
- *
- * Extraction is fire-and-forget from the chat path — a cheap LLM pass
- * over the recent window that returns structured JSON. Failures are
- * logged and swallowed; memory is an enhancement, never a chat blocker.
- */
+/** 长期记忆的异步提取、去重存储、容量淘汰和聊天召回。 */
 
 import axios from "axios";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
@@ -25,7 +19,7 @@ import { log } from "./_core/log";
 import type { ChatProvider } from "./_core/chatProvider";
 
 // ---------------------------------------------------------------------------
-// Extraction
+// 记忆提取。
 // ---------------------------------------------------------------------------
 
 const EXTRACTION_MODEL = "openai/gpt-4o-mini";
@@ -45,6 +39,7 @@ const extractionResultSchema = z.object({
     .max(10),
 });
 
+/** 经结构校验后的单条模型提取结果，包含类别、正文和重要性。 */
 export type ExtractedMemory = z.infer<
   typeof extractionResultSchema
 >["memories"][number];
@@ -60,9 +55,13 @@ const EXTRACTION_PROMPT = `你是一个记忆提取器。阅读下面这段用�
 
 只输出 JSON，格式：{"memories":[{"category":"...","content":"...","importance":5}]}`;
 
-/** Exported for unit tests: parse + validate a model response body. */
+/**
+ * 提取模型回复中最外层 JSON，校验结构并裁剪记忆正文。
+ *
+ * @returns 无有效 JSON 或结构不符时返回空数组
+ */
 export function parseExtractionResponse(raw: string): ExtractedMemory[] {
-  // Models occasionally wrap JSON in fences or prose — grab the outermost object.
+  // 模型可能在 JSON 外添加代码围栏或说明，尝试提取最外层对象。
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
   if (start === -1 || end <= start) return [];
@@ -79,6 +78,7 @@ export function parseExtractionResponse(raw: string): ExtractedMemory[] {
   }
 }
 
+/** 通过当前聊天 Provider 提取记忆；OpenRouter 使用固定轻量模型。 */
 async function callExtractionModel(
   provider: ChatProvider,
   transcript: string
@@ -110,9 +110,9 @@ async function callExtractionModel(
 }
 
 /**
- * Store extracted candidates with similarity dedupe: near-duplicates of
- * an existing memory reinforce it (weight bump + freshness) instead of
- * inserting a new row.
+ * 保存提取候选记忆，并为相似旧记忆增加权重和新鲜度。
+ *
+ * @remarks 相似度比较在进程内完成；当前批次中新插入候选暂用占位编号参与后续匹配。
  */
 export async function storeExtractedMemories(
   userId: string,
@@ -160,7 +160,7 @@ export async function storeExtractedMemories(
         content: candidate.content,
         weight,
       })
-      // Exact-content collision (unique index) → reinforce instead.
+      // 完全相同内容触发唯一索引时，改为强化已有记忆。
       .onDuplicateKeyUpdate({
         set: { weight: sql`LEAST(100, ${memories.weight} + 5)` },
       });
@@ -183,7 +183,11 @@ export async function storeExtractedMemories(
   return { inserted, reinforced };
 }
 
-/** Evict lowest-value unpinned rows beyond the level-based capacity. */
+/**
+ * 按等级容量淘汰低权重、较旧且未置顶的记忆。
+ *
+ * @remarks 置顶项参与总容量计数但不会被淘汰，全部置顶时可超出容量。
+ */
 export async function enforceMemoryCapacity(
   userId: string,
   girlfriendId: number,
@@ -222,8 +226,9 @@ export async function enforceMemoryCapacity(
 }
 
 /**
- * Fire-and-forget extraction trigger, called after each assistant reply.
- * Runs once every EXTRACTION_EVERY_N_MESSAGES messages per conversation.
+ * 在助手回复完成后异步检查提取间隔，并触发提取与容量整理。
+ *
+ * @remarks 间隔按用户与助手消息总条数计算；失败仅写日志，不阻塞聊天响应。
  */
 export function maybeExtractMemories(params: {
   userId: string;
@@ -281,13 +286,14 @@ export function maybeExtractMemories(params: {
 }
 
 // ---------------------------------------------------------------------------
-// Selection / recall
+// 记忆筛选与召回。
 // ---------------------------------------------------------------------------
 
 /**
- * Pick the top-k relevant memories for this message and format them as a
- * system-prompt block. Recalled rows get lastRecalledAt refreshed.
- * Returns "" when there's nothing to inject.
+ * 按当前消息相关性选取记忆，生成系统提示词片段。
+ *
+ * @returns 无记忆时返回空字符串
+ * @remarks 被选记忆的召回时间异步刷新，刷新失败不会阻断回答。
  */
 export async function buildMemoryPromptBlock(
   userId: string,
@@ -316,7 +322,7 @@ export async function buildMemoryPromptBlock(
 
   if (top.length === 0) return "";
 
-  // Refresh recall timestamps (fire-and-forget; selection already done).
+  // 筛选已完成，异步更新时间戳，失败不影响本次召回。
   void db
     .update(memories)
     .set({ lastRecalledAt: now })
@@ -333,9 +339,10 @@ export async function buildMemoryPromptBlock(
 }
 
 // ---------------------------------------------------------------------------
-// CRUD for the memories page
+// 记忆页面的增删改查。
 // ---------------------------------------------------------------------------
 
+/** 按置顶、权重及创建时间读取用户在指定角色下的记忆。 */
 export async function listMemories(
   userId: string,
   girlfriendId: number
@@ -355,6 +362,7 @@ export async function listMemories(
     );
 }
 
+/** 按用户归属删除一条记忆。 */
 export async function deleteMemory(userId: string, id: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -363,6 +371,7 @@ export async function deleteMemory(userId: string, id: number): Promise<void> {
     .where(and(eq(memories.id, id), eq(memories.userId, userId)));
 }
 
+/** 按用户归属设置或取消记忆置顶。 */
 export async function setMemoryPinned(
   userId: string,
   id: number,
@@ -376,7 +385,11 @@ export async function setMemoryPinned(
     .where(and(eq(memories.id, id), eq(memories.userId, userId)));
 }
 
-/** Most recent high-value "event" memory — used by proactive messages. */
+/**
+ * 读取用户与角色最近十四天内创建的最新事件记忆。
+ *
+ * @remarks 当前按创建时间取最新事件，不额外按重要性筛选。
+ */
 export async function getFreshEventMemory(
   userId: string,
   girlfriendId: number
@@ -397,7 +410,7 @@ export async function getFreshEventMemory(
     .limit(1);
   const memory = rows[0];
   if (!memory) return null;
-  // Only reference events from the last two weeks — older ones feel off.
+  // 只选取最近两周的事件记忆，避免主动消息引用过旧事件。
   const ageDays =
     (Date.now() - new Date(memory.createdAt).getTime()) / 86_400_000;
   return ageDays <= 14 ? memory : null;

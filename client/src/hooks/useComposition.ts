@@ -1,6 +1,9 @@
+/** 统一中日韩输入法组合事件处理，兼容 Safari 的键盘事件顺序。 */
+
 import { useRef } from "react";
 import { usePersistFn } from "./usePersistFn";
 
+/** 需要绑定到输入控件的组合事件处理器与当前组合状态读取方法。 */
 export interface UseCompositionReturn<
   T extends HTMLInputElement | HTMLTextAreaElement,
 > {
@@ -10,6 +13,7 @@ export interface UseCompositionReturn<
   isComposing: () => boolean;
 }
 
+/** 调用方原始键盘与输入法事件回调。 */
 export interface UseCompositionOptions<
   T extends HTMLInputElement | HTMLTextAreaElement,
 > {
@@ -18,8 +22,14 @@ export interface UseCompositionOptions<
   onCompositionEnd?: React.CompositionEventHandler<T>;
 }
 
+/** 延迟结束输入法组合状态时使用的计时器句柄。 */
 type TimerResponse = ReturnType<typeof setTimeout>;
 
+/**
+ * 组合原有事件处理器，并在输入法选字期间阻止确认键与 Escape 冒泡。
+ *
+ * @remarks 使用两层延迟兼容 Safari；当前延迟计时器未在 Hook 卸载时单独清理。
+ */
 export function useComposition<
   T extends HTMLInputElement | HTMLTextAreaElement = HTMLInputElement,
 >(options: UseCompositionOptions<T> = {}): UseCompositionReturn<T> {

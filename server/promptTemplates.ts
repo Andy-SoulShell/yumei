@@ -1,37 +1,21 @@
-/**
- * Clawra Selfie Prompt Templates and Logic
- *
- * 这个文件包含了 Clawra 项目的核心提示词工程逻辑
- * 可以直接集成到任何 TypeScript/JavaScript 项目中
- *
- * 来源：https://github.com/SumeLabs/clawra
- */
+/** 自拍场景分类和英文提示词构建。原始提示词来源： https://github.com/SumeLabs/clawra 。 */
 
 // ============================================
 // 类型定义
 // ============================================
 
-/**
- * 自拍模式
- * - mirror: 镜子自拍（适合全身照、服装展示）
- * - direct: 直接自拍（适合特写、地点拍摄）
- * - auto: 自动检测模式
- */
+/** 自拍模式：mirror 为镜子自拍，direct 为直拍，auto 按场景关键词自动判断。 */
 export type SelfieMode = "mirror" | "direct" | "auto";
 
-/**
- * 提示词构建选项
- */
+/** 构建自拍提示词的用户场景和可选模式。 */
 export interface PromptOptions {
   /** 用户描述的场景/上下文 */
   userContext: string;
-  /** 自拍模式 */
+  /** 不传时默认 auto，由场景关键词选择镜子或直拍模式。 */
   mode?: SelfieMode;
 }
 
-/**
- * 提示词构建结果
- */
+/** 最终提示词、实际使用的模式及原始场景。 */
 export interface PromptResult {
   /** 完整的提示词 */
   prompt: string;
@@ -45,16 +29,7 @@ export interface PromptResult {
 // 模式检测逻辑
 // ============================================
 
-/**
- * 根据用户输入的关键词自动检测应该使用哪种自拍模式
- *
- * @param userContext - 用户描述的场景
- * @returns "mirror" 或 "direct"
- *
- * @example
- * detectMode("wearing a red dress") // 返回 "mirror"
- * detectMode("at a cozy cafe") // 返回 "direct"
- */
+/** 优先匹配地点、特写等直拍关键词，其次匹配镜子关键词，无法分类时回退为镜子模式。 */
 export function detectMode(userContext: string): "mirror" | "direct" {
   // Mirror 模式关键词：服装、穿搭、全身照相关
   const mirrorKeywords =
@@ -82,50 +57,12 @@ export function detectMode(userContext: string): "mirror" | "direct" {
 // 提示词模板
 // ============================================
 
-/**
- * Mirror Selfie 提示词模板
- *
- * 适用场景：
- * - 服装展示（outfit, wearing, clothes, dress, suit, fashion）
- * - 全身照（full-body）
- * - 镜子自拍（mirror）
- *
- * 特点：
- * - 强调"镜子自拍"的特征
- * - 适合展示穿搭和整体造型
- * - 通常包含更多环境信息
- *
- * @param userContext - 用户描述的场景
- * @returns 完整的提示词
- *
- * @example
- * buildMirrorPrompt("wearing a red dress")
- * // 返回: "make a pic of this person, but wearing a red dress. the person is taking a mirror selfie"
- */
+/** 将用户场景拼入镜子自拍模板。 */
 export function buildMirrorPrompt(userContext: string): string {
   return `make a pic of this person, but ${userContext}. the person is taking a mirror selfie`;
 }
 
-/**
- * Direct Selfie 提示词模板
- *
- * 适用场景：
- * - 地点拍摄（cafe, restaurant, beach, park, city）
- * - 特写肖像（close-up, portrait, face）
- * - 表情展示（eyes, smile）
- *
- * 特点：
- * - 强调"直接眼神接触"
- * - 适合展示面部表情和环境
- * - 更自然的自拍角度
- *
- * @param userContext - 用户描述的场景
- * @returns 完整的提示词
- *
- * @example
- * buildDirectPrompt("a cozy cafe with warm lighting")
- * // 返回: "a close-up selfie taken by herself at a cozy cafe with warm lighting, direct eye contact..."
- */
+/** 将用户场景拼入直拍自拍模板。 */
 export function buildDirectPrompt(userContext: string): string {
   return `a close-up selfie taken by herself at ${userContext}, direct eye contact with the camera, looking straight into the lens, eyes centered and clearly visible, not a mirror selfie, phone held at arm's length, face fully visible`;
 }
@@ -134,17 +71,7 @@ export function buildDirectPrompt(userContext: string): string {
 // 统一接口
 // ============================================
 
-/**
- * 根据模式构建提示词
- *
- * @param userContext - 用户描述的场景
- * @param mode - 自拍模式（"mirror" 或 "direct"）
- * @returns 完整的提示词
- *
- * @example
- * buildPrompt("wearing a hat", "mirror")
- * buildPrompt("at the beach", "direct")
- */
+/** 根据给定或自动推断的模式生成提示词文本。 */
 export function buildPrompt(
   userContext: string,
   mode: "mirror" | "direct"
@@ -155,26 +82,7 @@ export function buildPrompt(
   return buildMirrorPrompt(userContext);
 }
 
-/**
- * 智能构建提示词（推荐使用）
- *
- * 这是最高级的接口，会自动检测模式并构建提示词
- *
- * @param options - 提示词构建选项
- * @returns 提示词构建结果
- *
- * @example
- * // 自动检测模式
- * const result = buildSmartPrompt({ userContext: "wearing a red dress" });
- * console.log(result.mode); // "mirror"
- * console.log(result.prompt); // "make a pic of this person, but wearing a red dress..."
- *
- * // 手动指定模式
- * const result = buildSmartPrompt({
- *   userContext: "casual style",
- *   mode: "direct"
- * });
- */
+/** 根据场景与模式生成提示词，并返回实际模式和原始输入。 */
 export function buildSmartPrompt(options: PromptOptions): PromptResult {
   const { userContext, mode = "auto" } = options;
 
@@ -195,11 +103,7 @@ export function buildSmartPrompt(options: PromptOptions): PromptResult {
 // 关键词参考表
 // ============================================
 
-/**
- * Mirror 模式关键词参考
- *
- * 当用户输入包含这些关键词时，建议使用 Mirror 模式
- */
+/** 镜子自拍场景的关键词，供展示或调用方复用。 */
 export const MIRROR_MODE_KEYWORDS = [
   // 服装相关
   "outfit",
@@ -236,11 +140,7 @@ export const MIRROR_MODE_KEYWORDS = [
   "全身",
 ] as const;
 
-/**
- * Direct 模式关键词参考
- *
- * 当用户输入包含这些关键词时，建议使用 Direct 模式
- */
+/** 直拍自拍场景的关键词，供展示或调用方复用。 */
 export const DIRECT_MODE_KEYWORDS = [
   // 地点相关
   "cafe",
@@ -293,9 +193,7 @@ export const DIRECT_MODE_KEYWORDS = [
 // 使用示例
 // ============================================
 
-/**
- * 使用示例集合
- */
+/** 提示词构建的静态示例，便于理解模式与场景的组合。 */
 export const USAGE_EXAMPLES = {
   // Mirror 模式示例
   mirror: [

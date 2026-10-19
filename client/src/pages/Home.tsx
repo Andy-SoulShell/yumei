@@ -1,3 +1,5 @@
+/** 角色首页与管理入口，承载默认角色、回收站、搜索及通知。 */
+
 import { useAuth } from "@/_core/hooks/useAuth";
 import { AgeGate } from "@/components/AgeGate";
 import { Button } from "@/components/ui/button";
@@ -109,6 +111,11 @@ const MOOD_CONFIG: Record<
   },
 };
 
+/**
+ * 加载当前用户角色并提供进入会话、创建、编辑与回收站操作。
+ *
+ * @remarks 首次无角色时请求默认初始化；未认证时展示登录入口。
+ */
 export default function Home() {
   const { user, loading, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();

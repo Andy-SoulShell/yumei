@@ -1,3 +1,5 @@
+/** 自拍姿势、生图方式与合照上传的选择弹窗。 */
+
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,8 +14,9 @@ import { SELFIE_POSES } from "../../../shared/selfiePoses";
 import { Lock, Users } from "lucide-react";
 
 /**
- * 拍照选择器：姿势随亲密度解锁，合照为 Pro/BYOK 专属。
- * 锁定项保持可见 —— 「还差 X 级解锁」本身就是养成动力。
+ * 按亲密度展示姿势解锁状态，并按 Provider 能力展示参考图或文生图选项。
+ *
+ * @remarks 姿势和合照权限仍由服务端最终校验。
  */
 export function SelfiePoseDialog({
   open,
@@ -24,12 +27,19 @@ export function SelfiePoseDialog({
   onSelectPose,
   onCouplePhoto,
 }: {
+  /** 受控的展开状态，实际状态由父组件维护。 */
   open: boolean;
+  /** 用户请求展开或关闭时触发，由父组件更新 open。 */
   onOpenChange: (open: boolean) => void;
+  /** 当前亲密度等级，使用从 1 开始的等级编号。 */
   intimacyLevel: number;
+  /** 服务端套餐信息推导的合照可用状态，用于控制前端入口。 */
   canCouplePhoto: boolean;
+  /** 当前 Provider 是否支持文生图，默认 false。 */
   supportsTextToImage?: boolean;
+  /** 选中已解锁姿势时触发，携带姿势标识和生图模式。 */
   onSelectPose: (poseId: string, generationMode: "reference" | "text") => void;
+  /** 用户选定本地合照参考文件时触发，由父组件上传。 */
   onCouplePhoto: (file: File) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);

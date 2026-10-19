@@ -1,7 +1,10 @@
+/** 卡片容器及标题、内容和操作区布局。 */
+
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+/** 卡片外层容器。 */
 function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -15,6 +18,7 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
+/** 卡片标题、说明和操作区的布局容器。 */
 function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -28,6 +32,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
+/** 卡片主要标题。 */
 function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -38,6 +43,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
+/** 卡片的辅助说明文本。 */
 function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -48,6 +54,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
+/** 放置卡片头部操作的布局区域。 */
 function CardAction({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -61,6 +68,7 @@ function CardAction({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
+/** 卡片的主要内容区域。 */
 function CardContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -71,6 +79,7 @@ function CardContent({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
+/** 卡片底部操作与补充内容区域。 */
 function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div

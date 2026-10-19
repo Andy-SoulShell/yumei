@@ -1,8 +1,11 @@
+/** 角色或用户头像及加载失败时的替代展示。 */
+
 import * as React from "react";
 import * as AvatarPrimitive from "@radix-ui/react-avatar";
 
 import { cn } from "@/lib/utils";
 
+/** 带统一尺寸和裁切样式的头像容器。 */
 function Avatar({
   className,
   ...props
@@ -19,6 +22,7 @@ function Avatar({
   );
 }
 
+/** 头像图片；加载状态由底层组件管理。 */
 function AvatarImage({
   className,
   ...props
@@ -35,6 +39,7 @@ function AvatarImage({
   );
 }
 
+/** 头像无法显示时的替代内容。 */
 function AvatarFallback({
   className,
   ...props

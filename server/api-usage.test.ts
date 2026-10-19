@@ -1,3 +1,5 @@
+/** 覆盖模拟供应商余额响应解析，当前不覆盖实际业务计量接口。 */
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import axios from "axios";
 

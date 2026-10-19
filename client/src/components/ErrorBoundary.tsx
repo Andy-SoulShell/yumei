@@ -1,26 +1,38 @@
+/** 捕获子组件渲染异常并展示刷新入口，不处理事件或异步请求错误。 */
+
 import { cn } from "@/lib/utils";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import { Component, ReactNode } from "react";
 
+/** 错误边界包裹的 React 子节点。 */
 interface Props {
   children: ReactNode;
 }
 
+/** 是否进入错误界面以及最后捕获的渲染错误。 */
 interface State {
   hasError: boolean;
   error: Error | null;
 }
 
+/**
+ * 将子树渲染异常转换为错误界面。
+ *
+ * @remarks 当前界面会展示异常堆栈，公开部署前应评估其暴露范围。
+ */
 class ErrorBoundary extends Component<Props, State> {
+  /** 初始化尚未发生渲染错误的边界状态。 */
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false, error: null };
   }
 
+  /** 将捕获的渲染错误保存到边界状态。 */
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
   }
 
+  /** 正常时展示子节点，异常时展示错误堆栈和页面刷新入口。 */
   render() {
     if (this.state.hasError) {
       return (

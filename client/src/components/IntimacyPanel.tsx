@@ -1,3 +1,5 @@
+/** 亲密度详情侧栏，展示当前等级、升级进度和互动规则。 */
+
 import {
   INTIMACY_LEVELS,
   getLevelInfo,
@@ -16,15 +18,22 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 
+/** 亲密度面板的受控开关及当前角色养成数据。 */
 interface IntimacyPanelProps {
+  /** 受控的展开状态，实际状态由父组件维护。 */
   open: boolean;
+  /** 用户请求展开或关闭时触发，由父组件更新 open。 */
   onOpenChange: (open: boolean) => void;
+  /** 当前亲密度等级，使用从 1 开始的等级编号。 */
   intimacyLevel: number;
+  /** 累计经验点数，实际消费与加分由服务端决定。 */
   intimacyPoints: number;
+  /** 当前连续互动天数。 */
   consecutiveDays: number;
   girlfriendName: string;
 }
 
+/** 根据服务端提供的经验与等级展示养成详情，不在组件内计算实际加分。 */
 export function IntimacyPanel({
   open,
   onOpenChange,

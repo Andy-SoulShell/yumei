@@ -1,25 +1,8 @@
+/** 覆盖写操作之前的资源归属校验。 */
+
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { TRPCError } from "@trpc/server";
 import type { User } from "../drizzle/schema";
-
-/**
- * Regression test for: ownership-before-write.
- *
- * The v3.0 implementations of `chat.sendMessage` and `selfie.generate`
- * accepted any `conversationId` from the client and only verified
- * ownership AFTER `createMessage` ran — so an attacker holding a valid
- * session could insert messages into any user's conversation.
- *
- * This test mocks `db.ts` and asserts:
- *   1. `getConversation` is called with the caller's `userId` BEFORE
- *      `createMessage` is called (by recording invocation order).
- *   2. When `getConversation` returns undefined (= conversation not
- *      owned by the caller), the route throws TRPCError(FORBIDDEN) and
- *      `createMessage` is never called.
- *
- * If a future refactor reintroduces "write first, validate later", these
- * tests fail.
- */
 
 vi.mock("../server/db", async () => {
   return await vi.importActual("./db");

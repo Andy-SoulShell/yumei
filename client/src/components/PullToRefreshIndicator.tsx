@@ -1,12 +1,19 @@
+/** 根据手势状态展示下拉进度、松手提示与刷新动画。 */
+
 import { Loader2, ArrowDown } from "lucide-react";
 
+/** 下拉刷新展示状态，距离与阈值单位均为像素。 */
 interface PullToRefreshIndicatorProps {
+  /** 已应用阻尼的下拉距离，单位为像素。 */
   pullDistance: number;
+  /** 刷新操作是否正在执行。 */
   isRefreshing: boolean;
   isPulling: boolean;
+  /** 触发阈值，单位为像素。 */
   threshold?: number;
 }
 
+/** 显示下拉刷新视觉反馈，不负责识别手势或执行数据请求。 */
 export function PullToRefreshIndicator({
   pullDistance,
   isRefreshing,

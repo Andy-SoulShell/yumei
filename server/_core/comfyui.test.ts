@@ -1,3 +1,5 @@
+/** 覆盖图片生成的工作流适配与业务约束。 */
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import axios, { AxiosError } from "axios";
 import { buildImageWorkflow, ComfyUIClient } from "./comfyui";

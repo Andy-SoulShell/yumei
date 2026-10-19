@@ -1,3 +1,5 @@
+/** 覆盖提示词分层与个体指令。 */
+
 import { describe, it, expect, vi } from "vitest";
 
 // Mock the database module

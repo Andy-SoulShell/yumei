@@ -1,3 +1,5 @@
+/** 覆盖退出接口返回值与 Cookie 清理行为。 */
+
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";

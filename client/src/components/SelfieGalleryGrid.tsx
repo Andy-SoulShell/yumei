@@ -1,3 +1,5 @@
+/** 相册瀑布流展示与下载、删除确认操作入口。 */
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Download, Trash2 } from "lucide-react";
@@ -13,6 +15,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+/** 相册展示所需的最小照片元数据，时间兼容序列化前后的形式。 */
 type GalleryPhoto = {
   id: number;
   imageUrl: string;
@@ -21,6 +24,7 @@ type GalleryPhoto = {
   createdAt: Date | string;
 };
 
+/** 展示图片网格，通过回调委托父组件执行下载与删除。 */
 export function SelfieGalleryGrid({
   selfies,
   onDownload,
@@ -28,7 +32,9 @@ export function SelfieGalleryGrid({
   isDeleting = false,
 }: {
   selfies: GalleryPhoto[];
+  /** 用户确认下载后触发，接收图片地址和相册记录编号。 */
   onDownload: (imageUrl: string, id: number) => void;
+  /** 用户在确认框同意删除后触发，父组件负责接口调用。 */
   onDelete: (id: number) => void;
   isDeleting?: boolean;
 }) {

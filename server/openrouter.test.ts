@@ -1,3 +1,5 @@
+/** 覆盖OpenRouter 模型接口及服务端凭据解析。 */
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import axios from "axios";
 import type { ApiConfig } from "../drizzle/schema";

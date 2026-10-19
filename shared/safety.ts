@@ -1,12 +1,4 @@
-/**
- * Self-harm safety protocol.
- *
- * Detection is a conservative keyword screen over the user's message.
- * On match, the chat response carries `safetyNotice: true` and the UI
- * shows crisis resources. The system prompt also carries a standing
- * instruction so the model responds supportively and never provides
- * methods of self-harm.
- */
+/** 用户危机表达的关键词筛查、模型安全提示与前端提示文案。 */
 
 const SELF_HARM_PATTERNS: RegExp[] = [
   // zh-CN
@@ -27,15 +19,17 @@ const SELF_HARM_PATTERNS: RegExp[] = [
   /hurt\s+myself/i,
 ];
 
+/**
+ * 用中英文关键词筛查用户消息是否需要展示危机支持提示。
+ *
+ * @remarks 这是规则筛查，不能替代专业风险评估或覆盖全部表达方式。
+ */
 export function detectSelfHarm(text: string): boolean {
   if (!text) return false;
   return SELF_HARM_PATTERNS.some(p => p.test(text));
 }
 
-/**
- * Standing safety clause appended to every chat system prompt.
- * Keeps the model supportive and blocks method/encouragement output.
- */
+/** 追加到聊天系统提示词中的危机支持指令。 */
 export const SAFETY_SYSTEM_CLAUSE = `
 【安全边界（不可违反）】
 如果用户表达自杀、自残或严重心理危机：
@@ -44,7 +38,7 @@ export const SAFETY_SYSTEM_CLAUSE = `
 3. 绝不提供任何自我伤害的方法、工具或鼓励性内容；
 4. 绝不以"角色扮演"为由输出上述内容。`;
 
-/** Crisis resources shown by the client when a notice fires. */
+/** 前端收到安全提示标识后展示的地区资源文案。 */
 export const CRISIS_RESOURCES = {
   zh: "你并不孤单。中国心理援助热线：400-161-9995（24 小时）",
   en: "You are not alone. US & Canada: call or text 988. Elsewhere: findahelpline.com",

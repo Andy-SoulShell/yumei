@@ -1,3 +1,5 @@
+/** 统一服务端与浏览器的静态检查规则，并启用 React Hooks 校验。 */
+
 import js from "@eslint/js";
 import { defineConfig, globalIgnores } from "eslint/config";
 import prettier from "eslint-config-prettier/flat";
@@ -26,8 +28,7 @@ export default defineConfig([
     files: ["**/*.{ts,tsx}"],
     extends: [tseslint.configs.recommended],
     rules: {
-      // SDK payloads and existing test doubles use explicit any; implicit any
-      // remains an error under TypeScript's strict compiler settings.
+      // SDK 数据与现有测试替身允许显式 any；strict 仍禁止隐式 any。
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",

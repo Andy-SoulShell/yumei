@@ -1,3 +1,5 @@
+/** 覆盖内置预设、图片读取及套餐数量约束。 */
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CHARACTER_PRESETS } from "../shared/characterPresets";
 import { appRouter } from "./routers";

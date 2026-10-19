@@ -1,3 +1,5 @@
+/** 站内通知入口，轮询未读数并定时请求生成主动通知。 */
+
 import { useState, useEffect, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import {
@@ -28,6 +30,11 @@ const NOTIFICATION_ICONS: Record<string, React.ReactNode> = {
   mood: <MessageCircleHeart className="w-4 h-4 text-pink-400" />,
 };
 
+/**
+ * 显示通知列表、标记已读并跳转对应角色。
+ *
+ * @remarks 未读数每三十秒刷新；主动消息首次延迟一分钟，之后每五分钟检查。
+ */
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [, navigate] = useLocation();

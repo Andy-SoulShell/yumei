@@ -1,6 +1,13 @@
+/** 从聊天文字中识别明确的自拍请求，并提取姿势意图。 */
+
 import { SELFIE_POSES } from "./selfiePoses";
 
-/** Only an explicit request for a companion photo triggers generation. */
+/**
+ * 识别明确的自拍请求，排除常见否定、转述和功能讨论。
+ *
+ * @returns 匹配到的姿势标识；未请求自拍时返回 null
+ * @remarks 使用启发式正则识别，最终额度与姿势权限由服务端校验。
+ */
 export function detectSelfieRequest(
   content: string
 ): { poseId: string } | null {

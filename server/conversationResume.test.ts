@@ -1,3 +1,5 @@
+/** 覆盖会话延续与显式新建入口。 */
+
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { appRouter } from "./routers";
 import * as db from "./db";

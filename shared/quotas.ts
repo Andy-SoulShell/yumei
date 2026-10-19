@@ -1,29 +1,30 @@
-/**
- * Subscription limits and request caps.
- * BYOK bypasses the corresponding provider's usage meter; request rate limits
- * still apply to protect the server.
- */
+/** 套餐权益、请求频率与持久化用量计量名称。 */
+
+/** 支持的套餐标识，顺序为免费、Plus 和 Pro。 */
 
 export const TIERS = ["free", "plus", "pro"] as const;
+/** 套餐的稳定标识，用于服务端判权和界面展示。 */
 export type Tier = (typeof TIERS)[number];
 
+/** 一个套餐的用量与功能限制；数值 null 表示该计量维度不设上限。 */
 export type TierLimits = {
-  /** Chat messages per UTC day (null = unlimited). */
+  /** 每个 UTC 自然日的消息上限，null 表示不限量。 */
   dailyMessages: number | null;
-  /** Selfies per UTC day (free tier) — null when the tier meters monthly. */
+  /** 每个 UTC 自然日的自拍上限；按月计量的套餐为 null。 */
   dailySelfies: number | null;
-  /** Selfies per calendar month (paid tiers) — null when metered daily/unlimited. */
+  /** 每个 UTC 自然月的自拍上限；按日计量或不限量时为 null。 */
   monthlySelfies: number | null;
-  /** Concurrent (non-deleted) companions (null = unlimited). */
+  /** 同时保留的未删除角色数量上限，null 表示不限制。 */
   maxGirlfriends: number | null;
-  /** Whisper voice transcription on the operator's key. */
+  /** 是否允许使用运营方密钥进行语音转写。 */
   voiceTranscription: boolean;
-  /** Premium TTS providers usable on the operator's keys. */
+  /** 允许使用运营方密钥访问的高级语音供应商。 */
   ttsProviders: ReadonlyArray<"elevenlabs" | "fishaudio">;
-  /** Free tier is locked to the cheap default model. */
+  /** 是否将 OpenRouter 免费用户限制在默认模型。 */
   modelLocked: boolean;
 };
 
+/** 各套餐的默认权益；请求频率限制和亲密度限制独立生效。 */
 export const TIER_LIMITS: Record<Tier, TierLimits> = {
   free: {
     dailyMessages: 30,
@@ -54,22 +55,24 @@ export const TIER_LIMITS: Record<Tier, TierLimits> = {
   },
 } as const;
 
+/** 套餐标识对应的展示名称。 */
 export const TIER_LABELS: Record<Tier, string> = {
   free: "Free",
   plus: "Plus",
   pro: "Pro",
 };
 
-/** Display prices; the configured checkout determines the charged amount. */
+/** 升级按钮的展示价格；实际收款金额以配置的支付结账页为准。 */
 export const TIER_PRICES: Record<Tier, string> = {
   free: "$0",
   plus: "$9.99/月",
   pro: "$19.99/月",
 };
 
+/** OpenRouter 免费用户默认使用的聊天模型标识。 */
 export const FREE_TIER_DEFAULT_MODEL = "openai/gpt-4o-mini";
 
-/** Per-user, per-minute request caps on hot procedures. */
+/** 每用户每分钟的请求上限，在单个应用进程内执行。 */
 export const RATE_LIMITS_PER_MINUTE = {
   chat: 20,
   selfie: 3,
@@ -77,14 +80,15 @@ export const RATE_LIMITS_PER_MINUTE = {
   tts: 30,
 } as const;
 
+/** 纳入请求频率限制的业务动作。 */
 export type RateLimitedAction = keyof typeof RATE_LIMITS_PER_MINUTE;
 
-/** Meter names persisted in the usageMeters table. */
+/** 数据库中的用量计量名称；每日与每月周期由计量函数决定。 */
 export const METERS = {
   chat: "chat",
   selfie: "selfie",
-  /** Total intimacy points awarded today (caps at DAILY_POINTS_LIMIT). */
+  /** 当日经验总量的计量名称；实际夜间额外加分目前在后续数据层计算。 */
   intimacyPoints: "intimacy:points",
-  /** Per-reason intimacy action counts, e.g. `intimacy:text_message`. */
+  /** 按行为类型统计当日经验获取次数的计量名称。 */
   intimacyReason: (reason: string) => `intimacy:${reason}`,
 } as const;

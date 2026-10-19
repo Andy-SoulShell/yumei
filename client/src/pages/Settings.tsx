@@ -1,3 +1,5 @@
+/** 用户偏好、BYOK 密钥、语音、主题、推送和套餐设置页面。 */
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -40,6 +42,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { BillingCard } from "@/components/BillingCard";
 import { PushCard } from "@/components/PushCard";
 
+/** 模型列表展示与过滤所需的模型、供应商及价格字段。 */
 type ModelInfo = {
   id: string;
   name: string;
@@ -48,6 +51,7 @@ type ModelInfo = {
   provider: string;
 };
 
+/** ElevenLabs 音色列表的展示与选择字段。 */
 type ElevenLabsVoice = {
   id: string;
   name: string;
@@ -57,6 +61,7 @@ type ElevenLabsVoice = {
   labels: Record<string, string>;
 };
 
+/** Fish Audio 音色模型的展示与选择字段。 */
 type FishAudioModel = {
   id: string;
   name: string;
@@ -64,23 +69,29 @@ type FishAudioModel = {
   tags: string[];
 };
 
+/** 语音朗读方式，区分浏览器与两个服务端供应商。 */
 type TTSProvider = "browser" | "elevenlabs" | "fishaudio";
 
+/**
+ * 读取脱敏密钥状态及用户偏好，并分别保存普通配置和新输入的密钥。
+ *
+ * @remarks 部分设置存入浏览器本地，服务端密钥通过独立接口加密保存。
+ */
 export default function Settings() {
   const [, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
 
-  // API Key states
+  // API 密钥输入状态。
   const [falApiKey, setFalApiKey] = useState("");
   const [openRouterKey, setOpenRouterKey] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
   const [modelSearch, setModelSearch] = useState("");
   const [showModelList, setShowModelList] = useState(false);
 
-  // TTS states
+  // 语音合成偏好。
   const [ttsProvider, setTtsProvider] = useState<TTSProvider>("browser");
 
-  // Whisper 语音转写配置 states
+  // Whisper 语音转写配置。
   const [whisperApiKey, setWhisperApiKey] = useState("");
   const [hasUnsavedWhisperChanges, setHasUnsavedWhisperChanges] =
     useState(false);
@@ -88,14 +99,14 @@ export default function Settings() {
     return localStorage.getItem("tts-autoplay") === "true";
   });
 
-  // ElevenLabs states
+  // ElevenLabs 配置状态。
   const [elevenlabsApiKey, setElevenlabsApiKey] = useState("");
   const [elevenlabsVoiceId, setElevenlabsVoiceId] = useState("");
   const [elevenlabsVoiceName, setElevenlabsVoiceName] = useState("");
   const [showElevenLabsVoices, setShowElevenLabsVoices] = useState(false);
   const [elevenLabsSearch, setElevenLabsSearch] = useState("");
 
-  // Fish Audio states
+  // Fish Audio 配置状态。
   const [fishAudioApiKey, setFishAudioApiKey] = useState("");
   const [fishAudioModelId, setFishAudioModelId] = useState("");
   const [fishAudioModelName, setFishAudioModelName] = useState("");
@@ -123,7 +134,7 @@ export default function Settings() {
     }
   });
 
-  // 全局提示词 states
+  // 全局提示词状态。
   const [globalPrompt, setGlobalPrompt] = useState("");
   const [replyLanguage, setReplyLanguage] = useState("");
   const [replyLengthLimit, setReplyLengthLimit] = useState("");
@@ -199,7 +210,7 @@ export default function Settings() {
     { enabled: fishAudioReady, retry: false }
   );
 
-  // preferences vs keys are now separate mutations.
+  // 偏好与密钥通过不同接口保存。
   const updatePreferences = trpc.apiConfig.updatePreferences.useMutation({
     onSuccess: () => {
       toast.success("配置保存成功");
@@ -213,9 +224,10 @@ export default function Settings() {
   const utils2 = trpc.useUtils();
 
   /**
-   * Save any non-empty BYOK keys the user has typed in. Each `setKey` is
-   * a separate mutation so a single bad key doesn't drop the others.
-   * Returns the count of successfully saved keys, for the toast.
+   * 逐个保存输入框中非空的 BYOK 密钥，失败项单独提示。
+   *
+   * @returns 成功保存的密钥数量
+   * @remarks 只要有一项成功，当前实现就清空全部密钥输入，包括保存失败的项。
    */
   async function saveDirtyKeys() {
     const pending: Array<{
@@ -241,9 +253,7 @@ export default function Settings() {
       }
     }
     if (saved > 0) {
-      // Clear in-memory plaintext copies so they don't linger in the
-      // React tree. The fresh `apiConfig.get` invalidation refreshes
-      // the masked `keys` map for display.
+      // 有任意密钥保存成功就清空全部输入，再刷新脱敏状态；部分失败时也会清空。
       setOpenRouterKey("");
       setFalApiKey("");
       setElevenlabsApiKey("");
@@ -268,11 +278,7 @@ export default function Settings() {
       setSelectedModel(apiConfig.preferences?.llmModel || "");
     }
     if (apiConfig?.preferences) {
-      // per-user keys no longer round-trip to the client.
-      // The plaintext input fields stay empty on load; if the user has
-      // a saved key the UI shows "(已保存 · 末四位 XXXX)" derived from
-      // `apiConfig.keys[name].lastFour`. Typing into the field again
-      // replaces the stored value via `setKey` on save.
+      // 不向前端回传已保存的明文密钥，只展示末四位；再次输入并保存即替换密钥。
       const p = apiConfig.preferences;
       setTtsProvider((p.ttsProvider as TTSProvider) || "browser");
       setElevenlabsVoiceId(p.elevenlabsVoiceId || "");
@@ -333,10 +339,9 @@ export default function Settings() {
     return modelsData.models.find((m: ModelInfo) => m.id === selectedModel);
   }, [modelsData?.models, selectedModel]);
 
+  /** 先保存用户偏好，再逐项保存非空密钥；两个阶段不组成事务。 */
   const handleSave = async () => {
-    // preferences and keys are saved through separate
-    // endpoints so the wire never carries plaintext key + non-key payload
-    // in the same call.
+    // 偏好与密钥分别提交，避免普通偏好接口携带明文密钥。
     await updatePreferences.mutateAsync({
       llmModel: selectedModel || undefined,
       ttsProvider,
@@ -382,6 +387,7 @@ export default function Settings() {
     window.speechSynthesis.speak(utterance);
   }, []);
 
+  /** 使用服务端当前已保存的语音配置生成测试音频并尝试播放。 */
   const handleTestApiVoice = useCallback(async () => {
     // 先保存当前配置
     toast.info("正在生成语音测试...");
@@ -404,6 +410,7 @@ export default function Settings() {
     toast.info(`已选择模型：${modelId}，请点击"保存生效"确认`);
   };
 
+  /** 保存模型偏好和当前非空密钥，然后结束模型设置的未保存提示。 */
   const handleSaveLlmConfig = async () => {
     await updatePreferences.mutateAsync({
       llmModel: selectedModel || undefined,
@@ -429,6 +436,7 @@ export default function Settings() {
     toast.info(`已选择声音：${model.name}，请点击"保存生效"确认`);
   };
 
+  /** 保存语音引擎和音色偏好，再保存当前非空密钥。 */
   const handleSaveVoiceConfig = async () => {
     await updatePreferences.mutateAsync({
       ttsProvider,
@@ -442,12 +450,14 @@ export default function Settings() {
     toast.success("语音配置已保存生效");
   };
 
+  /** 保存当前非空密钥，并结束语音转写配置的未保存提示。 */
   const handleSaveWhisperConfig = async () => {
     await saveDirtyKeys();
     setHasUnsavedWhisperChanges(false);
     toast.success("语音转写配置已保存生效");
   };
 
+  /** 保存全局提示词、语言与回复长度偏好，空文本按 null 提交。 */
   const handleSaveAiConfig = async () => {
     await updatePreferences.mutateAsync({
       globalPrompt: globalPrompt || null,
@@ -503,6 +513,7 @@ export default function Settings() {
   }, [falApiKey]);
 
   // API Key 状态指示器组件
+  /** 根据派生状态显示输入框提示，不代表当前输入已经过供应商实时校验。 */
   const KeyStatusIndicator = ({ status }: { status: string }) => {
     switch (status) {
       case "valid":
@@ -531,9 +542,9 @@ export default function Settings() {
     }
   };
 
+  /** 保存当前非空密钥，并结束图片配置的未保存提示。 */
   const handleSaveFalConfig = async () => {
-    // No fal-specific preference fields beyond the encrypted key, so this
-    // handler only saves dirty BYOK keys.
+    // fal 无独立偏好字段，此操作只保存有改动的 BYOK 密钥。
     await saveDirtyKeys();
     setHasUnsavedFalChanges(false);
     toast.success("fal.ai 配置已保存生效");

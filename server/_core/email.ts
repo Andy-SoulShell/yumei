@@ -1,21 +1,11 @@
+/** 邮箱登录链接发送驱动；支持 Resend、SMTP 和显式本地日志输出。 */
+
 import { Resend } from "resend";
 import nodemailer from "nodemailer";
 import { ENV } from "./env";
 import { log } from "./log";
 
-/**
- * Email sender abstraction.
- *
- * Two drivers ship in this PR:
- *   - **Resend** — the recommended default. Set `RESEND_API_KEY`
- *     and `EMAIL_FROM`. Free tier covers ~100/day for dev.
- *   - **SMTP** — the self-hoster fallback. Set `EMAIL_PROVIDER=smtp`
- *     and `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS`.
- *
- * Local Docker runs can explicitly select EMAIL_PROVIDER=stdout.
- * Dev/test also fall back to stdout when no service is configured.
- * The complete login link is printed for copying into the browser.
- */
+/** 一封登录邮件的收件人、主题、正文与原始登录链接。 */
 
 type SendArgs = {
   to: string;
@@ -25,17 +15,22 @@ type SendArgs = {
   magicLinkUrl: string;
 };
 
+/** 登录邮件驱动约定，发送失败时向调用方传播错误。 */
 interface EmailDriver {
+  /** 发送已经构建好的登录邮件，失败时拒绝 Promise。 */
   send(args: SendArgs): Promise<void>;
 }
 
+/** 通过 Resend 发送登录邮件，使用运营方配置的发信身份。 */
 class ResendDriver implements EmailDriver {
   private client: Resend;
   private from: string;
+  /** 保存 Resend 客户端和发信身份，不在构造时发送邮件。 */
   constructor(apiKey: string, from: string) {
     this.client = new Resend(apiKey);
     this.from = from;
   }
+  /** 向 Resend 提交邮件，接口返回错误时抛出异常。 */
   async send({ to, subject, html, text }: SendArgs) {
     const { error } = await this.client.emails.send({
       from: this.from,
@@ -50,9 +45,11 @@ class ResendDriver implements EmailDriver {
   }
 }
 
+/** 通过 SMTP 发送登录邮件，465 端口使用隐式 TLS。 */
 class SmtpDriver implements EmailDriver {
   private transporter: ReturnType<typeof nodemailer.createTransport>;
   private from: string;
+  /** 按 SMTP 主机、端口和凭据创建传输客户端。 */
   constructor(opts: {
     host: string;
     port: number;
@@ -68,6 +65,7 @@ class SmtpDriver implements EmailDriver {
     });
     this.from = opts.from;
   }
+  /** 通过 SMTP 发送文本和 HTML 正文，发送错误向外传播。 */
   async send({ to, subject, html, text }: SendArgs) {
     await this.transporter.sendMail({
       from: this.from,
@@ -80,12 +78,14 @@ class SmtpDriver implements EmailDriver {
 }
 
 /**
- * Local development driver. Prints the complete link without truncating tokens.
+ * 将完整登录链接输出到本地日志，便于开发与本机 Docker 登录。
+ *
+ * @remarks 日志中包含可登录令牌，仅适用于受控的本机调试环境。
  */
 class StdoutDriver implements EmailDriver {
+  /** 输出完整的本地登录链接，避免普通日志脱敏或截断令牌。 */
   async send({ to, subject, magicLinkUrl }: SendArgs) {
-    // This explicit local driver prints a single copyable line; the normal
-    // logger truncates long strings, which would invalidate login tokens.
+    // 保持登录链接完整且可复制；普通日志截断长字符串会破坏令牌。
     console.log(
       "[email:stdout]",
       JSON.stringify({
@@ -99,6 +99,7 @@ class StdoutDriver implements EmailDriver {
 
 let cachedDriver: EmailDriver | null = null;
 
+/** 按显式配置选择并缓存邮件驱动，生产缺少真实服务配置时抛出错误。 */
 function getDriver(): EmailDriver {
   if (cachedDriver) return cachedDriver;
 
@@ -124,7 +125,7 @@ function getDriver(): EmailDriver {
     return cachedDriver;
   }
 
-  // Default: Resend if RESEND_API_KEY is set; otherwise stdout in dev.
+  // 未显式选驱动时，有 Resend 密钥则发信，否则仅开发/测试回退日志输出。
   const resendKey = process.env.RESEND_API_KEY;
   if (resendKey) {
     cachedDriver = new ResendDriver(resendKey, from);
@@ -144,15 +145,15 @@ function getDriver(): EmailDriver {
   return cachedDriver;
 }
 
-/** Test-only: forces the next call to re-read env. */
+/** 清除邮件驱动缓存，仅供测试切换环境变量后使用。 */
 export function _resetEmailDriverForTests() {
   cachedDriver = null;
 }
 
 /**
- * Send a magic-link email. The plaintext body intentionally surfaces
- * the URL so users on plain-text mail clients still get the link;
- * the HTML body adds presentation polish.
+ * 生成十五分钟有效的登录邮件文案，并委托当前驱动发送。
+ *
+ * @remarks 单次使用与实际有效期由 Better-Auth 的令牌流程保证。
  */
 export async function sendMagicLinkEmail(args: {
   to: string;

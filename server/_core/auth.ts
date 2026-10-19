@@ -1,3 +1,5 @@
+/** Better-Auth 邮箱链接登录与数据库会话配置；测试缺少数据库时不创建认证实例。 */
+
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { magicLink } from "better-auth/plugins";
@@ -7,10 +9,7 @@ import { ENV } from "./env";
 import { sendMagicLinkEmail } from "./email";
 import { getTrustedAuthOrigins } from "./authOrigins";
 
-/**
- * Better-Auth email magic-link authentication backed by Drizzle/MySQL.
- * No auth instance is created when tests omit DATABASE_URL.
- */
+/** 按认证表 schema 创建 Drizzle 实例，无数据库配置时返回 null。 */
 function getAuthDb() {
   if (!ENV.databaseUrl) {
     return null;
@@ -20,12 +19,11 @@ function getAuthDb() {
 
 const authDb = getAuthDb();
 
-// Public URL of this deployment (ENV.publicUrl = BETTER_AUTH_URL, or
-// http://localhost:PORT in dev). Magic links and trusted origins derive
-// from it so any port works without extra config.
+// 认证链接和可信来源以公开地址为基准；开发默认使用 localhost:PORT。
 const PORT = process.env.PORT || "3000";
 const BASE_URL = ENV.publicUrl;
 
+/** 共享认证实例，负责邮箱链接、会话持久化与会话缓存 Cookie。 */
 export const auth = authDb
   ? betterAuth({
       appName: "YUMEI",
@@ -38,25 +36,21 @@ export const auth = authDb
           verification: schema.verifications,
         },
       }),
-      // YUMEI uses varchar IDs consistently across all four auth tables.
+      // 四张认证表统一使用字符串 ID。
       baseURL: BASE_URL,
-      // Session-token signing secret. Reuses JWT_SECRET (validated >= 32
-      // chars at boot) so self-hosters manage one fewer variable.
+      // 复用启动时已校验长度的 JWT_SECRET 签名会话令牌。
       secret: ENV.cookieSecret,
-      // Sessions live for 30 days; refreshed within the last 7 of those.
+      // 会话有效三十天；距离上次更新时间达到七天时可刷新。
       session: {
         expiresIn: 60 * 60 * 24 * 30,
         updateAge: 60 * 60 * 24 * 7,
         cookieCache: {
           enabled: true,
-          maxAge: 60 * 5, // 5 minutes
+          maxAge: 60 * 5, // 五分钟
         },
       },
-      // Better-Auth defaults the cookie names to `better-auth.session_token`
-      // and `better-auth.session_data`. We let it own those names; the
-      // tRPC logout route clears both for defense-in-depth.
-      // Local Docker stdout mode accepts loopback aliases on the public port.
-      // Hosted deployments continue to trust only the configured public origin.
+      // 本机 stdout 模式允许公开端口对应的回环别名；托管环境限制为公开来源。
+      // Cookie 命名由 Better-Auth 决定，HTTPS 下可能带 __Secure- 前缀。
       trustedOrigins: ENV.isProduction
         ? getTrustedAuthOrigins(
             BASE_URL,
@@ -65,9 +59,9 @@ export const auth = authDb
         : [BASE_URL, `http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`],
       plugins: [
         magicLink({
-          // Login links expire after 15 minutes.
+          // 邮箱登录链接十五分钟后过期。
           expiresIn: 60 * 15,
-          disableSignUp: false, // anyone with an email can sign in
+          disableSignUp: false, // 新邮箱可自动注册
           sendMagicLink: async ({ email, url }) => {
             await sendMagicLinkEmail({ to: email, magicLinkUrl: url });
           },
@@ -77,9 +71,9 @@ export const auth = authDb
   : (null as unknown as ReturnType<typeof betterAuth>);
 
 /**
- * Helper used by the tRPC context to resolve the current user from
- * the Better-Auth session cookie. Returns null in test mode where
- * `auth` is itself null.
+ * 从请求头中的会话 Cookie 解析认证用户，无法解析时返回 null。
+ *
+ * @remarks 此处仅取得认证用户，应用角色与业务资料由上下文另行查库。
  */
 export async function getSessionUser(req: { headers: any }) {
   if (!auth) return null;
@@ -91,6 +85,7 @@ export async function getSessionUser(req: { headers: any }) {
   }
 }
 
+/** 认证会话成功解析后返回的用户类型。 */
 export type AuthSessionUser = NonNullable<
   Awaited<ReturnType<typeof getSessionUser>>
 >;

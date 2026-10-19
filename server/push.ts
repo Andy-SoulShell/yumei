@@ -1,25 +1,21 @@
-/**
- * Web Push delivery.
- *
- * Requires VAPID keys — generate once with `npx web-push generate-vapid-keys`
- * and set VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY (+ optional VAPID_SUBJECT,
- * a mailto: or https: contact). Without them the feature is dormant: the
- * client hides the enable button and the scheduler stays off.
- */
+/** Web Push 订阅管理、通知投递及每小时主动消息调度。 */
 
 import { eq } from "drizzle-orm";
 import { pushSubscriptions } from "../drizzle/schema";
 import { getDb } from "./db";
 import { log } from "./_core/log";
 
+/** 判断 VAPID 公钥与私钥是否同时配置，不验证其格式或外部网络。 */
 export function isPushConfigured(): boolean {
   return Boolean(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
 }
 
+/** 读取前端订阅推送所需的公开密钥，未配置时返回 null。 */
 export function getVapidPublicKey(): string | null {
   return process.env.VAPID_PUBLIC_KEY || null;
 }
 
+/** 加载推送库并应用当前运营方的 VAPID 联系信息与密钥。 */
 async function getWebPush() {
   const webpush = (await import("web-push")).default;
   webpush.setVapidDetails(
@@ -30,6 +26,7 @@ async function getWebPush() {
   return webpush;
 }
 
+/** 创建或更新一个浏览器推送端点及其所属用户。 */
 export async function savePushSubscription(
   userId: string,
   subscription: { endpoint: string; keys: { p256dh: string; auth: string } }
@@ -53,6 +50,7 @@ export async function savePushSubscription(
     });
 }
 
+/** 仅在端点属于当前用户时删除推送订阅。 */
 export async function removePushSubscription(
   userId: string,
   endpoint: string
@@ -71,6 +69,7 @@ export async function removePushSubscription(
   }
 }
 
+/** 判断用户是否至少保存了一个推送端点。 */
 export async function hasPushSubscription(userId: string): Promise<boolean> {
   const db = await getDb();
   if (!db) return false;
@@ -82,7 +81,7 @@ export async function hasPushSubscription(userId: string): Promise<boolean> {
   return rows.length > 0;
 }
 
-/** Users with at least one push endpoint (scheduler targets). */
+/** 返回至少保存一个推送端点的去重用户标识。 */
 export async function listPushUserIds(): Promise<string[]> {
   const db = await getDb();
   if (!db) return [];
@@ -93,8 +92,10 @@ export async function listPushUserIds(): Promise<string[]> {
 }
 
 /**
- * Deliver a payload to every endpoint of a user. Dead endpoints
- * (404/410) are pruned. Failures never throw — push is best-effort.
+ * 向用户全部端点投递消息，移除返回 404 或 410 的失效端点。
+ *
+ * @returns 成功投递的端点数量
+ * @remarks 普通投递错误仅记录日志，数据库及初始化错误仍可能向外传播。
  */
 export async function sendPushToUser(
   userId: string,
@@ -139,17 +140,15 @@ export async function sendPushToUser(
 }
 
 // ---------------------------------------------------------------------------
-// Proactive-message scheduler
+// 主动消息推送调度。
 // ---------------------------------------------------------------------------
 
 let schedulerTimer: NodeJS.Timeout | null = null;
 
 /**
- * Hourly pass: for every user with a push endpoint, let the proactive
- * generator decide whether to say something (it enforces the 1/day cap
- * and picks memory-aware content), then push it. Sends are restricted
- * to 08:00–22:00 server time — without per-user timezones this is the
- * conservative window.
+ * 配置 VAPID 后启动单进程每小时调度，只在服务器本地时间 08:00 至 22:00 执行。
+ *
+ * @remarks 首轮在一个小时后触发；跨进程去重及用户独立时区尚未实现。
  */
 export function startProactivePushScheduler(): void {
   if (!isPushConfigured() || schedulerTimer) return;

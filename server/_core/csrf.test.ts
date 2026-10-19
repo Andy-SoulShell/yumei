@@ -1,3 +1,5 @@
+/** 覆盖CSRF 令牌生成及写请求双提交校验。 */
+
 import { describe, it, expect, vi } from "vitest";
 import {
   csrfCookieMiddleware,
@@ -5,13 +7,6 @@ import {
   CSRF_COOKIE,
   CSRF_HEADER,
 } from "./csrf";
-
-/**
- * Tests for: CSRF protection (double-submit token).
- *
- * Each test fabricates a minimal Express-shaped req/res and asserts the
- * middleware behavior (cookie setting, allow/deny on POST, GET pass-through).
- */
 
 type FakeReq = {
   method: string;

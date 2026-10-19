@@ -1,3 +1,5 @@
+/** 聊天与相机共用的自拍生成流程，负责归属、姿势、套餐和保存。 */
+
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 import {
@@ -22,6 +24,7 @@ import { getPose } from "../shared/selfiePoses";
 import { buildSmartPrompt } from "./promptTemplates";
 import { storagePut } from "./storage";
 
+/** 自拍生成参数，场景文本可与姿势片段一起参与提示词构建。 */
 type SelfieInput = {
   conversationId: number;
   userContext: string;
@@ -29,6 +32,12 @@ type SelfieInput = {
   poseId?: string;
 };
 
+/**
+ * 校验用户、角色和额度后生成图片，并保存聊天消息与相册记录。
+ *
+ * @param chatContent - 由聊天文字触发时保存的原始用户消息；相机入口不传
+ * @remarks 先计量再调用外部服务，当前生成失败不返还额度，消息与相册写入也未组成事务。
+ */
 export async function generateConversationSelfie(
   user: { id: string; birthDate: unknown },
   input: SelfieInput,

@@ -1,8 +1,11 @@
+/** 受控滚动容器及滚动条外观。 */
+
 import * as React from "react";
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 
 import { cn } from "@/lib/utils";
 
+/** 封装可滚动视口与默认垂直滚动条。 */
 function ScrollArea({
   className,
   children,
@@ -26,6 +29,7 @@ function ScrollArea({
   );
 }
 
+/** 按指定方向展示滚动条轨道与滑块。 */
 function ScrollBar({
   className,
   orientation = "vertical",

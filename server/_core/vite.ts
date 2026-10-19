@@ -1,3 +1,5 @@
+/** 开发环境 Vite 中间件与页面热更新入口。 */
+
 import { type Express } from "express";
 import fs from "fs";
 import { type Server } from "http";
@@ -6,6 +8,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
 
+/** 在现有 HTTP 服务中挂载 Vite，按请求转换前端入口 HTML。 */
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
@@ -32,7 +35,7 @@ export async function setupVite(app: Express, server: Server) {
         "index.html"
       );
 
-      // always reload the index.html file from disk incase it changes
+      // 每次从磁盘重读 index.html，反映开发中的文件变动。
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,

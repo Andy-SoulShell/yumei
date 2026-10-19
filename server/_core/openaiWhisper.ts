@@ -1,21 +1,23 @@
-/**
- * OpenAI Whisper API transcription helper
- *
- * This module provides direct integration with OpenAI's Whisper API
- * for users who prefer to use their own OpenAI API keys.
- */
+/** 下载已上传的语音并调用 OpenAI Whisper，向路由返回结构化结果或错误。 */
 
-// OpenAI Whisper transcription request and response types.
+/** 语音转写输入，包含可下载地址与可选语言、上下文提示。 */
+
 export type TranscribeOptions = {
-  audioUrl: string; // URL to the audio file
-  language?: string; // Optional: language code (e.g. "en", "zh")
-  prompt?: string; // Optional: custom prompt for the transcription
+  /** 服务端能够下载的音频地址。 */
+  audioUrl: string;
+  /** 可选的转写语言代码，例如 zh 或 en。 */
+  language?: string;
+  /** 辅助识别专有词或语境的可选文本。 */
+  prompt?: string;
 };
 
+/** Whisper 分段文本及时间与置信度字段，起止时间单位为秒。 */
 export type WhisperSegment = {
   id: number;
   seek: number;
+  /** 片段起始时间，单位为秒。 */
   start: number;
+  /** 片段结束时间，单位为秒。 */
   end: number;
   text: string;
   tokens: number[];
@@ -25,16 +27,20 @@ export type WhisperSegment = {
   no_speech_prob: number;
 };
 
+/** Whisper verbose_json 响应，duration 单位为秒。 */
 export type WhisperResponse = {
   task: "transcribe";
   language: string;
+  /** 音频时长，单位为秒。 */
   duration: number;
   text: string;
   segments: WhisperSegment[];
 };
 
+/** 业务层使用的 Whisper 成功结果别名。 */
 export type TranscriptionResponse = WhisperResponse;
 
+/** 业务层可识别的转写错误，details 用于补充上游失败信息。 */
 export type TranscriptionError = {
   error: string;
   code:
@@ -47,18 +53,18 @@ export type TranscriptionError = {
 };
 
 /**
- * Transcribe audio using OpenAI Whisper API
+ * 下载音频后调用 Whisper，并返回成功结果或结构化错误。
  *
- * @param options - Audio data and metadata
- * @param apiKey - OpenAI API Key
- * @returns Transcription result or error
+ * @param options - 可访问的音频地址、语言及可选提示词
+ * @param apiKey - 仅供服务端使用的 OpenAI 密钥
+ * @remarks 下载后检查二十五 MB 上限；当前下载和转写请求未设置独立超时。
  */
 export async function transcribeWithOpenAI(
   options: TranscribeOptions,
   apiKey: string
 ): Promise<TranscriptionResponse | TranscriptionError> {
   try {
-    // Step 1: Validate API key
+    // 调用前要求可用密钥。
     if (!apiKey || !apiKey.startsWith("sk-")) {
       return {
         error: "Invalid OpenAI API key",
@@ -67,7 +73,7 @@ export async function transcribeWithOpenAI(
       };
     }
 
-    // Step 2: Download audio from URL
+    // 从给定地址下载音频。
     let audioBuffer: Buffer;
     let mimeType: string;
     try {
@@ -83,7 +89,7 @@ export async function transcribeWithOpenAI(
       audioBuffer = Buffer.from(await response.arrayBuffer());
       mimeType = response.headers.get("content-type") || "audio/mpeg";
 
-      // Check file size (25MB limit for OpenAI)
+      // 按当前实现的 25 MB 上限校验文件大小。
       const sizeMB = audioBuffer.length / (1024 * 1024);
       if (sizeMB > 25) {
         return {
@@ -100,10 +106,10 @@ export async function transcribeWithOpenAI(
       };
     }
 
-    // Step 3: Create FormData for multipart upload to OpenAI Whisper API
+    // 使用 multipart 表单上传到 Whisper 接口。
     const formData = new FormData();
 
-    // Create a Blob from the buffer and append to form
+    // 将下载内容封装为音频文件。
     const filename = `audio.${getFileExtension(mimeType)}`;
     const audioBlob = new Blob([new Uint8Array(audioBuffer)], {
       type: mimeType,
@@ -113,7 +119,7 @@ export async function transcribeWithOpenAI(
     formData.append("model", "whisper-1");
     formData.append("response_format", "verbose_json");
 
-    // Add optional parameters
+    // 附加调用方提供的可选参数。
     if (options.language) {
       formData.append("language", options.language);
     }
@@ -121,7 +127,7 @@ export async function transcribeWithOpenAI(
       formData.append("prompt", options.prompt);
     }
 
-    // Step 4: Call OpenAI Whisper API
+    // 请求 Whisper 转写。
     const response = await fetch(
       "https://api.openai.com/v1/audio/transcriptions",
       {
@@ -137,14 +143,14 @@ export async function transcribeWithOpenAI(
       const errorText = await response.text().catch(() => "");
       let errorMessage = "OpenAI Whisper API request failed";
 
-      // Parse OpenAI error response
+      // 尝试读取上游错误信息。
       try {
         const errorJson = JSON.parse(errorText);
         if (errorJson.error?.message) {
           errorMessage = errorJson.error.message;
         }
       } catch {
-        // Keep default message if parsing fails
+        // 无法解析时保留默认错误信息。
       }
 
       return {
@@ -154,10 +160,10 @@ export async function transcribeWithOpenAI(
       };
     }
 
-    // Step 5: Parse and return the transcription result
+    // 解析转写结果。
     const whisperResponse = (await response.json()) as WhisperResponse;
 
-    // Validate response structure
+    // 校验上游响应结构。
     if (!whisperResponse.text || typeof whisperResponse.text !== "string") {
       return {
         error: "Invalid transcription response from OpenAI",
@@ -166,9 +172,9 @@ export async function transcribeWithOpenAI(
       };
     }
 
-    return whisperResponse; // Return native Whisper API response
+    return whisperResponse; // 返回原始 Whisper 响应。
   } catch (error) {
-    // Handle unexpected errors
+    // 将未预期异常转换为统一错误结果。
     return {
       error: "OpenAI Whisper transcription failed",
       code: "SERVICE_ERROR",
@@ -178,9 +184,7 @@ export async function transcribeWithOpenAI(
   }
 }
 
-/**
- * Helper function to get file extension from MIME type
- */
+/** 按音频 MIME 类型选择上传文件扩展名，未知类型回退为 audio。 */
 function getFileExtension(mimeType: string): string {
   const mimeToExt: Record<string, string> = {
     "audio/webm": "webm",

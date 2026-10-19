@@ -1,4 +1,7 @@
+/** 首次登录使用的 YUMEI 默认角色资料与内置参考图入口。 */
+
 // 默认角色 YUMEI 的配置
+/** 默认角色资料；参考图路径相对于前端公共资源目录。 */
 export const DEFAULT_GIRLFRIEND = {
   name: "YUMEI",
   personality:

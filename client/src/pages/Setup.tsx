@@ -1,3 +1,5 @@
+/** 创建或编辑角色资料、预设、参考图及自定义提示词。 */
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -50,6 +52,7 @@ const ALLOWED_AVATAR_TYPES = [
 ];
 const MAX_AVATAR_SIZE = 10 * 1024 * 1024; // 10MB
 
+/** 按路由进入创建或编辑模式，提交角色资料与选定或上传的参考图。 */
 export default function Setup() {
   const [, setLocation] = useLocation();
   const params = useParams<{ id?: string }>();

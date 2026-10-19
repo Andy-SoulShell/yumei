@@ -1,21 +1,18 @@
-/**
- * Long-term memory system — shared constants and pure scoring (M2).
- *
- * Memories are structured rows extracted
- * from conversations by a cheap LLM pass, then injected into the chat
- * system prompt by relevance. No vector database — at the per-companion
- * capacity below, in-process scoring over all rows is plenty.
- */
+/** 长期记忆的分类、容量限制、文本相似度与召回排序规则。 */
+
+/** 允许提取和持久化的记忆分类标识。 */
 
 export const MEMORY_CATEGORIES = [
-  "fact", // stable facts about the user (job, city, birthday…)
-  "preference", // likes / dislikes
-  "event", // things that happened or are planned ("interview tomorrow")
-  "relationship", // shared history with the companion ("our first chat…")
+  "fact", // 用户的稳定事实，例如工作、城市、生日
+  "preference", // 喜好与厌恶
+  "event", // 已发生或计划中的事件，例如明天面试
+  "relationship", // 与角色共同经历的关系记忆
 ] as const;
 
+/** 记忆分类，使用稳定英文标识与数据库对应。 */
 export type MemoryCategory = (typeof MEMORY_CATEGORIES)[number];
 
+/** 记忆分类在中文界面的展示名称。 */
 export const MEMORY_CATEGORY_LABELS: Record<MemoryCategory, string> = {
   fact: "关于你",
   preference: "你的喜好",
@@ -23,39 +20,37 @@ export const MEMORY_CATEGORY_LABELS: Record<MemoryCategory, string> = {
   relationship: "我们之间",
 };
 
-/** Extraction cadence: run once every N messages in a conversation. */
+/** 记忆提取间隔，按会话内用户与助手消息的总条数计算。 */
 export const EXTRACTION_EVERY_N_MESSAGES = 10;
 
-/** Max stored memory content length (chars). */
+/** 单条记忆保存的最大文本长度，按 JavaScript 字符串长度计算。 */
 export const MEMORY_MAX_LENGTH = 200;
 
-/**
- * intimacy tie-in: higher levels remember more…
- * level 1 → 30 memories, level 10 → 120.
- */
+/** 根据亲密度计算记忆容量，等级限制在 1 至 10，容量为 30 至 120 条。 */
 export function memoryCapacity(intimacyLevel: number): number {
   const level = Math.min(Math.max(intimacyLevel, 1), 10);
   return 20 + level * 10;
 }
 
-/** …and recall more per message: level 1 → 5, level 10 → 9. */
+/** 根据亲密度计算单次最多注入的记忆条数，现有等级范围返回 5 至 9。 */
 export function memoryInjectionK(intimacyLevel: number): number {
   const level = Math.min(Math.max(intimacyLevel, 1), 10);
   return Math.min(4 + Math.ceil(level / 2), 10);
 }
 
 // ---------------------------------------------------------------------------
-// Relevance scoring (pure, unit-tested)
+// 相关性评分纯函数。
 // ---------------------------------------------------------------------------
 
+/** 统一大小写并去掉常见空白和标点，供文本匹配使用。 */
 function normalizeForMatch(text: string): string {
-  // Strip whitespace + common ASCII/CJK punctuation. (No \p{P} escapes —
-  // the client tsconfig target doesn't allow the `u` regex flag.)
+  // 去除空白与常见中英文标点，供去重和关键词比较使用。
   return text
     .toLowerCase()
     .replace(/[\s!-/:-@[-`{-~。，、！？；：“”‘’（）《》【】…—·～\u3000]+/g, "");
 }
 
+/** 将相邻两个字符组成的片段去重，用于中英文混合文本匹配。 */
 function bigrams(text: string): Set<string> {
   const result = new Set<string>();
   for (let i = 0; i < text.length - 1; i++) {
@@ -65,8 +60,9 @@ function bigrams(text: string): Set<string> {
 }
 
 /**
- * Character-bigram overlap in [0, 1]: fraction of `a`'s bigrams present
- * in `b`. Works acceptably for mixed zh/en without a tokenizer.
+ * 计算 a 的双字符片段在 b 中出现的比例，返回 0 至 1。
+ *
+ * @remarks 结果具有方向性；任一规范化文本不足两个字符时返回 0。
  */
 export function bigramOverlap(a: string, b: string): number {
   const na = normalizeForMatch(a);
@@ -81,14 +77,10 @@ export function bigramOverlap(a: string, b: string): number {
   return hits / ba.size;
 }
 
-/** Two memory contents this similar are treated as duplicates. */
+/** 将相似记忆视为重复项的双字符重合阈值。 */
 export const DUPLICATE_THRESHOLD = 0.6;
 
-/**
- * Freshness factor in [0.5, 1]: exponential decay with a ~14-day
- * half-life toward the 0.5 floor. Recalling a memory refreshes it,
- * so frequently-relevant memories stay hot.
- */
+/** 按未触及时长计算新鲜度系数，结果从 1 指数衰减并趋近 0.5。 */
 export function timeDecayFactor(
   lastTouchedAt: Date,
   now: Date = new Date()
@@ -100,6 +92,7 @@ export function timeDecayFactor(
   return 0.5 + 0.5 * Math.exp(-days / 14);
 }
 
+/** 记忆排序所需的最小字段集合，权重范围为 0 至 100。 */
 export type ScorableMemory = {
   content: string;
   weight: number; // 0-100
@@ -108,16 +101,7 @@ export type ScorableMemory = {
   createdAt: Date;
 };
 
-/**
- * Relevance = base importance × freshness + keyword affinity + pin bonus.
- * Keyword affinity dominates when the user's message clearly touches a
- * memory; otherwise high-weight fresh memories float up.
- *
- * Affinity uses the max of both overlap directions: a short message
- * ("面试好紧张") hitting one key term of a longer memory should count,
- * and base score only spans ~0.5–1.0, so the multiplier is sized to let
- * any clear keyword hit outrank an unrelated high-weight memory.
- */
+/** 结合重要性、新鲜度、文本重合度与置顶状态计算召回分数。 */
 export function scoreMemory(
   memory: ScorableMemory,
   userMessage: string,

@@ -1,22 +1,33 @@
+/** 按住录音、上滑取消与松手提交的指针交互组件。 */
+
 import { Loader2, Mic } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 
+/** 父级维护的录音状态及开始、结束、取消回调。 */
 interface VoiceRecordButtonProps {
+  /** 录音状态由父组件或录音 Hook 驱动。 */
   isRecording: boolean;
+  /** 音频是否正在提交并等待转写。 */
   isTranscribing: boolean;
+  /** 当前录音时长，单位为秒。 */
   duration: number;
+  /** 按下录音按钮时触发，授权和开始录音由父组件处理。 */
   onStart: () => void;
+  /** 松开录音按钮且未进入取消区域时触发。 */
   onEnd: () => void;
+  /** 松开时处于取消区域则触发，父组件应丢弃录音。 */
   onCancel: () => void;
   disabled?: boolean;
 }
 
+/** 将秒数格式化为分秒文本，供录音按钮展示。 */
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
+/** 将按下、松开和取消手势转成父组件回调，并显示秒级录音状态。 */
 export function VoiceRecordButton({
   isRecording,
   isTranscribing,

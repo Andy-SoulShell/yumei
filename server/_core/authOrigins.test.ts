@@ -1,3 +1,5 @@
+/** 覆盖本机 Docker 登录可信来源。 */
+
 import { describe, expect, it } from "vitest";
 import { getTrustedAuthOrigins } from "./authOrigins";
 

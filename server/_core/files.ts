@@ -1,14 +1,10 @@
+/** 通过存储键提供媒体访问，本地流式返回，S3 使用五分钟预签名跳转。 */
+
 import type { Express, Request, Response } from "express";
 import path from "node:path";
 import { localFileStream, s3PresignedGetUrl } from "../storage";
 import { ENV } from "./env";
 import { log } from "./log";
-
-/**
- * Serves stored files by key: local streams or short-lived S3 redirects.
- * External AI services fetch these URLs without a session. Uploaded media
- * uses random keys; possession of the URL grants read access.
- */
 
 const MIME_BY_EXT: Record<string, string> = {
   ".png": "image/png",
@@ -24,6 +20,11 @@ const MIME_BY_EXT: Record<string, string> = {
   ".ogg": "audio/ogg",
 };
 
+/**
+ * 注册不要求会话的媒体读取路由，持有完整文件地址即可读取。
+ *
+ * @remarks 当前在错误捕获前再次解码路由参数；非法百分号输入的处理需后续加固。
+ */
 export function registerFileRoutes(app: Express) {
   app.get(/^\/files\/(.+)$/, async (req: Request, res: Response) => {
     const key = decodeURIComponent(req.params[0] ?? "");
@@ -46,7 +47,7 @@ export function registerFileRoutes(app: Express) {
       }
       const mime = MIME_BY_EXT[path.extname(key).toLowerCase()];
       res.setHeader("Content-Type", mime ?? "application/octet-stream");
-      // Immutable: keys are content-addressed by nanoid and never rewritten.
+      // 文件通常使用随机唯一键，响应按不可变资源缓存一天。
       res.setHeader("Cache-Control", "private, max-age=86400, immutable");
       stream.on("error", () => {
         if (!res.headersSent) res.status(500).json({ error: "Read failed" });

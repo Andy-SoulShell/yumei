@@ -1,69 +1,41 @@
-/**
- * Server-side credential resolver. User BYOK keys override operator keys
- * and are encrypted in the userKeys table.
- */
+/** Provider 密钥的服务端解析、保存与脱敏展示约定。 */
 
-/**
- * Logical key names. Adding a provider = add a name + a server-side
- * resolver that knows how to fetch the operator default for it.
- *
- * Treat the strings as stable identifiers — they're persisted in the
- * `userKeys.name` column and crossed against env vars.
- */
+/** 可持久化的用户 BYOK 密钥类型，与环境变量映射保持一致。 */
 export const KEY_NAMES = [
-  "openrouter", // LLM (default chat provider)
-  "fal", // image generation
-  "elevenlabs", // TTS provider 1
-  "fish-audio", // TTS provider 2
-  "openai", // OpenAI Whisper transcription
+  "openrouter", // OpenRouter 聊天
+  "fal", // 图像生成
+  "elevenlabs", // ElevenLabs 语音合成
+  "fish-audio", // Fish Audio 语音合成
+  "openai", // OpenAI Whisper 语音转写
 ] as const;
 
+/** 受支持 Provider 密钥的稳定名称。 */
 export type KeyName = (typeof KEY_NAMES)[number];
 
+/** 密钥解析范围：仅运营方，或指定用户并允许回退到运营方。 */
 export type KeyScope = "operator" | { userId: string };
 
+/** 客户端可读取的密钥设置状态，不包含完整明文。 */
 export type KeyDescription = {
-  /** Whether the user has uploaded a BYOK key for this provider. */
+  /** 用户是否保存了该 Provider 的 BYOK，不代表运营方是否配置。 */
   isSet: boolean;
-  /** Last 4 chars of the user's BYOK key, for UI display. Null if unset. */
+  /** 保存密钥的末四位；没有用户配置时为 null。 */
   lastFour: string | null;
-  /** When the user last set this key. Null if never set. */
+  /** 当前实现返回密钥记录创建时间；轮换密钥后该值不会同步更新。 */
   setAt: Date | null;
 };
 
+/** 运营方默认密钥和用户加密 BYOK 密钥的访问契约。 */
 export interface KeyProvider {
-  /**
-   * Resolve a key. Resolution order:
-   *   1. If `scope = { userId }` and the user has a BYOK key for `name`,
-   *      decrypt and return it.
-   *   2. Else if the operator has set the key for `name`,
-   *      return it.
-   *   3. Else return null.
-   *
-   * Callers wanting BYOK-or-fallback semantics should pass the user
-   * scope; this method handles the fallback internally.
-   *
-   * Pass `scope: "operator"` only if you explicitly need the operator
-   * default regardless of any per-user override (rare — almost always
-   * you want the user-scoped resolution).
-   */
+  /** 按范围解析明文；用户范围允许回退运营方，完全未配置时返回 null。 */
   get(scope: KeyScope, name: KeyName): Promise<string | null>;
 
-  /**
-   * Store an encrypted BYOK key for the given user. Replaces any
-   * existing key under the same name.
-   */
+  /** 将用户明文加密后保存，同 Provider 已有密钥会被替换。 */
   setUserKey(userId: string, name: KeyName, plaintext: string): Promise<void>;
 
-  /**
-   * Remove a user's BYOK key. After this call, `get({ userId }, name)`
-   * falls back to the operator key (if any).
-   */
+  /** 删除用户在指定 Provider 下的 BYOK 配置。 */
   clearUserKey(userId: string, name: KeyName): Promise<void>;
 
-  /**
-   * Describe a user's keys for safe display. Returns one entry per known
-   * KeyName; no plaintext is ever returned.
-   */
+  /** 返回可安全发送到前端的密钥状态，不返回完整明文。 */
   describeUserKeys(userId: string): Promise<Record<KeyName, KeyDescription>>;
 }

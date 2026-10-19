@@ -1,3 +1,5 @@
+/** 覆盖姿势解锁、合照权益和推送订阅。 */
+
 import { afterEach, describe, expect, it } from "vitest";
 import { nanoid } from "nanoid";
 import { appRouter } from "./routers";

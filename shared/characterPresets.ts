@@ -1,3 +1,6 @@
+/** 内置成年 AI 角色预设，供前端选择器与服务端参考图读取共同使用。 */
+
+/** 角色预设的展示信息、人物设定与内置参考图路径。 */
 export type CharacterPreset = {
   id: string;
   name: string;
@@ -11,6 +14,7 @@ export type CharacterPreset = {
   imageUrl: string;
 };
 
+/** 内置的八个角色模板；修改人物资料不影响预设原始定义。 */
 export const CHARACTER_PRESETS: readonly CharacterPreset[] = [
   {
     id: "xiaotao",
@@ -126,6 +130,11 @@ export const CHARACTER_PRESETS: readonly CharacterPreset[] = [
   },
 ];
 
+/**
+ * 按稳定的预设标识查找角色，未找到时返回 undefined。
+ *
+ * @param id - 预设标识，不接收任意文件路径
+ */
 export function getCharacterPreset(id: string) {
   return CHARACTER_PRESETS.find(preset => preset.id === id);
 }

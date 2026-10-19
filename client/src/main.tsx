@@ -1,3 +1,5 @@
+/** 前端启动入口，创建查询缓存、tRPC 客户端和 CSRF 请求头。 */
+
 import { trpc } from "@/lib/trpc";
 import { UNAUTHED_ERR_MSG } from "@shared/const";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -9,6 +11,7 @@ import "./index.css";
 
 const queryClient = new QueryClient();
 
+/** 识别共享的未登录错误标识，并跳转到登录页。 */
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
   if (typeof window === "undefined") return;
@@ -36,10 +39,7 @@ queryClient.getMutationCache().subscribe(event => {
   }
 });
 
-/**
- * Read a cookie by name from `document.cookie`. Returns undefined if not set.
- * Used to echo the CSRF token in the X-CSRF-Token header.
- */
+/** 从浏览器可读 Cookie 中提取并解码指定值，缺失时返回 undefined。 */
 function readCookie(name: string): string | undefined {
   if (typeof document === "undefined") return undefined;
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -55,9 +55,7 @@ const trpcClient = trpc.createClient({
       url: "/api/trpc",
       transformer: superjson,
       fetch(input, init) {
-        // Double-submit CSRF: read the csrf_token cookie set by the server
-        // (server/_core/csrf.ts) and echo it as X-CSRF-Token. Server-side
-        // middleware rejects mutations whose cookie ≠ header.
+        // 将服务端设置的 CSRF Cookie 回传到请求头，供写请求双提交校验。
         const csrfToken = readCookie("csrf_token");
         const headers = new Headers(init?.headers);
         if (csrfToken) headers.set("x-csrf-token", csrfToken);

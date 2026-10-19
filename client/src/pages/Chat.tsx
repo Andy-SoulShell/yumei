@@ -1,3 +1,5 @@
+/** 角色会话页面，组合文字、语音、自拍、记忆与养成反馈。 */
+
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +44,7 @@ const SPEED_OPTIONS = [
   { value: 2, label: "2x" },
 ];
 
+/** 协调浏览器与服务端 TTS 播放，保存自动播放和语速偏好，卸载时停止播放。 */
 function useTTS() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [autoPlay, setAutoPlay] = useState(() => {
@@ -58,7 +61,7 @@ function useTTS() {
   const { data: apiConfig } = trpc.apiConfig.get.useQuery();
   const ttsGenerate = trpc.tts.generate.useMutation();
 
-  // apiConfig.get now returns { preferences, keys }.
+  // 分别读取偏好与脱敏后的密钥状态。
   const ttsProvider = apiConfig?.preferences?.ttsProvider || "browser";
 
   // 更新播放速度
@@ -182,6 +185,7 @@ function useTTS() {
   };
 }
 
+/** 展示指定或当前角色的会话，协调消息发送、录音转写、图片生成和语音播放。 */
 export default function Chat() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();

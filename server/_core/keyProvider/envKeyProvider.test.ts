@@ -1,9 +1,9 @@
+/** 覆盖环境默认凭据、用户密钥回退及加密存储输入。 */
+
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { _resetEncryptionForTests } from "../encryption";
 import { EnvKeyProvider } from "./envKeyProvider";
 import * as dbModule from "../../db";
-
-/** Unit tests for environment-key resolution and mocked encrypted user-key storage. */
 
 const ORIGINAL_ENV = { ...process.env };
 

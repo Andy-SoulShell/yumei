@@ -1,3 +1,5 @@
+/** 覆盖亲密度等级、经验、夜间时段与衰减计算。 */
+
 import { describe, it, expect } from "vitest";
 import {
   getLevelByPoints,

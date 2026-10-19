@@ -1,12 +1,17 @@
+/** 亲密度升级后的过渡动画与自动关闭回调。 */
+
 import { useEffect, useState } from "react";
 import { getLevelInfo } from "../../../shared/intimacy";
 
+/** 升级动画的显示状态、目标等级与关闭回调。 */
 interface LevelUpAnimationProps {
   show: boolean;
   newLevel: number;
+  /** 动画结束或业务关闭时通知父组件。 */
   onClose: () => void;
 }
 
+/** 展示升级反馈，并在显示约四点二秒后触发关闭；卸载时清理动画计时器。 */
 export function LevelUpAnimation({
   show,
   newLevel,

@@ -1,3 +1,5 @@
+/** 覆盖记忆评分、提取解析、持久化和主动消息引用。 */
+
 import { describe, expect, it } from "vitest";
 import { nanoid } from "nanoid";
 import {

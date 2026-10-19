@@ -1,3 +1,5 @@
+/** 覆盖语音供应商接口与输入边界。 */
+
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";

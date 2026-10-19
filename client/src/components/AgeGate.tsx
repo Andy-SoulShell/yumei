@@ -1,3 +1,5 @@
+/** 成年确认入口，根据用户出生日期状态控制弹窗。 */
+
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -12,12 +14,9 @@ import {
 } from "@/components/ui/dialog";
 
 /**
- * One-time 18+ age confirmation.
+ * 引导已登录且尚未确认年龄的用户提交出生日期。
  *
- * Shown when the signed-in user has no confirmed birth date. The server
- * refuses AI routes until auth.confirmAge succeeds, so this gate is a
- * UX affordance on top of a real server-side check — not the check
- * itself. Copy is currently English-first.
+ * @remarks 成年条件仍由服务端校验，前端弹窗不构成独立权限保障。
  */
 export function AgeGate() {
   const { user, refresh, logout } = useAuth();
@@ -38,6 +37,7 @@ export function AgeGate() {
     },
   });
 
+  /** 受控的展开状态，实际状态由父组件维护。 */
   const open = Boolean(user) && !(user as any)?.birthDate;
   if (!open) return null;
 

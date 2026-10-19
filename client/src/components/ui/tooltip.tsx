@@ -1,8 +1,11 @@
+/** 指针悬停或键盘聚焦时显示的提示内容。 */
+
 import * as React from "react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 
 import { cn } from "@/lib/utils";
 
+/** 为提示组件提供共享的触发延迟配置。 */
 function TooltipProvider({
   delayDuration = 0,
   ...props
@@ -16,6 +19,7 @@ function TooltipProvider({
   );
 }
 
+/** 悬浮提示的状态根节点。 */
 function Tooltip({
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Root>) {
@@ -26,12 +30,14 @@ function Tooltip({
   );
 }
 
+/** 触发悬浮提示的交互节点。 */
 function TooltipTrigger({
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Trigger>) {
   return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />;
 }
 
+/** 通过浮层展示提示文本、箭头及开关动画。 */
 function TooltipContent({
   className,
   sideOffset = 0,

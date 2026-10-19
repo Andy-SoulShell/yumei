@@ -1,3 +1,5 @@
+/** 覆盖角色创建及激活角色读取。 */
+
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";

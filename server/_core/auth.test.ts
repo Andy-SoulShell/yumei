@@ -1,18 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+/** 覆盖认证实例和会话用户解析。 */
 
-/**
- * Tests for the Better-Auth instance + session helper.
- *
- * `auth.ts` constructs the Better-Auth instance lazily based on whether
- * `DATABASE_URL` is set. In test mode (NODE_ENV=test, no DATABASE_URL),
- * the module exports `auth = null`, and `getSessionUser` short-circuits
- * to `null` without ever touching a network or DB. We exercise both
- * paths here.
- *
- * The full auth handler — magic-link issuance, callback verification,
- * cookie setting — runs against a real DB and is covered by the smoke
- * test (TODO 9 in the handoff), not by unit tests.
- */
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const ORIGINAL_ENV = { ...process.env };
 

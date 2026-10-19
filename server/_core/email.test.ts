@@ -1,15 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+/** 覆盖登录邮件驱动选择、错误与正文。 */
 
-/**
- * Tests for the email driver abstraction.
- *
- * `email.ts` reads env vars eagerly inside `getDriver()` and caches the
- * resolved driver on a module-level singleton. To exercise different
- * env shapes per test we (a) override process.env, (b) reset modules so
- * a fresh `email.ts` is loaded, and (c) re-import.
- *
- * Resend and nodemailer are mocked so no network calls escape the test.
- */
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const ORIGINAL_ENV = { ...process.env };
 

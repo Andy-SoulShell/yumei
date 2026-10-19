@@ -1,6 +1,9 @@
+/** 解析聊天服务地址、模型及凭据，保持运营方默认与用户 BYOK 的优先关系。 */
+
 import { FREE_TIER_DEFAULT_MODEL } from "../../shared/quotas";
 import { keyProvider } from "./keyProvider";
 
+/** 一次聊天实际使用的 Provider、模型、基础地址与服务端密钥。 */
 export type ChatProvider = {
   name: "openrouter" | "deepseek";
   baseUrl: string;
@@ -8,6 +11,7 @@ export type ChatProvider = {
   apiKey: string | null;
 };
 
+/** 按环境选择 DeepSeek 或 OpenRouter 的运营方默认配置。 */
 export function getOperatorChatProvider(): ChatProvider {
   if (process.env.LLM_PROVIDER === "deepseek") {
     return {
@@ -25,6 +29,11 @@ export function getOperatorChatProvider(): ChatProvider {
   };
 }
 
+/**
+ * 解析用户聊天配置，用户 OpenRouter BYOK 优先于运营方默认服务。
+ *
+ * @remarks DeepSeek 与 OpenRouter 密钥分别使用，禁止交叉转发。
+ */
 export async function resolveChatProvider(
   userId: string
 ): Promise<ChatProvider> {

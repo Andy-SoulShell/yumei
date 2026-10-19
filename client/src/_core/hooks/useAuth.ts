@@ -1,12 +1,22 @@
+/** 统一读取当前用户、处理退出及可选的未登录跳转。 */
+
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback, useEffect, useMemo } from "react";
 
+/** 认证 Hook 的跳转选项；默认仅返回状态，不主动改变页面。 */
 type UseAuthOptions = {
+  /** 认证查询完成后，未登录时是否跳转，默认 false。 */
   redirectOnUnauthenticated?: boolean;
+  /** 未登录时跳转的路径，默认 /login。 */
   redirectPath?: string;
 };
 
+/**
+ * 订阅当前用户查询并提供刷新和退出操作。
+ *
+ * @remarks 退出调用当前 tRPC Cookie 清理接口并刷新认证缓存；其他业务缓存不在此处清理。
+ */
 export function useAuth(options?: UseAuthOptions) {
   const { redirectOnUnauthenticated = false, redirectPath = "/login" } =
     options ?? {};

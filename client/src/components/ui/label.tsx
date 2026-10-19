@@ -1,8 +1,11 @@
+/** 关联表单控件的文本标签。 */
+
 import * as React from "react";
 import * as LabelPrimitive from "@radix-ui/react-label";
 
 import { cn } from "@/lib/utils";
 
+/** 将可访问标签与表单控件关联。 */
 function Label({
   className,
   ...props

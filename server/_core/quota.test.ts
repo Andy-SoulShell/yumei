@@ -1,3 +1,5 @@
+/** 覆盖请求频率、行为冷却与数据库每日计量。 */
+
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   checkRateLimit,

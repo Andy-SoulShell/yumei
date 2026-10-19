@@ -1,3 +1,5 @@
+/** 覆盖录音转写输入及套餐与凭据检查。 */
+
 import { describe, it, expect } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";

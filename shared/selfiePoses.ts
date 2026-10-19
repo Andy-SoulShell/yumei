@@ -1,25 +1,20 @@
-/**
- * Intimacy-gated selfie pose library.
- *
- * The intimacy levels have promised these unlocks since v3.0
- * (`shared/intimacy.ts` → unlocks: 撒娇 Lv2 / 亲密 Lv3 / 诱惑 Lv5) — this
- * module makes them real. Each pose contributes an English prompt
- * fragment consumed by `buildSmartPrompt`; all content is intentionally
- * tasteful/SFW.
- */
+/** 自拍姿势定义及基于亲密度的解锁查询。 */
+
+/** 自拍姿势的稳定标识、展示文案、提示词片段和最低解锁等级。 */
 
 export interface SelfiePose {
   id: string;
   label: string;
   emoji: string;
-  /** Minimum intimacy level (1-10) required to use this pose. */
+  /** 使用该姿势所需的最低亲密度等级，范围为 1 至 10。 */
   minLevel: number;
-  /** English scene fragment appended into the image prompt. */
+  /** 附加到图片提示词中的英文场景片段。 */
   promptFragment: string;
-  /** Force a selfie mode; "auto" keeps keyword detection. */
+  /** 指定自拍构图模式，auto 表示继续按场景关键词判断。 */
   mode: "mirror" | "direct" | "auto";
 }
 
+/** 按解锁阶段排列的姿势列表，服务端仍需校验实际权限。 */
 export const SELFIE_POSES: SelfiePose[] = [
   {
     id: "casual",
@@ -102,10 +97,12 @@ export const SELFIE_POSES: SelfiePose[] = [
   },
 ];
 
+/** 按姿势标识查找定义，未知标识返回 undefined。 */
 export function getPose(id: string): SelfiePose | undefined {
   return SELFIE_POSES.find(p => p.id === id);
 }
 
+/** 返回给定亲密度等级已解锁的全部姿势。 */
 export function posesForLevel(level: number): SelfiePose[] {
   return SELFIE_POSES.filter(p => p.minLevel <= level);
 }

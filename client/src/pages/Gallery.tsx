@@ -1,3 +1,5 @@
+/** 用户相册页面，支持角色筛选、图片下载与记录删除。 */
+
 import { Button } from "@/components/ui/button";
 import { SelfieGalleryGrid } from "@/components/SelfieGalleryGrid";
 import { trpc } from "@/lib/trpc";
@@ -12,6 +14,7 @@ import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
 
+/** 读取当前用户自拍并展示相册网格，将下载与删除反馈同步到查询缓存。 */
 export default function Gallery() {
   const [, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();

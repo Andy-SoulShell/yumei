@@ -1,8 +1,15 @@
+/** 邮箱链接登录页面，使用同源 Better-Auth 客户端发起登录。 */
+
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 
+/**
+ * 收集邮箱并请求登录链接，展示发送状态与失败信息。
+ *
+ * @remarks 实际发信行为由服务端驱动决定，stdout 模式仅将链接写入本地日志。
+ */
 export default function Login() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);

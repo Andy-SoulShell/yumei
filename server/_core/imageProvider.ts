@@ -1,3 +1,5 @@
+/** 解析图片服务并统一调用 ComfyUI 或 fal.ai，返回待保存的图片字节。 */
+
 import axios from "axios";
 import { keyProvider } from "./keyProvider";
 import {
@@ -7,6 +9,7 @@ import {
 } from "./comfyui";
 import { storageRead } from "../storage";
 
+/** 图片服务解析结果；isByok 表示是否使用用户自带的 fal.ai 密钥。 */
 export type ImageProvider = {
   name: "fal" | "comfyui";
   apiKey: string | null;
@@ -14,6 +17,7 @@ export type ImageProvider = {
   configured: boolean;
 };
 
+/** 优先使用用户 fal.ai BYOK，否则使用运营方选定的图片服务。 */
 export async function resolveImageProvider(
   userId: string
 ): Promise<ImageProvider> {
@@ -31,8 +35,10 @@ export async function resolveImageProvider(
   return { name: "fal", apiKey, configured: !!apiKey, isByok };
 }
 
+/** 角色或用户参考图的存储键与外部服务可读取的地址。 */
 type Reference = { key: string; url: string };
 
+/** 按存储键读取参考图，并根据文件头识别受支持的图片类型。 */
 async function readReference(reference: Reference): Promise<ImageInput> {
   const data = await storageRead(reference.key);
   const mimeType = data.subarray(0, 4).equals(Buffer.from([137, 80, 78, 71]))
@@ -50,6 +56,11 @@ async function readReference(reference: Reference): Promise<ImageInput> {
   return { data, mimeType };
 }
 
+/**
+ * 调用当前图片服务完成生成并下载结果。
+ *
+ * @remarks ComfyUI 使用服务端上传的字节，fal.ai 使用参考图 URL；此处不写入数据库或计量。
+ */
 export async function generateProviderImage(
   provider: ImageProvider,
   params: {

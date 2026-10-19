@@ -1,12 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+/** 覆盖启动环境变量校验及环境边界。 */
 
-/**
- * Tests for: JWT_SECRET fail-fast at boot.
- *
- * `env.ts` parses `process.env` at module load. To exercise different
- * `process.env` shapes we save/restore env, then `vi.resetModules()` and
- * dynamically import `./env` per test.
- */
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 const ORIGINAL_ENV = { ...process.env };
 

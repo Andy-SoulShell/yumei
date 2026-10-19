@@ -1,3 +1,5 @@
+/** 指定角色的长期记忆列表与用户管理入口。 */
+
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,14 +21,7 @@ import {
 import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 
-/**
- * 「她记得你的事」。
- *
- * Memory transparency page: everything the companion has learned about
- * the user, grouped by category — deletable and pinnable. This doubles
- * as the privacy surface: users can see and control exactly what's
- * stored about them.
- */
+/** 读取角色记忆，并提供置顶、取消置顶和删除操作。 */
 export default function Memories() {
   const params = useParams<{ id: string }>();
   const girlfriendId = Number(params.id);

@@ -1,15 +1,9 @@
 // @vitest-environment jsdom
 
+/** 覆盖HTML 标签剥离及 Markdown 文本保留。 */
+
 import { describe, it, expect } from "vitest";
 import { sanitizeForMarkdown } from "./sanitize";
-
-/**
- * Tests for: stored XSS via LLM-emitted HTML in chat messages.
- *
- * `dompurify` requires a DOM. The vitest config defaults to a node
- * environment for server tests; this file opts into jsdom via the
- * `@vitest-environment jsdom` directive above.
- */
 
 describe("sanitizeForMarkdown", () => {
   it("preserves plain text and markdown syntax verbatim", () => {

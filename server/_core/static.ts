@@ -1,7 +1,10 @@
+/** 生产环境前端静态资源与单页应用回退。 */
+
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
 
+/** 将生产构建目录作为静态站点，并将其余页面请求回退到入口 HTML。 */
 export function serveStatic(app: Express) {
   const distPath =
     process.env.NODE_ENV === "development"

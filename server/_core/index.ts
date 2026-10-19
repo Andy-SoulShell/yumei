@@ -1,3 +1,5 @@
+/** 应用启动入口，负责配置、迁移、健康探针、中间件顺序和优雅退出。 */
+
 import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
@@ -19,6 +21,7 @@ import { getOperatorChatProvider } from "./chatProvider";
 import { getDb } from "../db";
 import { serveStatic } from "./static";
 
+/** 通过临时绑定检测目标 TCP 端口是否可用。 */
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
     const server = net.createServer();
@@ -29,6 +32,7 @@ function isPortAvailable(port: number): Promise<boolean> {
   });
 }
 
+/** 开发环境从指定端口起查找可用端口，达到搜索边界后抛出错误。 */
 async function findAvailablePort(startPort: number = 3000): Promise<number> {
   for (let port = startPort; port < startPort + 20; port++) {
     if (await isPortAvailable(port)) {
@@ -38,13 +42,9 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
-/**
- * Boot self-checks. Fail fast on broken config instead of
- * "starting" into a state where every request errors.
- */
+/** 验证数据库连接及本地存储写入，生产启动时自动应用已有迁移。 */
 async function runBootChecks() {
-  // 1. Database reachable + migrations applied (production applies them
-  //    automatically so `docker compose up` works on a fresh volume).
+  // 生产自动应用迁移，使新数据卷可直接启动。
   const db = await getDb();
   if (!db) {
     throw new Error(
@@ -58,7 +58,7 @@ async function runBootChecks() {
   }
   await db.execute(sql`SELECT 1`);
 
-  // 2. Storage writable (local driver only; S3 config is env-validated).
+  // 本地存储执行写入探针；S3 此处仅有启动配置校验。
   if (ENV.storageDriver === "local") {
     const probe = path.join(ENV.storageLocalDir, ".boot-probe");
     await mkdir(ENV.storageLocalDir, { recursive: true });
@@ -66,9 +66,7 @@ async function runBootChecks() {
     await rm(probe, { force: true });
   }
 
-  // 3. Operator AI keys. Chat is the core loop, so a missing chat
-  //    key gets a loud warning (BYOK-only self-hosts are still valid, so
-  //    this is not fatal). Selfies degrade gracefully in the UI.
+  // 缺少运营方密钥时告警，仍允许仅使用 BYOK 的自托管部署启动。
   const chatProvider = getOperatorChatProvider();
   if (!chatProvider.apiKey) {
     console.warn(
@@ -85,20 +83,23 @@ async function runBootChecks() {
   }
 }
 
+/**
+ * 按顺序装配 Express、认证、文件路由与 tRPC，并监听端口。
+ *
+ * @remarks 生产端口占用时直接失败；开发模式可选择后续可用端口。
+ */
 async function startServer() {
   await runBootChecks();
 
   const app = express();
   const server = createServer(app);
-  // Billing webhook mounts BEFORE the JSON parser — Lemon Squeezy
-  // signature verification needs the raw request bytes (M3).
+  // 支付签名校验依赖原始字节，必须先于 JSON 解析器注册。
   registerBillingRoutes(app);
-  // Configure body parser with larger size limit for file uploads
+  // 上传包含编码后的媒体内容，因此将请求体上限设为 50 MB。
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-  // Health probes: /healthz is liveness (always cheap 200),
-  // /readyz pings the DB so orchestrators can gate traffic on it.
+  // healthz 检查进程存活；readyz 额外检查数据库，供流量调度使用。
   app.get("/healthz", (_req, res) => {
     res.json({ ok: true });
   });
@@ -113,17 +114,15 @@ async function startServer() {
     }
   });
 
-  // CSRF: set the double-submit cookie on every request — must run before
-  // any state-changing handler. See server/_core/csrf.ts.
+  // 在业务写请求处理前设置双提交 CSRF Cookie。
   app.use(csrfCookieMiddleware);
-  // Better-Auth handles /api/auth/* (magic-link, session, etc.).
-  // Mounted before tRPC so auth endpoints are not behind CSRF verify.
+  // 认证路由由 Better-Auth 自行校验来源，先于 tRPC 的 CSRF 校验挂载。
   if (auth) {
     app.all("/api/auth/*", toNodeHandler(auth.handler));
   }
-  // Stored file reads (local stream / S3 presigned redirect).
+  // 媒体读取：本地文件流或 S3 预签名跳转。
   registerFileRoutes(app);
-  // tRPC API — verify CSRF token on every state-changing request.
+  // tRPC 的写请求必须通过 CSRF 令牌校验。
   app.use(
     "/api/trpc",
     csrfVerifyMiddleware,
@@ -132,7 +131,7 @@ async function startServer() {
       createContext,
     })
   );
-  // development mode uses Vite, production mode uses static files
+  // 开发使用 Vite 中间件，其他环境返回已构建的静态文件。
   if (process.env.NODE_ENV === "development") {
     const { setupVite } = await import("./vite");
     await setupVite(app, server);
@@ -144,8 +143,7 @@ async function startServer() {
   let port = preferredPort;
   if (!(await isPortAvailable(preferredPort))) {
     if (ENV.isProduction) {
-      // Silently drifting off $PORT in production means the
-      // load balancer routes traffic into the void. Fail loudly instead.
+      // 生产端口由入口代理约定，占用时应失败，避免服务与代理端口错位。
       throw new Error(
         `Port ${preferredPort} is already in use. Refusing to auto-shift ports in production.`
       );
@@ -158,14 +156,14 @@ async function startServer() {
     console.log(`Server running on http://localhost:${port}/`);
   });
 
-  // hourly proactive-message push (no-op without VAPID keys).
+  // 每小时检查主动消息推送；缺少配对 VAPID 密钥时不启动调度。
   startProactivePushScheduler();
 
-  // Graceful shutdown: stop accepting connections, drain, exit.
+  // 收到退出信号后停止接收新连接，等待现有连接处理完毕。
   const shutdown = (signal: string) => {
     console.log(`[boot] ${signal} received, shutting down`);
     server.close(() => process.exit(0));
-    // Hard exit if draining takes too long (e.g. hung upstream call).
+    // 最多等待十秒，避免挂起的上游请求阻止退出。
     setTimeout(() => process.exit(1), 10_000).unref();
   };
   process.on("SIGTERM", () => shutdown("SIGTERM"));

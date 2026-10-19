@@ -1,3 +1,5 @@
+/** 内置角色预设的画风筛选与受控选择界面。 */
+
 import { useState } from "react";
 import { Check, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,11 +8,14 @@ import {
   type CharacterPreset,
 } from "@shared/characterPresets";
 
+/** 展示内置预设并通过回调返回选择，选择 null 表示从零自定义。 */
 export function CharacterPresetPicker({
   selectedId,
   onSelect,
 }: {
+  /** 当前选中预设标识，null 表示自定义角色。 */
   selectedId: string | null;
+  /** 选择预设时返回完整资料；选择从零创建时返回 null。 */
   onSelect: (preset: CharacterPreset | null) => void;
 }) {
   const [style, setStyle] = useState<"all" | CharacterPreset["style"]>("all");

@@ -1,12 +1,17 @@
+/** 移动端边缘返回与下拉刷新手势，负责注册和移除 DOM 监听器。 */
+
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useLocation } from "wouter";
 
 /**
- * 左滑返回手势 Hook
- * 从屏幕左边缘开始向右滑动触发返回
+ * 监听从左边缘向右滑动的手势，达到阈值后调用浏览器历史返回。
+ *
+ * @param options - 是否启用，以及以像素为单位的触发距离
+ * @remarks 卸载或配置变化时移除监听和临时指示器。
  */
 export function useSwipeBack(options?: {
   enabled?: boolean;
+  /** 触发阈值，单位为像素。 */
   threshold?: number;
 }) {
   const { enabled = true, threshold = 80 } = options ?? {};
@@ -130,12 +135,15 @@ export function useSwipeBack(options?: {
 }
 
 /**
- * 下拉刷新 Hook
- * 在页面顶部下拉触发刷新回调
+ * 在容器顶部识别下拉手势，达到阈值后执行刷新并返回展示状态。
+ *
+ * @param options - 刷新回调、启用状态、像素阈值和可选滚动容器
+ * @remarks 刷新失败时仍恢复视觉状态；调用方需要处理业务错误。
  */
 export function usePullToRefresh(options: {
   onRefresh: () => Promise<void> | void;
   enabled?: boolean;
+  /** 触发阈值，单位为像素。 */
   threshold?: number;
   containerRef?: React.RefObject<HTMLElement | null>;
 }) {

@@ -1,8 +1,11 @@
+/** 布尔状态的开关控件。 */
+
 import * as React from "react";
 import * as SwitchPrimitive from "@radix-ui/react-switch";
 
 import { cn } from "@/lib/utils";
 
+/** 带开关滑块、焦点与禁用样式的布尔选择控件。 */
 function Switch({
   className,
   ...props

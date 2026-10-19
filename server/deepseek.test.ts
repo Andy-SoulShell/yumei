@@ -1,3 +1,5 @@
+/** 覆盖DeepSeek 聊天、记忆及用户 BYOK 优先关系。 */
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import axios from "axios";
 import * as db from "./db";

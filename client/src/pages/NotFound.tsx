@@ -1,8 +1,11 @@
+/** 未匹配到应用路由时展示的回首页页面。 */
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle, Home } from "lucide-react";
 import { useLocation } from "wouter";
 
+/** 展示页面不存在提示并提供返回首页操作。 */
 export default function NotFound() {
   const [, setLocation] = useLocation();
 

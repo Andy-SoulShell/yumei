@@ -1,3 +1,5 @@
+/** MySQL 表结构与派生的读写类型。表间关系目前主要由业务代码维护，生成迁移只依赖实际字段定义。 */
+
 import {
   date,
   int,
@@ -10,7 +12,7 @@ import {
   boolean,
 } from "drizzle-orm/mysql-core";
 
-/** Better-Auth user profile and application role. IDs are shared across auth tables. */
+/** 用户资料、认证邮箱、应用角色与成年确认信息。 */
 export const users = mysqlTable("users", {
   id: varchar("id", { length: 255 }).primaryKey(),
   name: text("name"),
@@ -18,22 +20,19 @@ export const users = mysqlTable("users", {
   emailVerified: boolean("emailVerified").default(false).notNull(),
   image: text("image"),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
-  // Age gate: set once via auth.confirmAge (validated 18+ server-
-  // side). AI routes refuse to run while this is null.
+  // auth.confirmAge 校验成年后写入；未确认时拒绝 AI 请求。
   birthDate: date("birthDate"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
+/** 从 users 表结构推导的数据库读取记录。 */
 export type User = typeof users.$inferSelect;
+/** 从 users 表结构推导的新增记录输入，允许省略由数据库填充的字段。 */
 export type InsertUser = typeof users.$inferInsert;
 
-/**
- * Better-Auth session table. Sessions are looked up by the `token`
- * carried in the session cookie. One row per active session
- * per device. `expiresAt` is hard-deleted by Better-Auth's cleanup.
- */
+/** Better-Auth 会话记录，客户端通过 token 而不是记录 id 关联会话。 */
 export const sessions = mysqlTable("sessions", {
   id: varchar("id", { length: 255 }).primaryKey(),
   userId: varchar("userId", { length: 255 }).notNull(),
@@ -45,9 +44,10 @@ export const sessions = mysqlTable("sessions", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+/** 从 sessions 表结构推导的数据库读取记录。 */
 export type Session = typeof sessions.$inferSelect;
 
-/** Better-Auth account records; password and social login are not enabled. */
+/** Better-Auth 账号关联结构；当前未启用密码及社交登录。 */
 export const accounts = mysqlTable("accounts", {
   id: varchar("id", { length: 255 }).primaryKey(),
   userId: varchar("userId", { length: 255 }).notNull(),
@@ -59,16 +59,12 @@ export const accounts = mysqlTable("accounts", {
   accessTokenExpiresAt: timestamp("accessTokenExpiresAt"),
   refreshTokenExpiresAt: timestamp("refreshTokenExpiresAt"),
   scope: text("scope"),
-  password: text("password"), // unused (we don't do password auth)
+  password: text("password"), // 当前邮箱链接登录不使用密码
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-/**
- * Better-Auth `verifications` table — short-lived single-use tokens
- * used by the magic-link plugin (and the email-verification, password-
- * reset etc. flows we haven't enabled).
- */
+/** 邮箱链接登录使用的短期验证记录与过期时间。 */
 export const verifications = mysqlTable("verifications", {
   id: varchar("id", { length: 255 }).primaryKey(),
   identifier: varchar("identifier", { length: 320 }).notNull(),
@@ -78,10 +74,7 @@ export const verifications = mysqlTable("verifications", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-/**
- * Girlfriend configuration table
- * Stores personality, appearance description, and reference images
- */
+/** 角色资料、参考图、激活状态与亲密度数据，deletedAt 表示回收站状态。 */
 export const girlfriends = mysqlTable("girlfriends", {
   id: int("id").autoincrement().primaryKey(),
   userId: varchar("userId", { length: 255 }).notNull(),
@@ -104,13 +97,12 @@ export const girlfriends = mysqlTable("girlfriends", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+/** 从 girlfriends 表结构推导的数据库读取记录。 */
 export type Girlfriend = typeof girlfriends.$inferSelect;
+/** 从 girlfriends 表结构推导的新增记录输入，允许省略由数据库填充的字段。 */
 export type InsertGirlfriend = typeof girlfriends.$inferInsert;
 
-/**
- * Conversation sessions table
- * Each conversation is a separate chat session
- */
+/** 用户与角色的一次会话，消息通过 conversationId 关联。 */
 export const conversations = mysqlTable("conversations", {
   id: int("id").autoincrement().primaryKey(),
   userId: varchar("userId", { length: 255 }).notNull(),
@@ -120,13 +112,12 @@ export const conversations = mysqlTable("conversations", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+/** 从 conversations 表结构推导的数据库读取记录。 */
 export type Conversation = typeof conversations.$inferSelect;
+/** 从 conversations 表结构推导的新增记录输入，允许省略由数据库填充的字段。 */
 export type InsertConversation = typeof conversations.$inferInsert;
 
-/**
- * Messages table
- * Stores all chat messages (user and AI)
- */
+/** 会话中的用户或助手消息，也可关联图片消息与存储键。 */
 export const messages = mysqlTable("messages", {
   id: int("id").autoincrement().primaryKey(),
   conversationId: int("conversationId").notNull(),
@@ -138,13 +129,12 @@ export const messages = mysqlTable("messages", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+/** 从 messages 表结构推导的数据库读取记录。 */
 export type Message = typeof messages.$inferSelect;
+/** 从 messages 表结构推导的新增记录输入，允许省略由数据库填充的字段。 */
 export type InsertMessage = typeof messages.$inferInsert;
 
-/**
- * Selfies table
- * Stores all generated selfie images for gallery view
- */
+/** 生成照片的相册元数据，实际媒体文件由存储驱动管理。 */
 export const selfies = mysqlTable("selfies", {
   id: int("id").autoincrement().primaryKey(),
   userId: varchar("userId", { length: 255 }).notNull(),
@@ -158,10 +148,12 @@ export const selfies = mysqlTable("selfies", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+/** 从 selfies 表结构推导的数据库读取记录。 */
 export type Selfie = typeof selfies.$inferSelect;
+/** 从 selfies 表结构推导的新增记录输入，允许省略由数据库填充的字段。 */
 export type InsertSelfie = typeof selfies.$inferInsert;
 
-/** Per-user model, voice and prompt preferences. Credentials live in userKeys. */
+/** 用户模型、语音和提示词偏好；完整凭据保存在独立密钥表。 */
 export const apiConfigs = mysqlTable("apiConfigs", {
   id: int("id").autoincrement().primaryKey(),
   userId: varchar("userId", { length: 255 }).notNull().unique(),
@@ -184,24 +176,18 @@ export const apiConfigs = mysqlTable("apiConfigs", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+/** 从 apiConfigs 表结构推导的数据库读取记录。 */
 export type ApiConfig = typeof apiConfigs.$inferSelect;
+/** 从 apiConfigs 表结构推导的新增记录输入，允许省略由数据库填充的字段。 */
 export type InsertApiConfig = typeof apiConfigs.$inferInsert;
 
-/**
- * Encrypted per-user BYOK API keys (issue #2).
- *
- * One row per (user, provider). The `encryptedValue` column holds a
- * `pack`-formatted ciphertext from `server/_core/encryption.ts`
- * (AES-256-GCM under a server-derived data key). `lastFour` is the
- * trailing 4 plaintext chars, kept so the UI can render
- * "API key set ✓ (...XXXX)" without needing to decrypt.
- */
+/** 按用户与 Provider 唯一保存的加密 BYOK 密钥及脱敏展示信息。 */
 export const userKeys = mysqlTable(
   "userKeys",
   {
     id: int("id").autoincrement().primaryKey(),
     userId: varchar("userId", { length: 255 }).notNull(),
-    // Logical key name; matches `KeyName` in server/_core/keyProvider/types.ts.
+    // 逻辑密钥名，对应 KeyProvider 的 KeyName。
     name: varchar("name", { length: 64 }).notNull(),
     encryptedValue: text("encryptedValue").notNull(),
     lastFour: varchar("lastFour", { length: 8 }),
@@ -216,13 +202,12 @@ export const userKeys = mysqlTable(
   })
 );
 
+/** 从 userKeys 表结构推导的数据库读取记录。 */
 export type UserKey = typeof userKeys.$inferSelect;
+/** 从 userKeys 表结构推导的新增记录输入，允许省略由数据库填充的字段。 */
 export type InsertUserKey = typeof userKeys.$inferInsert;
 
-/**
- * Girlfriend mood tracking table
- * Tracks mood changes based on chat content and frequency
- */
+/** 角色心情、最近聊天时间和消息计数，业务更新按用户与角色定位。 */
 export const girlfriendMoods = mysqlTable("girlfriendMoods", {
   id: int("id").autoincrement().primaryKey(),
   userId: varchar("userId", { length: 255 }).notNull(),
@@ -237,7 +222,7 @@ export const girlfriendMoods = mysqlTable("girlfriendMoods", {
   ])
     .default("happy")
     .notNull(),
-  moodScore: int("moodScore").default(70).notNull(), // 0-100, higher = happier
+  moodScore: int("moodScore").default(70).notNull(), // 范围 0～100，越高表示越开心
   lastChatAt: timestamp("lastChatAt"),
   totalMessages: int("totalMessages").default(0).notNull(),
   todayMessages: int("todayMessages").default(0).notNull(),
@@ -246,13 +231,12 @@ export const girlfriendMoods = mysqlTable("girlfriendMoods", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+/** 从 girlfriendMoods 表结构推导的数据库读取记录。 */
 export type GirlfriendMood = typeof girlfriendMoods.$inferSelect;
+/** 从 girlfriendMoods 表结构推导的新增记录输入，允许省略由数据库填充的字段。 */
 export type InsertGirlfriendMood = typeof girlfriendMoods.$inferInsert;
 
-/**
- * Notifications table
- * Stores push notifications from girlfriends (proactive messages)
- */
+/** 角色发给用户的站内通知，包含类型、正文与已读状态。 */
 export const notifications = mysqlTable("notifications", {
   id: int("id").autoincrement().primaryKey(),
   userId: varchar("userId", { length: 255 }).notNull(),
@@ -272,17 +256,12 @@ export const notifications = mysqlTable("notifications", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+/** 从 notifications 表结构推导的数据库读取记录。 */
 export type Notification = typeof notifications.$inferSelect;
+/** 从 notifications 表结构推导的新增记录输入，允许省略由数据库填充的字段。 */
 export type InsertNotification = typeof notifications.$inferInsert;
 
-/**
- * Usage meters.
- *
- * One row per (user, period, meter). `period` is a UTC day (`YYYY-MM-DD`)
- * for daily free-tier caps; monthly billing meters will use `YYYY-MM`.
- * Increments are atomic (`INSERT ... ON DUPLICATE KEY UPDATE`), so the
- * caps hold under concurrent requests.
- */
+/** 按用户、UTC 周期和计量名称唯一保存的消费计数。 */
 export const usageMeters = mysqlTable(
   "usageMeters",
   {
@@ -303,15 +282,12 @@ export const usageMeters = mysqlTable(
   })
 );
 
+/** 从 usageMeters 表结构推导的数据库读取记录。 */
 export type UsageMeter = typeof usageMeters.$inferSelect;
+/** 从 usageMeters 表结构推导的新增记录输入，允许省略由数据库填充的字段。 */
 export type InsertUsageMeter = typeof usageMeters.$inferInsert;
 
-/**
- * Long-term memories. One row per extracted fact/preference/event/
- * relationship note about the user, scoped to a companion. Selection and
- * scoring live in shared/memory.ts + server/memory.ts. `pinned` rows are
- * user-curated: never auto-evicted, scoring bonus at recall time.
- */
+/** 角色范围内的用户长期记忆，包含分类、重要性、置顶与召回时间。 */
 export const memories = mysqlTable(
   "memories",
   {
@@ -327,7 +303,7 @@ export const memories = mysqlTable(
       .default("fact")
       .notNull(),
     content: varchar("content", { length: 300 }).notNull(),
-    weight: int("weight").default(50).notNull(), // 0-100 importance
+    weight: int("weight").default(50).notNull(), // 重要度范围 0～100
     pinned: boolean("pinned").default(false).notNull(),
     sourceMessageId: int("sourceMessageId"),
     lastRecalledAt: timestamp("lastRecalledAt"),
@@ -342,16 +318,12 @@ export const memories = mysqlTable(
   })
 );
 
+/** 从 memories 表结构推导的数据库读取记录。 */
 export type Memory = typeof memories.$inferSelect;
+/** 从 memories 表结构推导的新增记录输入，允许省略由数据库填充的字段。 */
 export type InsertMemory = typeof memories.$inferInsert;
 
-/**
- * Subscriptions: one row per user, driven entirely by
- * Lemon Squeezy webhooks. `status` mirrors LS subscription statuses;
- * "service until period end" on cancellation comes from honoring
- * `endsAt` rather than the status alone. Self-host deployments
- * (BILLING_PROVIDER=none) never write here.
- */
+/** 每用户当前的外部订阅快照，由经验证的支付事件更新。 */
 export const subscriptions = mysqlTable("subscriptions", {
   id: int("id").autoincrement().primaryKey(),
   userId: varchar("userId", { length: 255 }).notNull().unique(),
@@ -378,14 +350,12 @@ export const subscriptions = mysqlTable("subscriptions", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+/** 从 subscriptions 表结构推导的数据库读取记录。 */
 export type Subscription = typeof subscriptions.$inferSelect;
+/** 从 subscriptions 表结构推导的新增记录输入，允许省略由数据库填充的字段。 */
 export type InsertSubscription = typeof subscriptions.$inferInsert;
 
-/**
- * Web Push subscriptions. One row per browser endpoint; a user
- * can have several (phone + desktop). Endpoints are pruned when a push
- * delivery returns 404/410.
- */
+/** 按浏览器端点唯一保存的 Web Push 订阅与投递密钥。 */
 export const pushSubscriptions = mysqlTable("pushSubscriptions", {
   id: int("id").autoincrement().primaryKey(),
   userId: varchar("userId", { length: 255 }).notNull(),
@@ -395,5 +365,7 @@ export const pushSubscriptions = mysqlTable("pushSubscriptions", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+/** 从 pushSubscriptions 表结构推导的数据库读取记录。 */
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+/** 从 pushSubscriptions 表结构推导的新增记录输入，允许省略由数据库填充的字段。 */
 export type InsertPushSubscription = typeof pushSubscriptions.$inferInsert;

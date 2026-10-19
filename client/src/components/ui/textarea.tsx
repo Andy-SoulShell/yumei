@@ -1,8 +1,11 @@
+/** 支持输入法组合保护的多行输入框。 */
+
 import { useDialogComposition } from "@/components/ui/dialog";
 import { useComposition } from "@/hooks/useComposition";
 import { cn } from "@/lib/utils";
 import * as React from "react";
 
+/** 提供多行输入，并协调输入法组合事件与对话框状态。 */
 function Textarea({
   className,
   onKeyDown,
@@ -10,29 +13,27 @@ function Textarea({
   onCompositionEnd,
   ...props
 }: React.ComponentProps<"textarea">) {
-  // Get dialog composition context if available (will be no-op if not inside Dialog)
+  // 对话框外使用空操作上下文，框内参与输入法状态协调。
   const dialogComposition = useDialogComposition();
 
-  // Add composition event handlers to support input method editor (IME) for CJK languages.
+  // 统一处理中文等输入法的组合事件。
   const {
     onCompositionStart: handleCompositionStart,
     onCompositionEnd: handleCompositionEnd,
     onKeyDown: handleKeyDown,
   } = useComposition<HTMLTextAreaElement>({
     onKeyDown: e => {
-      // Check if this is an Enter key that should be blocked
+      // 同时检查原生组合状态和刚结束组合的短暂窗口。
       const isComposing =
         (e.nativeEvent as any).isComposing ||
         dialogComposition.justEndedComposing();
 
-      // If Enter key is pressed while composing or just after composition ended,
-      // don't call the user's onKeyDown (this blocks the business logic)
-      // Note: For textarea, Shift+Enter should still work for newlines
+      // 组合期间的 Enter 不触发业务回调；Shift+Enter 仍允许换行。
       if (e.key === "Enter" && !e.shiftKey && isComposing) {
         return;
       }
 
-      // Otherwise, call the user's onKeyDown
+      // 正常按键交给调用方。
       onKeyDown?.(e);
     },
     onCompositionStart: e => {
@@ -40,10 +41,9 @@ function Textarea({
       onCompositionStart?.(e);
     },
     onCompositionEnd: e => {
-      // Mark that composition just ended - this helps handle the Enter key that confirms input
+      // 标记组合刚结束，保护用于确认候选词的 Enter。
       dialogComposition.markCompositionEnd();
-      // Delay setting composing to false to handle Safari's event order
-      // In Safari, compositionEnd fires before the ESC keydown event
+      // 延迟清除状态，兼容 Safari 先触发 compositionEnd 再触发 Escape 的时序。
       setTimeout(() => {
         dialogComposition.setComposing(false);
       }, 100);

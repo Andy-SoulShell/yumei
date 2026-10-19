@@ -1,3 +1,5 @@
+/** 覆盖自拍模式识别与提示词组合。 */
+
 import { describe, expect, it } from "vitest";
 import { detectMode, buildSmartPrompt } from "./promptTemplates";
 

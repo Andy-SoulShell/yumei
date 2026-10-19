@@ -1,5 +1,6 @@
 /** 亲密度升级后的过渡动画与自动关闭回调。 */
 
+import { useI18n } from "@/lib/i18n";
 import { useEffect, useState } from "react";
 import { getLevelInfo } from "../../../shared/intimacy";
 
@@ -17,6 +18,7 @@ export function LevelUpAnimation({
   newLevel,
   onClose,
 }: LevelUpAnimationProps) {
+  const { t } = useI18n();
   const [phase, setPhase] = useState<"enter" | "show" | "exit">("enter");
   const levelInfo = getLevelInfo(newLevel);
 
@@ -88,27 +90,28 @@ export function LevelUpAnimation({
         <div className="text-6xl mb-4 animate-pulse">{levelInfo.emoji}</div>
 
         {/* 升级文字 */}
-        <h2 className="text-2xl font-bold mb-1 bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
-          亲密度升级！
+        <h2 className="text-2xl font-bold mb-1 bg-gradient-to-r from-primary to-[var(--theme-secondary)] bg-clip-text text-transparent">
+          {t("亲密度升级！")}
         </h2>
 
         <div className={`text-3xl font-bold mb-2 ${levelInfo.color}`}>
-          Lv.{levelInfo.level} {levelInfo.name}
+          {t("Lv.")}
+          {levelInfo.level} {t(levelInfo.name)}
         </div>
 
         <p className="text-sm text-muted-foreground mb-4">
-          {levelInfo.description}
+          {t(levelInfo.description)}
         </p>
 
         {/* 解锁内容 */}
         {levelInfo.unlocks.length > 0 && (
           <div className="bg-muted/50 rounded-lg p-3 space-y-1">
             <p className="text-xs font-medium text-muted-foreground">
-              🎉 解锁内容
+              {t("🎉 解锁内容")}
             </p>
             {levelInfo.unlocks.map((unlock, i) => (
               <p key={i} className="text-sm font-medium">
-                {unlock}
+                {t(unlock)}
               </p>
             ))}
           </div>
@@ -117,7 +120,9 @@ export function LevelUpAnimation({
         {/* 称呼变化提示 */}
         {levelInfo.petName !== "你" && (
           <p className="text-xs text-muted-foreground mt-3">
-            她现在会叫你「{levelInfo.petName}」了 💕
+            {t("她现在会叫你「")}
+            {t(levelInfo.petName)}
+            {t("」了 💕")}
           </p>
         )}
       </div>

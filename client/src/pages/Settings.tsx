@@ -1,5 +1,7 @@
 /** 用户偏好、BYOK 密钥、语音、主题、推送和套餐设置页面。 */
 
+import { AppearanceSettings } from "@/components/AppearanceSettings";
+import { useI18n } from "@/lib/i18n";
 import { KeyStatusIndicator } from "@/components/KeyStatusIndicator";
 import { useProviderKeyDrafts } from "@/hooks/useProviderKeyDrafts";
 import type { KeyName } from "@shared/providerKeys";
@@ -79,6 +81,7 @@ type TTSProvider = "browser" | "elevenlabs" | "fishaudio";
  * @remarks 部分设置存入浏览器本地，服务端密钥通过独立接口加密保存。
  */
 export default function Settings() {
+  const { t, locale } = useI18n();
   const [, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
 
@@ -155,28 +158,40 @@ export default function Settings() {
   // 快捷模板
   const promptTemplates = [
     {
-      label: "🏠 日常陪伴",
-      text: "回复要温柔体贴，多关心对方的日常生活，适当使用可爱的表情和语气词，像真实的女友一样聊天。",
+      label: t("🏠 日常陪伴"),
+      text: t(
+        "回复要温柔体贴，多关心对方的日常生活，适当使用可爱的表情和语气词，像真实的女友一样聊天。"
+      ),
     },
     {
-      label: "🎭 角色扮演",
-      text: "始终保持角色设定，不要跳出角色。回复时融入角色的性格特点和语言习惯，让对话更有沉浸感。",
+      label: t("🎭 角色扮演"),
+      text: t(
+        "始终保持角色设定，不要跳出角色。回复时融入角色的性格特点和语言习惯，让对话更有沉浸感。"
+      ),
     },
     {
-      label: "✨ 简短回复",
-      text: "回复要简洁，每次不超过 2-3 句话。用口语化的表达，像微信聊天一样自然。",
+      label: t("✨ 简短回复"),
+      text: t(
+        "回复要简洁，每次不超过 2-3 句话。用口语化的表达，像微信聊天一样自然。"
+      ),
     },
     {
-      label: "💬 深度对话",
-      text: "可以进行深入的话题讨论，分享观点和想法，回复可以稍长一些，展现思考深度和情感共鸣。",
+      label: t("💬 深度对话"),
+      text: t(
+        "可以进行深入的话题讨论，分享观点和想法，回复可以稍长一些，展现思考深度和情感共鸣。"
+      ),
     },
     {
-      label: "🌟 活泼搞怪",
-      text: "回复要充满活力和幽默感，经常开玩笑、吐槽、撩人，语气俏皮可爱，让人忍不住笑。",
+      label: t("🌟 活泼搞怪"),
+      text: t(
+        "回复要充满活力和幽默感，经常开玩笑、吐槽、撩人，语气俏皮可爱，让人忍不住笑。"
+      ),
     },
     {
-      label: "🌿 治愈系",
-      text: "回复要温暖治愈，充满关怀和鼓励。当对方不开心时要特别温柔，像一个安全温暖的港湾。",
+      label: t("🌿 治愈系"),
+      text: t(
+        "回复要温暖治愈，充满关怀和鼓励。当对方不开心时要特别温柔，像一个安全温暖的港湾。"
+      ),
     },
   ];
 
@@ -236,7 +251,7 @@ export default function Settings() {
     const result = await saveDrafts(names);
     if (result.saved.length) await utils2.apiConfig.get.invalidate();
     for (const { name } of result.failed)
-      toast.error(`${name} 密钥保存失败，输入已保留，请重试`);
+      toast.error(t("{v0} 密钥保存失败，输入已保留，请重试", { v0: name }));
     return result;
   }
 
@@ -257,7 +272,7 @@ export default function Settings() {
       toast.success(message);
       return true;
     } catch {
-      toast.error("配置保存失败，请重试；未保存的输入会继续保留");
+      toast.error(t("配置保存失败，请重试；未保存的输入会继续保留"));
       return false;
     }
   }
@@ -265,7 +280,7 @@ export default function Settings() {
   // TTS 测试
   const ttsGenerate = trpc.tts.generate.useMutation({
     onError: error => {
-      toast.error(`语音测试失败：${error.message}`);
+      toast.error(t("语音测试失败：{v0}", { v0: error.message }));
     },
   });
 
@@ -359,61 +374,64 @@ export default function Settings() {
         setHasUnsavedFalChanges(false);
         setHasUnsavedAiChanges(false);
       },
-      "全部配置已保存"
+      t("全部配置已保存")
     );
 
-  const handleTtsToggle = useCallback((checked: boolean) => {
-    setTtsAutoPlay(checked);
-    localStorage.setItem("tts-autoplay", String(checked));
-    toast.success(checked ? "已开启自动语音" : "已关闭自动语音");
-  }, []);
+  const handleTtsToggle = useCallback(
+    (checked: boolean) => {
+      setTtsAutoPlay(checked);
+      localStorage.setItem("tts-autoplay", String(checked));
+      toast.success(checked ? t("已开启自动语音") : t("已关闭自动语音"));
+    },
+    [t]
+  );
 
   const handleTestBrowserVoice = useCallback(() => {
     if (!("speechSynthesis" in window)) {
-      toast.error("当前浏览器不支持语音功能");
+      toast.error(t("当前浏览器不支持语音功能"));
       return;
     }
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(
-      "你好呀，我是你的虚拟女友，很高兴认识你~"
+      t("你好呀，我是你的虚拟女友，很高兴认识你~")
     );
-    utterance.lang = "zh-CN";
+    utterance.lang = locale;
     utterance.rate = 0.95;
     utterance.pitch = 1.2;
     const voices = window.speechSynthesis.getVoices();
     const zhVoice =
       voices.find(
         v =>
-          v.lang.startsWith("zh") &&
+          v.lang.startsWith(locale === "en" ? "en" : "zh") &&
           (v.name.toLowerCase().includes("female") ||
             v.name.includes("Xiaoxiao") ||
             v.name.includes("女"))
-      ) || voices.find(v => v.lang.startsWith("zh"));
+      ) || voices.find(v => v.lang.startsWith(locale === "en" ? "en" : "zh"));
     if (zhVoice) utterance.voice = zhVoice;
     window.speechSynthesis.speak(utterance);
-  }, []);
+  }, [t, locale]);
 
   /** 使用服务端当前已保存的语音配置生成测试音频并尝试播放。 */
   const handleTestApiVoice = useCallback(async () => {
     // 先保存当前配置
-    toast.info("正在生成语音测试...");
+    toast.info(t("正在生成语音测试..."));
     ttsGenerate.mutate(
-      { text: "你好呀，我是你的虚拟女友，很高兴认识你~" },
+      { text: t("你好呀，我是你的虚拟女友，很高兴认识你~") },
       {
         onSuccess: data => {
           const audio = new Audio(data.audioUrl);
           audio.play();
-          toast.success("语音播放中");
+          toast.success(t("语音播放中"));
         },
       }
     );
-  }, [ttsGenerate]);
+  }, [ttsGenerate, t]);
 
   const handleSelectModel = (modelId: string) => {
     setSelectedModel(modelId);
     setShowModelList(false);
     setHasUnsavedLlmChanges(true);
-    toast.info(`已选择模型：${modelId}，请点击"保存生效"确认`);
+    toast.info(t('已选择模型：{v0}，请点击"保存生效"确认', { v0: modelId }));
   };
 
   /** 保存模型分区，失败时保留分区未保存提示。 */
@@ -422,7 +440,7 @@ export default function Settings() {
       { llmModel: selectedModel || undefined },
       ["openrouter"],
       () => setHasUnsavedLlmChanges(false),
-      "LLM 配置已保存"
+      t("LLM 配置已保存")
     );
 
   const handleSelectElevenLabsVoice = (voice: ElevenLabsVoice) => {
@@ -430,7 +448,7 @@ export default function Settings() {
     setElevenlabsVoiceName(voice.name);
     setShowElevenLabsVoices(false);
     setHasUnsavedVoiceChanges(true);
-    toast.info(`已选择声音：${voice.name}，请点击"保存生效"确认`);
+    toast.info(t('已选择声音：{v0}，请点击"保存生效"确认', { v0: voice.name }));
   };
 
   const handleSelectFishAudioModel = (model: FishAudioModel) => {
@@ -438,7 +456,7 @@ export default function Settings() {
     setFishAudioModelName(model.name);
     setShowFishAudioModels(false);
     setHasUnsavedVoiceChanges(true);
-    toast.info(`已选择声音：${model.name}，请点击"保存生效"确认`);
+    toast.info(t('已选择声音：{v0}，请点击"保存生效"确认', { v0: model.name }));
   };
 
   /** 保存语音分区，只有相关密钥均成功才结束未保存提示。 */
@@ -453,7 +471,7 @@ export default function Settings() {
       },
       ["elevenlabs", "fish-audio"],
       () => setHasUnsavedVoiceChanges(false),
-      "语音配置已保存"
+      t("语音配置已保存")
     );
   /** 保存语音转写密钥。 */
   const handleSaveWhisperConfig = () =>
@@ -461,7 +479,7 @@ export default function Settings() {
       undefined,
       ["openai"],
       () => setHasUnsavedWhisperChanges(false),
-      "语音转写配置已保存"
+      t("语音转写配置已保存")
     );
   /** 保存提示词等普通偏好，不处理其他分区的密钥草稿。 */
   const handleSaveAiConfig = () =>
@@ -473,7 +491,7 @@ export default function Settings() {
       },
       [],
       () => setHasUnsavedAiChanges(false),
-      "AI 行为设定已保存"
+      t("AI 行为设定已保存")
     );
 
   // 模型收藏操作
@@ -483,7 +501,7 @@ export default function Settings() {
         ? prev.filter(id => id !== modelId)
         : [...prev, modelId];
       localStorage.setItem("favorite-models", JSON.stringify(next));
-      toast.success(next.includes(modelId) ? `已收藏模型` : `已取消收藏`);
+      toast.success(next.includes(modelId) ? t("已收藏模型") : t("已取消收藏"));
       return next;
     });
   };
@@ -494,12 +512,12 @@ export default function Settings() {
       undefined,
       ["fal"],
       () => setHasUnsavedFalChanges(false),
-      "fal.ai 配置已保存"
+      t("fal.ai 配置已保存")
     );
 
   const formatPrice = (price: string) => {
     const num = parseFloat(price);
-    if (num === 0) return "免费";
+    if (num === 0) return t("免费");
     if (num < 0.000001) return `$${num.toExponential(1)}`;
     return `$${num.toFixed(6)}`;
   };
@@ -512,21 +530,21 @@ export default function Settings() {
   }[] = [
     {
       value: "browser",
-      label: "浏览器内置语音",
+      label: t("浏览器内置语音"),
       icon: <Globe className="w-5 h-5" />,
-      desc: "免费，使用浏览器 Web Speech API",
+      desc: t("免费，使用浏览器 Web Speech API"),
     },
     {
       value: "elevenlabs",
       label: "ElevenLabs",
       icon: <Mic className="w-5 h-5" />,
-      desc: "高品质 AI 语音，支持声音克隆",
+      desc: t("高品质 AI 语音，支持声音克隆"),
     },
     {
       value: "fishaudio",
       label: "Fish Audio",
       icon: <Music className="w-5 h-5" />,
-      desc: "中文语音优化，丰富的声音模型",
+      desc: t("中文语音优化，丰富的声音模型"),
     },
   ];
 
@@ -540,8 +558,15 @@ export default function Settings() {
         <Button variant="ghost" size="icon" onClick={() => setLocation("/")}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h1 className="text-base sm:text-lg font-semibold flex-1">设置</h1>
-        <Button variant="ghost" size="icon" onClick={toggleTheme}>
+        <h1 className="text-base sm:text-lg font-semibold flex-1">
+          {t("设置")}
+        </h1>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t("切换显示模式")}
+          onClick={toggleTheme}
+        >
           {theme === "light" ? (
             <Moon className="w-5 h-5" />
           ) : (
@@ -569,19 +594,19 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Volume2 className="w-5 h-5 text-primary" />
-                  语音设置
+                  {t("语音设置")}
                 </CardTitle>
                 <CardDescription>
-                  选择语音引擎，让 AI 女友用你喜欢的声音说话
+                  {t("选择语音引擎，让 AI 女友用你喜欢的声音说话")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
                 {/* 自动播放开关 */}
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>自动语音播放</Label>
+                    <Label>{t("自动语音播放")}</Label>
                     <p className="text-xs text-muted-foreground">
-                      开启后，AI 女友的每条回复都会自动朗读
+                      {t("开启后，AI 女友的每条回复都会自动朗读")}
                     </p>
                   </div>
                   <Switch
@@ -592,7 +617,7 @@ export default function Settings() {
 
                 {/* 语音引擎选择 */}
                 <div className="space-y-3">
-                  <Label>语音引擎</Label>
+                  <Label>{t("语音引擎")}</Label>
                   <div className="grid gap-3">
                     {ttsProviderOptions.map(option => (
                       <button
@@ -623,7 +648,7 @@ export default function Settings() {
                             </span>
                             {option.value === "browser" && (
                               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-600 font-medium">
-                                免费
+                                {t("免费")}
                               </span>
                             )}
                           </div>
@@ -648,10 +673,12 @@ export default function Settings() {
                       onClick={handleTestBrowserVoice}
                     >
                       <Volume2 className="w-4 h-4 mr-2" />
-                      测试浏览器语音
+                      {t("测试浏览器语音")}
                     </Button>
                     <p className="text-xs text-muted-foreground">
-                      浏览器内置语音免费使用，语音质量取决于你的操作系统和浏览器。
+                      {t(
+                        "浏览器内置语音免费使用，语音质量取决于你的操作系统和浏览器。"
+                      )}
                     </p>
                   </div>
                 )}
@@ -664,7 +691,7 @@ export default function Settings() {
                         htmlFor="elevenlabsKey"
                         className="flex items-center justify-between"
                       >
-                        <span>ElevenLabs API Key</span>
+                        <span>{t("ElevenLabs API Key")}</span>
                         <KeyStatusIndicator
                           name="elevenlabs"
                           value={elevenlabsApiKey}
@@ -674,7 +701,7 @@ export default function Settings() {
                       <Input
                         id="elevenlabsKey"
                         type="password"
-                        placeholder="输入你的 ElevenLabs API Key"
+                        placeholder={t("输入你的 ElevenLabs API Key")}
                         value={elevenlabsApiKey}
                         onChange={e => {
                           setElevenlabsApiKey(e.target.value);
@@ -682,14 +709,15 @@ export default function Settings() {
                         }}
                       />
                       <p className="text-xs text-muted-foreground">
-                        获取 API Key：
+                        {t("获取 API Key：")}
                         <a
                           href="https://elevenlabs.io/app/settings/api-keys"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-primary hover:underline ml-1 inline-flex items-center gap-1"
                         >
-                          elevenlabs.io <ExternalLink className="w-3 h-3" />
+                          {t("elevenlabs.io")}
+                          <ExternalLink className="w-3 h-3" />
                         </a>
                       </p>
                     </div>
@@ -699,7 +727,7 @@ export default function Settings() {
                       <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
                         <Loader2 className="w-4 h-4 animate-spin" />
                         <span className="text-sm text-muted-foreground">
-                          正在加载声音列表...
+                          {t("正在加载声音列表...")}
                         </span>
                       </div>
                     )}
@@ -719,7 +747,7 @@ export default function Settings() {
                             <div className="flex items-center gap-2">
                               <Check className="w-4 h-4 text-primary" />
                               <span className="font-medium text-sm">
-                                当前声音
+                                {t("当前声音")}
                               </span>
                             </div>
                             <p className="text-sm mt-1">
@@ -734,7 +762,7 @@ export default function Settings() {
                                 setShowElevenLabsVoices(!showElevenLabsVoices)
                               }
                             >
-                              更换声音
+                              {t("更换声音")}
                             </Button>
                           )}
                         </div>
@@ -748,7 +776,8 @@ export default function Settings() {
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
                             <Label>
-                              选择声音（共 {elevenLabsData.total} 个可用）
+                              {t("选择声音（共")}
+                              {elevenLabsData.total} {t("个可用）")}
                             </Label>
                             {elevenlabsVoiceId && (
                               <Button
@@ -756,7 +785,7 @@ export default function Settings() {
                                 size="sm"
                                 onClick={() => setShowElevenLabsVoices(false)}
                               >
-                                收起
+                                {t("收起")}
                               </Button>
                             )}
                           </div>
@@ -764,7 +793,7 @@ export default function Settings() {
                           <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
-                              placeholder="搜索声音名称..."
+                              placeholder={t("搜索声音名称...")}
                               value={elevenLabsSearch}
                               onChange={e =>
                                 setElevenLabsSearch(e.target.value)
@@ -776,7 +805,7 @@ export default function Settings() {
                           <div className="max-h-72 overflow-y-auto rounded-lg border divide-y">
                             {groupedElevenLabsVoices.length === 0 ? (
                               <div className="p-4 text-center text-sm text-muted-foreground">
-                                没有找到匹配的声音
+                                {t("没有找到匹配的声音")}
                               </div>
                             ) : (
                               groupedElevenLabsVoices.map(
@@ -824,7 +853,7 @@ export default function Settings() {
                                               );
                                               audio.play();
                                             }}
-                                            title="试听"
+                                            title={t("试听")}
                                           >
                                             <Volume2 className="w-3.5 h-3.5" />
                                           </Button>
@@ -852,7 +881,7 @@ export default function Settings() {
                         ) : (
                           <Volume2 className="w-4 h-4 mr-2" />
                         )}
-                        测试 ElevenLabs 语音
+                        {t("测试 ElevenLabs 语音")}
                       </Button>
                     )}
                   </div>
@@ -866,7 +895,7 @@ export default function Settings() {
                         htmlFor="fishAudioKey"
                         className="flex items-center justify-between"
                       >
-                        <span>Fish Audio API Key</span>
+                        <span>{t("Fish Audio API Key")}</span>
                         <KeyStatusIndicator
                           name="fish-audio"
                           value={fishAudioApiKey}
@@ -876,7 +905,7 @@ export default function Settings() {
                       <Input
                         id="fishAudioKey"
                         type="password"
-                        placeholder="输入你的 Fish Audio API Key"
+                        placeholder={t("输入你的 Fish Audio API Key")}
                         value={fishAudioApiKey}
                         onChange={e => {
                           setFishAudioApiKey(e.target.value);
@@ -884,14 +913,15 @@ export default function Settings() {
                         }}
                       />
                       <p className="text-xs text-muted-foreground">
-                        获取 API Key：
+                        {t("获取 API Key：")}
                         <a
                           href="https://fish.audio/zh-CN/go-api/"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-primary hover:underline ml-1 inline-flex items-center gap-1"
                         >
-                          fish.audio <ExternalLink className="w-3 h-3" />
+                          {t("fish.audio")}
+                          <ExternalLink className="w-3 h-3" />
                         </a>
                       </p>
                     </div>
@@ -901,7 +931,7 @@ export default function Settings() {
                       <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
                         <Loader2 className="w-4 h-4 animate-spin" />
                         <span className="text-sm text-muted-foreground">
-                          正在加载声音模型列表...
+                          {t("正在加载声音模型列表...")}
                         </span>
                       </div>
                     )}
@@ -921,7 +951,7 @@ export default function Settings() {
                             <div className="flex items-center gap-2">
                               <Check className="w-4 h-4 text-primary" />
                               <span className="font-medium text-sm">
-                                当前声音模型
+                                {t("当前声音模型")}
                               </span>
                             </div>
                             <p className="text-sm mt-1">
@@ -936,7 +966,7 @@ export default function Settings() {
                                 setShowFishAudioModels(!showFishAudioModels)
                               }
                             >
-                              更换模型
+                              {t("更换模型")}
                             </Button>
                           )}
                         </div>
@@ -950,7 +980,8 @@ export default function Settings() {
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
                             <Label>
-                              选择声音模型（共 {fishAudioData.total} 个可用）
+                              {t("选择声音模型（共")}
+                              {fishAudioData.total} {t("个可用）")}
                             </Label>
                             {fishAudioModelId && (
                               <Button
@@ -958,7 +989,7 @@ export default function Settings() {
                                 size="sm"
                                 onClick={() => setShowFishAudioModels(false)}
                               >
-                                收起
+                                {t("收起")}
                               </Button>
                             )}
                           </div>
@@ -966,7 +997,7 @@ export default function Settings() {
                           <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
-                              placeholder="搜索声音模型名称..."
+                              placeholder={t("搜索声音模型名称...")}
                               value={fishAudioSearch}
                               onChange={e => setFishAudioSearch(e.target.value)}
                               className="pl-9"
@@ -976,7 +1007,7 @@ export default function Settings() {
                           <div className="max-h-72 overflow-y-auto rounded-lg border divide-y">
                             {filteredFishAudioModels.length === 0 ? (
                               <div className="p-4 text-center text-sm text-muted-foreground">
-                                没有找到匹配的声音模型
+                                {t("没有找到匹配的声音模型")}
                               </div>
                             ) : (
                               filteredFishAudioModels.map(
@@ -1042,7 +1073,7 @@ export default function Settings() {
                         ) : (
                           <Volume2 className="w-4 h-4 mr-2" />
                         )}
-                        测试 Fish Audio 语音
+                        {t("测试 Fish Audio 语音")}
                       </Button>
                     )}
                   </div>
@@ -1060,23 +1091,23 @@ export default function Settings() {
                       {updatePreferences.isPending ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          保存中...
+                          {t("保存中...")}
                         </>
                       ) : hasUnsavedVoiceChanges ? (
                         <>
                           <Save className="w-4 h-4 mr-2" />
-                          保存生效
+                          {t("保存生效")}
                         </>
                       ) : (
                         <>
                           <Check className="w-4 h-4 mr-2" />
-                          配置已生效
+                          {t("配置已生效")}
                         </>
                       )}
                     </Button>
                     {hasUnsavedVoiceChanges && (
                       <p className="text-xs text-amber-500 mt-2 text-center">
-                        你有未保存的语音配置更改，请点击上方按钮保存生效
+                        {t("你有未保存的语音配置更改，请点击上方按钮保存生效")}
                       </p>
                     )}
                   </div>
@@ -1089,22 +1120,24 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Mic className="w-5 h-5" />
-                  语音转写 API 配置
+                  {t("语音转写 API 配置")}
                 </CardTitle>
                 <CardDescription>
-                  语音消息通过 OpenAI Whisper
-                  转写。默认使用运营方的密钥（按套餐额度），
-                  也可以在下方填入自己的 Key（BYOK，走你自己的账户、不占额度）。
+                  {t(
+                    "语音消息通过 OpenAI Whisper 转写。默认使用运营方的密钥（按套餐额度）， 也可以在下方填入自己的 Key（BYOK，走你自己的账户、不占额度）。"
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* OpenAI API Key（可选，BYOK） */}
                 <div className="space-y-2">
-                  <Label htmlFor="whisperApiKey">OpenAI API Key（可选）</Label>
+                  <Label htmlFor="whisperApiKey">
+                    {t("OpenAI API Key（可选）")}
+                  </Label>
                   <Input
                     id="whisperApiKey"
                     type="password"
-                    placeholder="留空则使用运营方密钥；或填入你的 sk-..."
+                    placeholder={t("留空则使用运营方密钥；或填入你的 sk-...")}
                     value={whisperApiKey}
                     onChange={e => {
                       setWhisperApiKey(e.target.value);
@@ -1112,16 +1145,17 @@ export default function Settings() {
                     }}
                   />
                   <p className="text-xs text-muted-foreground">
-                    获取 API Key：
+                    {t("获取 API Key：")}
                     <a
                       href="https://platform.openai.com/api-keys"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary hover:underline ml-1 inline-flex items-center gap-1"
                     >
-                      platform.openai.com <ExternalLink className="w-3 h-3" />
+                      {t("platform.openai.com")}
+                      <ExternalLink className="w-3 h-3" />
                     </a>
-                    ，价格：$0.006/分钟（约 ￥0.04/分钟）
+                    {t("，价格：$0.006/分钟（约 ￥0.04/分钟）")}
                   </p>
                 </div>
 
@@ -1139,83 +1173,59 @@ export default function Settings() {
                     {updatePreferences.isPending ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        保存中...
+                        {t("保存中...")}
                       </>
                     ) : hasUnsavedWhisperChanges ? (
                       <>
                         <Save className="w-4 h-4 mr-2" />
-                        保存生效
+                        {t("保存生效")}
                       </>
                     ) : (
                       <>
                         <Check className="w-4 h-4 mr-2" />
-                        配置已生效
+                        {t("配置已生效")}
                       </>
                     )}
                   </Button>
                   {hasUnsavedWhisperChanges && (
                     <p className="text-xs text-amber-500 mt-2 text-center">
-                      你有未保存的语音转写配置更改，请点击上方按钮保存生效
+                      {t(
+                        "你有未保存的语音转写配置更改，请点击上方按钮保存生效"
+                      )}
                     </p>
                   )}
                 </div>
               </CardContent>
             </Card>
 
-            {/* ========== 外观主题 ========== */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {theme === "light" ? (
-                    <Sun className="w-5 h-5 text-primary" />
-                  ) : (
-                    <Moon className="w-5 h-5 text-primary" />
-                  )}
-                  主题设置
-                </CardTitle>
-                <CardDescription>切换亮色/暗色主题</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>暗黑模式</Label>
-                    <p className="text-xs text-muted-foreground">
-                      {theme === "dark" ? "当前为暗黑模式" : "当前为亮色模式"}
-                    </p>
-                  </div>
-                  <Switch
-                    checked={theme === "dark"}
-                    onCheckedChange={() => toggleTheme?.()}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            <AppearanceSettings />
 
             {/* ========== fal.ai API 配置 ========== */}
             <Card>
               <CardHeader>
                 <CardTitle>
                   {apiConfig?.imageProvider.name === "comfyui"
-                    ? "ComfyUI 生图 / fal.ai 可选配置"
-                    : "fal.ai API 配置"}
+                    ? t("ComfyUI 生图 / fal.ai 可选配置")
+                    : t("fal.ai API 配置")}
                 </CardTitle>
                 <CardDescription>
-                  用于生成自拍照片。获取 API Key：
+                  {t("用于生成自拍照片。获取 API Key：")}
                   <a
                     href="https://fal.ai/dashboard/keys"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:underline ml-1"
                   >
-                    fal.ai/dashboard/keys
+                    {t("fal.ai/dashboard/keys")}
                   </a>
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {apiConfig?.imageProvider.name === "comfyui" && (
                   <p className="text-sm text-muted-foreground">
-                    当前使用服务器配置的
-                    ComfyUI。聊天页点击相机，可选择参考图生图或文生图，也可上传照片生成合照。
+                    {t(
+                      "当前使用服务器配置的 ComfyUI。聊天页点击相机，可选择参考图生图或文生图，也可上传照片生成合照。"
+                    )}
                   </p>
                 )}
                 <div className="space-y-2">
@@ -1223,7 +1233,7 @@ export default function Settings() {
                     htmlFor="falApiKey"
                     className="flex items-center justify-between"
                   >
-                    <span>fal.ai API Key</span>
+                    <span>{t("fal.ai API Key")}</span>
                     <KeyStatusIndicator
                       name="fal"
                       value={falApiKey}
@@ -1233,7 +1243,7 @@ export default function Settings() {
                   <Input
                     id="falApiKey"
                     type="password"
-                    placeholder="输入你的 fal.ai API Key"
+                    placeholder={t("输入你的 fal.ai API Key")}
                     value={falApiKey}
                     onChange={e => {
                       setFalApiKey(e.target.value);
@@ -1241,8 +1251,9 @@ export default function Settings() {
                     }}
                   />
                   <p className="text-xs text-muted-foreground">
-                    可选：填写后使用你的 fal.ai
-                    账户；留空沿用服务器配置的生图服务。
+                    {t(
+                      "可选：填写后使用你的 fal.ai 账户；留空沿用服务器配置的生图服务。"
+                    )}
                   </p>
                 </div>
 
@@ -1258,23 +1269,25 @@ export default function Settings() {
                       {updatePreferences.isPending ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          保存中...
+                          {t("保存中...")}
                         </>
                       ) : hasUnsavedFalChanges ? (
                         <>
                           <Save className="w-4 h-4 mr-2" />
-                          保存生效
+                          {t("保存生效")}
                         </>
                       ) : (
                         <>
                           <Check className="w-4 h-4 mr-2" />
-                          配置已生效
+                          {t("配置已生效")}
                         </>
                       )}
                     </Button>
                     {hasUnsavedFalChanges && (
                       <p className="text-xs text-amber-500 mt-2 text-center">
-                        你有未保存的 fal.ai 配置更改，请点击上方按钮保存生效
+                        {t(
+                          "你有未保存的 fal.ai 配置更改，请点击上方按钮保存生效"
+                        )}
                       </p>
                     )}
                   </div>
@@ -1287,24 +1300,27 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Zap className="w-5 h-5 text-primary" />
-                  {usesDeepSeek ? "DeepSeek 模型配置" : "OpenRouter LLM 配置"}
+                  {usesDeepSeek
+                    ? t("DeepSeek 模型配置")
+                    : t("OpenRouter LLM 配置")}
                 </CardTitle>
                 <CardDescription>
                   {usesDeepSeek ? (
                     <>
-                      当前使用 DeepSeek 官方服务，默认模型为{" "}
+                      {t("当前使用 DeepSeek 官方服务，默认模型为")}{" "}
                       {apiConfig?.chatProvider.model}。
                     </>
                   ) : (
                     <>
-                      通过 OpenRouter 接入数百种 AI 模型。获取 API Key：
+                      {t("通过 OpenRouter 接入数百种 AI 模型。获取 API Key：")}
                       <a
                         href="https://openrouter.ai/keys"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary hover:underline ml-1 inline-flex items-center gap-1"
                       >
-                        openrouter.ai/keys <ExternalLink className="w-3 h-3" />
+                        {t("openrouter.ai/keys")}
+                        <ExternalLink className="w-3 h-3" />
                       </a>
                     </>
                   )}
@@ -1316,7 +1332,7 @@ export default function Settings() {
                     htmlFor="openRouterKey"
                     className="flex items-center justify-between"
                   >
-                    <span>OpenRouter API Key</span>
+                    <span>{t("OpenRouter API Key")}</span>
                     <KeyStatusIndicator
                       name="openrouter"
                       value={openRouterKey}
@@ -1326,7 +1342,7 @@ export default function Settings() {
                   <Input
                     id="openRouterKey"
                     type="password"
-                    placeholder="sk-or-v1-xxxxxxxxxxxx"
+                    placeholder={t("sk-or-v1-xxxxxxxxxxxx")}
                     value={openRouterKey}
                     onChange={e => {
                       setOpenRouterKey(e.target.value);
@@ -1335,10 +1351,15 @@ export default function Settings() {
                   />
                   <p className="text-xs text-muted-foreground">
                     {usesDeepSeek
-                      ? "留空则使用已配置的 DeepSeek 服务。此处仅接受 OpenRouter Key。"
-                      : "留空则使用运营方的 OpenRouter 密钥（按套餐额度，免费档锁定 gpt-4o-mini）。"}
-                    填入自己的 Key
-                    后走你自己的账户、不占额度，并可自由选择模型。
+                      ? t(
+                          "留空则使用已配置的 DeepSeek 服务。此处仅接受 OpenRouter Key。"
+                        )
+                      : t(
+                          "留空则使用运营方的 OpenRouter 密钥（按套餐额度，免费档锁定 gpt-4o-mini）。"
+                        )}
+                    {t(
+                      "填入自己的 Key 后走你自己的账户、不占额度，并可自由选择模型。"
+                    )}
                   </p>
                 </div>
 
@@ -1346,7 +1367,7 @@ export default function Settings() {
                   <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span className="text-sm text-muted-foreground">
-                      正在加载可用模型列表...
+                      {t("正在加载可用模型列表...")}
                     </span>
                   </div>
                 )}
@@ -1363,22 +1384,24 @@ export default function Settings() {
                       <div>
                         <div className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-primary" />
-                          <span className="font-medium text-sm">当前模型</span>
+                          <span className="font-medium text-sm">
+                            {t("当前模型")}
+                          </span>
                         </div>
                         <p className="text-sm mt-1 font-mono">
                           {selectedModel}
                         </p>
                         {selectedModelInfo && !usesDeepSeek && (
                           <p className="text-xs text-muted-foreground mt-1">
-                            上下文：
+                            {t("上下文：")}
                             {(selectedModelInfo.contextLength / 1000).toFixed(
                               0
                             )}
-                            K tokens | 输入：
+                            {t("K tokens | 输入：")}
                             {formatPrice(selectedModelInfo.pricing.prompt)}
-                            /token | 输出：
+                            {t("/token | 输出：")}
                             {formatPrice(selectedModelInfo.pricing.completion)}
-                            /token
+                            {t("/token")}
                           </p>
                         )}
                       </div>
@@ -1388,7 +1411,7 @@ export default function Settings() {
                           size="sm"
                           onClick={() => setShowModelList(!showModelList)}
                         >
-                          更换模型
+                          {t("更换模型")}
                         </Button>
                       )}
                     </div>
@@ -1401,14 +1424,17 @@ export default function Settings() {
                   (showModelList || !selectedModel) && (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <Label>选择模型（共 {modelsData.total} 个可用）</Label>
+                        <Label>
+                          {t("选择模型（共")}
+                          {modelsData.total} {t("个可用）")}
+                        </Label>
                         {selectedModel && (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setShowModelList(false)}
                           >
-                            收起
+                            {t("收起")}
                           </Button>
                         )}
                       </div>
@@ -1416,7 +1442,7 @@ export default function Settings() {
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
-                          placeholder="搜索模型名称、ID 或提供商..."
+                          placeholder={t("搜索模型名称、ID 或提供商...")}
                           value={modelSearch}
                           onChange={e => setModelSearch(e.target.value)}
                           className="pl-9"
@@ -1448,7 +1474,7 @@ export default function Settings() {
                           ) {
                             return (
                               <div className="p-4 text-center text-sm text-muted-foreground">
-                                没有找到匹配的模型
+                                {t("没有找到匹配的模型")}
                               </div>
                             );
                           }
@@ -1481,7 +1507,8 @@ export default function Settings() {
                               <div className="flex items-center gap-2 shrink-0">
                                 <div className="text-right">
                                   <p className="text-xs text-muted-foreground">
-                                    {(model.contextLength / 1000).toFixed(0)}K
+                                    {(model.contextLength / 1000).toFixed(0)}
+                                    {t("K")}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
                                     {formatPrice(model.pricing.prompt)}
@@ -1495,8 +1522,8 @@ export default function Settings() {
                                   className="p-1 rounded hover:bg-accent transition-colors"
                                   title={
                                     favoriteModels.includes(model.id)
-                                      ? "取消收藏"
-                                      : "收藏模型"
+                                      ? t("取消收藏")
+                                      : t("收藏模型")
                                   }
                                 >
                                   <Star
@@ -1517,7 +1544,8 @@ export default function Settings() {
                                 <div>
                                   <div className="px-3 py-2 bg-amber-500/10 text-xs font-semibold text-amber-600 uppercase sticky top-0 flex items-center gap-1.5">
                                     <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                                    收藏模型 ({favModels.length})
+                                    {t("收藏模型 (")}
+                                    {favModels.length})
                                   </div>
                                   {favModels.map(renderModelItem)}
                                 </div>
@@ -1548,23 +1576,23 @@ export default function Settings() {
                       {updatePreferences.isPending ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          保存中...
+                          {t("保存中...")}
                         </>
                       ) : hasUnsavedLlmChanges ? (
                         <>
                           <Save className="w-4 h-4 mr-2" />
-                          保存生效
+                          {t("保存生效")}
                         </>
                       ) : (
                         <>
                           <Check className="w-4 h-4 mr-2" />
-                          配置已生效
+                          {t("配置已生效")}
                         </>
                       )}
                     </Button>
                     {hasUnsavedLlmChanges && (
                       <p className="text-xs text-amber-500 mt-2 text-center">
-                        你有未保存的更改，请点击上方按钮保存生效
+                        {t("你有未保存的更改，请点击上方按钮保存生效")}
                       </p>
                     )}
                   </div>
@@ -1577,19 +1605,21 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Brain className="w-5 h-5 text-primary" />
-                  AI 行为设定
+                  {t("AI 行为设定")}
                 </CardTitle>
                 <CardDescription>
-                  设置所有女友共享的基础行为规范，如回复风格、语气偏好等
+                  {t("设置所有女友共享的基础行为规范，如回复风格、语气偏好等")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
                 {/* 全局默认提示词 */}
                 <div className="space-y-2">
-                  <Label htmlFor="globalPrompt">全局默认提示词</Label>
+                  <Label htmlFor="globalPrompt">{t("全局默认提示词")}</Label>
                   <Textarea
                     id="globalPrompt"
-                    placeholder="例如：回复要简短可爱，多用表情，不要说教..."
+                    placeholder={t(
+                      "例如：回复要简短可爱，多用表情，不要说教..."
+                    )}
                     value={globalPrompt}
                     onChange={e => {
                       setGlobalPrompt(e.target.value);
@@ -1601,7 +1631,7 @@ export default function Settings() {
                   />
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-muted-foreground">
-                      此提示词将应用于所有女友的对话中
+                      {t("此提示词将应用于所有女友的对话中")}
                     </p>
                     <span className="text-xs text-muted-foreground">
                       {globalPrompt.length}/500
@@ -1613,10 +1643,10 @@ export default function Settings() {
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5" />
-                    快捷模板
+                    {t("快捷模板")}
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    点击即可快速填充提示词，也可以在此基础上修改
+                    {t("点击即可快速填充提示词，也可以在此基础上修改")}
                   </p>
                   <div className="grid grid-cols-2 gap-2">
                     {promptTemplates.map(tpl => (
@@ -1625,7 +1655,9 @@ export default function Settings() {
                         onClick={() => {
                           setGlobalPrompt(tpl.text);
                           setHasUnsavedAiChanges(true);
-                          toast.success(`已应用模板：${tpl.label}`);
+                          toast.success(
+                            t("已应用模板：{v0}", { v0: tpl.label })
+                          );
                         }}
                         className={`text-left p-2.5 rounded-lg border text-sm transition-all hover:border-primary/40 hover:bg-primary/5 ${
                           globalPrompt === tpl.text
@@ -1650,16 +1682,16 @@ export default function Settings() {
                     ) : (
                       <ChevronDown className="w-4 h-4" />
                     )}
-                    高级选项
+                    {t("高级选项")}
                   </button>
 
                   {showAdvancedPrompt && (
                     <div className="mt-3 space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="replyLanguage">回复语言</Label>
+                        <Label htmlFor="replyLanguage">{t("回复语言")}</Label>
                         <Input
                           id="replyLanguage"
-                          placeholder="默认中文，可设置为英文、日文等"
+                          placeholder={t("默认中文，可设置为英文、日文等")}
                           value={replyLanguage}
                           onChange={e => {
                             setReplyLanguage(e.target.value);
@@ -1669,10 +1701,12 @@ export default function Settings() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="replyLengthLimit">回复长度限制</Label>
+                        <Label htmlFor="replyLengthLimit">
+                          {t("回复长度限制")}
+                        </Label>
                         <Input
                           id="replyLengthLimit"
-                          placeholder="例如：50字以内、2-3句话、不限制"
+                          placeholder={t("例如：50字以内、2-3句话、不限制")}
                           value={replyLengthLimit}
                           onChange={e => {
                             setReplyLengthLimit(e.target.value);
@@ -1696,23 +1730,25 @@ export default function Settings() {
                     {updatePreferences.isPending ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        保存中...
+                        {t("保存中...")}
                       </>
                     ) : hasUnsavedAiChanges ? (
                       <>
                         <Save className="w-4 h-4 mr-2" />
-                        保存生效
+                        {t("保存生效")}
                       </>
                     ) : (
                       <>
                         <Check className="w-4 h-4 mr-2" />
-                        配置已生效
+                        {t("配置已生效")}
                       </>
                     )}
                   </Button>
                   {hasUnsavedAiChanges && (
                     <p className="text-xs text-amber-500 mt-2 text-center">
-                      你有未保存的 AI 行为设定更改，请点击上方按钮保存生效
+                      {t(
+                        "你有未保存的 AI 行为设定更改，请点击上方按钮保存生效"
+                      )}
                     </p>
                   )}
                 </div>
@@ -1728,12 +1764,12 @@ export default function Settings() {
               {updatePreferences.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  保存中...
+                  {t("保存中...")}
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  保存所有配置
+                  {t("保存所有配置")}
                 </>
               )}
             </Button>
@@ -1741,37 +1777,40 @@ export default function Settings() {
             {/* ========== 使用说明 ========== */}
             <Card className="bg-muted/50">
               <CardHeader>
-                <CardTitle className="text-base">使用说明</CardTitle>
+                <CardTitle className="text-base">{t("使用说明")}</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground space-y-2">
                 <p>
-                  <strong>1. 语音功能：</strong>三种引擎可选 —
-                  浏览器内置（免费）、ElevenLabs（高品质）、Fish
-                  Audio（中文优化）
+                  <strong>{t("1. 语音功能：")}</strong>
+                  {t(
+                    "三种引擎可选 — 浏览器内置（免费）、ElevenLabs（高品质）、Fish Audio（中文优化）"
+                  )}
                 </p>
                 <p>
-                  <strong>2. fal.ai API Key：</strong>
-                  可选（用于生成自拍），留空则使用运营方密钥，成本约 $0.022/张
+                  <strong>{t("2. fal.ai API Key：")}</strong>
+                  {t(
+                    "可选（用于生成自拍），留空则使用运营方密钥，成本约 $0.022/张"
+                  )}
                 </p>
                 <p>
-                  <strong>3. OpenRouter API Key：</strong>
-                  可选，留空则使用运营方密钥（按套餐额度）
+                  <strong>{t("3. OpenRouter API Key：")}</strong>
+                  {t("可选，留空则使用运营方密钥（按套餐额度）")}
                 </p>
                 <p>
-                  <strong>4. 语音引擎对比：</strong>
+                  <strong>{t("4. 语音引擎对比：")}</strong>
                 </p>
                 <ul className="list-disc list-inside pl-4 space-y-1">
-                  <li>浏览器内置：免费，质量一般，依赖系统</li>
-                  <li>ElevenLabs：$5/月起，英文极佳，支持声音克隆</li>
-                  <li>Fish Audio：按量付费，中文优化，丰富的声音库</li>
+                  <li>{t("浏览器内置：免费，质量一般，依赖系统")}</li>
+                  <li>{t("ElevenLabs：$5/月起，英文极佳，支持声音克隆")}</li>
+                  <li>{t("Fish Audio：按量付费，中文优化，丰富的声音库")}</li>
                 </ul>
                 <p>
-                  <strong>5. 模型选择建议：</strong>
+                  <strong>{t("5. 模型选择建议：")}</strong>
                 </p>
                 <ul className="list-disc list-inside pl-4 space-y-1">
-                  <li>性价比之选：openai/gpt-4o-mini</li>
-                  <li>角色扮演推荐：anthropic/claude-3.5-sonnet</li>
-                  <li>中文优化：deepseek/deepseek-chat</li>
+                  <li>{t("性价比之选：openai/gpt-4o-mini")}</li>
+                  <li>{t("角色扮演推荐：anthropic/claude-3.5-sonnet")}</li>
+                  <li>{t("中文优化：deepseek/deepseek-chat")}</li>
                 </ul>
               </CardContent>
             </Card>

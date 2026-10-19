@@ -10,6 +10,8 @@ build/
 # Generated files
 *.tsbuildinfo
 coverage/
+.playwright-cli/
+output/playwright/
 drizzle/meta/
 drizzle/*.sql
 workflows/comfyui/*.json

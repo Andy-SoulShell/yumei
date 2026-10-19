@@ -1,5 +1,6 @@
 /** 捕获子组件渲染异常并展示刷新入口，不处理事件或异步请求错误。 */
 
+import { translate } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import { Component, ReactNode } from "react";
@@ -34,6 +35,11 @@ class ErrorBoundary extends Component<Props, State> {
 
   /** 正常时展示子节点，异常时展示错误堆栈和页面刷新入口。 */
   render() {
+    const t = (text: string) =>
+      translate(
+        text,
+        document.documentElement.lang.startsWith("en") ? "en" : "zh-CN"
+      );
     if (this.state.hasError) {
       return (
         <div className="flex items-center justify-center min-h-screen p-8 bg-background">
@@ -43,7 +49,9 @@ class ErrorBoundary extends Component<Props, State> {
               className="text-destructive mb-6 flex-shrink-0"
             />
 
-            <h2 className="text-xl mb-4">An unexpected error occurred.</h2>
+            <h2 className="text-xl mb-4">
+              {t("An unexpected error occurred.")}
+            </h2>
 
             <div className="p-4 w-full rounded bg-muted overflow-auto mb-6">
               <pre className="text-sm text-muted-foreground whitespace-break-spaces">
@@ -60,7 +68,7 @@ class ErrorBoundary extends Component<Props, State> {
               )}
             >
               <RotateCcw size={16} />
-              Reload Page
+              {t("Reload Page")}
             </button>
           </div>
         </div>

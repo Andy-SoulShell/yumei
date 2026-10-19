@@ -1,5 +1,6 @@
 /** 相册瀑布流展示与下载、删除确认操作入口。 */
 
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Download, Trash2 } from "lucide-react";
@@ -38,10 +39,11 @@ export function SelfieGalleryGrid({
   onDelete: (id: number) => void;
   isDeleting?: boolean;
 }) {
+  const { t, locale } = useI18n();
   return (
     <div
       className="columns-2 md:columns-3 gap-2 sm:gap-3"
-      aria-label="自拍照片"
+      aria-label={t("自拍照片")}
     >
       {selfies.map((selfie, index) => (
         <Card
@@ -54,11 +56,11 @@ export function SelfieGalleryGrid({
             onClick={() =>
               window.open(selfie.imageUrl, "_blank", "noopener,noreferrer")
             }
-            aria-label={`查看第 ${index + 1} 张自拍原图`}
+            aria-label={t("查看第 {v0} 张自拍原图", { v0: index + 1 })}
           >
             <img
               src={selfie.imageUrl}
-              alt={selfie.userContext || "自拍照片"}
+              alt={selfie.userContext || t("自拍照片")}
               loading="lazy"
               decoding="async"
               className="block w-full h-auto"
@@ -70,15 +72,15 @@ export function SelfieGalleryGrid({
                 className="truncate flex-1"
                 title={selfie.userContext || undefined}
               >
-                {selfie.userContext || "自拍照片"}
+                {selfie.userContext || t("自拍照片")}
               </p>
               <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full shrink-0">
-                {selfie.mode === "mirror" ? "镜子" : "直拍"}
+                {selfie.mode === "mirror" ? t("镜子") : t("直拍")}
               </span>
             </div>
             <div className="flex items-center justify-between gap-1">
               <p className="text-[10px]">
-                {new Date(selfie.createdAt).toLocaleDateString()}
+                {new Date(selfie.createdAt).toLocaleDateString(locale)}
               </p>
               <div className="flex items-center gap-0.5">
                 <Button
@@ -86,8 +88,8 @@ export function SelfieGalleryGrid({
                   variant="ghost"
                   size="icon"
                   className="size-7"
-                  aria-label={`下载第 ${index + 1} 张自拍`}
-                  title="下载照片"
+                  aria-label={t("下载第 {v0} 张自拍", { v0: index + 1 })}
+                  title={t("下载照片")}
                   onClick={() => onDownload(selfie.imageUrl, selfie.id)}
                 >
                   <Download className="size-3.5" />
@@ -99,8 +101,8 @@ export function SelfieGalleryGrid({
                       variant="ghost"
                       size="icon"
                       className="size-7 text-destructive hover:text-destructive"
-                      aria-label={`删除第 ${index + 1} 张自拍`}
-                      title="删除照片"
+                      aria-label={t("删除第 {v0} 张自拍", { v0: index + 1 })}
+                      title={t("删除照片")}
                       disabled={isDeleting}
                     >
                       <Trash2 className="size-3.5" />
@@ -108,18 +110,18 @@ export function SelfieGalleryGrid({
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>确认删除</AlertDialogTitle>
+                      <AlertDialogTitle>{t("确认删除")}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        确定要删除这张自拍吗？此操作无法撤销。
+                        {t("确定要删除这张自拍吗？此操作无法撤销。")}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>取消</AlertDialogCancel>
+                      <AlertDialogCancel>{t("取消")}</AlertDialogCancel>
                       <AlertDialogAction
                         disabled={isDeleting}
                         onClick={() => onDelete(selfie.id)}
                       >
-                        删除
+                        {t("删除")}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>

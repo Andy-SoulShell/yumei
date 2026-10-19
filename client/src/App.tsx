@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
-import { ThemeProvider } from "./contexts/ThemeContext";
+import { PreferencesProvider } from "./contexts/PreferencesContext";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Setup from "./pages/Setup";
@@ -42,12 +42,12 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark" switchable>
+      <PreferencesProvider>
         <TooltipProvider>
           <Toaster />
           <Router />
         </TooltipProvider>
-      </ThemeProvider>
+      </PreferencesProvider>
     </ErrorBoundary>
   );
 }

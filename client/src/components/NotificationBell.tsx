@@ -1,5 +1,6 @@
 /** 站内通知入口，轮询未读数并定时请求生成主动通知。 */
 
+import { useI18n, translateNotificationTitle } from "@/lib/i18n";
 import { useState, useEffect, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import {
@@ -23,11 +24,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLocation } from "wouter";
 
 const NOTIFICATION_ICONS: Record<string, React.ReactNode> = {
-  miss_you: <MessageCircleHeart className="w-4 h-4 text-pink-400" />,
+  miss_you: <MessageCircleHeart className="w-4 h-4 text-primary" />,
   good_morning: <Sun className="w-4 h-4 text-yellow-400" />,
   good_night: <Moon className="w-4 h-4 text-indigo-400" />,
   random: <Sparkles className="w-4 h-4 text-purple-400" />,
-  mood: <MessageCircleHeart className="w-4 h-4 text-pink-400" />,
+  mood: <MessageCircleHeart className="w-4 h-4 text-primary" />,
 };
 
 /**
@@ -36,6 +37,7 @@ const NOTIFICATION_ICONS: Record<string, React.ReactNode> = {
  * @remarks 未读数每三十秒刷新；主动消息首次延迟一分钟，之后每五分钟检查。
  */
 export function NotificationBell() {
+  const { t, locale } = useI18n();
   const [open, setOpen] = useState(false);
   const [, navigate] = useLocation();
 
@@ -129,11 +131,11 @@ export function NotificationBell() {
     const diffHour = Math.floor(diffMs / 3600000);
     const diffDay = Math.floor(diffMs / 86400000);
 
-    if (diffMin < 1) return "刚刚";
-    if (diffMin < 60) return `${diffMin}分钟前`;
-    if (diffHour < 24) return `${diffHour}小时前`;
-    if (diffDay < 7) return `${diffDay}天前`;
-    return date.toLocaleDateString();
+    if (diffMin < 1) return t("刚刚");
+    if (diffMin < 60) return t("{v0}分钟前", { v0: diffMin });
+    if (diffHour < 24) return t("{v0}小时前", { v0: diffHour });
+    if (diffDay < 7) return t("{v0}天前", { v0: diffDay });
+    return date.toLocaleDateString(locale);
   };
 
   return (
@@ -146,7 +148,7 @@ export function NotificationBell() {
         >
           <Bell className="w-5 h-5" />
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 bg-pink-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 animate-pulse">
+            <span className="absolute -top-0.5 -right-0.5 bg-primary text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 animate-pulse">
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}
@@ -155,7 +157,7 @@ export function NotificationBell() {
       <SheetContent side="right" className="w-[320px] sm:w-[380px] p-0">
         <SheetHeader className="px-4 pt-4 pb-3 border-b border-border">
           <div className="flex items-center justify-between">
-            <SheetTitle className="text-lg">通知</SheetTitle>
+            <SheetTitle className="text-lg">{t("通知")}</SheetTitle>
             {unreadCount > 0 && (
               <Button
                 variant="ghost"
@@ -165,7 +167,7 @@ export function NotificationBell() {
                 disabled={markAllRead.isPending}
               >
                 <CheckCheck className="w-3.5 h-3.5 mr-1" />
-                全部已读
+                {t("全部已读")}
               </Button>
             )}
           </div>
@@ -175,9 +177,9 @@ export function NotificationBell() {
           {notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
               <Bell className="w-12 h-12 mb-3 opacity-30" />
-              <p className="text-sm">暂无通知</p>
+              <p className="text-sm">{t("暂无通知")}</p>
               <p className="text-xs mt-1 opacity-60">
-                女友们会主动来找你聊天哦~
+                {t("女友们会主动来找你聊天哦~")}
               </p>
             </div>
           ) : (
@@ -186,7 +188,7 @@ export function NotificationBell() {
                 <button
                   key={notif.id}
                   className={`w-full text-left px-4 py-3 hover:bg-accent/50 transition-colors ${
-                    !notif.isRead ? "bg-pink-500/5" : ""
+                    !notif.isRead ? "bg-primary/5" : ""
                   }`}
                   onClick={() => handleNotificationClick(notif)}
                 >
@@ -204,14 +206,14 @@ export function NotificationBell() {
                               : "text-muted-foreground"
                           }`}
                         >
-                          {notif.title}
+                          {translateNotificationTitle(notif.title, locale)}
                         </span>
                         {!notif.isRead && (
-                          <span className="w-2 h-2 rounded-full bg-pink-500 shrink-0" />
+                          <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                        {notif.content}
+                        {t(notif.content)}
                       </p>
                       <p className="text-[10px] text-muted-foreground/60 mt-1">
                         {formatTime(notif.createdAt)}

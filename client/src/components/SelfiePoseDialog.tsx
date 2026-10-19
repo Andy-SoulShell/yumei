@@ -1,5 +1,6 @@
 /** 自拍姿势、生图方式与合照上传的选择弹窗。 */
 
+import { useI18n } from "@/lib/i18n";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +43,7 @@ export function SelfiePoseDialog({
   /** 用户选定本地合照参考文件时触发，由父组件上传。 */
   onCouplePhoto: (file: File) => void;
 }) {
+  const { t } = useI18n();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [generationMode, setGenerationMode] = useState<"reference" | "text">(
     "reference"
@@ -52,9 +54,9 @@ export function SelfiePoseDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>让她拍一张…</DialogTitle>
+          <DialogTitle>{t("让她拍一张…")}</DialogTitle>
           <DialogDescription>
-            姿势随亲密度解锁。输入框里的文字会作为场景描述一起生效。
+            {t("姿势随亲密度解锁。输入框里的文字会作为场景描述一起生效。")}
           </DialogDescription>
         </DialogHeader>
 
@@ -63,7 +65,7 @@ export function SelfiePoseDialog({
             <div
               className="grid grid-cols-2 gap-2"
               role="group"
-              aria-label="生图方式"
+              aria-label={t("生图方式")}
             >
               <Button
                 type="button"
@@ -71,7 +73,7 @@ export function SelfiePoseDialog({
                 aria-pressed={selectedMode === "reference"}
                 onClick={() => setGenerationMode("reference")}
               >
-                参考图生图
+                {t("参考图生图")}
               </Button>
               <Button
                 type="button"
@@ -79,14 +81,14 @@ export function SelfiePoseDialog({
                 aria-pressed={selectedMode === "text"}
                 onClick={() => setGenerationMode("text")}
               >
-                文生图
+                {t("文生图")}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              默认生成 9:16 竖屏照片。
+              {t("默认生成 9:16 竖屏照片。")}
               {selectedMode === "reference"
-                ? "使用角色参考图，尽量保持人物外貌一致。"
-                : "根据角色外貌与输入框中的场景描述生成，不使用参考图。"}
+                ? t("使用角色参考图，尽量保持人物外貌一致。")
+                : t("根据角色外貌与输入框中的场景描述生成，不使用参考图。")}
             </p>
           </div>
         )}
@@ -99,7 +101,11 @@ export function SelfiePoseDialog({
                 key={pose.id}
                 type="button"
                 disabled={locked}
-                title={locked ? `亲密度 Lv.${pose.minLevel} 解锁` : pose.label}
+                title={
+                  locked
+                    ? t("亲密度 Lv.{v0} 解锁", { v0: pose.minLevel })
+                    : pose.label
+                }
                 className={`flex flex-col items-center gap-1 rounded-lg border p-3 text-sm transition-colors ${
                   locked
                     ? "opacity-45 cursor-not-allowed bg-muted/40"
@@ -112,7 +118,7 @@ export function SelfiePoseDialog({
               >
                 <span className="text-2xl leading-none">{pose.emoji}</span>
                 <span className="truncate w-full text-center">
-                  {pose.label}
+                  {t(pose.label)}
                 </span>
                 {locked ? (
                   <Badge
@@ -120,7 +126,8 @@ export function SelfiePoseDialog({
                     className="text-[10px] px-1.5 py-0 gap-0.5"
                   >
                     <Lock className="w-2.5 h-2.5" />
-                    Lv.{pose.minLevel}
+                    {t("Lv.")}
+                    {pose.minLevel}
                   </Badge>
                 ) : (
                   <span className="text-[10px] text-transparent select-none">
@@ -154,18 +161,18 @@ export function SelfiePoseDialog({
             disabled={!canCouplePhoto}
             title={
               canCouplePhoto
-                ? "上传你的照片，和她同框"
-                : "合照是 Pro 功能（或配置自己的 fal.ai Key）"
+                ? t("上传你的照片，和她同框")
+                : t("合照是 Pro 功能（或配置自己的 fal.ai Key）")
             }
           >
             <Users className="w-4 h-4 mr-1.5" />
-            合照：上传你的照片，和她同框
+            {t("合照：上传你的照片，和她同框")}
             {!canCouplePhoto && (
               <Badge
                 variant="secondary"
                 className="ml-2 text-[10px] px-1.5 py-0"
               >
-                Pro
+                {t("Pro")}
               </Badge>
             )}
           </Button>

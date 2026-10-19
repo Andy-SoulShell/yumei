@@ -1,5 +1,6 @@
 /** 指定角色的长期记忆列表与用户管理入口。 */
 
+import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,7 @@ import { toast } from "sonner";
 
 /** 读取角色记忆，并提供置顶、取消置顶和删除操作。 */
 export default function Memories() {
+  const { t, locale } = useI18n();
   const params = useParams<{ id: string }>();
   const girlfriendId = Number(params.id);
   const [, setLocation] = useLocation();
@@ -45,14 +47,14 @@ export default function Memories() {
   const deleteMemory = trpc.memory.delete.useMutation({
     onSuccess: () => {
       utils.memory.list.invalidate({ girlfriendId });
-      toast.success("已删除这条记忆");
+      toast.success(t("已删除这条记忆"));
     },
-    onError: e => toast.error(`删除失败：${e.message}`),
+    onError: e => toast.error(t("删除失败：{v0}", { v0: e.message })),
   });
 
   const setPinned = trpc.memory.setPinned.useMutation({
     onSuccess: () => utils.memory.list.invalidate({ girlfriendId }),
-    onError: e => toast.error(`操作失败：${e.message}`),
+    onError: e => toast.error(t("操作失败：{v0}", { v0: e.message })),
   });
 
   if (authLoading || isLoading) {
@@ -85,10 +87,13 @@ export default function Memories() {
         <BookHeart className="w-5 h-5 text-primary" />
         <div className="flex-1 min-w-0">
           <h1 className="font-semibold text-sm sm:text-base truncate">
-            {girlfriend ? `${girlfriend.name} 记得你的事` : "她记得你的事"}
+            {girlfriend
+              ? t("{v0} 记得你的事", { v0: girlfriend.name })
+              : t("她记得你的事")}
           </h1>
           <p className="text-xs text-muted-foreground">
-            {memories?.length ?? 0} / {capacity} 条 · 亲密度越高，记得越多
+            {memories?.length ?? 0} / {capacity}{" "}
+            {t("条 · 亲密度越高，记得越多")}
           </p>
         </div>
       </header>
@@ -97,23 +102,25 @@ export default function Memories() {
         {!memories || memories.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <BookHeart className="w-12 h-12 text-muted-foreground/50 mb-4" />
-            <p className="text-muted-foreground">她还没有记住你的事</p>
+            <p className="text-muted-foreground">{t("她还没有记住你的事")}</p>
             <p className="text-xs text-muted-foreground mt-2 max-w-xs">
-              多聊聊你自己——工作、喜好、最近发生的事。每聊几轮，她会自动记下重要的内容。
+              {t(
+                "多聊聊你自己——工作、喜好、最近发生的事。每聊几轮，她会自动记下重要的内容。"
+              )}
             </p>
             <Button
               variant="outline"
               className="mt-6"
               onClick={() => setLocation(`/chat/${girlfriendId}`)}
             >
-              去聊天
+              {t("去聊天")}
             </Button>
           </div>
         ) : (
           grouped.map(group => (
             <section key={group.category}>
               <h2 className="text-sm font-medium text-muted-foreground mb-2">
-                {MEMORY_CATEGORY_LABELS[group.category]}
+                {t(MEMORY_CATEGORY_LABELS[group.category])}
                 <span className="ml-2 opacity-60">{group.items.length}</span>
               </h2>
               <div className="space-y-2">
@@ -130,11 +137,13 @@ export default function Memories() {
                               variant="secondary"
                               className="text-[10px] px-1.5 py-0"
                             >
-                              已置顶
+                              {t("已置顶")}
                             </Badge>
                           )}
                           <span className="text-[10px] text-muted-foreground">
-                            {new Date(memory.createdAt).toLocaleDateString()}
+                            {new Date(memory.createdAt).toLocaleDateString(
+                              locale
+                            )}
                           </span>
                         </div>
                       </div>
@@ -143,7 +152,9 @@ export default function Memories() {
                         size="icon"
                         className="w-8 h-8 shrink-0 text-muted-foreground hover:text-primary"
                         title={
-                          memory.pinned ? "取消置顶" : "置顶（不会被自动遗忘）"
+                          memory.pinned
+                            ? t("取消置顶")
+                            : t("置顶（不会被自动遗忘）")
                         }
                         onClick={() =>
                           setPinned.mutate({
@@ -162,7 +173,7 @@ export default function Memories() {
                         variant="ghost"
                         size="icon"
                         className="w-8 h-8 shrink-0 text-muted-foreground hover:text-destructive"
-                        title="删除这条记忆"
+                        title={t("删除这条记忆")}
                         onClick={() => deleteMemory.mutate({ id: memory.id })}
                       >
                         <Trash2 className="w-4 h-4" />

@@ -1,5 +1,6 @@
 /** 内置角色预设的画风筛选与受控选择界面。 */
 
+import { useI18n } from "@/lib/i18n";
 import { useState } from "react";
 import { Check, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,22 +19,28 @@ export function CharacterPresetPicker({
   /** 选择预设时返回完整资料；选择从零创建时返回 null。 */
   onSelect: (preset: CharacterPreset | null) => void;
 }) {
+  const { t } = useI18n();
   const [style, setStyle] = useState<"all" | CharacterPreset["style"]>("all");
   return (
-    <section className="space-y-4" aria-label="角色预设">
+    <section className="space-y-4" aria-label={t("角色预设")}>
       <div>
-        <h2 className="font-semibold">从一个角色开始</h2>
+        <h2 className="font-semibold">{t("从一个角色开始")}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          选择后自动填写资料和参考图，你可以继续修改。所有角色均为成年 AI
-          虚构人物。
+          {t(
+            "选择后自动填写资料和参考图，你可以继续修改。所有角色均为成年 AI 虚构人物。"
+          )}
         </p>
       </div>
-      <div className="flex flex-wrap gap-2" role="group" aria-label="角色画风">
+      <div
+        className="flex flex-wrap gap-2"
+        role="group"
+        aria-label={t("角色画风")}
+      >
         {(
           [
-            ["all", "全部 8 位"],
-            ["realistic", "写实"],
-            ["anime", "动漫"],
+            ["all", t("全部 8 位")],
+            ["realistic", t("写实")],
+            ["anime", t("动漫")],
           ] as const
         ).map(([value, label]) => (
           <Button
@@ -55,7 +62,7 @@ export function CharacterPresetPicker({
           <button
             key={preset.id}
             type="button"
-            aria-label={`选择${preset.name}`}
+            aria-label={t("选择{v0}", { v0: preset.name })}
             aria-pressed={selectedId === preset.id}
             onClick={() => onSelect(preset)}
             className={`relative overflow-hidden rounded-xl border text-left transition-colors focus-visible:outline-2 focus-visible:outline-primary ${selectedId === preset.id ? "border-primary ring-2 ring-primary" : "border-border hover:border-primary/60"}`}
@@ -75,12 +82,12 @@ export function CharacterPresetPicker({
               <p className="font-medium">
                 {preset.name}
                 <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                  {preset.age} 岁
+                  {preset.age} {t("岁")}
                 </span>
               </p>
-              <p className="text-xs text-primary">{preset.label}</p>
+              <p className="text-xs text-primary">{t(preset.label)}</p>
               <p className="text-xs leading-relaxed text-muted-foreground">
-                {preset.tagline}
+                {t(preset.tagline)}
               </p>
             </div>
           </button>
@@ -94,7 +101,7 @@ export function CharacterPresetPicker({
         onClick={() => onSelect(null)}
       >
         <Pencil className="mr-2 h-4 w-4" />
-        从零自定义
+        {t("从零自定义")}
       </Button>
     </section>
   );

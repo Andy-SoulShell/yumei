@@ -1,5 +1,6 @@
 /** 角色首页与管理入口，承载默认角色、回收站、搜索及通知。 */
 
+import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { AgeGate } from "@/components/AgeGate";
 import { Button } from "@/components/ui/button";
@@ -76,8 +77,8 @@ const MOOD_CONFIG: Record<
   excited: {
     emoji: "🥰",
     label: "超开心",
-    color: "text-pink-500",
-    bgColor: "bg-pink-500/10",
+    color: "text-primary",
+    bgColor: "bg-primary/10",
   },
   happy: {
     emoji: "😊",
@@ -117,6 +118,7 @@ const MOOD_CONFIG: Record<
  * @remarks 首次无角色时请求默认初始化；未认证时展示登录入口。
  */
 export default function Home() {
+  const { t, locale } = useI18n();
   const { user, loading, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
@@ -267,10 +269,10 @@ export default function Home() {
     onSuccess: () => {
       refetch();
       setDeleteTarget(null);
-      toast.success("已移入回收站，7天内可恢复");
+      toast.success(t("已移入回收站，7天内可恢复"));
     },
     onError: error => {
-      toast.error(`删除失败：${error.message}`);
+      toast.error(t("删除失败：{v0}", { v0: error.message }));
     },
   });
 
@@ -281,10 +283,10 @@ export default function Home() {
       setBatchDeleteConfirm(false);
       setBatchMode(false);
       setSelectedIds(new Set());
-      toast.success(`已将 ${data.count} 位女友移入回收站`);
+      toast.success(t("已将 {v0} 位女友移入回收站", { v0: data.count }));
     },
     onError: error => {
-      toast.error(`批量删除失败：${error.message}`);
+      toast.error(t("批量删除失败：{v0}", { v0: error.message }));
     },
   });
 
@@ -293,10 +295,10 @@ export default function Home() {
     onSuccess: () => {
       refetch();
       refetchTrash();
-      toast.success("已恢复");
+      toast.success(t("已恢复"));
     },
     onError: error => {
-      toast.error(`恢复失败：${error.message}`);
+      toast.error(t("恢复失败：{v0}", { v0: error.message }));
     },
   });
 
@@ -304,23 +306,24 @@ export default function Home() {
   const permanentDelete = trpc.girlfriend.permanentDelete.useMutation({
     onSuccess: () => {
       refetchTrash();
-      toast.success("已永久删除");
+      toast.success(t("已永久删除"));
     },
     onError: error => {
-      toast.error(`删除失败：${error.message}`);
+      toast.error(t("删除失败：{v0}", { v0: error.message }));
     },
   });
 
   const updateGirlfriend = trpc.girlfriend.update.useMutation({
     onSuccess: () => {
       refetch();
-      toast.success("已切换女友");
+      toast.success(t("已切换女友"));
     },
   });
 
   const resumeChat = trpc.conversation.resume.useMutation({
     onSuccess: data => setLocation(`/chat/${data.id}`),
-    onError: error => toast.error(`打开对话失败：${error.message}`),
+    onError: error =>
+      toast.error(t("打开对话失败：{v0}", { v0: error.message })),
   });
 
   const handleStartChat = (girlfriendId: number) => {
@@ -366,11 +369,11 @@ export default function Home() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return "刚刚";
-    if (diffMins < 60) return `${diffMins}分钟前`;
-    if (diffHours < 24) return `${diffHours}小时前`;
-    if (diffDays < 7) return `${diffDays}天前`;
-    return d.toLocaleDateString();
+    if (diffMins < 1) return t("刚刚");
+    if (diffMins < 60) return t("{v0}分钟前", { v0: diffMins });
+    if (diffHours < 24) return t("{v0}小时前", { v0: diffHours });
+    if (diffDays < 7) return t("{v0}天前", { v0: diffDays });
+    return d.toLocaleDateString(locale);
   };
 
   const getRemainingDays = (deletedAt: Date | string | null) => {
@@ -400,10 +403,15 @@ export default function Home() {
   // 未登录 - 展示欢迎页
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-pink-50 via-white to-purple-50 dark:from-[oklch(0.16_0.02_330)] dark:via-[oklch(0.14_0.015_320)] dark:to-[oklch(0.16_0.02_300)]">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background app-surface">
         {/* 主题切换按钮 */}
         <div className="absolute top-4 right-4">
-          <Button variant="ghost" size="icon" onClick={toggleTheme}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={t("切换显示模式")}
+            onClick={toggleTheme}
+          >
             {theme === "light" ? (
               <Moon className="w-5 h-5" />
             ) : (
@@ -419,7 +427,7 @@ export default function Home() {
             </div>
             <h1 className="text-4xl font-bold text-foreground">YUMEI</h1>
             <p className="text-lg text-muted-foreground">
-              你的专属虚拟女友，随时陪伴聊天，分享生活点滴
+              {t("你的专属虚拟女友，随时陪伴聊天，分享生活点滴")}
             </p>
           </div>
 
@@ -428,10 +436,10 @@ export default function Home() {
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <MessageCircle className="w-5 h-5 text-primary" />
-                  智能对话
+                  {t("智能对话")}
                 </CardTitle>
                 <CardDescription>
-                  基于先进的 AI 技术，提供自然流畅的对话体验
+                  {t("基于先进的 AI 技术，提供自然流畅的对话体验")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -440,10 +448,10 @@ export default function Home() {
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Image className="w-5 h-5 text-primary" />
-                  场景化自拍
+                  {t("场景化自拍")}
                 </CardTitle>
                 <CardDescription>
-                  根据对话内容自动生成相应场景的自拍照片
+                  {t("根据对话内容自动生成相应场景的自拍照片")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -452,10 +460,10 @@ export default function Home() {
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Sparkles className="w-5 h-5 text-primary" />
-                  语音对话
+                  {t("语音对话")}
                 </CardTitle>
                 <CardDescription>
-                  AI 女友可以用甜美的声音和你说话
+                  {t("AI 女友可以用甜美的声音和你说话")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -464,10 +472,10 @@ export default function Home() {
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Settings className="w-5 h-5 text-primary" />
-                  个性化配置
+                  {t("个性化配置")}
                 </CardTitle>
                 <CardDescription>
-                  自定义性格、外貌和兴趣爱好，支持多个女友
+                  {t("自定义性格、外貌和兴趣爱好，支持多个女友")}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -479,13 +487,14 @@ export default function Home() {
             onClick={() => (window.location.href = "/login")}
           >
             <Heart className="w-5 h-5 mr-2" />
-            立即开始
+            {t("立即开始")}
           </Button>
 
           {/* 合规披露 */}
           <p className="text-xs text-muted-foreground">
-            18+ only · Companions are AI-generated, not real people ·
-            我们不会用你的聊天内容训练任何模型
+            {t(
+              "18+ only · Companions are AI-generated, not real people · 我们不会用你的聊天内容训练任何模型"
+            )}
           </p>
         </div>
       </div>
@@ -511,7 +520,7 @@ export default function Home() {
             variant="ghost"
             size="icon"
             onClick={() => setHistoryOpen(true)}
-            title="历史对话"
+            title={t("历史对话")}
           >
             <Clock className="w-5 h-5" />
           </Button>
@@ -522,7 +531,7 @@ export default function Home() {
               setTrashOpen(true);
               refetchTrash();
             }}
-            title="回收站"
+            title={t("回收站")}
             className="relative"
           >
             <Trash className="w-5 h-5" />
@@ -533,7 +542,12 @@ export default function Home() {
             )}
           </Button>
           <NotificationBell />
-          <Button variant="ghost" size="icon" onClick={toggleTheme}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={t("切换显示模式")}
+            onClick={toggleTheme}
+          >
             {theme === "light" ? (
               <Moon className="w-5 h-5" />
             ) : (
@@ -551,7 +565,7 @@ export default function Home() {
             variant="ghost"
             size="icon"
             onClick={() => logout.mutate()}
-            title="退出登录"
+            title={t("退出登录")}
             className="text-muted-foreground hover:text-destructive"
           >
             <LogOut className="w-5 h-5" />
@@ -571,10 +585,11 @@ export default function Home() {
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <h2 className="text-xl sm:text-2xl font-bold">
-              你好，{user?.name || "朋友"} 👋
+              {t("你好，")}
+              {user?.name || t("朋友")} 👋
             </h2>
             <p className="text-sm sm:text-base text-muted-foreground">
-              选择一位女友开始聊天吧
+              {t("选择一位女友开始聊天吧")}
             </p>
           </div>
           {girlfriends && girlfriends.length > 1 && (
@@ -589,12 +604,12 @@ export default function Home() {
               {batchMode ? (
                 <>
                   <X className="w-4 h-4 mr-1" />
-                  取消
+                  {t("取消")}
                 </>
               ) : (
                 <>
                   <CheckSquare className="w-4 h-4 mr-1" />
-                  批量管理
+                  {t("批量管理")}
                 </>
               )}
             </Button>
@@ -608,17 +623,18 @@ export default function Home() {
               {selectedIds.size === girlfriends.length ? (
                 <>
                   <CheckSquare className="w-4 h-4 mr-1" />
-                  取消全选
+                  {t("取消全选")}
                 </>
               ) : (
                 <>
                   <Square className="w-4 h-4 mr-1" />
-                  全选
+                  {t("全选")}
                 </>
               )}
             </Button>
             <span className="text-sm text-muted-foreground">
-              已选 {selectedIds.size} / {girlfriends.length}
+              {t("已选")}
+              {selectedIds.size} / {girlfriends.length}
             </span>
             <div className="flex-1" />
             <Button
@@ -628,7 +644,7 @@ export default function Home() {
               onClick={() => setBatchDeleteConfirm(true)}
             >
               <Trash2 className="w-4 h-4 mr-1" />
-              删除选中
+              {t("删除选中")}
             </Button>
           </div>
         )}
@@ -644,15 +660,15 @@ export default function Home() {
               <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-2">
                 <Plus className="w-8 h-8 text-primary" />
               </div>
-              <CardTitle>创建你的第一位女友</CardTitle>
+              <CardTitle>{t("创建你的第一位女友")}</CardTitle>
               <CardDescription>
-                上传参考照片，设置性格特征和兴趣爱好
+                {t("上传参考照片，设置性格特征和兴趣爱好")}
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
               <Button onClick={() => setLocation("/setup")}>
                 <Plus className="w-4 h-4 mr-2" />
-                开始创建
+                {t("开始创建")}
               </Button>
             </CardContent>
           </Card>
@@ -697,7 +713,10 @@ export default function Home() {
                         {moodInfo && (
                           <div
                             className={`absolute -bottom-1 -right-1 w-7 h-7 rounded-full ${moodInfo.bgColor} flex items-center justify-center border-2 border-background text-sm`}
-                            title={`${moodInfo.label} (${mood!.moodScore}分)`}
+                            title={t("{v0} ({v1}分)", {
+                              v0: t(moodInfo.label),
+                              v1: mood!.moodScore,
+                            })}
                           >
                             {moodInfo.emoji}
                           </div>
@@ -715,7 +734,7 @@ export default function Home() {
                               variant="default"
                               className="text-xs flex-shrink-0"
                             >
-                              当前
+                              {t("当前")}
                             </Badge>
                           )}
                           {/* 亲密度等级徽章 */}
@@ -726,11 +745,16 @@ export default function Home() {
                             return (
                               <span
                                 className={`text-xs flex-shrink-0 flex items-center gap-0.5 ${levelInfo.color}`}
-                                title={`${levelInfo.name} Lv.${levelInfo.level} - ${intimacy.points}经验值`}
+                                title={t("{v0} Lv.{v1} - {v2}经验值", {
+                                  v0: t(levelInfo.name),
+                                  v1: levelInfo.level,
+                                  v2: intimacy.points,
+                                })}
                               >
                                 <span>{levelInfo.emoji}</span>
                                 <span className="font-medium">
-                                  Lv.{levelInfo.level}
+                                  {t("Lv.")}
+                                  {levelInfo.level}
                                 </span>
                               </span>
                             );
@@ -751,12 +775,14 @@ export default function Home() {
                                 <span
                                   className={`text-[10px] font-medium ${levelInfo.color}`}
                                 >
-                                  {levelInfo.name}
+                                  {t(levelInfo.name)}
                                 </span>
                                 <span className="text-[10px] text-muted-foreground">
                                   {intimacy.pointsToNext !== null
-                                    ? `还需 ${intimacy.pointsToNext} 升级`
-                                    : "已满级 ✨"}
+                                    ? t("还需 {v0} 升级", {
+                                        v0: intimacy.pointsToNext,
+                                      })
+                                    : t("已满级 ✨")}
                                 </span>
                               </div>
                               <div className="h-1.5 bg-muted rounded-full overflow-hidden">
@@ -774,11 +800,13 @@ export default function Home() {
                             <span
                               className={`text-xs font-medium ${moodInfo.color}`}
                             >
-                              {moodInfo.label}
+                              {t(moodInfo.label)}
                             </span>
                             {mood!.todayMessages > 0 && (
                               <span className="text-[10px] text-muted-foreground">
-                                · 今日聊了{mood!.todayMessages}条
+                                {t("· 今日聊了")}
+                                {mood!.todayMessages}
+                                {t("条")}
                               </span>
                             )}
                           </div>
@@ -796,7 +824,7 @@ export default function Home() {
                             onClick={() => handleStartChat(gf.id)}
                           >
                             <MessageCircle className="w-4 h-4 mr-1" />
-                            聊天
+                            {t("聊天")}
                           </Button>
                           <Button
                             variant="outline"
@@ -804,7 +832,7 @@ export default function Home() {
                             onClick={() => setLocation(`/setup/${gf.id}`)}
                           >
                             <Edit className="w-4 h-4 mr-1" />
-                            编辑
+                            {t("编辑")}
                           </Button>
                           <Button
                             variant="outline"
@@ -819,7 +847,7 @@ export default function Home() {
                             }
                           >
                             <Trash2 className="w-4 h-4 mr-1" />
-                            删除
+                            {t("删除")}
                           </Button>
                         </div>
                       )}
@@ -839,7 +867,7 @@ export default function Home() {
             onClick={() => setLocation("/setup")}
           >
             <Plus className="w-4 h-4 mr-2" />
-            选择角色 / 自定义创建
+            {t("选择角色 / 自定义创建")}
           </Button>
         )}
 
@@ -855,8 +883,10 @@ export default function Home() {
                   <Image className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="font-medium text-sm">自拍画廊</p>
-                  <p className="text-xs text-muted-foreground">查看所有照片</p>
+                  <p className="font-medium text-sm">{t("自拍画廊")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("查看所有照片")}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -870,8 +900,10 @@ export default function Home() {
                   <Settings className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="font-medium text-sm">API 设置</p>
-                  <p className="text-xs text-muted-foreground">配置 API Key</p>
+                  <p className="font-medium text-sm">{t("API 设置")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("配置 API Key")}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -894,17 +926,17 @@ export default function Home() {
           <SheetHeader className="p-4 pb-2 border-b">
             <SheetTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-primary" />
-              历史对话
+              {t("历史对话")}
             </SheetTitle>
             <SheetDescription className="sr-only">
-              搜索或浏览历史对话记录
+              {t("搜索或浏览历史对话记录")}
             </SheetDescription>
             {/* 搜索框 */}
             <div className="relative mt-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 ref={searchInputRef}
-                placeholder="搜索聊天记录..."
+                placeholder={t("搜索聊天记录...")}
                 value={searchKeyword}
                 onChange={e => setSearchKeyword(e.target.value)}
                 className="pl-9 pr-8 h-9"
@@ -928,7 +960,9 @@ export default function Home() {
             {searchLoading && isSearchMode && (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-5 h-5 animate-spin text-primary mr-2" />
-                <span className="text-sm text-muted-foreground">搜索中...</span>
+                <span className="text-sm text-muted-foreground">
+                  {t("搜索中...")}
+                </span>
               </div>
             )}
 
@@ -938,10 +972,12 @@ export default function Home() {
                 <div className="flex flex-col items-center justify-center py-16 text-center px-4">
                   <Search className="w-12 h-12 text-muted-foreground mb-3" />
                   <p className="text-sm text-muted-foreground">
-                    未找到包含 "{debouncedKeyword}" 的对话
+                    {t('未找到包含 "')}
+                    {debouncedKeyword}
+                    {t('" 的对话')}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    试试其他关键词
+                    {t("试试其他关键词")}
                   </p>
                 </div>
               )}
@@ -952,10 +988,10 @@ export default function Home() {
                 <div className="flex flex-col items-center justify-center py-16 text-center px-4">
                   <MessageCircle className="w-12 h-12 text-muted-foreground mb-3" />
                   <p className="text-sm text-muted-foreground">
-                    还没有对话记录
+                    {t("还没有对话记录")}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    选择一位女友开始聊天吧
+                    {t("选择一位女友开始聊天吧")}
                   </p>
                 </div>
               )}
@@ -965,7 +1001,8 @@ export default function Home() {
                 {isSearchMode && (
                   <div className="px-4 py-2 bg-muted/30 border-b">
                     <p className="text-xs text-muted-foreground">
-                      找到 {displayConversations.length} 个相关对话
+                      {t("找到")}
+                      {displayConversations.length} {t("个相关对话")}
                     </p>
                   </div>
                 )}
@@ -996,7 +1033,7 @@ export default function Home() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-medium text-sm truncate">
-                            {convo.girlfriendName || convo.title || "对话"}
+                            {convo.girlfriendName || convo.title || t("对话")}
                           </span>
                           <span className="text-[10px] text-muted-foreground flex-shrink-0">
                             {convo.lastMessageAt
@@ -1012,9 +1049,9 @@ export default function Home() {
                           <p className="text-xs text-muted-foreground truncate mt-0.5">
                             {convo.lastMessage
                               ? convo.lastMessage === "[自拍照片]"
-                                ? "📷 发送了一张照片"
+                                ? t("📷 发送了一张照片")
                                 : convo.lastMessage
-                              : "暂无消息"}
+                              : t("暂无消息")}
                           </p>
                         )}
                       </div>
@@ -1033,10 +1070,10 @@ export default function Home() {
           <SheetHeader className="p-4 pb-3 border-b">
             <SheetTitle className="flex items-center gap-2">
               <Trash className="w-5 h-5 text-destructive" />
-              回收站
+              {t("回收站")}
             </SheetTitle>
             <SheetDescription className="text-xs">
-              已删除的女友将保留 7 天，之后自动永久删除
+              {t("已删除的女友将保留 7 天，之后自动永久删除")}
             </SheetDescription>
           </SheetHeader>
 
@@ -1044,9 +1081,11 @@ export default function Home() {
             {!trashItems || trashItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center px-4">
                 <Trash className="w-12 h-12 text-muted-foreground mb-3" />
-                <p className="text-sm text-muted-foreground">回收站是空的</p>
+                <p className="text-sm text-muted-foreground">
+                  {t("回收站是空的")}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  删除的女友会在这里保留 7 天
+                  {t("删除的女友会在这里保留 7 天")}
                 </p>
               </div>
             ) : (
@@ -1068,8 +1107,8 @@ export default function Home() {
                         </p>
                         <p className="text-xs text-destructive">
                           {remaining > 0
-                            ? `${remaining} 天后永久删除`
-                            : "即将永久删除"}
+                            ? t("{v0} 天后永久删除", { v0: remaining })
+                            : t("即将永久删除")}
                         </p>
                       </div>
                       <div className="flex flex-col gap-1.5 flex-shrink-0">
@@ -1083,7 +1122,7 @@ export default function Home() {
                           disabled={restoreGirlfriend.isPending}
                         >
                           <Undo2 className="w-3 h-3 mr-1" />
-                          恢复
+                          {t("恢复")}
                         </Button>
                         <Button
                           variant="outline"
@@ -1093,7 +1132,7 @@ export default function Home() {
                           disabled={permanentDelete.isPending}
                         >
                           <Trash2 className="w-3 h-3 mr-1" />
-                          彻底删除
+                          {t("彻底删除")}
                         </Button>
                       </div>
                     </div>
@@ -1113,35 +1152,36 @@ export default function Home() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {deleteTarget?.isActive ? "⚠️ 删除当前女友" : "确认删除"}
+              {deleteTarget?.isActive ? t("⚠️ 删除当前女友") : t("确认删除")}
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-2">
                 {deleteTarget?.isActive && (
                   <p className="text-amber-600 dark:text-amber-400 font-medium">
-                    你正在删除当前正在聊天的女友「{deleteTarget.name}
-                    」，删除后需要重新选择一位女友才能继续聊天。
+                    {t("你正在删除当前正在聊天的女友「")}
+                    {deleteTarget.name}
+                    {t("」，删除后需要重新选择一位女友才能继续聊天。")}
                   </p>
                 )}
                 <p>
                   {deleteTarget?.isActive ? (
-                    "确定要继续吗？"
+                    t("确定要继续吗？")
                   ) : (
                     <>
-                      你确定要删除{" "}
+                      {t("你确定要删除")}{" "}
                       <span className="font-semibold text-foreground">
                         {deleteTarget?.name}
                       </span>{" "}
-                      吗？
+                      {t("吗？")}
                     </>
                   )}
-                  她将被移入回收站，7 天内可以恢复。
+                  {t("她将被移入回收站，7 天内可以恢复。")}
                 </p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel>{t("取消")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() =>
@@ -1152,10 +1192,10 @@ export default function Home() {
               {deleteGirlfriend.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                  删除中...
+                  {t("删除中...")}
                 </>
               ) : (
-                "移入回收站"
+                t("移入回收站")
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1171,28 +1211,30 @@ export default function Home() {
           <AlertDialogHeader>
             <AlertDialogTitle>
               {hasActiveInSelection
-                ? "⚠️ 批量删除包含当前女友"
-                : "确认批量删除"}
+                ? t("⚠️ 批量删除包含当前女友")
+                : t("确认批量删除")}
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-2">
                 {hasActiveInSelection && (
                   <p className="text-amber-600 dark:text-amber-400 font-medium">
-                    选中的女友中包含当前正在聊天的对象，删除后需要重新选择一位女友才能继续聊天。
+                    {t(
+                      "选中的女友中包含当前正在聊天的对象，删除后需要重新选择一位女友才能继续聊天。"
+                    )}
                   </p>
                 )}
                 <p>
-                  你确定要删除选中的{" "}
+                  {t("你确定要删除选中的")}{" "}
                   <span className="font-semibold text-foreground">
                     {selectedIds.size}
                   </span>{" "}
-                  位女友吗？她们将被移入回收站，7 天内可以恢复。
+                  {t("位女友吗？她们将被移入回收站，7 天内可以恢复。")}
                 </p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel>{t("取消")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() =>
@@ -1203,10 +1245,10 @@ export default function Home() {
               {batchDeleteGirlfriends.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                  删除中...
+                  {t("删除中...")}
                 </>
               ) : (
-                `移入回收站 (${selectedIds.size})`
+                t("移入回收站 ({v0})", { v0: selectedIds.size })
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

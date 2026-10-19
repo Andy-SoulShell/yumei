@@ -1,9 +1,9 @@
 /** 全局短消息提示容器。 */
 
-import { useTheme } from "next-themes";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
-/** 适配界面颜色的全局 Sonner 提示容器，主题值取自 next-themes。 */
+/** 使用实际显示模式和语义颜色的全局提示容器。 */
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme();
 

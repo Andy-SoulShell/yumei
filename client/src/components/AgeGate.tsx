@@ -1,5 +1,6 @@
 /** 成年确认入口，根据用户出生日期状态控制弹窗。 */
 
+import { useI18n } from "@/lib/i18n";
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -19,6 +20,7 @@ import {
  * @remarks 成年条件仍由服务端校验，前端弹窗不构成独立权限保障。
  */
 export function AgeGate() {
+  const { t } = useI18n();
   const { user, refresh, logout } = useAuth();
   const [birthDate, setBirthDate] = useState("");
   const [error, setError] = useState("");
@@ -51,34 +53,34 @@ export function AgeGate() {
         {underage ? (
           <>
             <DialogHeader>
-              <DialogTitle>We can't let you in</DialogTitle>
+              <DialogTitle>{t("We can't let you in")}</DialogTitle>
               <DialogDescription>
-                YUMEI is an 18+ service and isn't available to minors. If you're
-                going through a hard time, you're not alone — reach out to
-                someone you trust, or find help at{" "}
+                {t(
+                  "YUMEI is an 18+ service and isn't available to minors. If you're going through a hard time, you're not alone — reach out to someone you trust, or find help at"
+                )}{" "}
                 <a
                   className="underline"
                   href="https://findahelpline.com"
                   target="_blank"
                   rel="noreferrer"
                 >
-                  findahelpline.com
+                  {t("findahelpline.com")}
                 </a>
                 .
               </DialogDescription>
             </DialogHeader>
             <Button variant="outline" onClick={() => logout()}>
-              Sign out
+              {t("Sign out")}
             </Button>
           </>
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>Confirm your age</DialogTitle>
+              <DialogTitle>{t("Confirm your age")}</DialogTitle>
               <DialogDescription>
-                YUMEI is an adults-only (18+) service, and your companion is
-                AI-generated — not a real person. Enter your date of birth to
-                continue. We only use it to confirm you're an adult.
+                {t(
+                  "YUMEI is an adults-only (18+) service, and your companion is AI-generated — not a real person. Enter your date of birth to continue. We only use it to confirm you're an adult."
+                )}
               </DialogDescription>
             </DialogHeader>
             <form
@@ -102,8 +104,8 @@ export function AgeGate() {
                 disabled={confirmAge.isPending || !birthDate}
               >
                 {confirmAge.isPending
-                  ? "Confirming…"
-                  : "I'm 18 or older — continue"}
+                  ? t("Confirming…")
+                  : t("I'm 18 or older — continue")}
               </Button>
             </form>
           </>

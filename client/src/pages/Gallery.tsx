@@ -1,5 +1,6 @@
 /** 用户相册页面，支持角色筛选、图片下载与记录删除。 */
 
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { SelfieGalleryGrid } from "@/components/SelfieGalleryGrid";
 import { trpc } from "@/lib/trpc";
@@ -16,16 +17,17 @@ import { useTheme } from "@/contexts/ThemeContext";
 
 /** 读取当前用户自拍并展示相册网格，将下载与删除反馈同步到查询缓存。 */
 export default function Gallery() {
+  const { t } = useI18n();
   const [, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
   const { data: selfies, isLoading, refetch } = trpc.selfie.list.useQuery();
   const deleteSelfie = trpc.selfie.delete.useMutation({
     onSuccess: () => {
-      toast.success("删除成功");
+      toast.success(t("删除成功"));
       refetch();
     },
     onError: error => {
-      toast.error(`删除失败：${error.message}`);
+      toast.error(t("删除失败：{v0}", { v0: error.message }));
     },
   });
 
@@ -41,9 +43,9 @@ export default function Gallery() {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      toast.success("下载成功");
+      toast.success(t("下载成功"));
     } catch (error) {
-      toast.error("下载失败");
+      toast.error(t("下载失败"));
     }
   };
 
@@ -57,8 +59,13 @@ export default function Gallery() {
         <Button variant="ghost" size="icon" onClick={() => setLocation("/")}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h1 className="text-lg font-semibold flex-1">自拍画廊</h1>
-        <Button variant="ghost" size="icon" onClick={toggleTheme}>
+        <h1 className="text-lg font-semibold flex-1">{t("自拍画廊")}</h1>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t("切换显示模式")}
+          onClick={toggleTheme}
+        >
           {theme === "light" ? (
             <Moon className="w-5 h-5" />
           ) : (
@@ -76,16 +83,19 @@ export default function Gallery() {
         ) : !selfies || selfies.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <ImageIcon className="w-16 h-16 text-muted-foreground mb-4" />
-            <h2 className="text-xl font-semibold mb-2">还没有自拍照片</h2>
+            <h2 className="text-xl font-semibold mb-2">
+              {t("还没有自拍照片")}
+            </h2>
             <p className="text-muted-foreground mb-4">
-              在聊天中说「发张自拍」，或点击相机选择场景和姿势
+              {t("在聊天中说「发张自拍」，或点击相机选择场景和姿势")}
             </p>
-            <Button onClick={() => setLocation("/chat")}>去聊天</Button>
+            <Button onClick={() => setLocation("/chat")}>{t("去聊天")}</Button>
           </div>
         ) : (
           <>
             <p className="text-sm text-muted-foreground mb-4">
-              共 {selfies.length} 张照片
+              {t("共")}
+              {selfies.length} {t("张照片")}
             </p>
             <SelfieGalleryGrid
               selfies={selfies}

@@ -1,5 +1,6 @@
 /** 创建或编辑角色资料、预设、参考图及自定义提示词。 */
 
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -54,6 +55,7 @@ const MAX_AVATAR_SIZE = 10 * 1024 * 1024; // 10MB
 
 /** 按路由进入创建或编辑模式，提交角色资料与选定或上传的参考图。 */
 export default function Setup() {
+  const { t } = useI18n();
   const [, setLocation] = useLocation();
   const params = useParams<{ id?: string }>();
   const editId = params.id ? parseInt(params.id) : null;
@@ -109,11 +111,11 @@ export default function Setup() {
   const createGirlfriend = trpc.girlfriend.create.useMutation({
     onSuccess: async () => {
       await utils.girlfriend.invalidate();
-      toast.success("女友配置创建成功！");
+      toast.success(t("女友配置创建成功！"));
       setLocation("/");
     },
     onError: error => {
-      toast.error(`创建失败：${error.message}`);
+      toast.error(t("创建失败：{v0}", { v0: error.message }));
     },
   });
 
@@ -122,7 +124,7 @@ export default function Setup() {
 
   const updateGirlfriend = trpc.girlfriend.update.useMutation({
     onSuccess: () => {
-      toast.success("女友配置更新成功！");
+      toast.success(t("女友配置更新成功！"));
       // 触发编辑资料亲密度经验值
       if (editId) {
         addPoints.mutate({ girlfriendId: editId, reason: "edit_profile" });
@@ -130,7 +132,7 @@ export default function Setup() {
       setLocation("/");
     },
     onError: error => {
-      toast.error(`更新失败：${error.message}`);
+      toast.error(t("更新失败：{v0}", { v0: error.message }));
     },
   });
 
@@ -140,7 +142,7 @@ export default function Setup() {
       setAvatarFile(null);
       setAvatarPreview(null);
       setIsUploadingAvatar(false);
-      toast.success("头像上传成功！");
+      toast.success(t("头像上传成功！"));
       // 触发上传头像亲密度经验值
       if (editId) {
         addPoints.mutate({ girlfriendId: editId, reason: "edit_profile" });
@@ -148,17 +150,17 @@ export default function Setup() {
     },
     onError: error => {
       setIsUploadingAvatar(false);
-      toast.error(`头像上传失败：${error.message}`);
+      toast.error(t("头像上传失败：{v0}", { v0: error.message }));
     },
   });
 
   const deleteGirlfriend = trpc.girlfriend.delete.useMutation({
     onSuccess: () => {
-      toast.success("已移入回收站，7天内可恢复");
+      toast.success(t("已移入回收站，7天内可恢复"));
       setLocation("/");
     },
     onError: error => {
-      toast.error(`删除失败：${error.message}`);
+      toast.error(t("删除失败：{v0}", { v0: error.message }));
     },
   });
 
@@ -175,7 +177,7 @@ export default function Setup() {
         !ALLOWED_AVATAR_TYPES.includes(file.type) ||
         file.size > MAX_AVATAR_SIZE
       ) {
-        toast.error("请选择 10MB 以内的 JPG、PNG、GIF 或 WebP 图片");
+        toast.error(t("请选择 10MB 以内的 JPG、PNG、GIF 或 WebP 图片"));
         e.target.value = "";
         return;
       }
@@ -207,14 +209,16 @@ export default function Setup() {
 
     // 格式校验
     if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
-      toast.error("不支持的图片格式，请选择 JPG、PNG、GIF 或 WebP 格式");
+      toast.error(t("不支持的图片格式，请选择 JPG、PNG、GIF 或 WebP 格式"));
       return;
     }
 
     // 大小校验
     if (file.size > MAX_AVATAR_SIZE) {
       toast.error(
-        `图片文件过大（${(file.size / 1024 / 1024).toFixed(1)}MB），请选择 10MB 以内的图片`
+        t("图片文件过大（{v0}MB），请选择 10MB 以内的图片", {
+          v0: (file.size / 1024 / 1024).toFixed(1),
+        })
       );
       return;
     }
@@ -266,7 +270,7 @@ export default function Setup() {
     e.preventDefault();
 
     if (!name || !personality || !appearance) {
-      toast.error("请填写所有必填项");
+      toast.error(t("请填写所有必填项"));
       return;
     }
 
@@ -283,7 +287,7 @@ export default function Setup() {
     } else {
       // 创建模式
       if (!imageFile && !presetId) {
-        toast.error("请上传参考照片");
+        toast.error(t("请上传参考照片"));
         return;
       }
 
@@ -330,7 +334,7 @@ export default function Setup() {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 dark:from-[oklch(0.16_0.02_330)] dark:via-[oklch(0.14_0.015_320)] dark:to-[oklch(0.16_0.02_300)] p-3 sm:p-4"
+      className="min-h-screen bg-background app-surface p-3 sm:p-4"
       style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
     >
       <div className="max-w-2xl mx-auto py-4 sm:py-8">
@@ -340,18 +344,18 @@ export default function Setup() {
           onClick={() => setLocation("/")}
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          返回
+          {t("返回")}
         </Button>
 
         <Card>
           <CardHeader>
             <CardTitle className="text-xl sm:text-2xl">
-              {isEditing ? "编辑女友配置" : "创建你的专属女友"}
+              {isEditing ? t("编辑女友配置") : t("创建你的专属女友")}
             </CardTitle>
             <CardDescription>
               {isEditing
-                ? "修改性格特征和兴趣爱好"
-                : "从 8 位预设角色中选择，或上传照片创建自己的角色"}
+                ? t("修改性格特征和兴趣爱好")
+                : t("从 8 位预设角色中选择，或上传照片创建自己的角色")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -365,10 +369,11 @@ export default function Setup() {
               {/* 头像上传区域 - 编辑模式显示 */}
               {isEditing && (
                 <div className="space-y-2">
-                  <Label>头像照片</Label>
+                  <Label>{t("头像照片")}</Label>
                   <p className="text-xs text-muted-foreground">
-                    上传一张头像照片，将在首页卡片和聊天页展示（支持
-                    JPG/PNG/GIF/WebP，最大 10MB）
+                    {t(
+                      "上传一张头像照片，将在首页卡片和聊天页展示（支持 JPG/PNG/GIF/WebP，最大 10MB）"
+                    )}
                   </p>
                   <div className="flex items-center gap-4">
                     {/* 头像预览 */}
@@ -380,7 +385,7 @@ export default function Setup() {
                         <>
                           <img
                             src={displayAvatar}
-                            alt="Avatar"
+                            alt={t("Avatar")}
                             className="w-full h-full object-cover"
                           />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -391,7 +396,7 @@ export default function Setup() {
                         <div className="w-full h-full bg-muted flex flex-col items-center justify-center gap-0.5">
                           <Camera className="w-5 h-5 text-muted-foreground" />
                           <span className="text-[10px] text-muted-foreground">
-                            上传
+                            {t("上传")}
                           </span>
                         </div>
                       )}
@@ -417,12 +422,12 @@ export default function Setup() {
                             {isUploadingAvatar ? (
                               <>
                                 <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
-                                上传中...
+                                {t("上传中...")}
                               </>
                             ) : (
                               <>
                                 <Upload className="w-3.5 h-3.5 mr-1" />
-                                确认上传
+                                {t("确认上传")}
                               </>
                             )}
                           </Button>
@@ -446,7 +451,7 @@ export default function Setup() {
                           onClick={() => avatarInputRef.current?.click()}
                         >
                           <Camera className="w-3.5 h-3.5 mr-1" />
-                          {displayAvatar ? "更换头像" : "选择图片"}
+                          {displayAvatar ? t("更换头像") : t("选择图片")}
                         </Button>
                       )}
                       {existingAvatarUrl && !avatarFile && (
@@ -458,7 +463,7 @@ export default function Setup() {
                           onClick={handleRemoveAvatar}
                         >
                           <X className="w-3 h-3 mr-1" />
-                          移除头像
+                          {t("移除头像")}
                         </Button>
                       )}
                     </div>
@@ -468,13 +473,16 @@ export default function Setup() {
 
               {/* 参考照片上传 */}
               <div className="space-y-2">
-                <Label htmlFor="image">参考照片 {!isEditing && "*"}</Label>
+                <Label htmlFor="image">
+                  {t("参考照片")}
+                  {!isEditing && "*"}
+                </Label>
                 <div className="flex flex-col items-center gap-3 sm:gap-4">
                   {displayImage ? (
                     <div className="relative w-36 h-36 sm:w-48 sm:h-48 rounded-lg overflow-hidden border-2 border-border">
                       <img
                         src={displayImage}
-                        alt="Preview"
+                        alt={t("Preview")}
                         className="w-full h-full object-cover"
                       />
                       {!isEditing && (
@@ -487,7 +495,7 @@ export default function Setup() {
                             imageInputRef.current?.click();
                           }}
                         >
-                          更换
+                          {t("更换")}
                         </Button>
                       )}
                     </div>
@@ -498,10 +506,10 @@ export default function Setup() {
                     >
                       <Upload className="w-12 h-12 text-muted-foreground mb-2" />
                       <span className="text-sm text-muted-foreground">
-                        点击上传照片
+                        {t("点击上传照片")}
                       </span>
                       <span className="text-xs text-muted-foreground mt-1">
-                        支持 JPG、PNG、GIF、WebP，最大 10MB
+                        {t("支持 JPG、PNG、GIF、WebP，最大 10MB")}
                       </span>
                     </label>
                   )}
@@ -528,22 +536,22 @@ export default function Setup() {
                         imageInputRef.current.value = "";
                     }}
                   >
-                    恢复预设参考图
+                    {t("恢复预设参考图")}
                   </Button>
                 )}
                 {isEditing && (
                   <p className="text-xs text-muted-foreground text-center">
-                    编辑模式下暂不支持更换参考照片，如需更换请创建新女友
+                    {t("编辑模式下暂不支持更换参考照片，如需更换请创建新女友")}
                   </p>
                 )}
               </div>
 
               {/* 名字 */}
               <div className="space-y-2">
-                <Label htmlFor="name">名字 *</Label>
+                <Label htmlFor="name">{t("名字 *")}</Label>
                 <Input
                   id="name"
-                  placeholder="例如：小雨"
+                  placeholder={t("例如：小雨")}
                   value={name}
                   onChange={e => setName(e.target.value)}
                   required
@@ -552,42 +560,46 @@ export default function Setup() {
 
               {/* 性格特征 */}
               <div className="space-y-2">
-                <Label htmlFor="personality">性格特征 *</Label>
+                <Label htmlFor="personality">{t("性格特征 *")}</Label>
                 <Textarea
                   id="personality"
-                  placeholder="例如：温柔体贴，善解人意，喜欢撒娇，偶尔会有点小任性..."
+                  placeholder={t(
+                    "例如：温柔体贴，善解人意，喜欢撒娇，偶尔会有点小任性..."
+                  )}
                   value={personality}
                   onChange={e => setPersonality(e.target.value)}
                   rows={4}
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  详细描述性格特征，这将影响 AI 的对话风格
+                  {t("详细描述性格特征，这将影响 AI 的对话风格")}
                 </p>
               </div>
 
               {/* 外貌描述 */}
               <div className="space-y-2">
-                <Label htmlFor="appearance">外貌描述 *</Label>
+                <Label htmlFor="appearance">{t("外貌描述 *")}</Label>
                 <Textarea
                   id="appearance"
-                  placeholder="例如：长发飘逸，皮肤白皙，身材苗条，喜欢穿裙子..."
+                  placeholder={t(
+                    "例如：长发飘逸，皮肤白皙，身材苗条，喜欢穿裙子..."
+                  )}
                   value={appearance}
                   onChange={e => setAppearance(e.target.value)}
                   rows={3}
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  描述外貌特征，用于生成自拍照片
+                  {t("描述外貌特征，用于生成自拍照片")}
                 </p>
               </div>
 
               {/* 兴趣爱好 */}
               <div className="space-y-2">
-                <Label htmlFor="interests">兴趣爱好（可选）</Label>
+                <Label htmlFor="interests">{t("兴趣爱好（可选）")}</Label>
                 <Textarea
                   id="interests"
-                  placeholder="例如：喜欢看电影、听音乐、旅行、美食..."
+                  placeholder={t("例如：喜欢看电影、听音乐、旅行、美食...")}
                   value={interests}
                   onChange={e => setInterests(e.target.value)}
                   rows={2}
@@ -607,19 +619,21 @@ export default function Setup() {
                     <ChevronDown className="w-4 h-4" />
                   )}
                   <Brain className="w-4 h-4" />
-                  高级提示词定制
+                  {t("高级提示词定制")}
                   <span className="text-xs px-1.5 py-0.5 rounded bg-muted">
-                    可选
+                    {t("可选")}
                   </span>
                 </button>
 
                 {showCustomPrompt && (
                   <div className="mt-3 space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="customPrompt">专属提示词</Label>
+                      <Label htmlFor="customPrompt">{t("专属提示词")}</Label>
                       <Textarea
                         id="customPrompt"
-                        placeholder="例如：说话带点傲娇，偶尔用日语词汇，喜欢用哼开头..."
+                        placeholder={t(
+                          "例如：说话带点傲娇，偶尔用日语词汇，喜欢用哼开头..."
+                        )}
                         value={customPrompt}
                         onChange={e => setCustomPrompt(e.target.value)}
                         rows={3}
@@ -628,7 +642,7 @@ export default function Setup() {
                       />
                       <div className="flex items-center justify-between">
                         <p className="text-xs text-muted-foreground">
-                          仅对这个女友生效，会追加到全局提示词之后
+                          {t("仅对这个女友生效，会追加到全局提示词之后")}
                         </p>
                         <span className="text-xs text-muted-foreground">
                           {customPrompt.length}/300
@@ -645,21 +659,21 @@ export default function Setup() {
                       >
                         <Eye className="w-3.5 h-3.5" />
                         {showPromptPreview
-                          ? "收起预览"
-                          : "查看最终生效的提示词"}
+                          ? t("收起预览")
+                          : t("查看最终生效的提示词")}
                       </button>
 
                       {showPromptPreview && (
                         <div className="rounded-lg border bg-muted/30 p-3 space-y-2 text-sm">
                           <p className="text-xs font-medium text-muted-foreground mb-2">
-                            最终发送给 AI 的提示词预览：
+                            {t("最终发送给 AI 的提示词预览：")}
                           </p>
 
                           {/* 全局提示词 */}
                           {apiConfig?.preferences?.globalPrompt ? (
                             <div className="rounded p-2 bg-blue-500/10 border border-blue-500/20">
                               <span className="text-[10px] font-semibold text-blue-500 uppercase">
-                                全局提示词
+                                {t("全局提示词")}
                               </span>
                               <p className="mt-1 text-foreground/80">
                                 {apiConfig.preferences?.globalPrompt}
@@ -668,19 +682,19 @@ export default function Setup() {
                           ) : (
                             <div className="rounded p-2 bg-muted/50 border border-dashed">
                               <span className="text-[10px] font-semibold text-muted-foreground uppercase">
-                                全局提示词
+                                {t("全局提示词")}
                               </span>
                               <p className="mt-1 text-muted-foreground italic">
-                                未设置，可在设置页配置
+                                {t("未设置，可在设置页配置")}
                               </p>
                             </div>
                           )}
 
                           {/* 个体提示词 */}
                           {customPrompt ? (
-                            <div className="rounded p-2 bg-pink-500/10 border border-pink-500/20">
-                              <span className="text-[10px] font-semibold text-pink-500 uppercase">
-                                个体提示词
+                            <div className="rounded p-2 bg-primary/10 border border-primary/20">
+                              <span className="text-[10px] font-semibold text-primary uppercase">
+                                {t("个体提示词")}
                               </span>
                               <p className="mt-1 text-foreground/80">
                                 {customPrompt}
@@ -689,10 +703,10 @@ export default function Setup() {
                           ) : (
                             <div className="rounded p-2 bg-muted/50 border border-dashed">
                               <span className="text-[10px] font-semibold text-muted-foreground uppercase">
-                                个体提示词
+                                {t("个体提示词")}
                               </span>
                               <p className="mt-1 text-muted-foreground italic">
-                                未设置
+                                {t("未设置")}
                               </p>
                             </div>
                           )}
@@ -700,12 +714,14 @@ export default function Setup() {
                           {/* 性格 + 外貌结构化字段 */}
                           <div className="rounded p-2 bg-purple-500/10 border border-purple-500/20">
                             <span className="text-[10px] font-semibold text-purple-500 uppercase">
-                              角色设定
+                              {t("角色设定")}
                             </span>
                             <p className="mt-1 text-foreground/80">
-                              性格：{personality || "未填写"} | 外貌：
-                              {appearance || "未填写"}
-                              {interests && ` | 兴趣：${interests}`}
+                              {t("性格：")}
+                              {personality || t("未填写")} {t("| 外貌：")}
+                              {appearance || t("未填写")}
+                              {interests &&
+                                t(" | 兴趣：{v0}", { v0: interests })}
                             </p>
                           </div>
                         </div>
@@ -719,12 +735,12 @@ export default function Setup() {
                 {isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {isEditing ? "保存中..." : "创建中..."}
+                    {isEditing ? t("保存中...") : t("创建中...")}
                   </>
                 ) : isEditing ? (
-                  "保存修改"
+                  t("保存修改")
                 ) : (
-                  "创建女友"
+                  t("创建女友")
                 )}
               </Button>
 
@@ -742,37 +758,40 @@ export default function Setup() {
                         {deleteGirlfriend.isPending ? (
                           <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            删除中...
+                            {t("删除中...")}
                           </>
                         ) : (
                           <>
                             <Trash2 className="w-4 h-4 mr-2" />
-                            删除女友
+                            {t("删除女友")}
                           </>
                         )}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>确认删除</AlertDialogTitle>
+                        <AlertDialogTitle>{t("确认删除")}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          确定要删除 <strong>{name}</strong>{" "}
-                          吗？她将被移入回收站，7 天内可以在首页回收站中恢复。
+                          {t("确定要删除")}
+                          <strong>{name}</strong>{" "}
+                          {t(
+                            "吗？她将被移入回收站，7 天内可以在首页回收站中恢复。"
+                          )}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>取消</AlertDialogCancel>
+                        <AlertDialogCancel>{t("取消")}</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={handleDelete}
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                          移入回收站
+                          {t("移入回收站")}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
                   <p className="text-xs text-muted-foreground text-center mt-2">
-                    删除后可在首页回收站中恢复，7 天后自动永久删除
+                    {t("删除后可在首页回收站中恢复，7 天后自动永久删除")}
                   </p>
                 </div>
               )}

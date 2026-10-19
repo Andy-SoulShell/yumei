@@ -1,5 +1,6 @@
 /** 按住录音、上滑取消与松手提交的指针交互组件。 */
 
+import { useI18n } from "@/lib/i18n";
 import { Loader2, Mic } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 
@@ -37,6 +38,7 @@ export function VoiceRecordButton({
   onCancel,
   disabled = false,
 }: VoiceRecordButtonProps) {
+  const { t } = useI18n();
   const [cancelZone, setCancelZone] = useState(false);
   const startYRef = useRef(0);
   const isActiveRef = useRef(false);
@@ -79,7 +81,9 @@ export function VoiceRecordButton({
     return (
       <div className="flex-1 h-11 rounded-full bg-muted flex items-center justify-center gap-2 select-none">
         <Loader2 className="w-4 h-4 animate-spin text-primary" />
-        <span className="text-sm text-muted-foreground">正在识别语音...</span>
+        <span className="text-sm text-muted-foreground">
+          {t("正在识别语音...")}
+        </span>
       </div>
     );
   }
@@ -125,13 +129,13 @@ export function VoiceRecordButton({
             {formatDuration(duration)}
           </span>
           <span className="text-xs opacity-80">
-            {cancelZone ? "松手取消" : "松手发送"}
+            {cancelZone ? t("松手取消") : t("松手发送")}
           </span>
         </>
       ) : (
         <>
           <Mic className="w-4 h-4" />
-          <span className="text-sm">按住说话</span>
+          <span className="text-sm">{t("按住说话")}</span>
         </>
       )}
 

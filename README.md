@@ -20,6 +20,8 @@ YUMEI 是可自托管的 AI 角色陪伴 Web 应用，支持文字与语音聊�
 
 界面语言独立于设置中的“AI 回复语言”；用户输入、已有角色资料、聊天记录和记忆原文保持原样。登录邮件按登录页面当前选择的语言生成。
 
+界面交互以 Radix Primitives 为基础，通过 shadcn CLI 维护 [公共组件源码](client/src/components/ui)。搜索选择组合 Popover 与 Command，日期选择组合 Popover 与基于 React DayPicker 的 Calendar；主题、语言和业务操作复用公共组件。新增组件与更新定制代码的约定见 [贡献指南](CONTRIBUTING.md#界面组件)。
+
 ## 本地开发
 
 需要 Node.js 22、Corepack 和 MySQL 8。

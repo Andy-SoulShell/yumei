@@ -28,7 +28,7 @@ function createAuthContext(overrides?: Partial<AuthenticatedUser>): {
     ctx: {
       user,
       req: { protocol: "https", headers: {} } as TrpcContext["req"],
-      res: {} as TrpcContext["res"],
+      res: {} as unknown as TrpcContext["res"],
     },
   };
 }

@@ -97,7 +97,7 @@ describe("DeepSeek official API deployment", () => {
   });
 
   it("returns the configured model and readiness without exposing the server key", async () => {
-    vi.spyOn(db, "getUserApiConfig").mockResolvedValue(null);
+    vi.spyOn(db, "getUserApiConfig").mockResolvedValue(undefined);
     const get = vi.spyOn(axios, "get");
     const config = await caller.apiConfig.get();
     const models = await caller.apiConfig.listModels();
@@ -106,7 +106,9 @@ describe("DeepSeek official API deployment", () => {
       model: "deepseek-flash",
       configured: true,
     });
-    expect(models.models.map(m => m.id)).toEqual(["deepseek-flash"]);
+    expect(models.models.map((m: { id: string }) => m.id)).toEqual([
+      "deepseek-flash",
+    ]);
     expect(JSON.stringify({ config, models })).not.toContain(
       "deepseek-test-secret"
     );

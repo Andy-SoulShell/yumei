@@ -33,7 +33,7 @@ function createAuthContext(userId: string): { ctx: TrpcContext } {
     ctx: {
       user,
       req: { protocol: "https", headers: {} } as TrpcContext["req"],
-      res: {} as TrpcContext["res"],
+      res: {} as unknown as TrpcContext["res"],
     },
   };
 }

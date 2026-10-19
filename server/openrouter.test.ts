@@ -1,94 +1,153 @@
-import { describe, expect, it } from "vitest";
-import { appRouter } from "./routers";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import axios from "axios";
+import type { ApiConfig } from "../drizzle/schema";
+import * as db from "./db";
+import * as chatProviders from "./_core/chatProvider";
+import { keyProvider } from "./_core/keyProvider";
 import type { TrpcContext } from "./_core/context";
+import { appRouter } from "./routers";
 
-type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
+const user: NonNullable<TrpcContext["user"]> = {
+  id: "openrouter-test-user",
+  openId: null,
+  email: "openrouter@example.com",
+  emailVerified: true,
+  name: "Test User",
+  image: null,
+  loginMethod: null,
+  role: "user",
+  birthDate: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  lastSignedIn: new Date(),
+};
+const caller = appRouter.createCaller({
+  user,
+  req: {} as TrpcContext["req"],
+  res: {} as TrpcContext["res"],
+});
 
-function createAuthContext(): { ctx: TrpcContext } {
-  const user: AuthenticatedUser = {
-    id: "test-user-1",
-    openId: "test-user",
-    email: "test@example.com",
-    name: "Test User",
-    loginMethod: "manus",
-    role: "user",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    lastSignedIn: new Date(),
-  };
+beforeEach(() => {
+  vi.spyOn(chatProviders, "resolveChatProvider").mockResolvedValue({
+    name: "openrouter",
+    baseUrl: "https://openrouter.ai/api/v1",
+    model: "openai/gpt-4o-mini",
+    apiKey: "operator-test-key",
+  });
+});
+afterEach(() => vi.restoreAllMocks());
 
-  const ctx: TrpcContext = {
-    user,
-    req: {
-      protocol: "https",
-      headers: {},
-    } as TrpcContext["req"],
-    res: {
-      clearCookie: () => {},
-    } as TrpcContext["res"],
-  };
-
-  return { ctx };
-}
-
-describe("OpenRouter API Integration", () => {
-  it("apiConfig.upsert input schema should accept llmApiKey and llmModel without llmApiUrl", async () => {
-    // Verify the upsert procedure input schema no longer requires llmApiUrl
-    const caller = appRouter.createCaller(createAuthContext().ctx);
-
-    // This should not throw a validation error - the schema accepts these fields
-    // We can't actually call it without a DB, but we can verify the router exists
-    expect(caller.apiConfig.upsert).toBeDefined();
-    expect(caller.apiConfig.fetchModels).toBeDefined();
+describe("OpenRouter API integration", () => {
+  it("stores model preferences without forwarding deprecated key fields", async () => {
+    const saved: ApiConfig = {
+      id: 1,
+      userId: user.id,
+      llmApiUrl: null,
+      llmModel: "openai/gpt-4o-mini",
+      ttsProvider: "browser",
+      elevenlabsVoiceId: null,
+      elevenlabsVoiceName: null,
+      fishAudioModelId: null,
+      fishAudioModelName: null,
+      whisperProvider: "openai",
+      globalPrompt: null,
+      replyLanguage: null,
+      replyLengthLimit: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const save = vi.spyOn(db, "upsertApiConfig").mockResolvedValue(saved);
+    const input = { llmModel: saved.llmModel!, llmApiKey: "deprecated-secret" };
+    expect(await caller.apiConfig.updatePreferences(input)).toEqual(saved);
+    expect(save).toHaveBeenCalledWith({
+      userId: user.id,
+      llmModel: input.llmModel,
+    });
   });
 
-  it("apiConfig.fetchModels should be defined as a query procedure", () => {
-    const caller = appRouter.createCaller(createAuthContext().ctx);
-    expect(caller.apiConfig.fetchModels).toBeDefined();
+  it("lists text models using the server-resolved key", async () => {
+    const get = vi.spyOn(axios, "get").mockResolvedValue({
+      data: {
+        data: [
+          {
+            id: "openai/text",
+            name: "Text",
+            context_length: 8192,
+            architecture: {
+              input_modalities: ["text"],
+              output_modalities: ["text"],
+            },
+          },
+          {
+            id: "image/model",
+            architecture: {
+              input_modalities: ["text"],
+              output_modalities: ["image"],
+            },
+          },
+        ],
+      },
+    });
+    const result = await caller.apiConfig.listModels();
+    expect(result).toEqual({
+      models: [
+        {
+          id: "openai/text",
+          name: "Text",
+          contextLength: 8192,
+          pricing: { prompt: "0", completion: "0" },
+          provider: "openai",
+        },
+      ],
+      total: 1,
+    });
+    expect(get).toHaveBeenCalledWith("https://openrouter.ai/api/v1/models", {
+      headers: { Authorization: "Bearer operator-test-key" },
+    });
   });
 
-  it("apiConfig.upsert should be defined as a mutation procedure", () => {
-    const caller = appRouter.createCaller(createAuthContext().ctx);
-    expect(caller.apiConfig.upsert).toBeDefined();
+  it("reports an invalid operator key without exposing its value", async () => {
+    vi.spyOn(axios, "get").mockRejectedValue({ response: { status: 401 } });
+    await expect(caller.apiConfig.listModels()).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+      message: "OpenRouter key invalid",
+    });
   });
 
-  it("fetchModels should reject empty API key", async () => {
-    const caller = appRouter.createCaller(createAuthContext().ctx);
-
-    // Empty string should fail validation (min length 1)
+  it("rejects an empty user key before storage", async () => {
+    const save = vi
+      .spyOn(keyProvider, "setUserKey")
+      .mockResolvedValue(undefined);
     await expect(
-      caller.apiConfig.fetchModels({ apiKey: "" })
+      caller.apiConfig.setKey({ name: "openrouter", value: "" })
     ).rejects.toThrow();
+    expect(save).not.toHaveBeenCalled();
   });
 
-  it("fetchModels should reject invalid API key with proper error message", async () => {
-    const caller = appRouter.createCaller(createAuthContext().ctx);
-
-    // An invalid key should trigger a 401 from OpenRouter
-    try {
-      await caller.apiConfig.fetchModels({ apiKey: "sk-invalid-key-12345" });
-      // If it doesn't throw, that's unexpected but not a test failure
-    } catch (error: any) {
-      // Should get a meaningful error message
-      expect(error.message).toBeTruthy();
-    }
+  it("rejects a malformed OpenRouter key before storage", async () => {
+    const save = vi
+      .spyOn(keyProvider, "setUserKey")
+      .mockResolvedValue(undefined);
+    await expect(
+      caller.apiConfig.setKey({
+        name: "openrouter",
+        value: "invalid-key-format",
+      })
+    ).rejects.toThrow("OpenRouter keys start with");
+    expect(save).not.toHaveBeenCalled();
   });
 
-  it("router structure should have all expected procedures", () => {
-    const caller = appRouter.createCaller(createAuthContext().ctx);
-
-    // Verify all API config procedures exist
-    expect(caller.apiConfig.get).toBeDefined();
-    expect(caller.apiConfig.upsert).toBeDefined();
-    expect(caller.apiConfig.fetchModels).toBeDefined();
-
-    // Verify chat procedure exists
-    expect(caller.chat.sendMessage).toBeDefined();
-
-    // Verify girlfriend procedures exist
-    expect(caller.girlfriend.create).toBeDefined();
-    expect(caller.girlfriend.list).toBeDefined();
-    expect(caller.girlfriend.update).toBeDefined();
-    expect(caller.girlfriend.getActive).toBeDefined();
+  it("reports a missing server key before making an upstream request", async () => {
+    vi.mocked(chatProviders.resolveChatProvider).mockResolvedValue({
+      name: "openrouter",
+      baseUrl: "https://openrouter.ai/api/v1",
+      model: "openai/gpt-4o-mini",
+      apiKey: null,
+    });
+    const get = vi.spyOn(axios, "get");
+    await expect(caller.apiConfig.listModels()).rejects.toMatchObject({
+      code: "PRECONDITION_FAILED",
+    });
+    expect(get).not.toHaveBeenCalled();
   });
 });

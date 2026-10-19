@@ -15,7 +15,7 @@ const ORIGINAL_ENV = { ...process.env };
 
 const resendSendMock = vi.fn();
 const nodemailerSendMailMock = vi.fn();
-const nodemailerCreateTransportMock = vi.fn(() => ({
+const nodemailerCreateTransportMock = vi.fn((_options: unknown) => ({
   sendMail: nodemailerSendMailMock,
 }));
 

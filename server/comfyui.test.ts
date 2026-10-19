@@ -151,7 +151,7 @@ describe("ComfyUI selfie integration", () => {
   });
 
   it("exposes provider capabilities without its URL or secret", async () => {
-    vi.spyOn(db, "getUserApiConfig").mockResolvedValue(null);
+    vi.spyOn(db, "getUserApiConfig").mockResolvedValue(undefined);
     vi.spyOn(keyProvider, "get").mockResolvedValue(null);
     const result = await caller().apiConfig.get();
     expect(result.imageProvider).toEqual({

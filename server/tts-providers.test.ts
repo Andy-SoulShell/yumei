@@ -14,6 +14,9 @@ function createAuthContext(): { ctx: TrpcContext } {
     createdAt: new Date(),
     updatedAt: new Date(),
     lastSignedIn: new Date(),
+    image: null,
+    emailVerified: false,
+    birthDate: null,
   };
 
   const ctx: TrpcContext = {
@@ -24,7 +27,7 @@ function createAuthContext(): { ctx: TrpcContext } {
     } as TrpcContext["req"],
     res: {
       clearCookie: () => {},
-    } as TrpcContext["res"],
+    } as unknown as TrpcContext["res"],
   };
 
   return { ctx };

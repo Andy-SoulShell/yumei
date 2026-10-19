@@ -15,6 +15,9 @@ function createAuthContext(): { ctx: TrpcContext } {
     createdAt: new Date(),
     updatedAt: new Date(),
     lastSignedIn: new Date(),
+    image: null,
+    emailVerified: false,
+    birthDate: null,
   };
 
   const ctx: TrpcContext = {
@@ -25,7 +28,7 @@ function createAuthContext(): { ctx: TrpcContext } {
     } as TrpcContext["req"],
     res: {
       clearCookie: () => {},
-    } as TrpcContext["res"],
+    } as unknown as TrpcContext["res"],
   };
 
   return { ctx };
@@ -52,12 +55,15 @@ describe("Multi-girlfriend support", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
       lastSignedIn: new Date(),
+      image: null,
+      emailVerified: false,
+      birthDate: null,
     };
 
     const ctx: TrpcContext = {
       user,
       req: { protocol: "https", headers: {} } as TrpcContext["req"],
-      res: { clearCookie: () => {} } as TrpcContext["res"],
+      res: { clearCookie: () => {} } as unknown as TrpcContext["res"],
     };
 
     const caller = appRouter.createCaller(ctx);
@@ -82,12 +88,15 @@ describe("API config management", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
       lastSignedIn: new Date(),
+      image: null,
+      emailVerified: false,
+      birthDate: null,
     };
 
     const ctx: TrpcContext = {
       user,
       req: { protocol: "https", headers: {} } as TrpcContext["req"],
-      res: { clearCookie: () => {} } as TrpcContext["res"],
+      res: { clearCookie: () => {} } as unknown as TrpcContext["res"],
     };
 
     const caller = appRouter.createCaller(ctx);

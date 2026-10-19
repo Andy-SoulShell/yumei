@@ -99,7 +99,7 @@ describe("EnvKeyProvider — describeUserKeys (no DB)", () => {
 describe("EnvKeyProvider — input validation", () => {
   it("setUserKey rejects empty plaintext", async () => {
     const kp = new EnvKeyProvider();
-    await expect(kp.setUserKey(1, "openrouter", "")).rejects.toThrow();
+    await expect(kp.setUserKey("1", "openrouter", "")).rejects.toThrow();
   });
 
   it("setUserKey rejects unknown key name", async () => {

@@ -32,14 +32,16 @@ const fakeUser: User = {
   id: "test-user-42",
   openId: "test-openid-42",
   name: "Tester",
-  email: null,
+  email: "ownership@example.com",
   loginMethod: null,
-  avatarUrl: null,
   // M1-6: AI routes require a confirmed 18+ birth date.
   birthDate: new Date("1990-01-01"),
   createdAt: new Date(),
   lastSignedIn: new Date(),
-  lastActiveAt: new Date(),
+  image: null,
+  emailVerified: false,
+  role: "user",
+  updatedAt: new Date(),
 };
 
 const ctx = {
@@ -82,7 +84,7 @@ describe("issue #4: ownership-before-write", () => {
         callOrder.push("createMessage");
         return {} as any;
       });
-      vi.spyOn(db, "getActiveGirlfriend").mockResolvedValue(null);
+      vi.spyOn(db, "getActiveGirlfriend").mockResolvedValue(undefined);
 
       const caller = appRouter.createCaller(ctx as any);
       try {

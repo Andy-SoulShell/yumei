@@ -99,9 +99,10 @@ describe("ComfyUI API generation", () => {
     expect(
       Buffer.from(await (form.get("image") as Blob).arrayBuffer())
     ).toEqual(png);
-    expect(post.mock.calls[1][1].prompt["470"].inputs.image).toBe(
-      "yumei/uploaded.png"
-    );
+    const request = post.mock.calls[1][1] as {
+      prompt: Awaited<ReturnType<typeof buildImageWorkflow>>;
+    };
+    expect(request.prompt["470"].inputs.image).toBe("yumei/uploaded.png");
     expect(get.mock.calls[0][0]).toBe("http://comfy:8188/history/job");
     expect(get.mock.calls[2]).toEqual([
       "http://comfy:8188/view",

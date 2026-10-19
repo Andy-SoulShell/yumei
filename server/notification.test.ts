@@ -15,9 +15,14 @@ function createAuthContext(userId = 9901): { ctx: TrpcContext } {
     role: "user",
     createdAt: new Date(),
     updatedAt: new Date(),
-    avatarUrl: null,
+    image: null,
+    emailVerified: false,
+    birthDate: null,
+    lastSignedIn: new Date(),
   };
-  return { ctx: { user, res: {} as any } };
+  return {
+    ctx: { user, req: {} as TrpcContext["req"], res: {} as TrpcContext["res"] },
+  };
 }
 
 describe("Notification System", () => {

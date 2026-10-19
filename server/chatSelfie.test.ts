@@ -175,7 +175,7 @@ describe("chat-triggered selfies", () => {
       apiKey: "fake",
       baseUrl: "https://api.deepseek.com",
     });
-    vi.spyOn(db, "getUserApiConfig").mockResolvedValue(null);
+    vi.spyOn(db, "getUserApiConfig").mockResolvedValue(undefined);
     vi.spyOn(memory, "buildMemoryPromptBlock").mockResolvedValue("");
     vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
     vi.spyOn(axios, "post").mockResolvedValue({

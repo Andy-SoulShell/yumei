@@ -11,8 +11,6 @@ import {
   INTIMACY_LEVELS,
   POINTS_RULES,
   DAILY_POINTS_LIMIT,
-  DECAY_START_DAYS,
-  DECAY_POINTS_PER_DAY,
 } from "../shared/intimacy";
 
 describe("Intimacy System - Constants", () => {

@@ -16,6 +16,9 @@ function createAuthContext(userId = 1): { ctx: TrpcContext } {
     createdAt: new Date(),
     updatedAt: new Date(),
     lastSignedIn: new Date(),
+    image: null,
+    emailVerified: false,
+    birthDate: null,
   };
 
   const ctx: TrpcContext = {
@@ -24,7 +27,7 @@ function createAuthContext(userId = 1): { ctx: TrpcContext } {
       protocol: "https",
       headers: {},
     } as TrpcContext["req"],
-    res: {} as TrpcContext["res"],
+    res: {} as unknown as TrpcContext["res"],
   };
 
   return { ctx };

@@ -8,6 +8,7 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import "./index.css";
+import { loginUrl } from "@/lib/navigation";
 
 const queryClient = new QueryClient();
 
@@ -20,7 +21,9 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 
   if (!isUnauthorized) return;
 
-  window.location.href = "/login";
+  window.location.href = loginUrl(
+    window.location.pathname + window.location.search
+  );
 };
 
 queryClient.getQueryCache().subscribe(event => {

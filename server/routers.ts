@@ -22,6 +22,11 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { COLOR_MODES, THEME_IDS, UI_LANGUAGES } from "../shared/preferences";
+import {
+  getInterfacePreferences,
+  saveInterfacePreferences,
+} from "./preferences";
 import {
   createGirlfriend,
   getActiveGirlfriend,
@@ -140,6 +145,28 @@ function yearsSince(date: Date): number {
 
 /** 前后端共享的业务路由树，资源归属与功能权限在具体过程内校验。 */
 export const appRouter = router({
+  /** 界面偏好以认证用户为唯一归属，不接受客户端指定用户编号。 */
+  preferences: router({
+    get: protectedProcedure.query(({ ctx }) =>
+      getInterfacePreferences(ctx.user.id)
+    ),
+    update: protectedProcedure
+      .input(
+        z
+          .object({
+            language: z.enum(UI_LANGUAGES).optional(),
+            theme: z.enum(THEME_IDS).optional(),
+            colorMode: z.enum(COLOR_MODES).optional(),
+          })
+          .refine(
+            patch => Object.keys(patch).length > 0,
+            "At least one preference is required"
+          )
+      )
+      .mutation(({ ctx, input }) =>
+        saveInterfacePreferences(ctx.user.id, input)
+      ),
+  }),
   system: systemRouter,
   /** 当前用户资料、成年确认与退出操作。 */
   auth: router({

@@ -33,6 +33,29 @@ export type User = typeof users.$inferSelect;
 /** 从 users 表结构推导的新增记录输入，允许省略由数据库填充的字段。 */
 export type InsertUser = typeof users.$inferInsert;
 
+/** 账号级界面语言、配色与显示模式；独立于模型和 AI 回复偏好。 */
+export const userPreferences = mysqlTable("userPreferences", {
+  userId: varchar("userId", { length: 255 }).primaryKey(),
+  language: mysqlEnum("language", ["system", "zh-CN", "en"])
+    .default("system")
+    .notNull(),
+  theme: mysqlEnum("theme", [
+    "tokyo-sunset",
+    "sakura",
+    "midnight",
+    "neon-mint",
+    "crimson",
+    "sapphire",
+    "lava",
+    "pearl",
+  ])
+    .default("tokyo-sunset")
+    .notNull(),
+  colorMode: mysqlEnum("colorMode", ["system", "light", "dark"])
+    .default("system")
+    .notNull(),
+});
+
 /** Better-Auth 会话记录，客户端通过 token 而不是记录 id 关联会话。 */
 export const sessions = mysqlTable("sessions", {
   id: varchar("id", { length: 255 }).primaryKey(),

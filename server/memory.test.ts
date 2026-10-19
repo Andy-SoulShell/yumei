@@ -258,3 +258,25 @@ describe("proactive notifications reference memories", () => {
     expect(await checkAndCreateProactiveNotification(userId)).toBeNull();
   });
 });
+
+describe("memory reinforcement regressions", () => {
+  it("reinforces the real inserted row repeatedly within the same batch", async () => {
+    const userId = `batch-${nanoid(8)}`;
+    const gf = await makeGirlfriend(userId);
+    const candidate = {
+      category: "fact" as const,
+      content: "用户养了一只叫团团的猫",
+      importance: 5,
+    };
+    expect(
+      await storeExtractedMemories(userId, gf.id, [
+        candidate,
+        candidate,
+        candidate,
+      ])
+    ).toEqual({ inserted: 1, reinforced: 2 });
+    const rows = await listMemories(userId, gf.id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].weight).toBe(60);
+  });
+});

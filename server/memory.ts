@@ -3,7 +3,12 @@
 import axios from "axios";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import { memories, messages, type Memory } from "../drizzle/schema";
+import {
+  girlfriends,
+  memories,
+  messages,
+  type Memory,
+} from "../drizzle/schema";
 import {
   DUPLICATE_THRESHOLD,
   EXTRACTION_EVERY_N_MESSAGES,
@@ -14,7 +19,7 @@ import {
   memoryInjectionK,
   scoreMemory,
 } from "../shared/memory";
-import { getDb } from "./db";
+import { getDb, withUserTransaction } from "./db";
 import { log } from "./_core/log";
 import type { ChatProvider } from "./_core/chatProvider";
 
@@ -109,78 +114,71 @@ async function callExtractionModel(
   return typeof content === "string" ? parseExtractionResponse(content) : [];
 }
 
-/**
- * 保存提取候选记忆，并为相似旧记忆增加权重和新鲜度。
- *
- * @remarks 相似度比较在进程内完成；当前批次中新插入候选暂用占位编号参与后续匹配。
- */
+/** 在用户事务内保存候选记忆，使用真实插入 ID 并逐次累加强化权重。 */
 export async function storeExtractedMemories(
   userId: string,
   girlfriendId: number,
   candidates: ExtractedMemory[]
 ): Promise<{ inserted: number; reinforced: number }> {
-  const db = await getDb();
-  if (!db || candidates.length === 0) return { inserted: 0, reinforced: 0 };
-
-  const existing = await db
-    .select()
-    .from(memories)
-    .where(
-      and(eq(memories.userId, userId), eq(memories.girlfriendId, girlfriendId))
-    );
-
-  let inserted = 0;
-  let reinforced = 0;
-
-  for (const candidate of candidates) {
-    const duplicate = existing.find(
-      m =>
-        bigramOverlap(candidate.content, m.content) >= DUPLICATE_THRESHOLD ||
-        bigramOverlap(m.content, candidate.content) >= DUPLICATE_THRESHOLD
-    );
-    if (duplicate) {
-      await db
-        .update(memories)
-        .set({
-          weight: Math.min(100, duplicate.weight + 5),
-          lastRecalledAt: new Date(),
-        })
-        .where(eq(memories.id, duplicate.id));
-      reinforced += 1;
-      continue;
+  if (candidates.length === 0) return { inserted: 0, reinforced: 0 };
+  return withUserTransaction(userId, async tx => {
+    const [role] = await tx
+      .select({ id: girlfriends.id })
+      .from(girlfriends)
+      .where(
+        and(eq(girlfriends.id, girlfriendId), eq(girlfriends.userId, userId))
+      );
+    if (!role) return { inserted: 0, reinforced: 0 };
+    const existing = await tx
+      .select()
+      .from(memories)
+      .where(
+        and(
+          eq(memories.userId, userId),
+          eq(memories.girlfriendId, girlfriendId)
+        )
+      )
+      .for("update");
+    let inserted = 0;
+    let reinforced = 0;
+    for (const candidate of candidates) {
+      const duplicate = existing.find(
+        m =>
+          m.content === candidate.content ||
+          bigramOverlap(candidate.content, m.content) >= DUPLICATE_THRESHOLD ||
+          bigramOverlap(m.content, candidate.content) >= DUPLICATE_THRESHOLD
+      );
+      if (duplicate) {
+        duplicate.weight = Math.min(100, duplicate.weight + 5);
+        duplicate.lastRecalledAt = new Date();
+        await tx
+          .update(memories)
+          .set({
+            weight: duplicate.weight,
+            lastRecalledAt: duplicate.lastRecalledAt,
+          })
+          .where(eq(memories.id, duplicate.id));
+        reinforced++;
+      } else {
+        const [result] = await tx
+          .insert(memories)
+          .values({
+            userId,
+            girlfriendId,
+            category: candidate.category,
+            content: candidate.content,
+            weight: Math.min(90, Math.max(10, candidate.importance * 10)),
+          });
+        const [row] = await tx
+          .select()
+          .from(memories)
+          .where(eq(memories.id, Number(result.insertId)));
+        existing.push(row);
+        inserted++;
+      }
     }
-
-    const weight = Math.min(90, Math.max(10, candidate.importance * 10));
-    await db
-      .insert(memories)
-      .values({
-        userId,
-        girlfriendId,
-        category: candidate.category,
-        content: candidate.content,
-        weight,
-      })
-      // 完全相同内容触发唯一索引时，改为强化已有记忆。
-      .onDuplicateKeyUpdate({
-        set: { weight: sql`LEAST(100, ${memories.weight} + 5)` },
-      });
-    inserted += 1;
-    existing.push({
-      id: -1,
-      userId,
-      girlfriendId,
-      category: candidate.category,
-      content: candidate.content,
-      weight,
-      pinned: false,
-      sourceMessageId: null,
-      lastRecalledAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-  }
-
-  return { inserted, reinforced };
+    return { inserted, reinforced };
+  });
 }
 
 /**

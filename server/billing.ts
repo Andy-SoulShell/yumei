@@ -1,17 +1,18 @@
 /** 套餐判定、权益读取与 Lemon Squeezy 订阅事件处理。 */
 
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { eq, or } from "drizzle-orm";
 import type { Express, Request, Response } from "express";
 import express from "express";
-import { eq, or } from "drizzle-orm";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import {
   billingEvents,
   subscriptions,
   type Subscription,
 } from "../drizzle/schema";
 import { TIER_LIMITS, type Tier, type TierLimits } from "../shared/quotas";
-import { getDb, getUserById, withUserTransaction } from "./db";
 import { log } from "./_core/log";
+import { getDb, withUserTransaction } from "./database";
+import { getUserById } from "./repositories/users";
 
 /** 计费运行模式：免费额度、自托管全解锁或外部订阅。 */
 export type BillingMode = "free" | "none" | "lemonsqueezy";

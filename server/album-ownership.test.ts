@@ -1,9 +1,10 @@
 /** 相册读取通过真实路由和数据库验证账号、角色及软删除边界。 */
 import { describe, expect, it } from "vitest";
+import type { TrpcContext } from "./_core/context";
+import { softDeleteGirlfriend } from "./repositories/companions";
+import { createSelfie, getGirlfriendSelfies } from "./repositories/photos";
 import { appRouter } from "./routers";
 import { createTestGirlfriend } from "./testFixtures";
-import { createSelfie, getGirlfriendSelfies, softDeleteGirlfriend } from "./db";
-import type { TrpcContext } from "./_core/context";
 
 describe("album ownership", () => {
   it("returns only the owner's photos and rejects foreign, missing and deleted roles", async () => {

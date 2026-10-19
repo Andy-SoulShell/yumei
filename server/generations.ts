@@ -1,31 +1,31 @@
 import { EXTRACTION_EVERY_N_MESSAGES } from "../shared/memory";
 /** 持久化生成请求，原子结算消息与额度，并补偿失败和过期预留。 */
 import { TRPCError } from "@trpc/server";
+import { and, eq, inArray, isNull, lte, sql } from "drizzle-orm";
+import {
+  conversations,
+  generationRequests,
+  girlfriends,
+  mediaDeletions,
+  memoryExtractionJobs,
+  messages,
+  selfies,
+  usageMeters,
+  type InsertMessage,
+  type InsertSelfie,
+} from "../drizzle/schema";
+import {
+  monthUTC,
+  todayUTC,
+  tryConsumeMeterInTransaction,
+} from "./_core/quota";
+import { getDb, withUserTransaction, type DbTransaction } from "./database";
 import {
   applyMessageRelationship,
   awardIntimacy,
   relationshipSummary,
 } from "./relationship";
 import { consumeTranscription } from "./transcriptions";
-import { and, eq, inArray, isNull, lte, sql } from "drizzle-orm";
-import {
-  memoryExtractionJobs,
-  conversations,
-  girlfriends,
-  generationRequests,
-  messages,
-  selfies,
-  usageMeters,
-  mediaDeletions,
-  type InsertMessage,
-  type InsertSelfie,
-} from "../drizzle/schema";
-import { getDb, withUserTransaction, type DbTransaction } from "./db";
-import {
-  monthUTC,
-  todayUTC,
-  tryConsumeMeterInTransaction,
-} from "./_core/quota";
 
 /** 一次生成需要预留的额度；不传表示 BYOK、不限量或自托管。 */
 export type GenerationMeter = {

@@ -1,15 +1,18 @@
 /** 覆盖图片生成的工作流适配与业务约束。 */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import axios from "axios";
-import * as db from "./db";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ComfyUIClient } from "./_core/comfyui";
+import * as providers from "./_core/imageProvider";
+import { keyProvider } from "./_core/keyProvider";
 import * as generations from "./generations";
 import * as cleanup from "./mediaCleanup";
-import * as storage from "./storage";
-import * as providers from "./_core/imageProvider";
-import { ComfyUIClient } from "./_core/comfyui";
-import { keyProvider } from "./_core/keyProvider";
+import * as apiConfigDb from "./repositories/apiConfig";
+import * as companionsDb from "./repositories/companions";
+import * as conversationsDb from "./repositories/conversations";
+import * as photosDb from "./repositories/photos";
 import { appRouter } from "./routers";
+import * as storage from "./storage";
 
 const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0]);
 let sequence = 0;
@@ -73,8 +76,10 @@ afterEach(() => {
 
 describe("ComfyUI selfie integration", () => {
   it("generates text-to-image without a fal key and persists the image in chat and gallery", async () => {
-    vi.spyOn(db, "getConversation").mockResolvedValue({ id: 1 } as any);
-    vi.spyOn(db, "getActiveGirlfriend").mockResolvedValue({
+    vi.spyOn(conversationsDb, "getConversation").mockResolvedValue({
+      id: 1,
+    } as any);
+    vi.spyOn(companionsDb, "getActiveGirlfriend").mockResolvedValue({
       id: 2,
       appearance: "黑色长发",
       intimacyLevel: 1,
@@ -85,8 +90,12 @@ describe("ComfyUI selfie integration", () => {
       key: "generated.png",
       url: "http://localhost:3000/files/generated.png",
     });
-    vi.spyOn(db, "createSelfie").mockImplementation(async data => data as any);
-    vi.spyOn(db, "createMessage").mockImplementation(async data => data as any);
+    vi.spyOn(photosDb, "createSelfie").mockImplementation(
+      async data => data as any
+    );
+    vi.spyOn(conversationsDb, "createMessage").mockImplementation(
+      async data => data as any
+    );
     const generate = vi
       .spyOn(providers, "generateProviderImage")
       .mockResolvedValue(png);
@@ -115,14 +124,14 @@ describe("ComfyUI selfie integration", () => {
 
   it("checks conversation ownership and intimacy before submitting a task", async () => {
     const conversation = vi
-      .spyOn(db, "getConversation")
+      .spyOn(conversationsDb, "getConversation")
       .mockResolvedValue(undefined);
     const generate = vi.spyOn(providers, "generateProviderImage");
     await expect(
       caller().selfie.generate({ conversationId: 1, userContext: "test" })
     ).rejects.toThrow("not owned");
     conversation.mockResolvedValue({ id: 1 } as any);
-    vi.spyOn(db, "getActiveGirlfriend").mockResolvedValue({
+    vi.spyOn(companionsDb, "getActiveGirlfriend").mockResolvedValue({
       id: 2,
       intimacyLevel: 1,
     } as any);
@@ -196,7 +205,7 @@ describe("ComfyUI selfie integration", () => {
   });
 
   it("exposes provider capabilities without its URL or secret", async () => {
-    vi.spyOn(db, "getUserApiConfig").mockResolvedValue(undefined);
+    vi.spyOn(apiConfigDb, "getUserApiConfig").mockResolvedValue(undefined);
     vi.spyOn(keyProvider, "get").mockResolvedValue(null);
     const result = await caller().apiConfig.get();
     expect(result.imageProvider).toEqual({

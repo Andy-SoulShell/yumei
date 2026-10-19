@@ -1,13 +1,15 @@
 /** 验证任务随消息提交、独立执行者互斥、失败重试以及过期租约恢复。 */
-import { afterEach, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
+import { afterEach, expect, it, vi } from "vitest";
 import { memoryExtractionJobs } from "../drizzle/schema";
-import { createTestGirlfriend } from "./testFixtures";
-import { createConversation, getDb, permanentDeleteGirlfriend } from "./db";
-import { reserveGeneration, completeTextGeneration } from "./generations";
-import { runMemoryExtractionJobs } from "./memoryJobs";
-import * as memory from "./memory";
 import * as provider from "./_core/chatProvider";
+import { getDb } from "./database";
+import { completeTextGeneration, reserveGeneration } from "./generations";
+import * as memory from "./memory";
+import { runMemoryExtractionJobs } from "./memoryJobs";
+import { permanentDeleteGirlfriend } from "./repositories/companions";
+import { createConversation } from "./repositories/conversations";
+import { createTestGirlfriend } from "./testFixtures";
 
 afterEach(() => vi.restoreAllMocks());
 async function seed() {

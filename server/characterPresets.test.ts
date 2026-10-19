@@ -2,8 +2,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CHARACTER_PRESETS } from "../shared/characterPresets";
+import * as companionsDb from "./repositories/companions";
 import { appRouter } from "./routers";
-import * as db from "./db";
 import * as storage from "./storage";
 
 const caller = appRouter.createCaller({
@@ -19,7 +19,7 @@ beforeEach(() => {
     key,
     url: `http://app/files/${key}`,
   }));
-  vi.spyOn(db, "createGirlfriend").mockImplementation(
+  vi.spyOn(companionsDb, "createGirlfriend").mockImplementation(
     async data => ({ id: 1, ...data }) as any
   );
 });
@@ -64,7 +64,7 @@ describe("character preset creation", () => {
       ).rejects.toThrow();
     }
     expect(storage.storagePut).not.toHaveBeenCalled();
-    expect(db.createGirlfriend).not.toHaveBeenCalled();
+    expect(companionsDb.createGirlfriend).not.toHaveBeenCalled();
   });
 
   it("allows an uploaded reference to replace a preset reference", async () => {
@@ -84,7 +84,9 @@ describe("character preset creation", () => {
 
   it("keeps the plan's companion limit for preset creation", async () => {
     vi.stubEnv("BILLING_PROVIDER", "free");
-    vi.spyOn(db, "getUserGirlfriends").mockResolvedValue([{ id: 2 }] as any);
+    vi.spyOn(companionsDb, "getUserGirlfriends").mockResolvedValue([
+      { id: 2 },
+    ] as any);
     await expect(
       caller.girlfriend.create({ ...profile, presetId: "aoi" })
     ).rejects.toThrow("UPGRADE_REQUIRED");

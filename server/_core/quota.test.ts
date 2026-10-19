@@ -1,15 +1,15 @@
 /** 覆盖请求频率、行为冷却与数据库每日计量。 */
 
+import { nanoid } from "nanoid";
 import { describe, expect, it, vi } from "vitest";
+import { RATE_LIMITS_PER_MINUTE } from "../../shared/quotas";
+import { getDb } from "../database";
 import {
   checkRateLimit,
-  tryConsumeDailyMeter,
   getDailyMeter,
   todayUTC,
+  tryConsumeDailyMeter,
 } from "./quota";
-import { RATE_LIMITS_PER_MINUTE } from "../../shared/quotas";
-import { getDb } from "../db";
-import { nanoid } from "nanoid";
 
 describe("shared sliding request windows", () => {
   it("admits exactly the cap under concurrent requests", async () => {

@@ -1,8 +1,9 @@
 /** 覆盖会话延续与显式新建入口。 */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import * as companionsDb from "./repositories/companions";
+import * as conversationsDb from "./repositories/conversations";
 import { appRouter } from "./routers";
-import * as db from "./db";
 
 const caller = appRouter.createCaller({
   user: { id: "resume-test-user" },
@@ -14,9 +15,9 @@ afterEach(() => vi.restoreAllMocks());
 describe("resume and explicit new conversations", () => {
   it("resumes the selected character instead of calling the explicit creation path", async () => {
     const resume = vi
-      .spyOn(db, "resumeConversation")
+      .spyOn(conversationsDb, "resumeConversation")
       .mockResolvedValue({ id: 18, girlfriendId: 5 } as any);
-    const create = vi.spyOn(db, "createConversation");
+    const create = vi.spyOn(conversationsDb, "createConversation");
     const result = await caller.conversation.resume({ girlfriendId: 5 });
     expect(result.id).toBe(18);
     expect(resume).toHaveBeenCalledWith("resume-test-user", 5);
@@ -24,7 +25,9 @@ describe("resume and explicit new conversations", () => {
   });
 
   it("does not open a deleted or another user's character", async () => {
-    vi.spyOn(db, "resumeConversation").mockResolvedValue(undefined);
+    vi.spyOn(conversationsDb, "resumeConversation").mockResolvedValue(
+      undefined
+    );
     await expect(
       caller.conversation.resume({ girlfriendId: 99 })
     ).rejects.toThrow("角色不存在");
@@ -32,10 +35,10 @@ describe("resume and explicit new conversations", () => {
 
   it("creates a new conversation only through the explicit create endpoint", async () => {
     const owner = vi
-      .spyOn(db, "getActiveGirlfriend")
+      .spyOn(companionsDb, "getActiveGirlfriend")
       .mockResolvedValue({ id: 5 } as any);
     const create = vi
-      .spyOn(db, "createConversation")
+      .spyOn(conversationsDb, "createConversation")
       .mockResolvedValue({ id: 19 } as any);
     await caller.conversation.create({ girlfriendId: 5, title: "新的开始" });
     expect(owner).toHaveBeenCalledWith("resume-test-user", 5);
@@ -47,8 +50,8 @@ describe("resume and explicit new conversations", () => {
   });
 
   it("validates character ownership before explicit creation", async () => {
-    vi.spyOn(db, "getActiveGirlfriend").mockResolvedValue(undefined);
-    const create = vi.spyOn(db, "createConversation");
+    vi.spyOn(companionsDb, "getActiveGirlfriend").mockResolvedValue(undefined);
+    const create = vi.spyOn(conversationsDb, "createConversation");
     await expect(
       caller.conversation.create({ girlfriendId: 99 })
     ).rejects.toThrow("角色不存在");
@@ -56,8 +59,10 @@ describe("resume and explicit new conversations", () => {
   });
 
   it("checks conversation ownership before loading its messages", async () => {
-    const owner = vi.spyOn(db, "getConversation").mockResolvedValue(undefined);
-    const messages = vi.spyOn(db, "getMessagePage");
+    const owner = vi
+      .spyOn(conversationsDb, "getConversation")
+      .mockResolvedValue(undefined);
+    const messages = vi.spyOn(conversationsDb, "getMessagePage");
     await expect(
       caller.conversation.getMessages({ conversationId: 99 })
     ).rejects.toThrow("not owned");

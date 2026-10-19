@@ -1,0 +1,125 @@
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import { protectedProcedure, router } from "../_core/trpc";
+import { getActiveGirlfriend } from "../repositories/companions";
+import {
+  createConversation,
+  getConversation,
+  getConversationsWithLastMessage,
+  getMessagePage,
+  getUserConversations,
+  resumeConversation,
+  searchConversations,
+} from "../repositories/conversations";
+
+export const conversationRouter = router({
+  /** 校验角色归属后复用最近会话，首次创建通过事务内角色行锁串行化。 */
+  resume: protectedProcedure
+    .input(z.object({ girlfriendId: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      const conversation = await resumeConversation(
+        ctx.user.id,
+        input.girlfriendId
+      );
+      if (!conversation)
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "角色不存在或已删除",
+        });
+      return conversation;
+    }),
+  /** 校验角色归属后显式新建会话。 */
+  create: protectedProcedure
+    .input(
+      z.object({
+        girlfriendId: z.number(),
+        title: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const girlfriend = await getActiveGirlfriend(
+        ctx.user.id,
+        input.girlfriendId
+      );
+      if (!girlfriend)
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "角色不存在或已删除",
+        });
+      return await createConversation({
+        userId: ctx.user.id,
+        girlfriendId: girlfriend.id,
+        title: input.title,
+      });
+    }),
+
+  /** 读取当前用户的全部会话。 */
+  list: protectedProcedure.query(async ({ ctx }) => {
+    return await getUserConversations(ctx.user.id);
+  }),
+
+  /** 读取当前用户会话并补充最近消息及角色信息。 */
+  listWithDetails: protectedProcedure
+    .input(
+      z
+        .object({
+          cursor: z
+            .object({ updatedAt: z.date(), id: z.number().int() })
+            .nullish(),
+          search: z.string().max(100).optional(),
+          limit: z.number().int().min(1).max(100).default(50),
+        })
+        .optional()
+    )
+    .query(async ({ ctx, input }) => {
+      return await getConversationsWithLastMessage(ctx.user.id, input);
+    }),
+
+  /** 按用户归属读取单个会话。 */
+  get: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ ctx, input }) => {
+      return await getConversation(input.id, ctx.user.id);
+    }),
+
+  /** 校验会话归属后读取其全部消息。 */
+  getMessages: protectedProcedure
+    .input(
+      z.object({
+        conversationId: z.number(),
+        cursor: z.number().int().nullish(),
+        limit: z.number().int().min(1).max(100).default(50),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      if (!(await getConversation(input.conversationId, ctx.user.id))) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Conversation not found or not owned by current user",
+        });
+      }
+      return await getMessagePage(
+        input.conversationId,
+        input.cursor,
+        input.limit
+      );
+    }),
+
+  /** 按当前用户归属返回关键词命中的会话信息。 */
+  search: protectedProcedure
+    .input(
+      z.object({
+        keyword: z.string().min(1).max(100),
+        cursor: z.number().int().nullish(),
+        limit: z.number().int().min(1).max(100).default(50),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      return await searchConversations(
+        ctx.user.id,
+        input.keyword,
+        input.cursor,
+        input.limit
+      );
+    }),
+});

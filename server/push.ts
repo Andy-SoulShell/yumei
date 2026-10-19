@@ -1,13 +1,13 @@
+import type { Notification } from "../drizzle/schema";
 import { renderMessage } from "../shared/i18n";
 import { resolveLocale } from "../shared/preferences";
 import { getInterfacePreferences } from "./preferences";
-import type { Notification } from "../drizzle/schema";
 /** Web Push 订阅管理、通知投递及每小时主动消息调度。 */
 
 import { eq } from "drizzle-orm";
 import { pushSubscriptions } from "../drizzle/schema";
-import { getDb } from "./db";
 import { log } from "./_core/log";
+import { getDb } from "./database";
 
 /** 判断 VAPID 公钥与私钥是否同时配置，不验证其格式或外部网络。 */
 export function isPushConfigured(): boolean {
@@ -165,7 +165,8 @@ export function startProactivePushScheduler(): () => void {
       const hour = new Date().getHours();
       if (hour < 8 || hour >= 22) return;
 
-      const { checkAndCreateProactiveNotification } = await import("./db");
+      const { checkAndCreateProactiveNotification } =
+        await import("./repositories/notifications");
       const userIds = await listPushUserIds();
       for (const userId of userIds) {
         try {

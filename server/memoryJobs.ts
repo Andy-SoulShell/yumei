@@ -1,15 +1,15 @@
 /** 使用有期限的数据库租约执行记忆任务，提取结果与任务确认原子提交。 */
-import { and, eq, isNull, lte, or, desc, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, lte, or, sql } from "drizzle-orm";
 import { memoryExtractionJobs, messages } from "../drizzle/schema";
-import { getDb, withUserTransaction } from "./db";
+import { EXTRACTION_EVERY_N_MESSAGES } from "../shared/memory";
 import { resolveChatProvider } from "./_core/chatProvider";
+import { log, providerErrorSummary } from "./_core/log";
+import { getDb, withUserTransaction } from "./database";
 import {
   callExtractionModel,
-  storeExtractedMemoriesInTransaction,
   enforceMemoryCapacity,
+  storeExtractedMemoriesInTransaction,
 } from "./memory";
-import { log, providerErrorSummary } from "./_core/log";
-import { EXTRACTION_EVERY_N_MESSAGES } from "../shared/memory";
 
 /** 多实例可同时调用；过期租约会被重新认领，连续五次失败保留为待排查任务。 */
 export async function runMemoryExtractionJobs(userId?: string): Promise<void> {

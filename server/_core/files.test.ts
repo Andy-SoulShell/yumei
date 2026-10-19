@@ -1,14 +1,14 @@
 /** 通过真实 HTTP 请求验证文件参数只解码一次，异常输入不终止服务。 */
 
-import express from "express";
-import { createServer } from "node:http";
-import { once } from "node:events";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
+import express from "express";
+import { once } from "node:events";
+import { createServer } from "node:http";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { mediaDeletions } from "../../drizzle/schema";
-import { getDb } from "../db";
-import { registerFileRoutes } from "./files";
+import { getDb } from "../database";
 import { storagePut } from "../storage";
+import { registerFileRoutes } from "./files";
 
 const app = express();
 registerFileRoutes(app);

@@ -3,25 +3,29 @@ import { BusinessRuleError } from "./_core/businessError";
 
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
-import { getConversation, getActiveGirlfriend, getRecentMessages } from "./db";
+import { METERS } from "../shared/quotas";
+import { getPose } from "../shared/selfiePoses";
 import {
-  resolveImageProvider,
   generateProviderImage,
+  resolveImageProvider,
 } from "./_core/imageProvider";
+import { log, providerErrorSummary } from "./_core/log";
 import { checkRateLimit } from "./_core/quota";
+import { getTierLimits, isBillingEnforced, upsellHint } from "./billing";
 import {
-  reserveGeneration,
   completeImageGeneration,
   failGeneration,
   failImageGeneration,
+  reserveGeneration,
   type GenerationMeter,
 } from "./generations";
 import { flushMediaDeletions, queueMediaDeletion } from "./mediaCleanup";
-import { log, providerErrorSummary } from "./_core/log";
-import { getTierLimits, isBillingEnforced, upsellHint } from "./billing";
-import { METERS } from "../shared/quotas";
-import { getPose } from "../shared/selfiePoses";
 import { buildSmartPrompt } from "./promptTemplates";
+import { getActiveGirlfriend } from "./repositories/companions";
+import {
+  getConversation,
+  getRecentMessages,
+} from "./repositories/conversations";
 import { storagePut } from "./storage";
 
 /** 自拍生成参数，场景文本可与姿势片段一起参与提示词构建。 */

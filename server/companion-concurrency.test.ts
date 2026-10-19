@@ -1,6 +1,6 @@
 /** 使用真实 MySQL 验证默认初始化、创建和恢复共用用户数量锁。 */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createTestUser } from "./testFixtures";
+import type { TrpcContext } from "./_core/context";
 import {
   createDefaultGirlfriend,
   createGirlfriend,
@@ -8,9 +8,9 @@ import {
   restoreGirlfriend,
   softDeleteGirlfriend,
   updateGirlfriend,
-} from "./db";
+} from "./repositories/companions";
 import { appRouter } from "./routers";
-import type { TrpcContext } from "./_core/context";
+import { createTestUser } from "./testFixtures";
 
 const profile = {
   name: "YUMEI",

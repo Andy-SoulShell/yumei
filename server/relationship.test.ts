@@ -1,25 +1,25 @@
 /** 通过真实结算验证心情并发、奖励来源、失败回滚及一次性语音凭据。 */
-import { afterEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { girlfriendMoods, voiceTranscriptions } from "../drizzle/schema";
-import { appRouter } from "./routers";
-import { createTestGirlfriend } from "./testFixtures";
+import type { TrpcContext } from "./_core/context";
+import type { TranscriptionResponse } from "./_core/openaiWhisper";
+import { getDb } from "./database";
+import {
+  completeImageGeneration,
+  completeTextGeneration,
+  reserveGeneration,
+} from "./generations";
+import { updateGirlfriend } from "./repositories/companions";
 import {
   createConversation,
   getConversationMessages,
-  getDb,
-  getGirlfriendMood,
-  getIntimacyInfo,
-  updateGirlfriend,
-} from "./db";
-import {
-  reserveGeneration,
-  completeTextGeneration,
-  completeImageGeneration,
-} from "./generations";
+} from "./repositories/conversations";
+import { getIntimacyInfo } from "./repositories/intimacy";
+import { getGirlfriendMood } from "./repositories/moods";
+import { appRouter } from "./routers";
+import { createTestGirlfriend } from "./testFixtures";
 import { saveTranscription } from "./transcriptions";
-import type { TranscriptionResponse } from "./_core/openaiWhisper";
-import type { TrpcContext } from "./_core/context";
 
 async function seed() {
   const userId = `relationship-${crypto.randomUUID()}`;

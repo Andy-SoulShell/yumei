@@ -1,9 +1,8 @@
 /** 覆盖记忆评分、提取解析、持久化和主动消息引用。 */
 
-import { createTestGirlfriend as createGirlfriend } from "./testFixtures";
+import { nanoid } from "nanoid";
 import { describe, expect, it, vi } from "vitest";
 import { renderMessage } from "../shared/i18n";
-import { nanoid } from "nanoid";
 import {
   bigramOverlap,
   memoryCapacity,
@@ -11,17 +10,19 @@ import {
   scoreMemory,
   timeDecayFactor,
 } from "../shared/memory";
+import { getDb } from "./database";
 import {
-  parseExtractionResponse,
-  storeExtractedMemories,
-  enforceMemoryCapacity,
   buildMemoryPromptBlock,
-  listMemories,
   deleteMemory,
-  setMemoryPinned,
+  enforceMemoryCapacity,
   getFreshEventMemory,
+  listMemories,
+  parseExtractionResponse,
+  setMemoryPinned,
+  storeExtractedMemories,
 } from "./memory";
-import { getDb, checkAndCreateProactiveNotification } from "./db";
+import { checkAndCreateProactiveNotification } from "./repositories/notifications";
+import { createTestGirlfriend as createGirlfriend } from "./testFixtures";
 
 // ---------------------------------------------------------------------------
 // Pure scoring (no DB)

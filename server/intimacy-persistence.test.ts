@@ -1,13 +1,14 @@
 /** 使用真实计量记录验证衰减幂等、夜间奖励和并发每日上限。 */
-import { afterEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { usageMeters } from "../drizzle/schema";
 import { getLevelByPoints } from "../shared/intimacy";
-import { createGirlfriend, getDb, getIntimacyInfo } from "./db";
-import { createTestUser } from "./testFixtures";
-import { awardIntimacy } from "./relationship";
-import { withUserTransaction } from "./db";
 import { getDailyMeter, todayUTC } from "./_core/quota";
+import { getDb, withUserTransaction } from "./database";
+import { awardIntimacy } from "./relationship";
+import { createGirlfriend } from "./repositories/companions";
+import { getIntimacyInfo } from "./repositories/intimacy";
+import { createTestUser } from "./testFixtures";
 
 const profile = {
   name: "YUMEI",

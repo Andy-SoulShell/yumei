@@ -1,11 +1,11 @@
 /** 覆盖环境默认凭据、用户密钥回退及加密存储输入。 */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { and, eq } from "drizzle-orm";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { userKeys } from "../../../drizzle/schema";
+import * as databaseDb from "../../database";
 import { _resetEncryptionForTests } from "../encryption";
 import { EnvKeyProvider } from "./envKeyProvider";
-import { and, eq } from "drizzle-orm";
-import { userKeys } from "../../../drizzle/schema";
-import * as dbModule from "../../db";
 
 const ORIGINAL_ENV = { ...process.env };
 
@@ -63,7 +63,7 @@ describe("EnvKeyProvider — user-scoped fallback to operator", () => {
   it("falls back to operator key when user has no BYOK and no DB", async () => {
     process.env.OPERATOR_FAL_KEY = "fal-operator-fallback";
     // Force getDb to return null (the test-mode silent path).
-    vi.spyOn(dbModule, "getDb").mockResolvedValue(null as any);
+    vi.spyOn(databaseDb, "getDb").mockResolvedValue(null as any);
     const kp = new EnvKeyProvider();
     expect(await kp.get({ userId: "test-user-42" }, "fal")).toBe(
       "fal-operator-fallback"
@@ -72,7 +72,7 @@ describe("EnvKeyProvider — user-scoped fallback to operator", () => {
 
   it("returns null when neither user key nor operator key is set", async () => {
     delete process.env.OPERATOR_FAL_KEY;
-    vi.spyOn(dbModule, "getDb").mockResolvedValue(null as any);
+    vi.spyOn(databaseDb, "getDb").mockResolvedValue(null as any);
     const kp = new EnvKeyProvider();
     expect(await kp.get({ userId: "test-user-1" }, "fal")).toBeNull();
   });
@@ -80,7 +80,7 @@ describe("EnvKeyProvider — user-scoped fallback to operator", () => {
 
 describe("EnvKeyProvider — describeUserKeys (no DB)", () => {
   it("returns isSet:false for every known key when DB is unavailable", async () => {
-    vi.spyOn(dbModule, "getDb").mockResolvedValue(null as any);
+    vi.spyOn(databaseDb, "getDb").mockResolvedValue(null as any);
     const kp = new EnvKeyProvider();
     const desc = await kp.describeUserKeys("test-user-1");
     expect(desc.openrouter.isSet).toBe(false);
@@ -123,7 +123,7 @@ describe("BYOK provenance (DB)", () => {
     });
   });
   it("rejects corrupt saved keys instead of spending operator credentials", async () => {
-    const db = await dbModule.getDb();
+    const db = await databaseDb.getDb();
     if (!db) throw new Error("DATABASE_URL required");
     const userId = `corrupt-${crypto.randomUUID()}`;
     process.env.OPERATOR_OPENROUTER_KEY = "operator-secret";

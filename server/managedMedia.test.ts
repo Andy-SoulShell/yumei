@@ -1,16 +1,17 @@
 /** 验证上传补偿、头像替换、临时音频期限和慢存储不占用用户事务锁。 */
-import { afterEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { mediaDeletions } from "../drizzle/schema";
-import { createTestGirlfriend, createTestUser } from "./testFixtures";
-import { putStagedMedia, publishMedia } from "./managedMedia";
-import { flushMediaDeletions, isMediaPendingDeletion } from "./mediaCleanup";
-import { getDb, updateGirlfriend, withUserTransaction } from "./db";
-import * as storage from "./storage";
-import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 import * as whisper from "./_core/openaiWhisper";
-import * as data from "./db";
+import { getDb, withUserTransaction } from "./database";
+import { publishMedia, putStagedMedia } from "./managedMedia";
+import { flushMediaDeletions, isMediaPendingDeletion } from "./mediaCleanup";
+import * as companionsDb from "./repositories/companions";
+import { updateGirlfriend } from "./repositories/companions";
+import { appRouter } from "./routers";
+import * as storage from "./storage";
+import { createTestGirlfriend, createTestUser } from "./testFixtures";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -45,7 +46,7 @@ describe("managed media lifecycle", () => {
       })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(upload).not.toHaveBeenCalled();
-    vi.spyOn(data, "createGirlfriend").mockRejectedValue(
+    vi.spyOn(companionsDb, "createGirlfriend").mockRejectedValue(
       new Error("create failed")
     );
     await expect(

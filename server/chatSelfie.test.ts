@@ -1,16 +1,19 @@
 /** 覆盖聊天触发自拍的意图、上下文与失败反馈。 */
 
-import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import axios from "axios";
-import { appRouter } from "./routers";
-import * as db from "./db";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as chat from "./_core/chatProvider";
+import * as providers from "./_core/imageProvider";
+import * as billing from "./billing";
 import * as generations from "./generations";
 import * as cleanup from "./mediaCleanup";
-import * as storage from "./storage";
-import * as providers from "./_core/imageProvider";
-import * as chat from "./_core/chatProvider";
 import * as memory from "./memory";
-import * as billing from "./billing";
+import * as apiConfigDb from "./repositories/apiConfig";
+import * as companionsDb from "./repositories/companions";
+import * as conversationsDb from "./repositories/conversations";
+import * as photosDb from "./repositories/photos";
+import { appRouter } from "./routers";
+import * as storage from "./storage";
 
 let serial = 0;
 const caller = () =>
@@ -55,11 +58,11 @@ beforeEach(() => {
   );
 
   vi.stubEnv("BILLING_PROVIDER", "none");
-  vi.spyOn(db, "getConversation").mockResolvedValue({
+  vi.spyOn(conversationsDb, "getConversation").mockResolvedValue({
     id: 42,
     girlfriendId: 12,
   } as any);
-  vi.spyOn(db, "getActiveGirlfriend").mockResolvedValue({
+  vi.spyOn(companionsDb, "getActiveGirlfriend").mockResolvedValue({
     id: 12,
     name: "美咲",
     intimacyLevel: 10,
@@ -67,14 +70,14 @@ beforeEach(() => {
     referenceImageKey: "misaki.jpg",
     referenceImageUrl: "http://app/files/misaki.jpg",
   } as any);
-  vi.spyOn(db, "getRecentMessages").mockResolvedValue([
+  vi.spyOn(conversationsDb, "getRecentMessages").mockResolvedValue([
     { role: "assistant", content: "我在咖啡馆，穿着蓝色衬衫。" },
   ] as any);
   let id = 1;
-  vi.spyOn(db, "createMessage").mockImplementation(
+  vi.spyOn(conversationsDb, "createMessage").mockImplementation(
     async data => ({ id: id++, ...data }) as any
   );
-  vi.spyOn(db, "createSelfie").mockImplementation(
+  vi.spyOn(photosDb, "createSelfie").mockImplementation(
     async data => ({ id: 1, ...data }) as any
   );
   vi.spyOn(storage, "storagePut").mockResolvedValue({
@@ -105,7 +108,10 @@ describe("chat-triggered selfies", () => {
     });
     expect(llm).not.toHaveBeenCalled();
     expect(result.imageGeneration).toBe("completed");
-    expect(db.getActiveGirlfriend).toHaveBeenCalledWith(expect.any(String), 12);
+    expect(companionsDb.getActiveGirlfriend).toHaveBeenCalledWith(
+      expect.any(String),
+      12
+    );
     expect(result.userMessage.content).toBe("发张自拍");
     expect(result.assistantMessage.imageUrl).toBe(
       "http://app/files/selfie.png"
@@ -126,11 +132,11 @@ describe("chat-triggered selfies", () => {
     );
   });
   it("does not write or generate for another user's conversation, locked poses or unconfigured service", async () => {
-    vi.mocked(db.getConversation).mockResolvedValueOnce(undefined);
+    vi.mocked(conversationsDb.getConversation).mockResolvedValueOnce(undefined);
     await expect(
       caller().chat.sendMessage({ conversationId: 42, content: "发张自拍" })
     ).rejects.toThrow("not owned");
-    vi.mocked(db.getActiveGirlfriend).mockResolvedValueOnce({
+    vi.mocked(companionsDb.getActiveGirlfriend).mockResolvedValueOnce({
       id: 12,
       intimacyLevel: 1,
     } as any);
@@ -149,7 +155,7 @@ describe("chat-triggered selfies", () => {
     await expect(
       caller().chat.sendMessage({ conversationId: 42, content: "发张自拍" })
     ).rejects.toThrow("COMFYUI_BASE_URL");
-    expect(db.createMessage).not.toHaveBeenCalled();
+    expect(conversationsDb.createMessage).not.toHaveBeenCalled();
     expect(providers.generateProviderImage).not.toHaveBeenCalled();
   });
   it("enforces selfie quotas even though the request arrived through chat", async () => {
@@ -164,7 +170,7 @@ describe("chat-triggered selfies", () => {
     await expect(
       caller().chat.sendMessage({ conversationId: 42, content: "发张自拍" })
     ).rejects.toThrow("Selfie quota exceeded");
-    expect(db.createMessage).not.toHaveBeenCalled();
+    expect(conversationsDb.createMessage).not.toHaveBeenCalled();
     expect(providers.generateProviderImage).not.toHaveBeenCalled();
   });
   it("persists a failure reply without claiming to have sent an image", async () => {
@@ -179,7 +185,7 @@ describe("chat-triggered selfies", () => {
     expect(result.assistantMessage.content).toContain("没有生成成功");
     expect(result.assistantMessage.imageUrl).toBeUndefined();
     expect(JSON.stringify(result)).not.toContain("secret-token");
-    expect(db.createSelfie).not.toHaveBeenCalled();
+    expect(photosDb.createSelfie).not.toHaveBeenCalled();
     expect(generations.failImageGeneration).toHaveBeenCalledTimes(1);
   });
   it("reports a storage failure without creating a fake image message", async () => {
@@ -190,7 +196,7 @@ describe("chat-triggered selfies", () => {
     });
     expect(result.imageGeneration).toBe("failed");
     expect(result.assistantMessage.imageUrl).toBeUndefined();
-    expect(db.createSelfie).not.toHaveBeenCalled();
+    expect(photosDb.createSelfie).not.toHaveBeenCalled();
     expect(generations.failImageGeneration).toHaveBeenCalledTimes(1);
   });
   it("leaves ordinary chat on the normal LLM path", async () => {
@@ -201,7 +207,7 @@ describe("chat-triggered selfies", () => {
       baseUrl: "https://api.deepseek.com",
       isByok: false,
     });
-    vi.spyOn(db, "getUserApiConfig").mockResolvedValue(undefined);
+    vi.spyOn(apiConfigDb, "getUserApiConfig").mockResolvedValue(undefined);
     vi.spyOn(memory, "buildMemoryPromptBlock").mockResolvedValue("");
     vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
     vi.spyOn(axios, "post").mockResolvedValue({

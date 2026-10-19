@@ -1,17 +1,17 @@
 /** 覆盖回收站、批量删除及过期清理。 */
 
-import { createTestGirlfriend as createGirlfriend } from "./testFixtures";
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
+  cleanupExpiredTrash,
+  getActiveGirlfriend,
+  getTrashGirlfriends,
+  getUserGirlfriends,
+  permanentDeleteGirlfriend,
+  restoreGirlfriend,
   softDeleteGirlfriend,
   softDeleteGirlfriends,
-  restoreGirlfriend,
-  permanentDeleteGirlfriend,
-  getTrashGirlfriends,
-  cleanupExpiredTrash,
-  getUserGirlfriends,
-  getActiveGirlfriend,
-} from "./db";
+} from "./repositories/companions";
+import { createTestGirlfriend as createGirlfriend } from "./testFixtures";
 
 // Use unique userIds to avoid conflicts with other tests.
 // Better-Auth uses string user IDs.

@@ -5,7 +5,7 @@ import {
   DEFAULT_PREFERENCES,
   type InterfacePreferences,
 } from "../shared/preferences";
-import { getDb } from "./db";
+import { getDb } from "./database";
 
 /** 仅查询当前登录用户的偏好；首次使用按系统语言和显示模式初始化。 */
 export async function getInterfacePreferences(userId: string) {

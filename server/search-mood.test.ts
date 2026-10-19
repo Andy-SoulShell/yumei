@@ -1,10 +1,10 @@
 /** 覆盖会话搜索与心情变化。 */
 
 import { describe, expect, it } from "vitest";
-import { createTestUser } from "./testFixtures";
-import { appRouter } from "./routers";
-import { createMessage } from "./db";
 import type { TrpcContext } from "./_core/context";
+import { createMessage } from "./repositories/conversations";
+import { appRouter } from "./routers";
+import { createTestUser } from "./testFixtures";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 

@@ -1,14 +1,12 @@
+import * as photosDb from "./repositories/photos";
 /** 覆盖写操作之前的资源归属校验。 */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { TRPCError } from "@trpc/server";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { User } from "../drizzle/schema";
 
-vi.mock("../server/db", async () => {
-  return await vi.importActual("./db");
-});
-
-import * as db from "./db";
+import * as companionsDb from "./repositories/companions";
+import * as conversationsDb from "./repositories/conversations";
 import { appRouter } from "./routers";
 
 const fakeUser: User = {
@@ -52,22 +50,28 @@ afterEach(() => {
 describe(": ownership-before-write", () => {
   describe("chat.sendMessage", () => {
     it("calls getConversation BEFORE createMessage", async () => {
-      vi.spyOn(db, "getConversation").mockImplementation(async () => {
-        callOrder.push("getConversation");
-        return {
-          id: 1,
-          userId: "test-user-42",
-          girlfriendId: 1,
-          title: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        } as any;
-      });
-      vi.spyOn(db, "createMessage").mockImplementation(async () => {
-        callOrder.push("createMessage");
-        return {} as any;
-      });
-      vi.spyOn(db, "getActiveGirlfriend").mockResolvedValue(undefined);
+      vi.spyOn(conversationsDb, "getConversation").mockImplementation(
+        async () => {
+          callOrder.push("getConversation");
+          return {
+            id: 1,
+            userId: "test-user-42",
+            girlfriendId: 1,
+            title: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          } as any;
+        }
+      );
+      vi.spyOn(conversationsDb, "createMessage").mockImplementation(
+        async () => {
+          callOrder.push("createMessage");
+          return {} as any;
+        }
+      );
+      vi.spyOn(companionsDb, "getActiveGirlfriend").mockResolvedValue(
+        undefined
+      );
 
       const caller = appRouter.createCaller(ctx as any);
       try {
@@ -92,12 +96,14 @@ describe(": ownership-before-write", () => {
     });
 
     it("throws FORBIDDEN and does NOT write when conversation is not owned", async () => {
-      vi.spyOn(db, "getConversation").mockImplementation(async () => {
-        callOrder.push("getConversation");
-        return undefined; // simulate "not found / not owned"
-      });
+      vi.spyOn(conversationsDb, "getConversation").mockImplementation(
+        async () => {
+          callOrder.push("getConversation");
+          return undefined; // simulate "not found / not owned"
+        }
+      );
       const createMessageSpy = vi
-        .spyOn(db, "createMessage")
+        .spyOn(conversationsDb, "createMessage")
         .mockImplementation(async () => {
           callOrder.push("createMessage");
           return {} as any;
@@ -115,18 +121,20 @@ describe(": ownership-before-write", () => {
 
   describe("selfie.generate", () => {
     it("throws FORBIDDEN and does NOT write when conversation is not owned", async () => {
-      vi.spyOn(db, "getConversation").mockImplementation(async () => {
-        callOrder.push("getConversation");
-        return undefined;
-      });
+      vi.spyOn(conversationsDb, "getConversation").mockImplementation(
+        async () => {
+          callOrder.push("getConversation");
+          return undefined;
+        }
+      );
       const createMessageSpy = vi
-        .spyOn(db, "createMessage")
+        .spyOn(conversationsDb, "createMessage")
         .mockImplementation(async () => {
           callOrder.push("createMessage");
           return {} as any;
         });
       const createSelfieSpy = vi
-        .spyOn(db, "createSelfie")
+        .spyOn(photosDb, "createSelfie")
         .mockImplementation(async () => {
           callOrder.push("createSelfie");
           return {} as any;

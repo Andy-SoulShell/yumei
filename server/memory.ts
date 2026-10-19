@@ -13,9 +13,9 @@ import {
   memoryInjectionK,
   scoreMemory,
 } from "../shared/memory";
-import { getDb, withUserTransaction, type DbTransaction } from "./db";
-import { log } from "./_core/log";
 import type { ChatProvider } from "./_core/chatProvider";
+import { log } from "./_core/log";
+import { getDb, withUserTransaction, type DbTransaction } from "./database";
 
 // ---------------------------------------------------------------------------
 // 记忆提取。

@@ -1,7 +1,7 @@
 /** 区分未登录与基础设施故障，验证关联日志不会包含凭据或请求正文。 */
 import { afterEach, expect, it, vi } from "vitest";
+import * as usersDb from "../repositories/users";
 import * as auth from "./auth";
-import * as db from "../db";
 import { createContext } from "./context";
 import { publicProcedure, router } from "./trpc";
 
@@ -19,7 +19,7 @@ it("returns an anonymous user for no session and attaches a request identifier",
 });
 it("does not turn database outages into an unauthenticated response", async () => {
   vi.spyOn(auth, "getSessionUser").mockResolvedValue({ id: "test" } as never);
-  vi.spyOn(db, "getUserById").mockRejectedValue(
+  vi.spyOn(usersDb, "getUserById").mockRejectedValue(
     new Error("private-content fake-secret")
   );
   const output = vi.spyOn(console, "error").mockImplementation(() => {});

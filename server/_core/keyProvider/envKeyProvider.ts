@@ -3,11 +3,11 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { userKeys } from "../../../drizzle/schema";
-import { getDb } from "../../db";
+import { getDb } from "../../database";
 import {
+  lastFour as computeLastFour,
   decryptFromString,
   encryptToString,
-  lastFour as computeLastFour,
 } from "../encryption";
 import {
   KEY_NAMES,

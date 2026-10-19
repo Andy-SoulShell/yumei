@@ -1,16 +1,16 @@
 /** 基于事务清理任务回收媒体，保留仍被其他记录引用的共享文件。 */
-import { and, eq, or, sql, isNull, lte } from "drizzle-orm";
+import { and, eq, isNull, lte, or, sql } from "drizzle-orm";
 import {
   girlfriends,
   mediaDeletions,
   messages,
+  rateWindows,
   selfies,
   voiceTranscriptions,
-  rateWindows,
 } from "../drizzle/schema";
-import { getDb, withUserTransaction, type DbTransaction } from "./db";
-import { storageDelete } from "./storage";
 import { log, providerErrorSummary } from "./_core/log";
+import { getDb, withUserTransaction, type DbTransaction } from "./database";
+import { storageDelete } from "./storage";
 
 /** 检查角色、相册和聊天消息是否仍引用媒体键。 */
 async function hasReferences(

@@ -1,27 +1,26 @@
 /** 使用真实数据库与磁盘验证关联清理、共享引用和失败重试。 */
-import { afterEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   conversations,
-  girlfriends,
-  memories,
-  notifications,
   girlfriendMoods,
-  selfies,
+  girlfriends,
   mediaDeletions,
+  memories,
   messages,
+  notifications,
+  selfies,
 } from "../drizzle/schema";
+import { getDb } from "./database";
+import { flushMediaDeletions, isMediaPendingDeletion } from "./mediaCleanup";
+import { permanentDeleteGirlfriend } from "./repositories/companions";
 import {
   createConversation,
   createMessage,
-  createSelfie,
-  getDb,
-  permanentDeleteGirlfriend,
-  deleteSelfie,
-} from "./db";
-import { createTestGirlfriend } from "./testFixtures";
+} from "./repositories/conversations";
+import { createSelfie, deleteSelfie } from "./repositories/photos";
 import * as storage from "./storage";
-import { flushMediaDeletions, isMediaPendingDeletion } from "./mediaCleanup";
+import { createTestGirlfriend } from "./testFixtures";
 
 const profile = { name: "YUMEI", personality: "自然", appearance: "自然" };
 afterEach(() => vi.restoreAllMocks());

@@ -2,7 +2,7 @@
 import { eq, sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { users } from "../drizzle/schema";
-import { getDb, withUserTransaction } from "./db";
+import { getDb, withUserTransaction } from "./database";
 import { createTestUser } from "./testFixtures";
 
 describe("transaction retry", () => {

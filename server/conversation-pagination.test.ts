@@ -1,16 +1,16 @@
 /** 验证会话与消息游标、用户内字面量搜索及摘要查询数量。 */
-import { afterEach, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
+import { afterEach, expect, it, vi } from "vitest";
 import { conversations } from "../drizzle/schema";
-import { createTestGirlfriend } from "./testFixtures";
+import { getDb } from "./database";
 import {
   createConversation,
   createMessage,
-  getDb,
-  getMessagePage,
   getConversationsWithLastMessage,
+  getMessagePage,
   searchConversations,
-} from "./db";
+} from "./repositories/conversations";
+import { createTestGirlfriend } from "./testFixtures";
 
 afterEach(() => vi.restoreAllMocks());
 const profile = {

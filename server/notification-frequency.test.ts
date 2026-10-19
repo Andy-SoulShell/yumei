@@ -1,7 +1,10 @@
 /** 在任意应用时区下验证 UTC 通知频控及并发唯一生成。 */
 import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  checkAndCreateProactiveNotification,
+  createNotification,
+} from "./repositories/notifications";
 import { createTestGirlfriend } from "./testFixtures";
-import { checkAndCreateProactiveNotification, createNotification } from "./db";
 
 afterEach(() => vi.useRealTimers());
 

@@ -1,6 +1,7 @@
 /** 集成测试专用用户和角色数据工厂，不对真实 Provider 发起请求。 */
 import { users, type InsertGirlfriend } from "../drizzle/schema";
-import { createGirlfriend, getDb } from "./db";
+import { getDb } from "./database";
+import { createGirlfriend } from "./repositories/companions";
 
 /** 创建真实用户记录，便于测试与生产共用用户行锁和归属约束。 */
 export async function createTestUser(id = `test-${crypto.randomUUID()}`) {

@@ -1,21 +1,21 @@
 /** 从服务端成功写入的消息和资料变更结算心情与亲密度，所有写入复用业务事务。 */
 import { and, eq, isNull } from "drizzle-orm";
 import {
-  girlfriends,
   girlfriendMoods,
+  girlfriends,
   usageMeters,
   type Girlfriend,
   type Message,
 } from "../drizzle/schema";
-import type { DbTransaction } from "./db";
 import {
+  DAILY_POINTS_LIMIT,
   getLevelByPoints,
   isNightTime,
   POINTS_RULES,
-  DAILY_POINTS_LIMIT,
 } from "../shared/intimacy";
-import { todayUTC, tryConsumeMeterInTransaction } from "./_core/quota";
 import { METERS } from "../shared/quotas";
+import { todayUTC, tryConsumeMeterInTransaction } from "./_core/quota";
+import type { DbTransaction } from "./database";
 function skippedPoints(gf: Girlfriend, reason: string) {
   return {
     intimacyLevel: gf.intimacyLevel,

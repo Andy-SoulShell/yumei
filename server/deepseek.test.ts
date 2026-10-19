@@ -1,13 +1,15 @@
 /** 覆盖DeepSeek 聊天、记忆及用户 BYOK 优先关系。 */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import axios from "axios";
-import * as db from "./db";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { resolveChatProvider } from "./_core/chatProvider";
+import { keyProvider } from "./_core/keyProvider";
 import * as generations from "./generations";
 import * as cleanup from "./mediaCleanup";
 import * as memory from "./memory";
-import { keyProvider } from "./_core/keyProvider";
-import { resolveChatProvider } from "./_core/chatProvider";
+import * as apiConfigDb from "./repositories/apiConfig";
+import * as companionsDb from "./repositories/companions";
+import * as conversationsDb from "./repositories/conversations";
 import { appRouter } from "./routers";
 
 const userId = "deepseek-test-user";
@@ -72,22 +74,25 @@ afterEach(() => {
 
 describe("DeepSeek official API deployment", () => {
   it("sends chat to DeepSeek Flash and wakes persisted memory work for the same user", async () => {
-    vi.spyOn(db, "getConversation").mockResolvedValue({ id: 1, userId } as any);
-    vi.spyOn(db, "getActiveGirlfriend").mockResolvedValue({
+    vi.spyOn(conversationsDb, "getConversation").mockResolvedValue({
+      id: 1,
+      userId,
+    } as any);
+    vi.spyOn(companionsDb, "getActiveGirlfriend").mockResolvedValue({
       id: 1,
       name: "测试",
       personality: "温柔",
       appearance: "自然",
       intimacyLevel: 1,
     } as any);
-    vi.spyOn(db, "createMessage").mockImplementation(
+    vi.spyOn(conversationsDb, "createMessage").mockImplementation(
       async input => input as any
     );
-    vi.spyOn(db, "getRecentMessages").mockResolvedValue([
+    vi.spyOn(conversationsDb, "getRecentMessages").mockResolvedValue([
       { role: "user", content: "你好" },
     ] as any);
     // A previous OpenRouter preference must not be sent to the DeepSeek endpoint.
-    vi.spyOn(db, "getUserApiConfig").mockResolvedValue({
+    vi.spyOn(apiConfigDb, "getUserApiConfig").mockResolvedValue({
       llmModel: "openai/gpt-4o-mini",
     } as any);
     vi.spyOn(memory, "buildMemoryPromptBlock").mockResolvedValue("");
@@ -121,7 +126,7 @@ describe("DeepSeek official API deployment", () => {
 
   it("rejects missing DeepSeek keys before writes, even when an OpenRouter key exists", async () => {
     vi.stubEnv("OPERATOR_DEEPSEEK_KEY", "");
-    const write = vi.spyOn(db, "createMessage");
+    const write = vi.spyOn(conversationsDb, "createMessage");
     const post = vi.spyOn(axios, "post");
     await expect(
       caller.chat.sendMessage({ conversationId: 1, content: "你好" })
@@ -131,7 +136,7 @@ describe("DeepSeek official API deployment", () => {
   });
 
   it("returns the configured model and readiness without exposing the server key", async () => {
-    vi.spyOn(db, "getUserApiConfig").mockResolvedValue(undefined);
+    vi.spyOn(apiConfigDb, "getUserApiConfig").mockResolvedValue(undefined);
     const get = vi.spyOn(axios, "get");
     const config = await caller.apiConfig.get();
     const models = await caller.apiConfig.listModels();

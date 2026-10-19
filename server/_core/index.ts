@@ -1,25 +1,25 @@
 /** 应用启动入口，负责配置、迁移、健康探针、中间件顺序和优雅退出。 */
 
+import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import { toNodeHandler } from "better-auth/node";
 import "dotenv/config";
+import { sql } from "drizzle-orm";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
-import { mkdir, writeFile, rm } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { toNodeHandler } from "better-auth/node";
-import { sql } from "drizzle-orm";
-import { csrfCookieMiddleware, csrfVerifyMiddleware } from "./csrf";
-import { auth } from "./auth";
-import { startMediaCleanupScheduler } from "../mediaCleanup";
 import { registerBillingRoutes } from "../billing";
+import { getDb } from "../database";
+import { startMediaCleanupScheduler } from "../mediaCleanup";
 import { startProactivePushScheduler } from "../push";
-import { registerFileRoutes } from "./files";
 import { appRouter } from "../routers";
-import { createContext } from "./context";
-import { ENV } from "./env";
+import { auth } from "./auth";
 import { getOperatorChatProvider } from "./chatProvider";
-import { getDb } from "../db";
+import { createContext } from "./context";
+import { csrfCookieMiddleware, csrfVerifyMiddleware } from "./csrf";
+import { ENV } from "./env";
+import { registerFileRoutes } from "./files";
 import { serveStatic } from "./static";
 
 /** 通过临时绑定检测目标 TCP 端口是否可用。 */

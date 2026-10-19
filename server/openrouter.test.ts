@@ -1,12 +1,12 @@
 /** 覆盖OpenRouter 模型接口及服务端凭据解析。 */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import axios from "axios";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ApiConfig } from "../drizzle/schema";
-import * as db from "./db";
 import * as chatProviders from "./_core/chatProvider";
-import { keyProvider } from "./_core/keyProvider";
 import type { TrpcContext } from "./_core/context";
+import { keyProvider } from "./_core/keyProvider";
+import * as apiConfigDb from "./repositories/apiConfig";
 import { appRouter } from "./routers";
 
 const user: NonNullable<TrpcContext["user"]> = {
@@ -55,7 +55,9 @@ describe("OpenRouter API integration", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    const save = vi.spyOn(db, "upsertApiConfig").mockResolvedValue(saved);
+    const save = vi
+      .spyOn(apiConfigDb, "upsertApiConfig")
+      .mockResolvedValue(saved);
     const input = { llmModel: saved.llmModel!, llmApiKey: "deprecated-secret" };
     expect(await caller.apiConfig.updatePreferences(input)).toEqual(saved);
     expect(save).toHaveBeenCalledWith({

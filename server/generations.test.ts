@@ -9,34 +9,34 @@ import {
   usageMeters,
 } from "../drizzle/schema";
 import { TIER_LIMITS } from "../shared/quotas";
-import {
-  getDb,
-  createConversation,
-  getConversationMessages,
-  getRecentMessages,
-  permanentDeleteGirlfriend,
-} from "./db";
-import { createTestGirlfriend } from "./testFixtures";
-import { appRouter } from "./routers";
+import * as chat from "./_core/chatProvider";
 import type { TrpcContext } from "./_core/context";
+import * as images from "./_core/imageProvider";
 import {
   getDailyMeter,
   getMonthlyMeter,
   tryConsumeDailyMeter,
 } from "./_core/quota";
-import * as chat from "./_core/chatProvider";
-import * as images from "./_core/imageProvider";
-import * as memory from "./memory";
-import * as storage from "./storage";
 import * as billing from "./billing";
+import { getDb } from "./database";
 import {
-  reserveGeneration,
-  completeTextGeneration,
   completeImageGeneration,
-  failImageGeneration,
-  failGeneration,
+  completeTextGeneration,
   expireGenerations,
+  failGeneration,
+  failImageGeneration,
+  reserveGeneration,
 } from "./generations";
+import * as memory from "./memory";
+import { permanentDeleteGirlfriend } from "./repositories/companions";
+import {
+  createConversation,
+  getConversationMessages,
+  getRecentMessages,
+} from "./repositories/conversations";
+import { appRouter } from "./routers";
+import * as storage from "./storage";
+import { createTestGirlfriend } from "./testFixtures";
 
 const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0]);
 const reply = (text = "你好呀") => ({

@@ -2,12 +2,12 @@
 
 import { TRPCError } from "@trpc/server";
 import { sql } from "drizzle-orm";
-import { usageMeters, rateWindows } from "../../drizzle/schema";
-import { getDb, type DbTransaction } from "../db";
+import { rateWindows, usageMeters } from "../../drizzle/schema";
 import {
   RATE_LIMITS_PER_MINUTE,
   type RateLimitedAction,
 } from "../../shared/quotas";
+import { getDb, type DbTransaction } from "../database";
 
 /** 以数据库行锁保护滑动窗口，多进程和重启共享同一请求频率。 */
 export async function checkRateLimit(

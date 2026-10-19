@@ -89,6 +89,8 @@ export const girlfriends = mysqlTable("girlfriends", {
   avatarKey: varchar("avatarKey", { length: 500 }), // 头像存储文件 key
   intimacyLevel: int("intimacyLevel").default(1).notNull(), // 亲密度等级 1-10
   intimacyPoints: int("intimacyPoints").default(0).notNull(), // 亲密度经验值
+  /** 上次完成衰减结算的时间；空值表示尚未结算。 */
+  lastDecayAt: timestamp("lastDecayAt"),
   lastInteractionAt: timestamp("lastInteractionAt"), // 最后互动时间
   consecutiveDays: int("consecutiveDays").default(0).notNull(), // 连续互动天数
   isActive: boolean("isActive").default(true).notNull(), // 是否为当前激活的女友

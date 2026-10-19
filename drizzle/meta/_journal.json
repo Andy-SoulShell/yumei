@@ -8,6 +8,13 @@
       "when": 1792397840785,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1792402542555,
+      "tag": "0001_intimacy_decay_checkpoint",
+      "breakpoints": true
     }
   ]
 }

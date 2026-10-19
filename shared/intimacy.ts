@@ -263,7 +263,8 @@ export function isNightTime(date: Date = new Date()): boolean {
 export function calculateDecay(
   currentPoints: number,
   lastInteractionAt: Date | null,
-  currentLevel: number
+  currentLevel: number,
+  lastDecayAt: Date | null = null
 ): { points: number; decayed: number } {
   if (!lastInteractionAt) return { points: currentPoints, decayed: 0 };
 
@@ -276,7 +277,18 @@ export function calculateDecay(
     return { points: currentPoints, decayed: 0 };
   }
 
-  const decayDays = daysSinceLastInteraction - DECAY_START_DAYS;
+  const accountedDays = lastDecayAt
+    ? Math.max(
+        0,
+        Math.floor(
+          (lastDecayAt.getTime() - lastInteractionAt.getTime()) / 86_400_000
+        ) - DECAY_START_DAYS
+      )
+    : 0;
+  const decayDays = Math.max(
+    0,
+    daysSinceLastInteraction - DECAY_START_DAYS - accountedDays
+  );
   const totalDecay = decayDays * DECAY_POINTS_PER_DAY;
 
   // 最多扣到当前等级起点

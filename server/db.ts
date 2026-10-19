@@ -12,6 +12,7 @@ import {
   apiConfigs,
   girlfriendMoods,
   notifications,
+  usageMeters,
   type Girlfriend,
   type InsertGirlfriend,
   type Conversation,
@@ -1152,149 +1153,180 @@ import {
   getLevelByPoints,
   calculateDecay,
   isNightTime,
+  POINTS_RULES,
+  DAILY_POINTS_LIMIT,
 } from "../shared/intimacy";
 
-/**
- * 读取角色亲密度，并在发生衰减时写回经验和等级。
- *
- * @remarks 此查询有持久化副作用；衰减基准目前仍为最后互动时间。
- */
+/** 读取并原子结算尚未处理的衰减天数，重复查询不会重复扣经验。 */
 export async function getIntimacyInfo(girlfriendId: number, userId: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  const result = await db
-    .select()
-    .from(girlfriends)
-    .where(
-      and(eq(girlfriends.id, girlfriendId), eq(girlfriends.userId, userId))
-    )
-    .limit(1);
-
-  if (!result[0]) throw new Error("Girlfriend not found");
-
-  const gf = result[0];
-
-  // 计算衰减
-  const { points: decayedPoints, decayed } = calculateDecay(
-    gf.intimacyPoints,
-    gf.lastInteractionAt,
-    gf.intimacyLevel
-  );
-
-  // 如果有衰减，更新数据库
-  if (decayed > 0) {
-    const newLevel = getLevelByPoints(decayedPoints);
-    await db
+  return withUserTransaction(userId, async tx => {
+    const [gf] = await tx
+      .select()
+      .from(girlfriends)
+      .where(
+        and(eq(girlfriends.id, girlfriendId), eq(girlfriends.userId, userId))
+      )
+      .for("update");
+    if (!gf) throw new Error("Girlfriend not found");
+    const result = calculateDecay(
+      gf.intimacyPoints,
+      gf.lastInteractionAt,
+      gf.intimacyLevel,
+      gf.lastDecayAt
+    );
+    const intimacyLevel = getLevelByPoints(result.points).level;
+    await tx
       .update(girlfriends)
       .set({
-        intimacyPoints: decayedPoints,
-        intimacyLevel: newLevel.level,
+        intimacyPoints: result.points,
+        intimacyLevel,
+        lastDecayAt: new Date(),
       })
       .where(eq(girlfriends.id, girlfriendId));
-
     return {
-      intimacyLevel: newLevel.level,
-      intimacyPoints: decayedPoints,
+      intimacyLevel,
+      intimacyPoints: result.points,
       lastInteractionAt: gf.lastInteractionAt,
       consecutiveDays: gf.consecutiveDays,
-      decayed,
+      decayed: result.decayed,
     };
-  }
+  });
+}
 
+import { todayUTC, tryConsumeMeterInTransaction } from "./_core/quota";
+import { METERS } from "../shared/quotas";
+
+/** 额度不足时携带原状态，事务回滚后向前端返回静默跳过结果。 */
+class IntimacyLimitError extends Error {
+  constructor(
+    readonly girlfriend: Girlfriend,
+    message: string
+  ) {
+    super(message);
+  }
+}
+
+/** 生成未获得经验时的真实角色状态。 */
+function skippedPoints(gf: Girlfriend, reason: string) {
   return {
     intimacyLevel: gf.intimacyLevel,
     intimacyPoints: gf.intimacyPoints,
-    lastInteractionAt: gf.lastInteractionAt,
+    previousLevel: gf.intimacyLevel,
+    leveledUp: false,
     consecutiveDays: gf.consecutiveDays,
-    decayed: 0,
+    pointsAdded: 0,
+    skipped: true,
+    skipReason: reason,
   };
 }
 
 /**
- * 按用户归属增加角色经验，并更新等级、连续互动天数和互动时间。
+ * 在同一事务内计算夜间奖励、消费每日额度并更新经验，返回实际加分。
  *
- * @remarks 夜间会追加三点经验；每日额度和行为有效性由调用方校验，写入采用读取后覆盖。
+ * @remarks 行为次数、冷却和总经验上限共同结算；失败写入会回滚所有计量。
  */
 export async function addIntimacyPoints(
   girlfriendId: number,
   userId: string,
   points: number,
   reason: string
-): Promise<{
-  intimacyLevel: number;
-  intimacyPoints: number;
-  previousLevel: number;
-  leveledUp: boolean;
-  consecutiveDays: number;
-}> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  const result = await db
-    .select()
-    .from(girlfriends)
-    .where(
-      and(eq(girlfriends.id, girlfriendId), eq(girlfriends.userId, userId))
-    )
-    .limit(1);
-
-  if (!result[0]) throw new Error("Girlfriend not found");
-
-  const gf = result[0];
-  const previousLevel = gf.intimacyLevel;
-  const now = new Date();
-
-  // 计算连续天数
-  let newConsecutiveDays = gf.consecutiveDays;
-  if (gf.lastInteractionAt) {
-    const lastDate = new Date(gf.lastInteractionAt);
-    const todayStr = now.toISOString().slice(0, 10);
-    const lastDateStr = lastDate.toISOString().slice(0, 10);
-
-    if (todayStr !== lastDateStr) {
-      // 不同天
-      const diffDays = Math.floor(
-        (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)
+) {
+  try {
+    return await withUserTransaction(userId, async tx => {
+      const [gf] = await tx
+        .select()
+        .from(girlfriends)
+        .where(
+          and(
+            eq(girlfriends.id, girlfriendId),
+            eq(girlfriends.userId, userId),
+            isNull(girlfriends.deletedAt)
+          )
+        )
+        .for("update");
+      if (!gf) throw new Error("Girlfriend not found");
+      const rule = POINTS_RULES[reason];
+      if (!rule || !Number.isSafeInteger(points) || points <= 0)
+        throw new Error("Invalid intimacy points");
+      const now = new Date();
+      const period = todayUTC();
+      const meter = METERS.intimacyReason(reason);
+      const [previous] = await tx
+        .select()
+        .from(usageMeters)
+        .where(
+          and(
+            eq(usageMeters.userId, userId),
+            eq(usageMeters.period, period),
+            eq(usageMeters.meter, meter)
+          )
+        );
+      if (
+        previous?.count &&
+        rule.cooldownMinutes &&
+        now.getTime() - previous.updatedAt.getTime() <
+          rule.cooldownMinutes * 60_000
+      )
+        return skippedPoints(gf, "冷却中，稍后再获得经验值");
+      const totalPoints =
+        points + (isNightTime(now) && reason !== "night_chat" ? 3 : 0);
+      const perReason = await tryConsumeMeterInTransaction(
+        tx,
+        userId,
+        meter,
+        rule.dailyLimit ?? Number.MAX_SAFE_INTEGER,
+        period
       );
-      if (diffDays <= 1) {
-        newConsecutiveDays += 1;
-      } else {
-        newConsecutiveDays = 1; // 中断了，重新计数
-      }
-    }
-    // 同一天不增加连续天数
-  } else {
-    newConsecutiveDays = 1; // 首次互动
+      if (!perReason.allowed)
+        return skippedPoints(gf, "该行为今日经验值已达上限");
+      const total = await tryConsumeMeterInTransaction(
+        tx,
+        userId,
+        METERS.intimacyPoints,
+        DAILY_POINTS_LIMIT,
+        period,
+        totalPoints
+      );
+      if (!total.allowed)
+        throw new IntimacyLimitError(gf, "今日经验值总量已达上限");
+      const lastDay = gf.lastInteractionAt?.toISOString().slice(0, 10);
+      const yesterday = new Date(now.getTime() - 86_400_000)
+        .toISOString()
+        .slice(0, 10);
+      const consecutiveDays =
+        lastDay === period
+          ? gf.consecutiveDays
+          : lastDay === yesterday
+            ? gf.consecutiveDays + 1
+            : 1;
+      const intimacyPoints = gf.intimacyPoints + totalPoints;
+      const intimacyLevel = getLevelByPoints(intimacyPoints).level;
+      await tx
+        .update(girlfriends)
+        .set({
+          intimacyPoints,
+          intimacyLevel,
+          lastInteractionAt: now,
+          lastDecayAt: now,
+          consecutiveDays,
+        })
+        .where(eq(girlfriends.id, gf.id));
+      return {
+        intimacyLevel,
+        intimacyPoints,
+        previousLevel: gf.intimacyLevel,
+        leveledUp: intimacyLevel > gf.intimacyLevel,
+        consecutiveDays,
+        pointsAdded: totalPoints,
+        skipped: false,
+        skipReason: null,
+      };
+    });
+  } catch (error) {
+    if (error instanceof IntimacyLimitError)
+      return skippedPoints(error.girlfriend, error.message);
+    throw error;
   }
-
-  // 夜间加成
-  let totalPoints = points;
-  if (isNightTime(now) && reason !== "night_chat") {
-    totalPoints += 3; // 夜间额外加成
-  }
-
-  const newPoints = gf.intimacyPoints + totalPoints;
-  const newLevelInfo = getLevelByPoints(newPoints);
-  const leveledUp = newLevelInfo.level > previousLevel;
-
-  await db
-    .update(girlfriends)
-    .set({
-      intimacyPoints: newPoints,
-      intimacyLevel: newLevelInfo.level,
-      lastInteractionAt: now,
-      consecutiveDays: newConsecutiveDays,
-    })
-    .where(eq(girlfriends.id, girlfriendId));
-
-  return {
-    intimacyLevel: newLevelInfo.level,
-    intimacyPoints: newPoints,
-    previousLevel,
-    leveledUp,
-    consecutiveDays: newConsecutiveDays,
-  };
 }
 
 /**

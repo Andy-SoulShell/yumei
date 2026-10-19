@@ -66,7 +66,6 @@ import { getCharacterPreset } from "../shared/characterPresets";
 import { readDefaultReference, readPresetReference } from "./characterPresets";
 import {
   POINTS_RULES,
-  DAILY_POINTS_LIMIT,
   getLevelInfo,
   getNextLevel,
   getLevelProgress,
@@ -87,11 +86,8 @@ import {
   checkRateLimit,
   consumeDailyMeter,
   consumeMonthlyMeter,
-  tryConsumeDailyMeter,
   getDailyMeter,
   getMonthlyMeter,
-  isOnCooldown,
-  markCooldown,
 } from "./_core/quota";
 import {
   getVapidPublicKey,
@@ -506,22 +502,6 @@ export const appRouter = router({
           skipReason: reason,
         });
 
-        if (rule.cooldownMinutes) {
-          if (isOnCooldown(ctx.user.id, input.reason, rule.cooldownMinutes)) {
-            return skipped("冷却中，稍后再获得经验值");
-          }
-        }
-        if (rule.dailyLimit) {
-          const perReason = await tryConsumeDailyMeter(
-            ctx.user.id,
-            METERS.intimacyReason(input.reason),
-            rule.dailyLimit
-          );
-          if (!perReason.allowed) {
-            return skipped("该行为今日经验值已达上限");
-          }
-        }
-
         // 计算基础经验值
         let points = rule.basePoints;
 
@@ -556,18 +536,6 @@ export const appRouter = router({
           return skipped("消息过短，不计算经验值");
         }
 
-        // 每日总经验值上限（DAILY_POINTS_LIMIT），按实际分值消耗。
-        const total = await tryConsumeDailyMeter(
-          ctx.user.id,
-          METERS.intimacyPoints,
-          DAILY_POINTS_LIMIT,
-          points
-        );
-        if (!total.allowed) {
-          return skipped("今日经验值总量已达上限");
-        }
-        markCooldown(ctx.user.id, input.reason);
-
         const result = await addIntimacyPoints(
           input.girlfriendId,
           ctx.user.id,
@@ -577,9 +545,6 @@ export const appRouter = router({
 
         return {
           ...result,
-          pointsAdded: points,
-          skipped: false,
-          skipReason: null,
         };
       }),
   }),

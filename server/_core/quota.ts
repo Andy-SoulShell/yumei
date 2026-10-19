@@ -3,7 +3,7 @@
 import { TRPCError } from "@trpc/server";
 import { sql } from "drizzle-orm";
 import { usageMeters } from "../../drizzle/schema";
-import { getDb } from "../db";
+import { getDb, type DbTransaction } from "../db";
 import {
   RATE_LIMITS_PER_MINUTE,
   type RateLimitedAction,
@@ -146,26 +146,38 @@ export async function tryConsumePeriodMeter(
   }
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return db.transaction(async tx => {
-    // 唯一键冲突更新在事务结束前持有行锁，串行化同一周期的判定。
-    await tx
-      .insert(usageMeters)
-      .values({ userId, period, meter, count: 0 })
-      .onDuplicateKeyUpdate({ set: { count: sql`${usageMeters.count}` } });
-    const where = sql`${usageMeters.userId} = ${userId} AND ${usageMeters.period} = ${period} AND ${usageMeters.meter} = ${meter}`;
-    const [row] = await tx
-      .select({ count: usageMeters.count })
-      .from(usageMeters)
-      .where(where)
-      .for("update");
-    const count = row.count;
-    if (count > limit - amount) return { allowed: false, count, limit };
-    await tx
-      .update(usageMeters)
-      .set({ count: count + amount })
-      .where(where);
-    return { allowed: true, count: count + amount, limit };
-  });
+  return db.transaction(tx =>
+    tryConsumeMeterInTransaction(tx, userId, meter, limit, period, amount)
+  );
+}
+
+/** 在调用方的现有事务内判定并消费额度，便于与业务写入一起回滚。 */
+export async function tryConsumeMeterInTransaction(
+  tx: DbTransaction,
+  userId: string,
+  meter: string,
+  limit: number,
+  period: string,
+  amount = 1
+): Promise<MeterResult> {
+  // 唯一键冲突更新在事务结束前持有行锁，串行化同一周期的判定。
+  await tx
+    .insert(usageMeters)
+    .values({ userId, period, meter, count: 0 })
+    .onDuplicateKeyUpdate({ set: { count: sql`${usageMeters.count}` } });
+  const where = sql`${usageMeters.userId} = ${userId} AND ${usageMeters.period} = ${period} AND ${usageMeters.meter} = ${meter}`;
+  const [row] = await tx
+    .select({ count: usageMeters.count })
+    .from(usageMeters)
+    .where(where)
+    .for("update");
+  const count = row.count;
+  if (count > limit - amount) return { allowed: false, count, limit };
+  await tx
+    .update(usageMeters)
+    .set({ count: count + amount })
+    .where(where);
+  return { allowed: true, count: count + amount, limit };
 }
 
 /** 按当前 UTC 日期尝试消费额度，超限通过 allowed 返回。 */

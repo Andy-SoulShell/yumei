@@ -46,6 +46,14 @@ describe("session revocation", () => {
       req: { headers, protocol: "https" },
       res: { append, clearCookie },
     } as unknown as TrpcContext;
+    const failedSignOut = vi
+      .spyOn(auth.api, "signOut")
+      .mockResolvedValue(new Response("{}") as never);
+    await expect(
+      appRouter.createCaller(ctx).auth.logout()
+    ).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" });
+    expect((await getSessionUser({ headers }))?.email).toBe(email);
+    failedSignOut.mockRestore();
     await expect(appRouter.createCaller(ctx).auth.logout()).resolves.toEqual({
       success: true,
     });

@@ -276,6 +276,12 @@ export async function handleLemonEvent(
       };
     const current = rows.find(row => row.userId === userId);
     if (
+      current?.status === "expired" &&
+      current.lsSubscriptionId === subscriptionId &&
+      status !== "expired"
+    )
+      return { ok: true, ignored: "expired subscription is terminal" };
+    if (
       current?.providerUpdatedAt &&
       occurredAt!.getTime() <= current.providerUpdatedAt.getTime()
     )

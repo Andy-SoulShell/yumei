@@ -10,6 +10,7 @@ import {
   uniqueIndex,
   varchar,
   boolean,
+  index,
 } from "drizzle-orm/mysql-core";
 
 /** 用户资料、认证邮箱、应用角色与成年确认信息。 */
@@ -75,29 +76,38 @@ export const verifications = mysqlTable("verifications", {
 });
 
 /** 角色资料、参考图、激活状态与亲密度数据，deletedAt 表示回收站状态。 */
-export const girlfriends = mysqlTable("girlfriends", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: varchar("userId", { length: 255 }).notNull(),
-  name: varchar("name", { length: 100 }).notNull(),
-  personality: text("personality").notNull(), // 性格描述，用于 LLM 系统提示词
-  appearance: text("appearance").notNull(), // 外貌描述，用于图片生成
-  interests: text("interests"), // 兴趣爱好
-  referenceImageUrl: text("referenceImageUrl").notNull(), // 通过文件路由访问的参考图 URL
-  referenceImageKey: varchar("referenceImageKey", { length: 500 }).notNull(), // 存储文件 key
-  customPrompt: text("customPrompt"), // 个体定制提示词，追加在全局提示词之后
-  avatarUrl: text("avatarUrl"), // 头像图片 URL
-  avatarKey: varchar("avatarKey", { length: 500 }), // 头像存储文件 key
-  intimacyLevel: int("intimacyLevel").default(1).notNull(), // 亲密度等级 1-10
-  intimacyPoints: int("intimacyPoints").default(0).notNull(), // 亲密度经验值
-  /** 上次完成衰减结算的时间；空值表示尚未结算。 */
-  lastDecayAt: timestamp("lastDecayAt"),
-  lastInteractionAt: timestamp("lastInteractionAt"), // 最后互动时间
-  consecutiveDays: int("consecutiveDays").default(0).notNull(), // 连续互动天数
-  isActive: boolean("isActive").default(true).notNull(), // 是否为当前激活的女友
-  deletedAt: timestamp("deletedAt"), // 软删除时间，null 表示未删除，有值表示已删除（7天后可永久清除）
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+export const girlfriends = mysqlTable(
+  "girlfriends",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: varchar("userId", { length: 255 }).notNull(),
+    name: varchar("name", { length: 100 }).notNull(),
+    personality: text("personality").notNull(), // 性格描述，用于 LLM 系统提示词
+    appearance: text("appearance").notNull(), // 外貌描述，用于图片生成
+    interests: text("interests"), // 兴趣爱好
+    referenceImageUrl: text("referenceImageUrl").notNull(), // 通过文件路由访问的参考图 URL
+    referenceImageKey: varchar("referenceImageKey", { length: 500 }).notNull(), // 存储文件 key
+    customPrompt: text("customPrompt"), // 个体定制提示词，追加在全局提示词之后
+    avatarUrl: text("avatarUrl"), // 头像图片 URL
+    avatarKey: varchar("avatarKey", { length: 500 }), // 头像存储文件 key
+    intimacyLevel: int("intimacyLevel").default(1).notNull(), // 亲密度等级 1-10
+    intimacyPoints: int("intimacyPoints").default(0).notNull(), // 亲密度经验值
+    /** 上次完成衰减结算的时间；空值表示尚未结算。 */
+    lastDecayAt: timestamp("lastDecayAt"),
+    lastInteractionAt: timestamp("lastInteractionAt"), // 最后互动时间
+    consecutiveDays: int("consecutiveDays").default(0).notNull(), // 连续互动天数
+    isActive: boolean("isActive").default(true).notNull(), // 是否为当前激活的女友
+    deletedAt: timestamp("deletedAt"), // 软删除时间，null 表示未删除，有值表示已删除（7天后可永久清除）
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    byUserAndDeleted: index("idx_girlfriends_user_deleted").on(
+      table.userId,
+      table.deletedAt
+    ),
+  })
+);
 
 /** 从 girlfriends 表结构推导的数据库读取记录。 */
 export type Girlfriend = typeof girlfriends.$inferSelect;
@@ -105,14 +115,23 @@ export type Girlfriend = typeof girlfriends.$inferSelect;
 export type InsertGirlfriend = typeof girlfriends.$inferInsert;
 
 /** 用户与角色的一次会话，消息通过 conversationId 关联。 */
-export const conversations = mysqlTable("conversations", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: varchar("userId", { length: 255 }).notNull(),
-  girlfriendId: int("girlfriendId").notNull(),
-  title: varchar("title", { length: 200 }), // 对话标题（可选）
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+export const conversations = mysqlTable(
+  "conversations",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: varchar("userId", { length: 255 }).notNull(),
+    girlfriendId: int("girlfriendId").notNull(),
+    title: varchar("title", { length: 200 }), // 对话标题（可选）
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    byUserAndRole: index("idx_conversations_user_role").on(
+      table.userId,
+      table.girlfriendId
+    ),
+  })
+);
 
 /** 从 conversations 表结构推导的数据库读取记录。 */
 export type Conversation = typeof conversations.$inferSelect;
@@ -120,19 +139,29 @@ export type Conversation = typeof conversations.$inferSelect;
 export type InsertConversation = typeof conversations.$inferInsert;
 
 /** 会话中的用户或助手消息，也可关联图片消息与存储键。 */
-export const messages = mysqlTable("messages", {
-  id: int("id").autoincrement().primaryKey(),
-  conversationId: int("conversationId").notNull(),
-  role: mysqlEnum("role", ["user", "assistant"]).notNull(),
-  content: text("content").notNull(), // 文本消息内容
-  imageUrl: text("imageUrl"), // 如果是图片消息，存储图片 URL
-  imageKey: varchar("imageKey", { length: 500 }), // 存储文件 key
-  /** 生成请求及结果状态，null 表示历史或非生成消息。 */
-  generationRequestId: varchar("generationRequestId", { length: 36 }),
-  generationStatus: mysqlEnum("generationStatus", ["succeeded", "failed"]),
-  selfieMode: mysqlEnum("selfieMode", ["mirror", "direct"]), // 自拍模式（如果是自拍）
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+export const messages = mysqlTable(
+  "messages",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    conversationId: int("conversationId").notNull(),
+    role: mysqlEnum("role", ["user", "assistant"]).notNull(),
+    content: text("content").notNull(), // 文本消息内容
+    imageUrl: text("imageUrl"), // 如果是图片消息，存储图片 URL
+    imageKey: varchar("imageKey", { length: 500 }), // 存储文件 key
+    /** 生成请求及结果状态，null 表示历史或非生成消息。 */
+    generationRequestId: varchar("generationRequestId", { length: 36 }),
+    generationStatus: mysqlEnum("generationStatus", ["succeeded", "failed"]),
+    selfieMode: mysqlEnum("selfieMode", ["mirror", "direct"]), // 自拍模式（如果是自拍）
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    byConversation: index("idx_messages_conversation_id").on(
+      table.conversationId,
+      table.id
+    ),
+    byImageKey: index("idx_messages_image_key").on(table.imageKey),
+  })
+);
 
 /** 从 messages 表结构推导的数据库读取记录。 */
 export type Message = typeof messages.$inferSelect;
@@ -140,18 +169,28 @@ export type Message = typeof messages.$inferSelect;
 export type InsertMessage = typeof messages.$inferInsert;
 
 /** 生成照片的相册元数据，实际媒体文件由存储驱动管理。 */
-export const selfies = mysqlTable("selfies", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: varchar("userId", { length: 255 }).notNull(),
-  girlfriendId: int("girlfriendId").notNull(),
-  messageId: int("messageId"), // 关联的消息 ID（可选）
-  imageUrl: text("imageUrl").notNull(),
-  imageKey: varchar("imageKey", { length: 500 }).notNull(),
-  prompt: text("prompt").notNull(), // 用于生成的完整提示词
-  userContext: text("userContext").notNull(), // 用户的上下文描述
-  mode: mysqlEnum("mode", ["mirror", "direct"]).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+export const selfies = mysqlTable(
+  "selfies",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: varchar("userId", { length: 255 }).notNull(),
+    girlfriendId: int("girlfriendId").notNull(),
+    messageId: int("messageId"), // 关联的消息 ID（可选）
+    imageUrl: text("imageUrl").notNull(),
+    imageKey: varchar("imageKey", { length: 500 }).notNull(),
+    prompt: text("prompt").notNull(), // 用于生成的完整提示词
+    userContext: text("userContext").notNull(), // 用户的上下文描述
+    mode: mysqlEnum("mode", ["mirror", "direct"]).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    byUserAndRole: index("idx_selfies_user_role").on(
+      table.userId,
+      table.girlfriendId
+    ),
+    byImageKey: index("idx_selfies_image_key").on(table.imageKey),
+  })
+);
 
 /** 从 selfies 表结构推导的数据库读取记录。 */
 export type Selfie = typeof selfies.$inferSelect;
@@ -213,28 +252,37 @@ export type UserKey = typeof userKeys.$inferSelect;
 export type InsertUserKey = typeof userKeys.$inferInsert;
 
 /** 角色心情、最近聊天时间和消息计数，业务更新按用户与角色定位。 */
-export const girlfriendMoods = mysqlTable("girlfriendMoods", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: varchar("userId", { length: 255 }).notNull(),
-  girlfriendId: int("girlfriendId").notNull(),
-  mood: mysqlEnum("mood", [
-    "excited",
-    "happy",
-    "content",
-    "neutral",
-    "lonely",
-    "sad",
-  ])
-    .default("happy")
-    .notNull(),
-  moodScore: int("moodScore").default(70).notNull(), // 范围 0～100，越高表示越开心
-  lastChatAt: timestamp("lastChatAt"),
-  totalMessages: int("totalMessages").default(0).notNull(),
-  todayMessages: int("todayMessages").default(0).notNull(),
-  lastMoodUpdate: timestamp("lastMoodUpdate").defaultNow().notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+export const girlfriendMoods = mysqlTable(
+  "girlfriendMoods",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: varchar("userId", { length: 255 }).notNull(),
+    girlfriendId: int("girlfriendId").notNull(),
+    mood: mysqlEnum("mood", [
+      "excited",
+      "happy",
+      "content",
+      "neutral",
+      "lonely",
+      "sad",
+    ])
+      .default("happy")
+      .notNull(),
+    moodScore: int("moodScore").default(70).notNull(), // 范围 0～100，越高表示越开心
+    lastChatAt: timestamp("lastChatAt"),
+    totalMessages: int("totalMessages").default(0).notNull(),
+    todayMessages: int("todayMessages").default(0).notNull(),
+    lastMoodUpdate: timestamp("lastMoodUpdate").defaultNow().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    byUserAndRole: index("idx_moods_user_role").on(
+      table.userId,
+      table.girlfriendId
+    ),
+  })
+);
 
 /** 从 girlfriendMoods 表结构推导的数据库读取记录。 */
 export type GirlfriendMood = typeof girlfriendMoods.$inferSelect;
@@ -242,24 +290,37 @@ export type GirlfriendMood = typeof girlfriendMoods.$inferSelect;
 export type InsertGirlfriendMood = typeof girlfriendMoods.$inferInsert;
 
 /** 角色发给用户的站内通知，包含类型、正文与已读状态。 */
-export const notifications = mysqlTable("notifications", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: varchar("userId", { length: 255 }).notNull(),
-  girlfriendId: int("girlfriendId").notNull(),
-  title: varchar("title", { length: 200 }).notNull(),
-  content: text("content").notNull(),
-  type: mysqlEnum("type", [
-    "miss_you",
-    "good_morning",
-    "good_night",
-    "random",
-    "mood",
-  ])
-    .default("random")
-    .notNull(),
-  isRead: boolean("isRead").default(false).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+export const notifications = mysqlTable(
+  "notifications",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: varchar("userId", { length: 255 }).notNull(),
+    girlfriendId: int("girlfriendId").notNull(),
+    title: varchar("title", { length: 200 }).notNull(),
+    content: text("content").notNull(),
+    type: mysqlEnum("type", [
+      "miss_you",
+      "good_morning",
+      "good_night",
+      "random",
+      "mood",
+    ])
+      .default("random")
+      .notNull(),
+    isRead: boolean("isRead").default(false).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    byUserAndCreated: index("idx_notifications_user_created").on(
+      table.userId,
+      table.createdAt
+    ),
+    byUserAndRole: index("idx_notifications_user_role").on(
+      table.userId,
+      table.girlfriendId
+    ),
+  })
+);
 
 /** 从 notifications 表结构推导的数据库读取记录。 */
 export type Notification = typeof notifications.$inferSelect;
@@ -390,29 +451,47 @@ export const billingEvents = mysqlTable("billingEvents", {
 });
 
 /** 与业务删除同时写入的媒体清理任务，失败后可由后台重试。 */
-export const mediaDeletions = mysqlTable("mediaDeletions", {
-  key: varchar("key", { length: 500 }).primaryKey(),
-  userId: varchar("userId", { length: 255 }).notNull(),
-  attempts: int("attempts").default(0).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+export const mediaDeletions = mysqlTable(
+  "mediaDeletions",
+  {
+    key: varchar("key", { length: 500 }).primaryKey(),
+    userId: varchar("userId", { length: 255 }).notNull(),
+    attempts: int("attempts").default(0).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    byUpdated: index("idx_media_cleanup_updated").on(table.updatedAt),
+  })
+);
 
 /** 外部生成请求的额度预留与最终状态，失败或过期时按原周期补偿。 */
-export const generationRequests = mysqlTable("generationRequests", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  userId: varchar("userId", { length: 255 }).notNull(),
-  conversationId: int("conversationId").notNull(),
-  kind: mysqlEnum("kind", ["chat", "selfie", "couple"]).notNull(),
-  status: mysqlEnum("status", ["pending", "succeeded", "failed"])
-    .default("pending")
-    .notNull(),
-  meterPeriod: varchar("meterPeriod", { length: 10 }),
-  meterName: varchar("meterName", { length: 64 }),
-  /** 预先记录输出与临时输入位置，进程中断后仍可回收。 */
-  outputKey: varchar("outputKey", { length: 500 }),
-  temporaryKey: varchar("temporaryKey", { length: 500 }),
-  expiresAt: timestamp("expiresAt").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+export const generationRequests = mysqlTable(
+  "generationRequests",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    userId: varchar("userId", { length: 255 }).notNull(),
+    conversationId: int("conversationId").notNull(),
+    kind: mysqlEnum("kind", ["chat", "selfie", "couple"]).notNull(),
+    status: mysqlEnum("status", ["pending", "succeeded", "failed"])
+      .default("pending")
+      .notNull(),
+    meterPeriod: varchar("meterPeriod", { length: 10 }),
+    meterName: varchar("meterName", { length: 64 }),
+    /** 预先记录输出与临时输入位置，进程中断后仍可回收。 */
+    outputKey: varchar("outputKey", { length: 500 }),
+    temporaryKey: varchar("temporaryKey", { length: 500 }),
+    expiresAt: timestamp("expiresAt").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    byConversation: index("idx_generation_conversation").on(
+      table.conversationId
+    ),
+    byStatusAndExpiry: index("idx_generation_expiry").on(
+      table.status,
+      table.expiresAt
+    ),
+  })
+);

@@ -124,7 +124,7 @@ describe("resolvePlan", () => {
 
 describe("webhook state machine (DB)", () => {
   it("created -> active plus tier", async () => {
-    if (!(await getDb())) return;
+    if (!(await getDb())) throw new Error("DATABASE_URL required");
     process.env.BILLING_PROVIDER = "lemonsqueezy";
     const userId = `bill-user-${nanoid(8)}`;
 
@@ -134,7 +134,7 @@ describe("webhook state machine (DB)", () => {
   });
 
   it("upgrade to pro via subscription_updated", async () => {
-    if (!(await getDb())) return;
+    if (!(await getDb())) throw new Error("DATABASE_URL required");
     process.env.BILLING_PROVIDER = "lemonsqueezy";
     const userId = `bill-user-${nanoid(8)}`;
     const subId = `ls-${nanoid(8)}`;
@@ -152,7 +152,7 @@ describe("webhook state machine (DB)", () => {
   });
 
   it("cancelled keeps access until endsAt, then drops to free", async () => {
-    if (!(await getDb())) return;
+    if (!(await getDb())) throw new Error("DATABASE_URL required");
     process.env.BILLING_PROVIDER = "lemonsqueezy";
     const userId = `bill-user-${nanoid(8)}`;
     const subId = `ls-${nanoid(8)}`;
@@ -187,7 +187,7 @@ describe("webhook state machine (DB)", () => {
   });
 
   it("payment invoice does not override the canonical subscription snapshot", async () => {
-    if (!(await getDb())) return;
+    if (!(await getDb())) throw new Error("DATABASE_URL required");
     process.env.BILLING_PROVIDER = "lemonsqueezy";
     const userId = `bill-user-${nanoid(8)}`;
     const subId = `ls-${nanoid(8)}`;
@@ -206,7 +206,7 @@ describe("webhook state machine (DB)", () => {
   });
 
   it("rejects events without user attribution", async () => {
-    if (!(await getDb())) return;
+    if (!(await getDb())) throw new Error("DATABASE_URL required");
     const result = await handleLemonEvent({
       meta: { event_name: "subscription_created" },
       data: { id: "x", attributes: {} },
@@ -298,7 +298,7 @@ describe("billing event ordering regressions", () => {
       old.data.attributes.updated_at = time;
       expect(await handleLemonEvent(old)).toMatchObject({
         ok: true,
-        ignored: "stale subscription snapshot",
+        ignored: "expired subscription is terminal",
       });
     }
     expect((await getSubscription(userId))?.status).toBe("expired");

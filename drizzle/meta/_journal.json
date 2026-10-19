@@ -36,6 +36,13 @@
       "when": 1792403638590,
       "tag": "0004_generation_settlement",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1792404368064,
+      "tag": "0005_transaction_indexes_and_upgrade",
+      "breakpoints": true
     }
   ]
 }

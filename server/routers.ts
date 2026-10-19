@@ -181,10 +181,21 @@ export const appRouter = router({
     /** 撤销数据库会话，并清除普通与 HTTPS 安全前缀的会话 Cookie。 */
     logout: publicProcedure.mutation(async ({ ctx }) => {
       if (auth) {
-        const response = await auth.api.signOut({
-          headers: fromNodeHeaders(ctx.req.headers),
-          asResponse: true,
-        });
+        const headers = fromNodeHeaders(ctx.req.headers);
+        const response = await auth.api.signOut({ headers, asResponse: true });
+        // Better-Auth 的注销入口会捕获删除错误，因此再确认数据库会话已撤销。
+        try {
+          const remaining = await auth.api.getSession({
+            headers,
+            query: { disableCookieCache: true },
+          });
+          if (remaining) throw new Error("Session still active");
+        } catch {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "退出登录尚未完成，请稍后重试。",
+          });
+        }
         const cookies = response.headers.getSetCookie();
         if (cookies.length) ctx.res.append("Set-Cookie", cookies);
       }

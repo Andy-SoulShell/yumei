@@ -53,14 +53,12 @@ describe("intimacy persistence", () => {
       eq(usageMeters.period, todayUTC()),
       eq(usageMeters.meter, "intimacy:points")
     );
-    await db
-      .insert(usageMeters)
-      .values({
-        userId,
-        period: todayUTC(),
-        meter: "intimacy:points",
-        count: 195,
-      });
+    await db.insert(usageMeters).values({
+      userId,
+      period: todayUTC(),
+      meter: "intimacy:points",
+      count: 195,
+    });
     const caller = appRouter.createCaller({
       user: { id: userId },
       req: {},

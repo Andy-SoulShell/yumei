@@ -128,14 +128,12 @@ describe("BYOK provenance (DB)", () => {
     const userId = `corrupt-${crypto.randomUUID()}`;
     process.env.OPERATOR_OPENROUTER_KEY = "operator-secret";
     const kp = new EnvKeyProvider();
-    await db
-      .insert(userKeys)
-      .values({
-        userId,
-        name: "openrouter",
-        encryptedValue: "invalid",
-        lastFour: "fake",
-      });
+    await db.insert(userKeys).values({
+      userId,
+      name: "openrouter",
+      encryptedValue: "invalid",
+      lastFour: "fake",
+    });
     await expect(kp.resolve({ userId }, "openrouter")).rejects.toMatchObject({
       code: "PRECONDITION_FAILED",
     });

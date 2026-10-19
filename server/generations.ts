@@ -87,19 +87,17 @@ export async function reserveGeneration(input: {
           message: `${input.meter.period === "day" ? "Daily" : "Monthly"} limit reached (${input.meter.limit} ${input.meter.what}).${input.meter.hint ?? ""}`,
         });
     }
-    await tx
-      .insert(generationRequests)
-      .values({
-        id,
-        userId: input.userId,
-        conversationId: input.conversationId,
-        kind: input.kind,
-        meterPeriod: period,
-        meterName: input.meter?.name ?? null,
-        outputKey: input.outputKey,
-        temporaryKey: input.temporaryKey,
-        expiresAt: new Date(Date.now() + (input.timeoutMs ?? 180_000)),
-      });
+    await tx.insert(generationRequests).values({
+      id,
+      userId: input.userId,
+      conversationId: input.conversationId,
+      kind: input.kind,
+      meterPeriod: period,
+      meterName: input.meter?.name ?? null,
+      outputKey: input.outputKey,
+      temporaryKey: input.temporaryKey,
+      expiresAt: new Date(Date.now() + (input.timeoutMs ?? 180_000)),
+    });
     return id;
   });
 }
@@ -260,14 +258,12 @@ export async function completeImageGeneration(
       imageKey: image.imageKey,
       selfieMode: image.mode,
     });
-    const [result] = await tx
-      .insert(selfies)
-      .values({
-        ...image,
-        userId,
-        girlfriendId: role.girlfriendId,
-        messageId: message.id,
-      });
+    const [result] = await tx.insert(selfies).values({
+      ...image,
+      userId,
+      girlfriendId: role.girlfriendId,
+      messageId: message.id,
+    });
     const [selfie] = await tx
       .select()
       .from(selfies)

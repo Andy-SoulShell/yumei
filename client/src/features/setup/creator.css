@@ -119,6 +119,7 @@
   min-height: 0;
   flex: 1;
   overscroll-behavior: contain;
+  container-type: size;
 }
 .creator-fieldset {
   min-width: 0;
@@ -142,7 +143,7 @@
 .creator-choice img {
   display: block;
   width: 100%;
-  height: clamp(100px, 13vh, 150px);
+  height: clamp(48px, calc((100cqh - 144px) / 3), 180px);
   object-fit: cover;
   object-position: center 22%;
 }
@@ -361,9 +362,6 @@
   }
   .creator-choices {
     grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-  .creator-choice img {
-    height: clamp(140px, 20vh, 210px);
   }
   .creator-stage-header {
     padding-top: 32px;

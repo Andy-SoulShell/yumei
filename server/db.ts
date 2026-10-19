@@ -10,7 +10,9 @@ import {
   eq,
   desc,
   and,
-  like,
+  lt,
+  or,
+  getTableColumns,
   sql,
   isNull,
   isNotNull,
@@ -791,168 +793,166 @@ export async function cleanupExpiredTrash(userId: string): Promise<number> {
 
 // 包含末条消息的会话列表。
 
-/**
- * 读取用户会话并逐条补充最近消息与角色展示信息。
- *
- * @remarks 当前对每个会话额外查询消息和角色，尚未分页。
- */
-export async function getConversationsWithLastMessage(userId: string): Promise<
-  (Conversation & {
-    lastMessage?: string;
-    lastMessageAt?: Date;
-    girlfriendName?: string;
-    girlfriendImage?: string;
-  })[]
-> {
+/** 会话摘要使用一条有索引的查询读取，游标按活动时间和编号稳定排序。 */
+export type ConversationCursor = { updatedAt: Date; id: number };
+export type ConversationPreview = Conversation & {
+  lastMessage?: string;
+  lastMessageAt?: Date;
+  girlfriendName?: string;
+  girlfriendImage?: string;
+  matchedMessage?: string;
+  matchedMessageId?: number;
+};
+export async function getConversationsWithLastMessage(
+  userId: string,
+  options: {
+    cursor?: ConversationCursor | null;
+    limit?: number;
+    search?: string;
+    ids?: number[];
+  } = {}
+): Promise<ConversationPreview[]> {
   const db = await getDb();
   if (!db) return [];
-
-  // 获取用户所有对话
-  const convos = await db
-    .select()
-    .from(conversations)
-    .where(eq(conversations.userId, userId))
-    .orderBy(desc(conversations.updatedAt));
-
-  // 为每个对话获取最后一条消息和女友信息
-  const result = await Promise.all(
-    convos.map(async convo => {
-      // 获取最后一条消息
-      const lastMsgs = await db
-        .select()
-        .from(messages)
-        .where(eq(messages.conversationId, convo.id))
-        .orderBy(desc(messages.createdAt), desc(messages.id))
-        .limit(1);
-
-      // 获取女友信息
-      const gfs = await db
-        .select({
-          name: girlfriends.name,
-          referenceImageUrl: girlfriends.referenceImageUrl,
-        })
-        .from(girlfriends)
-        .where(eq(girlfriends.id, convo.girlfriendId))
-        .limit(1);
-
-      const lastMsg = lastMsgs[0];
-      const gf = gfs[0];
-
-      return {
-        ...convo,
-        lastMessage: lastMsg?.content || undefined,
-        lastMessageAt: lastMsg?.createdAt || undefined,
-        girlfriendName: gf?.name || undefined,
-        girlfriendImage: gf?.referenceImageUrl || undefined,
-      };
+  if (options.ids?.length === 0) return [];
+  const cursor = options.cursor;
+  const pattern =
+    "%" +
+    (options.search || "").replace(/[!%_]/g, "!const cursor=options.cursor;") +
+    "%";
+  const rows = await db
+    .select({
+      ...getTableColumns(conversations),
+      lastMessage: messages.content,
+      lastMessageAt: messages.createdAt,
+      girlfriendName: girlfriends.name,
+      girlfriendImage: girlfriends.referenceImageUrl,
     })
-  );
-
-  return result;
+    .from(conversations)
+    .innerJoin(
+      girlfriends,
+      and(
+        eq(girlfriends.id, conversations.girlfriendId),
+        eq(girlfriends.userId, userId)
+      )
+    )
+    .leftJoin(
+      messages,
+      eq(
+        messages.id,
+        sql<number>`(SELECT MAX(recent.id) FROM messages recent WHERE recent.conversationId = ${conversations.id})`
+      )
+    )
+    .where(
+      and(
+        eq(conversations.userId, userId),
+        options.search
+          ? or(
+              sql`${girlfriends.name} LIKE ${pattern} ESCAPE '!'`,
+              sql`${conversations.title} LIKE ${pattern} ESCAPE '!'`,
+              sql`${messages.content} LIKE ${pattern} ESCAPE '!'`
+            )
+          : undefined,
+        options.ids ? inArray(conversations.id, options.ids) : undefined,
+        cursor
+          ? or(
+              lt(conversations.updatedAt, cursor.updatedAt),
+              and(
+                eq(conversations.updatedAt, cursor.updatedAt),
+                lt(conversations.id, cursor.id)
+              )
+            )
+          : undefined
+      )
+    )
+    .orderBy(desc(conversations.updatedAt), desc(conversations.id))
+    .limit(options.limit ?? 50);
+  return rows.map(row => ({
+    ...row,
+    lastMessage: row.lastMessage ?? undefined,
+    lastMessageAt: row.lastMessageAt ?? undefined,
+  }));
 }
 
-// 会话搜索。
-
-/**
- * 按关键词匹配消息，再按用户归属筛选并补充会话信息。
- *
- * @remarks 当前先扫描全局匹配消息；LIKE 通配符未进行字面量转义，也未分页。
- */
+/** 在当前用户范围内按字面量搜索，每个会话仅保留最新命中，并按命中游标分页。 */
 export async function searchConversations(
   userId: string,
-  keyword: string
-): Promise<
-  (Conversation & {
-    lastMessage?: string;
-    lastMessageAt?: Date;
-    girlfriendName?: string;
-    girlfriendImage?: string;
-    matchedMessage?: string;
-  })[]
-> {
+  keyword: string,
+  cursor?: number | null,
+  limit = 50
+): Promise<ConversationPreview[]> {
   const db = await getDb();
   if (!db) return [];
-
-  // 搜索包含关键词的消息
-  const matchedMsgs = await db
-    .select({
-      conversationId: messages.conversationId,
-      content: messages.content,
-      createdAt: messages.createdAt,
-    })
+  const pattern = "%" + keyword.replace(/[!%_]/g, "!$&") + "%";
+  const latest = sql<number>`MAX(${messages.id})`;
+  const hits = await db
+    .select({ conversationId: messages.conversationId, id: latest })
     .from(messages)
-    .where(like(messages.content, `%${keyword}%`))
-    .orderBy(desc(messages.createdAt), desc(messages.id));
+    .innerJoin(conversations, eq(conversations.id, messages.conversationId))
+    .where(
+      and(
+        eq(conversations.userId, userId),
+        sql`${messages.content} LIKE ${pattern} ESCAPE '!'`
+      )
+    )
+    .groupBy(messages.conversationId)
+    .having(cursor ? lt(latest, cursor) : undefined)
+    .orderBy(desc(latest))
+    .limit(limit);
+  if (!hits.length) return [];
+  const summaries = await getConversationsWithLastMessage(userId, {
+    ids: hits.map(hit => hit.conversationId),
+    limit,
+  });
+  const matched = await db
+    .select()
+    .from(messages)
+    .where(
+      inArray(
+        messages.id,
+        hits.map(hit => hit.id)
+      )
+    );
+  const byId = new Map(summaries.map(row => [row.id, row]));
+  const byMessage = new Map(matched.map(row => [row.id, row]));
+  return hits.flatMap(hit => {
+    const summary = byId.get(hit.conversationId),
+      message = byMessage.get(hit.id);
+    return summary && message
+      ? [
+          {
+            ...summary,
+            matchedMessage:
+              message.content.length > 60
+                ? message.content.slice(0, 60) + "..."
+                : message.content,
+            matchedMessageId: hit.id,
+          },
+        ]
+      : [];
+  });
+}
 
-  // 获取去重的对话 ID 列表（保持匹配顺序）
-  const seenConvoIds = new Set<number>();
-  const matchedConvoData: { conversationId: number; matchedMessage: string }[] =
-    [];
-  for (const msg of matchedMsgs) {
-    if (!seenConvoIds.has(msg.conversationId)) {
-      seenConvoIds.add(msg.conversationId);
-      matchedConvoData.push({
-        conversationId: msg.conversationId,
-        matchedMessage:
-          msg.content.length > 60
-            ? msg.content.substring(0, 60) + "..."
-            : msg.content,
-      });
-    }
-  }
-
-  if (matchedConvoData.length === 0) return [];
-
-  // 获取对话详情
-  const result = await Promise.all(
-    matchedConvoData.map(async ({ conversationId, matchedMessage }) => {
-      const convoArr = await db
-        .select()
-        .from(conversations)
-        .where(
-          and(
-            eq(conversations.id, conversationId),
-            eq(conversations.userId, userId)
-          )
-        )
-        .limit(1);
-
-      if (convoArr.length === 0) return null;
-      const convo = convoArr[0];
-
-      // 获取最后一条消息
-      const lastMsgs = await db
-        .select()
-        .from(messages)
-        .where(eq(messages.conversationId, convo.id))
-        .orderBy(desc(messages.createdAt), desc(messages.id))
-        .limit(1);
-
-      // 获取女友信息
-      const gfs = await db
-        .select({
-          name: girlfriends.name,
-          referenceImageUrl: girlfriends.referenceImageUrl,
-        })
-        .from(girlfriends)
-        .where(eq(girlfriends.id, convo.girlfriendId))
-        .limit(1);
-
-      const lastMsg = lastMsgs[0];
-      const gf = gfs[0];
-
-      return {
-        ...convo,
-        lastMessage: lastMsg?.content || undefined,
-        lastMessageAt: lastMsg?.createdAt || undefined,
-        girlfriendName: gf?.name || undefined,
-        girlfriendImage: gf?.referenceImageUrl || undefined,
-        matchedMessage,
-      };
-    })
-  );
-
-  return result.filter((r): r is NonNullable<typeof r> => r !== null);
+/** 从最新消息向前分页，单页内保持正序；归属由调用方验证。 */
+export async function getMessagePage(
+  conversationId: number,
+  cursor?: number | null,
+  limit = 50
+): Promise<Message[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const rows = await db
+    .select()
+    .from(messages)
+    .where(
+      and(
+        eq(messages.conversationId, conversationId),
+        cursor ? lt(messages.id, cursor) : undefined
+      )
+    )
+    .orderBy(desc(messages.id))
+    .limit(limit);
+  return rows.reverse();
 }
 
 // 角色心情。

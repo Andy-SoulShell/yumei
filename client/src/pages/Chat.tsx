@@ -235,6 +235,7 @@ export default function Chat() {
   const pendingMessageAfterId = useRef(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const messageListRef = useRef<HTMLDivElement>(null);
 
   // 语音录制
   const {
@@ -277,11 +278,27 @@ export default function Chat() {
     { girlfriendId: stableGirlfriendId! },
     { enabled: !!stableGirlfriendId }
   );
-  const { data: chatMessages, refetch: refetchMessages } =
-    trpc.conversation.getMessages.useQuery(
-      { conversationId: currentConversationId! },
-      { enabled: !!currentConversationId }
-    );
+  const messagesQuery = trpc.conversation.getMessages.useInfiniteQuery(
+    { conversationId: currentConversationId!, limit: 50 },
+    {
+      enabled: !!currentConversationId,
+      getNextPageParam: page => (page.length === 50 ? page[0].id : undefined),
+    }
+  );
+  const refetchMessages = messagesQuery.refetch;
+  const chatMessages = useMemo(
+    () => messagesQuery.data?.pages.slice().reverse().flat(),
+    [messagesQuery.data]
+  );
+  const lastMessageId = chatMessages?.at(-1)?.id;
+  const loadOlderMessages = async () => {
+    const element = messageListRef.current;
+    const before = element?.scrollHeight ?? 0;
+    await messagesQuery.fetchNextPage();
+    requestAnimationFrame(() => {
+      if (element) element.scrollTop += element.scrollHeight - before;
+    });
+  };
 
   const createConversation = trpc.conversation.create.useMutation({
     onSuccess: data => {
@@ -491,7 +508,7 @@ export default function Chat() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [chatMessages]);
+  }, [lastMessageId]);
 
   // 预加载浏览器语音列表
   useEffect(() => {
@@ -906,7 +923,19 @@ export default function Chat() {
       </header>
 
       {/* 消息列表 */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
+      <div
+        ref={messageListRef}
+        className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4"
+      >
+        {messagesQuery.hasNextPage && (
+          <Button
+            variant="outline"
+            disabled={messagesQuery.isFetchingNextPage}
+            onClick={() => void loadOlderMessages()}
+          >
+            {t("common:loadMore")}
+          </Button>
+        )}
         {!chatMessages || chatMessages.length === 0
           ? !sendMessage.isPending && (
               <div className="flex flex-col items-center justify-center h-full text-center">

@@ -479,6 +479,7 @@ export default {
     "empty.start": "{{name}}と話してみましょう",
   },
   common: {
+    loadMore: "もっと見る",
     couldNotOpenTheConversation: "会話を開けませんでした：{{error}}",
     points: "{{mood}}（{{points}}ポイント）",
     memoriesAboutYou: "あなたについての思い出",

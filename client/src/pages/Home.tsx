@@ -155,19 +155,30 @@ export default function MyCharacters() {
       enabled: isAuthenticated && trashOpen,
     });
 
-  // 历史对话列表
-  const { data: conversationsWithDetails } =
-    trpc.conversation.listWithDetails.useQuery(undefined, {
+  const conversationsQuery = trpc.conversation.listWithDetails.useInfiniteQuery(
+    { limit: 50 },
+    {
       enabled: isAuthenticated,
-    });
-
-  // 搜索对话
-  const { data: searchResults, isLoading: searchLoading } =
-    trpc.conversation.search.useQuery(
-      { keyword: debouncedKeyword },
-      { enabled: !!debouncedKeyword && debouncedKeyword.length > 0 }
-    );
-
+      getNextPageParam: page =>
+        page.length === 50
+          ? {
+              updatedAt: page[page.length - 1].updatedAt,
+              id: page[page.length - 1].id,
+            }
+          : undefined,
+    }
+  );
+  const conversationsWithDetails = conversationsQuery.data?.pages.flat();
+  const searchQuery = trpc.conversation.search.useInfiniteQuery(
+    { keyword: debouncedKeyword, limit: 50 },
+    {
+      enabled: isAuthenticated && !!debouncedKeyword,
+      getNextPageParam: page =>
+        page.length === 50 ? page[page.length - 1].matchedMessageId : undefined,
+    }
+  );
+  const searchResults = searchQuery.data?.pages.flat();
+  const searchLoading = searchQuery.isLoading;
   // 获取所有女友心情
   const { data: allMoods } = trpc.mood.getAll.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -882,9 +893,9 @@ export default function MyCharacters() {
                               : formatTime(convo.updatedAt)}
                           </span>
                         </div>
-                        {isSearchMode && (convo as any).matchedMessage ? (
+                        {isSearchMode && convo.matchedMessage ? (
                           <p className="text-xs text-primary/80 truncate mt-0.5">
-                            🔍 {(convo as any).matchedMessage}
+                            🔍 {convo.matchedMessage}
                           </p>
                         ) : (
                           <p className="text-xs text-muted-foreground truncate mt-0.5">
@@ -900,6 +911,25 @@ export default function MyCharacters() {
                   ))}
                 </div>
               </div>
+            )}
+            {(isSearchMode
+              ? searchQuery.hasNextPage
+              : conversationsQuery.hasNextPage) && (
+              <Button
+                variant="outline"
+                disabled={
+                  isSearchMode
+                    ? searchQuery.isFetchingNextPage
+                    : conversationsQuery.isFetchingNextPage
+                }
+                onClick={() =>
+                  void (isSearchMode
+                    ? searchQuery.fetchNextPage()
+                    : conversationsQuery.fetchNextPage())
+                }
+              >
+                {t("common:loadMore")}
+              </Button>
             )}
           </ScrollArea>
         </SheetContent>

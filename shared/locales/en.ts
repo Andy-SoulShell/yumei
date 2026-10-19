@@ -482,6 +482,7 @@ export default {
     "empty.start": "Start chatting with {{name}}",
   },
   common: {
+    loadMore: "Load more",
     couldNotOpenTheConversation: "Could not open the conversation: {{error}}",
     points: "{{mood}} ({{points}} points)",
     memoriesAboutYou: "Memories about you",

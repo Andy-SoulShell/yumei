@@ -466,6 +466,7 @@ export default {
     "empty.start": "{{name}} 님과 대화를 시작해 보세요",
   },
   common: {
+    loadMore: "더 보기",
     couldNotOpenTheConversation: "대화를 열지 못했어요: {{error}}",
     points: "{{mood}}({{points}}점)",
     memoriesAboutYou: "나에 대한 기억",

@@ -45,7 +45,7 @@ import {
   resumeConversation,
   getUserConversations,
   getConversation,
-  getConversationMessages,
+  getMessagePage,
   getRecentMessages,
   getUserSelfies,
   getGirlfriendSelfies,
@@ -576,9 +576,21 @@ export const appRouter = router({
     }),
 
     /** 读取当前用户会话并补充最近消息及角色信息。 */
-    listWithDetails: protectedProcedure.query(async ({ ctx }) => {
-      return await getConversationsWithLastMessage(ctx.user.id);
-    }),
+    listWithDetails: protectedProcedure
+      .input(
+        z
+          .object({
+            cursor: z
+              .object({ updatedAt: z.date(), id: z.number().int() })
+              .nullish(),
+            search: z.string().max(100).optional(),
+            limit: z.number().int().min(1).max(100).default(50),
+          })
+          .optional()
+      )
+      .query(async ({ ctx, input }) => {
+        return await getConversationsWithLastMessage(ctx.user.id, input);
+      }),
 
     /** 按用户归属读取单个会话。 */
     get: protectedProcedure
@@ -589,7 +601,13 @@ export const appRouter = router({
 
     /** 校验会话归属后读取其全部消息。 */
     getMessages: protectedProcedure
-      .input(z.object({ conversationId: z.number() }))
+      .input(
+        z.object({
+          conversationId: z.number(),
+          cursor: z.number().int().nullish(),
+          limit: z.number().int().min(1).max(100).default(50),
+        })
+      )
       .query(async ({ ctx, input }) => {
         if (!(await getConversation(input.conversationId, ctx.user.id))) {
           throw new TRPCError({
@@ -597,14 +615,29 @@ export const appRouter = router({
             message: "Conversation not found or not owned by current user",
           });
         }
-        return await getConversationMessages(input.conversationId);
+        return await getMessagePage(
+          input.conversationId,
+          input.cursor,
+          input.limit
+        );
       }),
 
     /** 按当前用户归属返回关键词命中的会话信息。 */
     search: protectedProcedure
-      .input(z.object({ keyword: z.string().min(1).max(100) }))
+      .input(
+        z.object({
+          keyword: z.string().min(1).max(100),
+          cursor: z.number().int().nullish(),
+          limit: z.number().int().min(1).max(100).default(50),
+        })
+      )
       .query(async ({ ctx, input }) => {
-        return await searchConversations(ctx.user.id, input.keyword);
+        return await searchConversations(
+          ctx.user.id,
+          input.keyword,
+          input.cursor,
+          input.limit
+        );
       }),
   }),
 

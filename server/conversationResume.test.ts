@@ -57,7 +57,7 @@ describe("resume and explicit new conversations", () => {
 
   it("checks conversation ownership before loading its messages", async () => {
     const owner = vi.spyOn(db, "getConversation").mockResolvedValue(undefined);
-    const messages = vi.spyOn(db, "getConversationMessages");
+    const messages = vi.spyOn(db, "getMessagePage");
     await expect(
       caller.conversation.getMessages({ conversationId: 99 })
     ).rejects.toThrow("not owned");

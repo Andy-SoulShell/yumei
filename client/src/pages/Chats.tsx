@@ -12,14 +12,20 @@ import { Button } from "@/components/ui/button";
 export default function Chats() {
   const { t, locale } = useI18n();
   const [search, setSearch] = useState("");
-  const { data, isLoading, error, refetch } =
-    trpc.conversation.listWithDetails.useQuery();
-  const results = data?.filter(chat =>
-    [chat.girlfriendName, chat.title, chat.lastMessage]
-      .join(" ")
-      .toLocaleLowerCase()
-      .includes(search.trim().toLocaleLowerCase())
+  const query = trpc.conversation.listWithDetails.useInfiniteQuery(
+    { limit: 50, search: search.trim() || undefined },
+    {
+      getNextPageParam: page =>
+        page.length === 50
+          ? {
+              updatedAt: page[page.length - 1].updatedAt,
+              id: page[page.length - 1].id,
+            }
+          : undefined,
+    }
   );
+  const { isLoading, error, refetch } = query;
+  const results = query.data?.pages.flat();
   return (
     <div className="hub-page">
       <div className="hub-heading">
@@ -81,6 +87,15 @@ export default function Chats() {
               <ArrowUpRight size={18} />
             </Link>
           ))}
+          {query.hasNextPage && (
+            <Button
+              variant="outline"
+              disabled={query.isFetchingNextPage}
+              onClick={() => void query.fetchNextPage()}
+            >
+              {t("common:loadMore")}
+            </Button>
+          )}
         </div>
       ) : (
         <div className="explore-empty">

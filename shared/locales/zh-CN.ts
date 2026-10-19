@@ -450,6 +450,7 @@ export default {
     "empty.start": "开始和 {{name}} 聊天吧～",
   },
   common: {
+    loadMore: "加载更多",
     couldNotOpenTheConversation: "打开对话失败：{{error}}",
     points: "{{mood}} ({{points}}分)",
     memoriesAboutYou: "她记得你的事",

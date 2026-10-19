@@ -100,6 +100,14 @@ TZ=UTC pnpm test
  */
 ```
 
+### 界面组件
+
+- 页面和业务组件统一使用 `client/src/components/ui/`：普通操作用 `Button`，互斥选择用 `RadioGroup`，下拉选择用 `Select`，菜单用 `DropdownMenu`，折叠用 `Collapsible`。
+- 搜索模型和音色复用 `SearchSelect`（Radix Popover + Command）；试听和收藏放在列表外，避免选项或按钮内嵌套其他交互控件。日期复用 `DatePicker`（Calendar + Popover）。上传和录音在业务层组合公共组件。
+- 使用 `radix-ui` 统一包，保留 `components.json` 的 `new-york` 配置。新增组件先运行 `pnpm ui:add <组件名> --dry-run` 审查，再运行 `pnpm ui:add <组件名>`；如果 CLI 引入独立的 `@radix-ui/react-*` 包，运行 `pnpm ui:migrate -y`，确认无引用后移除冗余直接依赖。
+- 不直接覆盖已定制的 `Button`、`Input`、`Textarea`、`Dialog`、`Command` 和主题变量；更新时核对差异，保留中文输入法保护、中英文文案、语义主题色、键盘导航和焦点恢复。
+- `Button` 的 `plain` / `none` 组合用于图片入口及富内容操作行，仍保留统一的禁用和焦点样式；持续选择优先使用 RadioGroup，不把选择卡片统一包装成普通操作按钮。
+
 ### 测试要求
 
 - 新增功能必须附带对应的测试用例

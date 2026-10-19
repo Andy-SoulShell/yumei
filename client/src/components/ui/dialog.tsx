@@ -2,7 +2,7 @@ import { useI18n } from "@/lib/i18n";
 /** 普通对话框与输入法组合状态协调。 */
 
 import { cn } from "@/lib/utils";
-import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { Dialog as DialogPrimitive } from "radix-ui";
 import { XIcon } from "lucide-react";
 import * as React from "react";
 

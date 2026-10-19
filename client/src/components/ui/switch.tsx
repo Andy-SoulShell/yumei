@@ -1,7 +1,7 @@
 /** 布尔状态的开关控件。 */
 
 import * as React from "react";
-import * as SwitchPrimitive from "@radix-ui/react-switch";
+import { Switch as SwitchPrimitive } from "radix-ui";
 
 import { cn } from "@/lib/utils";
 

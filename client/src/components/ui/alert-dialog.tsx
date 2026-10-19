@@ -1,7 +1,7 @@
 /** 需要用户明确确认或取消的模态对话框。 */
 
 import * as React from "react";
-import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
+import { AlertDialog as AlertDialogPrimitive } from "radix-ui";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";

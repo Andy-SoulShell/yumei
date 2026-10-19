@@ -1,7 +1,7 @@
 /** 关联表单控件的文本标签。 */
 
 import * as React from "react";
-import * as LabelPrimitive from "@radix-ui/react-label";
+import { Label as LabelPrimitive } from "radix-ui";
 
 import { cn } from "@/lib/utils";
 

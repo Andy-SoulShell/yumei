@@ -134,6 +134,7 @@ export function NotificationBell() {
           variant="ghost"
           size="icon"
           className="relative h-9 w-9 sm:h-10 sm:w-10"
+          aria-label={t("notifications:notifications")}
         >
           <Bell className="w-5 h-5" />
           {unreadCount > 0 && (

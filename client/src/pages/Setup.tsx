@@ -32,7 +32,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
-import { useLocation, useParams } from "wouter";
+import { useLocation, useParams, useSearch } from "wouter";
 import { toast } from "sonner";
 import { CharacterPresetPicker } from "@/components/CharacterPresetPicker";
 import {
@@ -65,13 +65,21 @@ export default function Setup() {
   const [, setLocation] = useLocation();
   const params = useParams<{ id?: string }>();
   const editId = params.id ? parseInt(params.id) : null;
+  const search = useSearch();
+  const initialPreset = !editId
+    ? getCharacterPreset(new URLSearchParams(search).get("preset") || "")
+    : undefined;
 
-  const [name, setName] = useState("");
-  const [personality, setPersonality] = useState("");
-  const [appearance, setAppearance] = useState("");
-  const [interests, setInterests] = useState("");
+  const [name, setName] = useState(initialPreset?.name || "");
+  const [personality, setPersonality] = useState(
+    initialPreset?.personality || ""
+  );
+  const [appearance, setAppearance] = useState(initialPreset?.appearance || "");
+  const [interests, setInterests] = useState(initialPreset?.interests || "");
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [presetId, setPresetId] = useState<string | null>(null);
+  const [presetId, setPresetId] = useState<string | null>(
+    initialPreset?.id || null
+  );
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
@@ -118,7 +126,7 @@ export default function Setup() {
     onSuccess: async () => {
       await utils.girlfriend.invalidate();
       toast.success(t("setup:companionCreated"));
-      setLocation("/");
+      setLocation("/characters");
     },
     onError: error => {
       toast.error(
@@ -137,7 +145,7 @@ export default function Setup() {
       if (editId) {
         addPoints.mutate({ girlfriendId: editId, reason: "edit_profile" });
       }
-      setLocation("/");
+      setLocation("/characters");
     },
     onError: error => {
       toast.error(
@@ -169,7 +177,7 @@ export default function Setup() {
   const deleteGirlfriend = trpc.girlfriend.delete.useMutation({
     onSuccess: () => {
       toast.success(t("common:movedToTrashYouCanRestoreItWithin"));
-      setLocation("/");
+      setLocation("/characters");
     },
     onError: error => {
       toast.error(
@@ -355,7 +363,7 @@ export default function Setup() {
         <Button
           variant="ghost"
           className="mb-4"
-          onClick={() => setLocation("/")}
+          onClick={() => setLocation("/characters")}
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           {t("setup:back")}

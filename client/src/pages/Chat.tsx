@@ -41,7 +41,7 @@ import { SelfiePoseDialog } from "@/components/SelfiePoseDialog";
 import { getLevelInfo } from "../../../shared/intimacy";
 import { detectSelfieRequest } from "@shared/selfieRequest";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import { useLocation, useParams } from "wouter";
+import { useLocation, useParams, useSearch } from "wouter";
 import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -221,7 +221,10 @@ export default function Chat() {
   });
   const [showIntimacyPanel, setShowIntimacyPanel] = useState(false);
   const [showCrisisAlert, setShowCrisisAlert] = useState(false);
-  const [showPoseDialog, setShowPoseDialog] = useState(false);
+  const search = useSearch();
+  const [showPoseDialog, setShowPoseDialog] = useState(
+    () => new URLSearchParams(search).get("selfie") === "1"
+  );
   const { data: apiConfig } = trpc.apiConfig.get.useQuery();
   // 语音输入的消息，回复自动朗读（即使未开自动播放）
   const lastInputWasVoiceRef = useRef(false);
@@ -726,13 +729,18 @@ export default function Chat() {
   const currentMoodInfo = moodData ? MOOD_CONFIG[moodData.mood] : null;
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="chat-page flex flex-col h-full bg-background">
       {/* 顶部导航栏 */}
       <header
         className="flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3 border-b bg-card"
         style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}
       >
-        <Button variant="ghost" size="icon" onClick={() => setLocation("/")}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t("explore:navChats")}
+          onClick={() => setLocation("/chats")}
+        >
           <ArrowLeft className="w-5 h-5" />
         </Button>
 

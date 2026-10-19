@@ -1,11 +1,10 @@
 import { apiErrorMessage } from "@/lib/errors";
 import { formatRelativeTime } from "@/lib/formatters";
 import { intimacyMessages } from "@/locales/domain";
-/** 角色首页与管理入口，承载默认角色、回收站、搜索及通知。 */
+/** 个人角色管理页，承载默认角色、回收站、搜索及通知。 */
 
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { AgeGate } from "@/components/AgeGate";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,15 +16,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import {
-  Heart,
   MessageCircle,
   Image,
   Settings,
   Loader2,
   Plus,
-  Sun,
-  Moon,
-  Sparkles,
   Edit,
   Clock,
   Search,
@@ -35,11 +30,9 @@ import {
   Square,
   Trash,
   Undo2,
-  LogOut,
 } from "lucide-react";
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useLocation } from "wouter";
-import { useTheme } from "@/contexts/ThemeContext";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +55,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { NotificationBell } from "@/components/NotificationBell";
 import { usePullToRefresh } from "@/hooks/useGestures";
 import { PullToRefreshIndicator } from "@/components/PullToRefreshIndicator";
 import {
@@ -123,18 +115,16 @@ const MOOD_CONFIG: Record<
 /**
  * 加载当前用户角色并提供进入会话、创建、编辑与回收站操作。
  *
- * @remarks 首次无角色时请求默认初始化；未认证时展示登录入口。
+ * @remarks 登录由全局路由保护；空列表展示创建入口，不自动占用角色名额。
  */
-export default function Home() {
+export default function MyCharacters() {
   const { t, locale } = useI18n();
   const { user, loading, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
-  const { theme, toggleTheme } = useTheme();
   const [historyOpen, setHistoryOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [debouncedKeyword, setDebouncedKeyword] = useState("");
-  const defaultCreatedRef = useRef(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [deleteTarget, setDeleteTarget] = useState<{
     id: number;
@@ -151,13 +141,6 @@ export default function Home() {
       await refetch();
     },
     enabled: isAuthenticated,
-  });
-
-  // 退出登录
-  const logout = trpc.auth.logout.useMutation({
-    onSuccess: () => {
-      window.location.href = "/";
-    },
   });
 
   const {
@@ -250,27 +233,6 @@ export default function Home() {
       setIntimacyMap(map);
     }
   }, [girlfriends]);
-
-  // 确保默认女友存在
-  const { mutate: ensureDefault, isPending: isCreatingDefault } =
-    trpc.girlfriend.ensureDefault.useMutation({
-      onSuccess: () => {
-        refetch();
-      },
-    });
-
-  // 登录后自动创建默认女友
-  useEffect(() => {
-    if (
-      isAuthenticated &&
-      girlfriends &&
-      girlfriends.length === 0 &&
-      !defaultCreatedRef.current
-    ) {
-      defaultCreatedRef.current = true;
-      ensureDefault();
-    }
-  }, [isAuthenticated, girlfriends, ensureDefault]);
 
   // 软删除（移入回收站）
   const deleteGirlfriend = trpc.girlfriend.delete.useMutation({
@@ -409,175 +371,34 @@ export default function Home() {
     );
   }
 
-  // 未登录 - 展示欢迎页
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background app-surface">
-        {/* 主题切换按钮 */}
-        <div className="absolute top-4 right-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={t("common:toggleDisplayMode")}
-            onClick={toggleTheme}
-          >
-            {theme === "light" ? (
-              <Moon className="w-5 h-5" />
-            ) : (
-              <Sun className="w-5 h-5" />
-            )}
-          </Button>
-        </div>
-
-        <div className="max-w-md w-full space-y-8 text-center">
-          <div className="space-y-4">
-            <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-              <Heart className="w-10 h-10 text-primary" />
-            </div>
-            <h1 className="text-4xl font-bold text-foreground">YUMEI</h1>
-            <p className="text-lg text-muted-foreground">
-              {t("home:yourAICompanionHereToChatAndShare")}
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            <Card className="text-left">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <MessageCircle className="w-5 h-5 text-primary" />
-                  {t("home:naturalConversation")}
-                </CardTitle>
-                <CardDescription>
-                  {t("home:enjoyNaturalFlowingConversationsPoweredByAI")}
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="text-left">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Image className="w-5 h-5 text-primary" />
-                  {t("home:sceneBasedSelfies")}
-                </CardTitle>
-                <CardDescription>
-                  {t("home:generateSelfiesInspiredByYourConversations")}
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="text-left">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Sparkles className="w-5 h-5 text-primary" />
-                  {t("home:voiceConversations")}
-                </CardTitle>
-                <CardDescription>
-                  {t("home:hearYourCompanionSpeakInAVoiceYou")}
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="text-left">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Settings className="w-5 h-5 text-primary" />
-                  {t("home:makeItPersonal")}
-                </CardTitle>
-                <CardDescription>
-                  {t(
-                    "home:customizePersonalitiesAppearancesAndInterestsForMultipleCompanions"
-                  )}
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </div>
-
-          <Button
-            size="lg"
-            className="w-full text-base"
-            onClick={() => (window.location.href = "/login")}
-          >
-            <Heart className="w-5 h-5 mr-2" />
-            {t("home:getStarted")}
-          </Button>
-
-          {/* 合规披露 */}
-          <p className="text-xs text-muted-foreground">
-            {t("home:guide18OnlyCompanionsAreAIGeneratedNotReal")}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   // 已登录 - 女友列表
   return (
     <div className="min-h-screen bg-background">
-      {/* 一次性 18+ 年龄确认（服务端同样强制） */}
-      <AgeGate />
-      {/* 顶部导航栏 */}
-      <header
-        className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b bg-card sticky top-0 z-10"
-        style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}
-      >
+      <header className="characters-toolbar flex items-center justify-between gap-3 border-b px-4 py-4 sm:px-8">
+        <h1 className="text-lg font-semibold">{t("explore:navCharacters")}</h1>
         <div className="flex items-center gap-2">
-          <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-          <h1 className="text-base sm:text-lg font-bold">YUMEI</h1>
-        </div>
-        <div className="flex items-center gap-0.5 sm:gap-1">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setHistoryOpen(true)}
-            title={t("home:chatHistory")}
+            aria-label={t("home:chatHistory")}
           >
-            <Clock className="w-5 h-5" />
+            <Clock />
           </Button>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => {
               setTrashOpen(true);
-              refetchTrash();
+              void refetchTrash();
             }}
-            title={t("home:trash")}
-            className="relative"
+            aria-label={t("home:trash")}
           >
-            <Trash className="w-5 h-5" />
-            {trashItems && trashItems.length > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-destructive text-destructive-foreground text-[10px] rounded-full flex items-center justify-center">
-                {trashItems.length}
-              </span>
-            )}
+            <Trash />
           </Button>
-          <NotificationBell />
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={t("common:toggleDisplayMode")}
-            onClick={toggleTheme}
-          >
-            {theme === "light" ? (
-              <Moon className="w-5 h-5" />
-            ) : (
-              <Sun className="w-5 h-5" />
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setLocation("/settings")}
-          >
-            <Settings className="w-5 h-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => logout.mutate()}
-            title={t("home:signOut")}
-            className="text-muted-foreground hover:text-destructive"
-          >
-            <LogOut className="w-5 h-5" />
+          <Button onClick={() => setLocation("/setup")}>
+            <Plus />
+            {t("explore:navCreate")}
           </Button>
         </div>
       </header>
@@ -589,7 +410,7 @@ export default function Home() {
         isPulling={isPulling}
       />
 
-      <div className="p-3 sm:p-4 max-w-2xl mx-auto space-y-4 sm:space-y-6 pb-8">
+      <div className="p-4 sm:p-8 max-w-6xl mx-auto space-y-4 sm:space-y-6 pb-8">
         {/* 欢迎信息 + 批量操作 */}
         <div className="flex items-start justify-between">
           <div className="space-y-1">
@@ -658,7 +479,7 @@ export default function Home() {
         )}
 
         {/* 女友列表 */}
-        {girlfriendsLoading || isCreatingDefault ? (
+        {girlfriendsLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
@@ -681,7 +502,7 @@ export default function Home() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="grid gap-4 xl:grid-cols-2">
             {girlfriends.map(gf => {
               const mood = moodMap[gf.id];
               const moodInfo = mood ? MOOD_CONFIG[mood.mood] : null;

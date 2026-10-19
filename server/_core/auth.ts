@@ -66,8 +66,15 @@ export const auth = authDb
           // 邮箱登录链接十五分钟后过期。
           expiresIn: 60 * 15,
           disableSignUp: false, // 新邮箱可自动注册
-          sendMagicLink: async ({ email, url }) => {
-            await sendMagicLinkEmail({ to: email, magicLinkUrl: url });
+          sendMagicLink: async ({ email, url }, context) => {
+            const locale =
+              context?.headers?.get("x-yumei-locale") ??
+              context?.request?.headers.get("x-yumei-locale");
+            await sendMagicLinkEmail({
+              to: email,
+              magicLinkUrl: url,
+              locale: locale === "zh-CN" ? "zh-CN" : "en",
+            });
           },
         }),
       ],

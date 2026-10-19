@@ -23,11 +23,13 @@ describe("session revocation", () => {
         headers: {
           "Content-Type": "application/json",
           Origin: "https://yumei.test",
+          "x-yumei-locale": "zh-CN",
         },
         body: JSON.stringify({ email }),
       })
     );
     expect(sent.status).toBe(200);
+    expect(sendEmail.mock.calls.at(-1)?.[0].locale).toBe("zh-CN");
     const link = sendEmail.mock.calls.at(-1)?.[0].magicLinkUrl;
     expect(link).toBeTruthy();
     const login = await auth.handler(new Request(link));

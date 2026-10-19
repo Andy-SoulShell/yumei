@@ -190,6 +190,23 @@ describe("ResendDriver error handling", () => {
 });
 
 describe("magic-link email body", () => {
+  it("uses the selected Chinese language without changing the login URL", async () => {
+    process.env.RESEND_API_KEY = "re_test";
+    resendSendMock.mockResolvedValue({ data: { id: "x" }, error: null });
+    const { sendMagicLinkEmail } = await import("./email");
+    const url = "https://example.com/verify?token=localized-test";
+    await sendMagicLinkEmail({
+      to: "user@example.com",
+      magicLinkUrl: url,
+      locale: "zh-CN",
+    });
+    const mail = resendSendMock.mock.calls[0][0];
+    expect(mail.subject).toBe("登录 YUMEI");
+    expect(mail.text).toContain("15 分钟");
+    expect(mail.html).toContain('lang="zh-CN"');
+    expect(mail.text).toContain(url);
+    expect(mail.html).toContain(url);
+  });
   it("includes the URL in both text and html bodies", async () => {
     process.env.RESEND_API_KEY = "re_test";
     process.env.EMAIL_FROM = "noreply@example.com";

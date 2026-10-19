@@ -81,17 +81,22 @@ export async function generateProviderImage(
       timeoutMs: Number(process.env.COMFYUI_TIMEOUT_MS || 600_000),
     }).generate({ prompt: params.prompt, mode: params.mode, references });
   }
+  const textOnly = params.mode === "text";
   const couple = params.references.length > 1;
-  const model = couple
-    ? process.env.FAL_COUPLE_MODEL || "fal-ai/nano-banana/edit"
-    : "fal-ai/grok-imagine-image-edit";
+  const model = textOnly
+    ? "xai/grok-imagine-image"
+    : couple
+      ? process.env.FAL_COUPLE_MODEL || "fal-ai/nano-banana/edit"
+      : "fal-ai/grok-imagine-image-edit";
   const response = await axios.post(
     `https://fal.run/${model}`,
     {
       prompt: params.prompt,
-      ...(couple
-        ? { image_urls: params.references.map(ref => ref.url) }
-        : { image_url: params.references[0].url }),
+      ...(textOnly
+        ? { num_images: 1, aspect_ratio: "3:4", output_format: "png" }
+        : couple
+          ? { image_urls: params.references.map(ref => ref.url) }
+          : { image_url: params.references[0].url }),
     },
     { headers: { Authorization: `Key ${provider.apiKey}` }, timeout: 120_000 }
   );

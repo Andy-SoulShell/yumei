@@ -100,6 +100,22 @@ export async function tryConsumePeriodMeter(
   );
 }
 
+/** 将失败的角色形象生成预留退回最初的周期，不受跨日、跨月影响。 */
+export async function refundPeriodMeter(
+  userId: string,
+  meter: string,
+  period: string
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(usageMeters)
+    .set({ count: sql`GREATEST(0, ${usageMeters.count} - 1)` })
+    .where(
+      sql`${usageMeters.userId} = ${userId} AND ${usageMeters.meter} = ${meter} AND ${usageMeters.period} = ${period}`
+    );
+}
+
 /** 在调用方的现有事务内判定并消费额度，便于与业务写入一起回滚。 */
 export async function tryConsumeMeterInTransaction(
   tx: DbTransaction,

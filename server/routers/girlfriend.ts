@@ -30,9 +30,10 @@ import {
   updateGirlfriend,
 } from "../repositories/companions";
 import { getIntimacyInfo } from "../repositories/intimacy";
+import { createWithPortrait } from "../characterPortrait";
 
 export const girlfriendRouter = router({
-  /** 校验当前套餐角色数量，保存选定或上传的参考图并创建角色。 */
+  /** 校验角色数量；新建可按文字生成形象，兼容已有预设与上传入口。 */
   create: protectedProcedure
     .input(
       z
@@ -42,6 +43,7 @@ export const girlfriendRouter = router({
           appearance: z.string().min(1),
           interests: z.string().optional(),
           customPrompt: z.string().max(300).optional(),
+          generatePortrait: z.literal(true).optional(),
           presetId: z
             .string()
             .refine(id => !!getCharacterPreset(id), "角色预设不存在")
@@ -53,9 +55,13 @@ export const girlfriendRouter = router({
         })
         .refine(
           input =>
-            input.referenceImageBase64
-              ? !!input.referenceImageMimeType
-              : !input.referenceImageMimeType && !!input.presetId,
+            input.generatePortrait
+              ? !input.referenceImageBase64 &&
+                !input.referenceImageMimeType &&
+                !input.presetId
+              : input.referenceImageBase64
+                ? !!input.referenceImageMimeType
+                : !input.referenceImageMimeType && !!input.presetId,
           "请选择角色预设或上传参考照片"
         )
     )
@@ -77,56 +83,63 @@ export const girlfriendRouter = router({
         }
       }
 
-      // 上传参考图片到存储
-      const imageBuffer = input.referenceImageBase64
-        ? Buffer.from(input.referenceImageBase64, "base64")
-        : await readPresetReference(input.presetId!);
-      const mimeType = input.referenceImageBase64
-        ? input.referenceImageMimeType!
-        : "image/jpeg";
-      if (imageBuffer.length > 10 * 1024 * 1024) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "参考照片不能超过 10MB",
-        });
-      }
-      const fileKey = `girlfriend-${ctx.user.id}-${nanoid()}.${mimeType.split("/")[1]}`;
+      const mimeType = input.generatePortrait
+        ? "image/png"
+        : input.referenceImageBase64
+          ? input.referenceImageMimeType!
+          : "image/jpeg";
+      const save = async (imageBuffer: Buffer) => {
+        if (!input.generatePortrait && imageBuffer.length > 10 * 1024 * 1024) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "参考照片不能超过 10MB",
+          });
+        }
+        const fileKey = `girlfriend-${ctx.user.id}-${nanoid()}.${mimeType.split("/")[1]}`;
 
-      const { url: imageUrl } = await putStagedMedia(
-        ctx.user.id,
-        fileKey,
-        imageBuffer,
-        mimeType
+        const { url: imageUrl } = await putStagedMedia(
+          ctx.user.id,
+          fileKey,
+          imageBuffer,
+          mimeType
+        );
+
+        // 创建女友配置
+        let girlfriend;
+        try {
+          girlfriend = await createGirlfriend(
+            {
+              userId: ctx.user.id,
+              name: input.name,
+              personality: input.personality,
+              appearance: input.appearance,
+              interests: input.interests,
+              customPrompt: input.customPrompt || null,
+              referenceImageUrl: imageUrl,
+              referenceImageKey: fileKey,
+              isActive: true,
+            },
+            maximum
+          );
+        } catch (error) {
+          await queueMediaDeletion(ctx.user.id, [fileKey]).catch(cleanupError =>
+            log.error(
+              "[media] failed upload will retry",
+              providerErrorSummary(cleanupError)
+            )
+          );
+          throw error;
+        }
+
+        return girlfriend;
+      };
+      if (input.generatePortrait)
+        return createWithPortrait(ctx.user, input.appearance, save);
+      return save(
+        input.referenceImageBase64
+          ? Buffer.from(input.referenceImageBase64, "base64")
+          : await readPresetReference(input.presetId!)
       );
-
-      // 创建女友配置
-      let girlfriend;
-      try {
-        girlfriend = await createGirlfriend(
-          {
-            userId: ctx.user.id,
-            name: input.name,
-            personality: input.personality,
-            appearance: input.appearance,
-            interests: input.interests,
-            customPrompt: input.customPrompt || null,
-            referenceImageUrl: imageUrl,
-            referenceImageKey: fileKey,
-            isActive: true,
-          },
-          maximum
-        );
-      } catch (error) {
-        await queueMediaDeletion(ctx.user.id, [fileKey]).catch(cleanupError =>
-          log.error(
-            "[media] failed upload will retry",
-            providerErrorSummary(cleanupError)
-          )
-        );
-        throw error;
-      }
-
-      return girlfriend;
     }),
 
   /** 读取当前用户激活且未删除的角色。 */

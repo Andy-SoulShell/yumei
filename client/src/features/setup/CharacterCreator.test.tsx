@@ -6,7 +6,6 @@ import { i18n, type Translator } from "@shared/i18n";
 import { LOCALES } from "@shared/locales";
 import Setup from "@/pages/Setup";
 import { CREATOR_IMAGE_GROUPS } from "./creatorAssets";
-import { loadCreatorReference } from "./creatorOptions";
 
 const mock = vi.hoisted(() => ({
   query: "",
@@ -116,15 +115,23 @@ afterEach(async () => {
 });
 
 describe("companion creation", () => {
-  it("walks through visual choices and submits a local reference with the editable profile", async () => {
+  it("walks through one attribute at a time and submits text without option image bytes", async () => {
     await settle(() => root.render(<Setup />));
     expect(mock.create).not.toHaveBeenCalled();
     await click("下一步");
     await choose("模板", "邻家女孩");
     await choose("气质", "甜美治愈系");
+    expect(
+      container.querySelector('[aria-label="发型"][role="radiogroup"]')
+    ).toBeNull();
+    await click("下一步");
     await choose("发型", "马尾");
+    await click("肤色");
+    await choose("肤色", "白皙");
+    await click("发色");
     await click("下一步");
     await choose("体型", "运动型");
+    await click("臀部大小");
     await click("下一步");
     expect(
       container.querySelector<HTMLTextAreaElement>("#appearance")!.value
@@ -148,24 +155,26 @@ describe("companion creation", () => {
         new Event("submit", { bubbles: true, cancelable: true })
       )
     );
-    expect(mock.fetch).toHaveBeenCalledWith(
-      "/character-options/creator/female/realistic/ethnicity/sweethealing.webp"
-    );
+    expect(mock.fetch).not.toHaveBeenCalled();
     expect(mock.create).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "小雨",
         appearance: "成年女性，棕色马尾，运动装。保留手动描述。",
-        referenceImageBase64: "UklGRg==",
-        referenceImageMimeType: "image/webp",
+        generatePortrait: true,
       })
     );
+    const payload = mock.create.mock.calls[0][0];
+    expect(payload).not.toHaveProperty("referenceImageBase64");
+    expect(payload).not.toHaveProperty("presetId");
   });
 
   it("clears incompatible body choices when switching gender and supports the anime route", async () => {
     await settle(() => root.render(<Setup />));
     await click("下一步");
     await click("从头自定义");
+    await click("发色");
     await click("下一步");
+    await click("胸部大小");
     await choose("胸部大小", "大");
     const styleStep = Array.from(
       container.querySelectorAll<HTMLButtonElement>("nav button")
@@ -184,6 +193,7 @@ describe("companion creation", () => {
         '[role="radiogroup"][aria-label="气质"] [role="radio"]'
       )
     ).toHaveLength(7);
+    await click("发色");
     await click("下一步");
     expect(container.textContent).not.toContain("胸部大小");
     expect(container.textContent).not.toContain("臀部大小");
@@ -197,7 +207,7 @@ describe("companion creation", () => {
     expect(mock.create).not.toHaveBeenCalled();
   });
 
-  it("keeps existing preset links and sends no reference fetch for them", async () => {
+  it("prefills existing preset links but generates a new portrait from their text", async () => {
     mock.query = "?preset=momoka";
     await settle(() => root.render(<Setup />));
     expect(container.querySelector<HTMLInputElement>("#name")!.value).toBe(
@@ -210,19 +220,14 @@ describe("companion creation", () => {
         .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }))
     );
     expect(mock.create).toHaveBeenCalledWith(
-      expect.objectContaining({ presetId: "momoka", name: "桃香" })
+      expect.objectContaining({ generatePortrait: true, name: "桃香" })
     );
     expect(mock.fetch).not.toHaveBeenCalled();
   });
 
-  it("blocks failed reference downloads and accepts only registered local assets", async () => {
-    await expect(
-      loadCreatorReference("https://example.com/reference.webp")
-    ).rejects.toThrow();
-    expect(mock.fetch).not.toHaveBeenCalled();
+  it("does not display an option picture as the final identity or submit on Continue", async () => {
     mock.query = "?preset=rin";
     await settle(() => root.render(<Setup />));
-    // Changing the style replaces the original preset with a local option image.
     const first = Array.from(
       container.querySelectorAll<HTMLButtonElement>("nav button")
     ).find(button => button.textContent?.includes("风格"))!;
@@ -230,19 +235,14 @@ describe("companion creation", () => {
     await choose("风格", "动漫");
     await click("下一步");
     await click("从头自定义");
+    await click("发色");
+    await click("下一步");
+    await click("臀部大小");
     await click("下一步");
     await click("下一步");
-    await click("下一步");
-    mock.fetch.mockResolvedValueOnce({ ok: false });
-    await settle(() =>
-      container
-        .querySelector("form")!
-        .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }))
-    );
     expect(mock.create).not.toHaveBeenCalled();
-    expect(mock.error).toHaveBeenCalledWith(
-      "参考图加载失败，请重试或上传图片。"
-    );
+    expect(container.querySelectorAll(".creator-review img")).toHaveLength(0);
+    expect(container.textContent).toContain("生成并创建");
   });
 
   it("localizes every registered picture option", () => {

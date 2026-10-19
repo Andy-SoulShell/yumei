@@ -34,7 +34,7 @@ export function creatorOptions(
   );
 }
 
-/** 将视觉选项落到现有外貌字段，保留现有创建接口。 */
+/** 将偏好标签转为生成形象使用的文字描述。 */
 export function describeCreator(selection: CreatorSelection, t: Translator) {
   const descriptions = [
     t(
@@ -43,6 +43,7 @@ export function describeCreator(selection: CreatorSelection, t: Translator) {
     `${selection.age} · ${t("creator:adult")} · ${t(`creator:${selection.gender}`)}`,
   ];
   for (const category of [
+    "templates",
     "ethnicity",
     "skin",
     "eyes",
@@ -60,7 +61,7 @@ export function describeCreator(selection: CreatorSelection, t: Translator) {
     const value = selection.options[category];
     if (value)
       descriptions.push(
-        `${t(`creator:${category}`)}: ${creatorLabel(value, t)}`
+        `${t(`creator:${category === "templates" ? "templateStep" : category}`)}: ${creatorLabel(value, t)}`
       );
   }
   return descriptions.join("; ");
@@ -73,36 +74,4 @@ export function changeCreatorBranch(
   style: CreatorStyle
 ): CreatorSelection {
   return { gender, style, age: selection.age, options: {} };
-}
-
-const REFERENCE_URLS = new Set(
-  CREATOR_IMAGE_GROUPS.flatMap(group =>
-    group.options.map(option => option.imageUrl)
-  )
-);
-
-/** 选项图与上传照片走相同的参考图保存流程。 */
-export async function loadCreatorReference(url: string): Promise<File> {
-  if (!REFERENCE_URLS.has(url)) throw new Error("Unknown reference image");
-  const response = await fetch(url);
-  if (!response.ok) throw new Error("Reference image unavailable");
-  const blob = await response.blob();
-  if (
-    blob.type !== "image/webp" ||
-    blob.size === 0 ||
-    blob.size > 10 * 1024 * 1024
-  ) {
-    throw new Error("Invalid reference image");
-  }
-  return new File([blob], "companion-reference.webp", { type: "image/webp" });
-}
-
-export function referenceBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () =>
-      reject(new Error("Reference image could not be read"));
-    reader.onload = () => resolve(String(reader.result).split(",")[1]);
-    reader.readAsDataURL(file);
-  });
 }

@@ -1,15 +1,19 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupChoice } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { getCharacterPreset } from "@shared/characterPresets";
 import type { Translator } from "@shared/i18n";
-import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Loader2,
+  Sparkles,
+  UserRound,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CharacterDetails } from "./CharacterDetails";
-import { ReferenceUpload } from "./ReferenceUpload";
 import {
   CREATOR_COLORS,
   type CreatorCategory,
@@ -25,6 +29,7 @@ import {
   type CreatorSelection,
 } from "./creatorOptions";
 import type { SetupController } from "./useSetupController";
+import "./creator.css";
 
 const STEPS = [
   "styleStep",
@@ -34,6 +39,8 @@ const STEPS = [
   "detailsStep",
   "imageStep",
 ] as const;
+const LOOK = ["ethnicity", "hairstyle", "skin", "eyes", "hair"] as const;
+type Attribute = (typeof LOOK)[number] | "bodytype" | "breast" | "butt";
 
 function ImageChoices({
   label,
@@ -41,60 +48,60 @@ function ImageChoices({
   value,
   onChange,
   t,
+  wide = false,
 }: {
   label: string;
   options: CreatorOption[];
   value?: string;
   onChange: (option: CreatorOption) => void;
   t: Translator;
+  wide?: boolean;
 }) {
   return (
     <RadioGroup
       aria-label={label}
       value={value ?? ""}
       onValueChange={id => {
-        const option = options.find(option => option.id === id);
+        const option = options.find(item => item.id === id);
         if (option) onChange(option);
       }}
-      className={cn(
-        "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5",
-        options.length <= 2 && "sm:grid-cols-2 lg:grid-cols-2",
-        options.length === 6 && "lg:grid-cols-3"
-      )}
+      className={cn("creator-choices", wide && "is-wide")}
+      data-framing={
+        options.some(option =>
+          /\/(bodytype|breast|butt)\//.test(option.imageUrl)
+        )
+          ? "figure"
+          : "face"
+      }
     >
       {options.map(option => (
         <RadioGroupChoice
           key={option.id}
           value={option.id}
           aria-label={creatorLabel(option.id, t)}
-          className="group relative overflow-hidden rounded-xl bg-muted/30 data-[state=checked]:ring-2 data-[state=checked]:ring-primary"
+          className="creator-choice"
         >
           <img
             src={option.imageUrl}
             alt={creatorLabel(option.id, t)}
             width={512}
             height={800}
-            loading="lazy"
-            className="aspect-[512/800] h-auto w-full object-cover transition-transform duration-300 group-hover:scale-[1.025]"
           />
-          {value === option.id && (
-            <span
-              aria-hidden="true"
-              className="absolute right-2 top-2 rounded-full bg-primary p-1 text-primary-foreground"
-            >
-              <Check className="size-3.5" />
-            </span>
-          )}
-          <span className="relative block bg-card p-2.5 text-center text-sm font-medium">
+          <span className="creator-choice-label">
             {creatorLabel(option.id, t)}
           </span>
+          {value === option.id && (
+            <span className="creator-check" aria-hidden="true">
+              <Check size={13} />
+            </span>
+          )}
         </RadioGroupChoice>
       ))}
     </RadioGroup>
   );
 }
 
-/** 视觉选项负责外貌，人物资料与参考图继续复用现有创建流程。 */
+/** 图片只解释偏好标签；新角色形象由文字设定独立生成。 */
 export function CharacterCreator({ state }: { state: SetupController }) {
   const { t } = state;
   const preset = state.presetId
@@ -107,27 +114,41 @@ export function CharacterCreator({ state }: { state: SetupController }) {
     options: {},
   });
   const [step, setStep] = useState(preset ? 4 : 0);
-  const [furthestStep, setFurthestStep] = useState(preset ? 4 : 0);
-  const pageRef = useRef<HTMLDivElement>(null);
+  const [furthest, setFurthest] = useState(preset ? 4 : 0);
+  const [attribute, setAttribute] = useState<Attribute>("ethnicity");
+  const contentRef = useRef<HTMLDivElement>(null);
+  const attributes: readonly Attribute[] =
+    step === 2
+      ? LOOK
+      : step === 3
+        ? selection.gender === "female"
+          ? ["bodytype", "breast", "butt"]
+          : ["bodytype"]
+        : [];
+  const currentAttribute = attributes.includes(attribute)
+    ? attribute
+    : attributes[0];
   useEffect(() => {
-    pageRef.current?.closest("main")?.scrollTo?.({ top: 0, behavior: "auto" });
-  }, [step]);
-
+    contentRef.current?.scrollTo?.({ top: 0 });
+  }, [step, currentAttribute]);
   const updateSelection = (next: CreatorSelection) => {
     setSelection(next);
     state.setAppearance(describeCreator(next, t));
   };
   const changeBranch = (gender: CreatorGender, style: CreatorStyle) => {
     updateSelection(changeCreatorBranch(selection, gender, style));
-    state.handleSelectReference(
-      `/character-options/creator/style/${style}-${gender}.webp`
-    );
   };
   const goTo = (next: number) => {
     setStep(next);
-    setFurthestStep(current => Math.max(current, next));
+    setFurthest(current => Math.max(current, next));
+    setAttribute(next === 3 ? "bodytype" : "ethnicity");
   };
   const nextStep = () => {
+    const index = attributes.indexOf(currentAttribute);
+    if (index >= 0 && index < attributes.length - 1) {
+      setAttribute(attributes[index + 1]);
+      return;
+    }
     if (step === 3) {
       if (!state.appearance.trim())
         state.setAppearance(describeCreator(selection, t));
@@ -143,157 +164,174 @@ export function CharacterCreator({ state }: { state: SetupController }) {
       toast.error(t("setup:fillInAllRequiredFields"));
       return;
     }
-    goTo(Math.min(step + 1, STEPS.length - 1));
+    goTo(Math.min(step + 1, 5));
+  };
+  const previous = () => {
+    const index = attributes.indexOf(currentAttribute);
+    if (index > 0) setAttribute(attributes[index - 1]);
+    else {
+      goTo(step - 1);
+      if (step === 3) setAttribute("hair");
+      if (step === 4)
+        setAttribute(selection.gender === "female" ? "butt" : "bodytype");
+    }
   };
   const pickOption = (category: CreatorCategory, option: CreatorOption) => {
     updateSelection({
       ...selection,
       options: { ...selection.options, [category]: option.id },
     });
-    if (category === "ethnicity" || category === "templates")
-      state.handleSelectReference(option.imageUrl);
     if (category === "templates") {
-      const previousTemplate = selection.options.templates;
-      if (
-        !state.name ||
-        (previousTemplate && state.name === creatorLabel(previousTemplate, t))
-      )
+      const old = selection.options.templates;
+      if (!state.name || (old && state.name === creatorLabel(old, t)))
         state.setName(creatorLabel(option.id, t));
       goTo(2);
     }
   };
-  const imageSection = (
-    category: "ethnicity" | "hairstyle" | "bodytype" | "breast" | "butt"
-  ) => (
-    <section className="space-y-3" key={category}>
-      <h2 className="text-base font-semibold">{t(`creator:${category}`)}</h2>
-      <ImageChoices
-        label={t(`creator:${category}`)}
-        options={creatorOptions(selection.gender, selection.style, category)}
-        value={selection.options[category]}
-        onChange={option => pickOption(category, option)}
-        t={t}
-      />
-    </section>
-  );
+  const tags = [
+    t(`creator:${selection.gender}`),
+    t(`characters:${selection.style}`),
+    ...Object.values(selection.options).map(value => creatorLabel(value, t)),
+  ];
   const templates = creatorOptions(
     selection.gender,
     selection.style,
     "templates"
   );
-  const styleOptions = (["realistic", "anime"] as const).flatMap(style =>
-    creatorOptions(selection.gender, style, "style")
-  );
-
+  const colorCategory =
+    currentAttribute && currentAttribute in CREATOR_COLORS
+      ? (currentAttribute as keyof typeof CREATOR_COLORS)
+      : null;
+  const title = currentAttribute
+    ? t(`creator:${currentAttribute}`)
+    : t(`creator:${STEPS[step]}`);
   return (
-    <div
-      ref={pageRef}
-      className="min-h-full bg-background app-surface px-3 py-5 sm:px-6 sm:py-8"
-    >
-      <div className="mx-auto max-w-5xl">
+    <div className="creator-page">
+      <header className="creator-header">
         <Button
           variant="ghost"
-          className="mb-4"
+          size="icon"
+          aria-label={t("setup:back")}
           disabled={state.isPending}
           onClick={() => state.setLocation("/characters")}
         >
-          <ArrowLeft className="mr-2 size-4" />
-          {t("setup:back")}
+          <ArrowLeft size={18} />
         </Button>
-        <header className="mb-7 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            {t("creator:title")}
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {t("creator:subtitle")}
-          </p>
-        </header>
-        <nav
-          aria-label={t("creator:title")}
-          className="mb-7 grid grid-cols-6 gap-1 rounded-2xl border bg-card/70 p-2 sm:gap-2 sm:p-3"
-        >
+        <div>
+          <h1>{t("creator:title")}</h1>
+          <p>{t("creator:subtitle")}</p>
+        </div>
+        <span className="creator-step-count">
+          {String(step + 1).padStart(2, "0")} / 06
+        </span>
+      </header>
+      <form
+        noValidate
+        className="creator-workspace"
+        onSubmit={event => {
+          if (step !== 5) {
+            event.preventDefault();
+            nextStep();
+          } else void state.handleSubmit(event);
+        }}
+      >
+        <nav className="creator-steps" aria-label={t("creator:title")}>
           {STEPS.map((id, index) => (
             <button
               key={id}
               type="button"
-              disabled={index > furthestStep || state.isPending}
+              disabled={index > furthest || state.isPending}
               aria-current={step === index ? "step" : undefined}
-              onClick={() => setStep(index)}
-              className={cn(
-                "flex min-w-0 flex-col items-center gap-2 rounded-xl px-1 py-2 text-xs transition-colors focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40 sm:text-sm",
-                step === index
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted"
-              )}
+              onClick={() => goTo(index)}
             >
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "flex size-7 items-center justify-center rounded-full border text-xs",
-                  step === index &&
-                    "border-primary bg-primary text-primary-foreground"
-                )}
-              >
-                {index < step ? <Check className="size-3.5" /> : index + 1}
+              <span className="creator-step-number" aria-hidden="true">
+                {index < step ? <Check size={14} /> : index + 1}
               </span>
-              <span className="w-full break-words text-center leading-tight">
-                {t(`creator:${id}`)}
-              </span>
+              <span>{t(`creator:${id}`)}</span>
             </button>
           ))}
         </nav>
-        <form
-          noValidate
-          onSubmit={event => {
-            if (step !== 5) {
-              event.preventDefault();
-              nextStep();
-            } else void state.handleSubmit(event);
-          }}
-          className="rounded-2xl border bg-card/70 p-4 shadow-sm sm:p-7"
-        >
-          <fieldset disabled={state.isPending} className="min-w-0 space-y-7">
-            <legend className="sr-only">{t(`creator:${STEPS[step]}`)}</legend>
-            {step === 0 && (
-              <div className="mx-auto max-w-xl space-y-6">
-                <RadioGroup
-                  aria-label={t("creator:gender")}
-                  value={selection.gender}
-                  onValueChange={value =>
-                    changeBranch(value as CreatorGender, selection.style)
-                  }
-                  className="mx-auto grid max-w-xs grid-cols-2"
+        <section className="creator-stage" aria-label={title}>
+          <div className="creator-stage-header">
+            <h2>{title}</h2>
+            <p>
+              {step === 5
+                ? t("creator:generationHint")
+                : t("creator:choiceHint")}
+            </p>
+          </div>
+          {attributes.length > 0 && (
+            <div
+              className="creator-attributes"
+              role="tablist"
+              aria-label={t(`creator:${STEPS[step]}`)}
+            >
+              {attributes.map(category => (
+                <button
+                  key={category}
+                  type="button"
+                  role="tab"
+                  id={`tab-${category}`}
+                  aria-controls="creator-options"
+                  aria-selected={category === currentAttribute}
+                  disabled={state.isPending}
+                  onClick={() => setAttribute(category)}
                 >
-                  {(["female", "male"] as const).map(gender => (
-                    <RadioGroupChoice
-                      key={gender}
-                      variant="segment"
-                      value={gender}
-                    >
-                      {t(`creator:${gender}`)}
-                    </RadioGroupChoice>
-                  ))}
-                </RadioGroup>
-                <ImageChoices
-                  label={t("creator:styleStep")}
-                  options={styleOptions}
-                  value={`${selection.style}-${selection.gender}`}
-                  onChange={option =>
-                    changeBranch(
-                      selection.gender,
-                      option.id.startsWith("anime") ? "anime" : "realistic"
-                    )
-                  }
-                  t={t}
-                />
-              </div>
-            )}
-            {step === 1 && (
-              <div className="space-y-5">
-                <p className="text-sm text-muted-foreground">
-                  {t("creator:templatesHint")}
-                </p>
-                {templates.length > 0 ? (
+                  {t(`creator:${category}`)}
+                  {selection.options[category] && (
+                    <Check size={12} aria-hidden="true" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="creator-stage-content" ref={contentRef}>
+            <fieldset disabled={state.isPending} className="creator-fieldset">
+              <legend className="sr-only">{title}</legend>
+              {step === 0 && (
+                <div className="creator-style">
+                  <RadioGroup
+                    aria-label={t("creator:gender")}
+                    value={selection.gender}
+                    onValueChange={value =>
+                      changeBranch(value as CreatorGender, selection.style)
+                    }
+                    className="grid grid-cols-2 max-w-xs gap-2"
+                  >
+                    {(["female", "male"] as const).map(gender => (
+                      <RadioGroupChoice
+                        key={gender}
+                        variant="segment"
+                        value={gender}
+                      >
+                        {t(`creator:${gender}`)}
+                      </RadioGroupChoice>
+                    ))}
+                  </RadioGroup>
+                  <ImageChoices
+                    label={t("creator:styleStep")}
+                    options={(["realistic", "anime"] as const).flatMap(style =>
+                      creatorOptions(selection.gender, style, "style")
+                    )}
+                    value={`${selection.style}-${selection.gender}`}
+                    onChange={option =>
+                      changeBranch(
+                        selection.gender,
+                        option.id.startsWith("anime") ? "anime" : "realistic"
+                      )
+                    }
+                    t={t}
+                    wide
+                  />
+                </div>
+              )}
+              {step === 1 && (
+                <div className="space-y-5">
+                  <p className="text-sm text-muted-foreground">
+                    {templates.length
+                      ? t("creator:templatesHint")
+                      : t("creator:noTemplates")}
+                  </p>
                   <ImageChoices
                     label={t("creator:templateStep")}
                     options={templates}
@@ -301,168 +339,180 @@ export function CharacterCreator({ state }: { state: SetupController }) {
                     onChange={option => pickOption("templates", option)}
                     t={t}
                   />
-                ) : (
-                  <p className="rounded-xl border border-dashed px-5 py-10 text-center text-muted-foreground">
-                    {t("creator:noTemplates")}
-                  </p>
-                )}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => {
-                    const options = { ...selection.options };
-                    delete options.templates;
-                    updateSelection({ ...selection, options });
-                    state.handleSelectReference(
-                      `/character-options/creator/style/${selection.style}-${selection.gender}.webp`
-                    );
-                    goTo(2);
-                  }}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const options = { ...selection.options };
+                      delete options.templates;
+                      updateSelection({ ...selection, options });
+                      goTo(2);
+                    }}
+                  >
+                    {t("creator:custom")}
+                    <ArrowRight size={15} />
+                  </Button>
+                </div>
+              )}
+              {(step === 2 || step === 3) && (
+                <div
+                  id="creator-options"
+                  role="tabpanel"
+                  aria-labelledby={`tab-${currentAttribute}`}
                 >
-                  {t("creator:custom")}
-                </Button>
-              </div>
-            )}
-            {step === 2 && (
-              <>
-                {imageSection("ethnicity")}
-                {(["skin", "eyes", "hair"] as const).map(category => (
-                  <section className="space-y-3" key={category}>
-                    <h2 className="text-base font-semibold">
-                      {t(`creator:${category}`)}
-                    </h2>
+                  {colorCategory ? (
                     <RadioGroup
-                      aria-label={t(`creator:${category}`)}
-                      value={selection.options[category] ?? ""}
-                      onValueChange={id =>
+                      aria-label={title}
+                      value={selection.options[colorCategory] ?? ""}
+                      onValueChange={value =>
                         updateSelection({
                           ...selection,
-                          options: { ...selection.options, [category]: id },
+                          options: {
+                            ...selection.options,
+                            [colorCategory]: value,
+                          },
                         })
                       }
-                      className="flex flex-wrap gap-2"
+                      className="creator-colors"
                     >
-                      {CREATOR_COLORS[category].map(color => (
+                      {CREATOR_COLORS[colorCategory].map(color => (
                         <RadioGroupChoice
                           key={color.id}
                           value={color.id}
                           aria-label={creatorLabel(color.id, t)}
-                          className="flex items-center gap-2 px-3 py-2 text-xs data-[state=checked]:ring-1 data-[state=checked]:ring-primary"
+                          className="creator-color"
                         >
                           <span
-                            aria-hidden="true"
                             style={{ backgroundColor: color.color }}
-                            className="size-5 rounded-full border border-black/15"
+                            aria-hidden="true"
                           />
                           {creatorLabel(color.id, t)}
+                          {selection.options[colorCategory] === color.id && (
+                            <Check size={14} />
+                          )}
                         </RadioGroupChoice>
                       ))}
                     </RadioGroup>
-                  </section>
-                ))}
-                {imageSection("hairstyle")}
-              </>
-            )}
-            {step === 3 && (
-              <>
-                {imageSection("bodytype")}
-                {selection.gender === "female" && (
-                  <>
-                    {imageSection("breast")}
-                    {imageSection("butt")}
-                  </>
-                )}
-              </>
-            )}
-            {step === 4 && (
-              <div className="mx-auto max-w-2xl space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="creator-age">{t("creator:age")}</Label>
-                  <Input
-                    id="creator-age"
-                    type="number"
-                    min={18}
-                    max={100}
-                    value={selection.age}
-                    onChange={event =>
-                      updateSelection({
-                        ...selection,
-                        age: Math.max(
-                          18,
-                          Math.min(100, Number(event.target.value) || 18)
-                        ),
-                      })
-                    }
-                    className="max-w-28"
+                  ) : (
+                    <ImageChoices
+                      label={title}
+                      options={creatorOptions(
+                        selection.gender,
+                        selection.style,
+                        currentAttribute as CreatorCategory
+                      )}
+                      value={selection.options[currentAttribute]}
+                      onChange={option =>
+                        pickOption(currentAttribute as CreatorCategory, option)
+                      }
+                      t={t}
+                    />
+                  )}
+                </div>
+              )}
+              {step === 4 && (
+                <div className="creator-details">
+                  <CharacterDetails
+                    state={state}
+                    age={selection.age}
+                    onAgeChange={age => updateSelection({ ...selection, age })}
                   />
                 </div>
-                <CharacterDetails state={state} />
-              </div>
-            )}
-            {step === 5 && (
-              <div className="mx-auto max-w-2xl space-y-6">
-                <ReferenceUpload {...state} />
-                <p className="text-center text-sm text-muted-foreground">
-                  {t("creator:referenceHint")}
-                </p>
-                <section
-                  aria-label={t("creator:review")}
-                  className="space-y-3 rounded-xl border bg-muted/30 p-4"
-                >
-                  <h2 className="font-semibold">{state.name}</h2>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                    {state.personality}
+              )}
+              {step === 5 && (
+                <div className="creator-review">
+                  <div
+                    className="creator-portrait-placeholder"
+                    aria-hidden="true"
+                  >
+                    <UserRound size={56} strokeWidth={1} />
+                    <Sparkles size={20} />
+                  </div>
+                  <h3>{state.name}</h3>
+                  <p className="creator-generation-copy">
+                    {t("creator:generationHint")}
                   </p>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                    {state.appearance}
-                  </p>
-                  {state.interests && (
-                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                      {state.interests}
+                  <dl>
+                    <div>
+                      <dt>{t("setup:personality")}</dt>
+                      <dd>{state.personality}</dd>
+                    </div>
+                    <div>
+                      <dt>{t("setup:appearance")}</dt>
+                      <dd>{state.appearance}</dd>
+                    </div>
+                    {state.interests && (
+                      <div>
+                        <dt>{t("setup:interestsOptional")}</dt>
+                        <dd>{state.interests}</dd>
+                      </div>
+                    )}
+                  </dl>
+                  {state.isPending && (
+                    <p role="status" className="creator-generating">
+                      <Loader2 size={16} className="animate-spin" />
+                      {t("creator:generating")}
                     </p>
                   )}
-                </section>
-              </div>
-            )}
-          </fieldset>
-          <footer className="sticky bottom-0 z-10 -mx-4 -mb-4 mt-7 flex items-center justify-between gap-3 rounded-b-2xl border-t bg-card/95 px-4 py-4 backdrop-blur sm:-mx-7 sm:-mb-7 sm:px-7">
+                </div>
+              )}
+            </fieldset>
+          </div>
+        </section>
+        <aside className="creator-summary" aria-label={t("creator:review")}>
+          <div className="creator-summary-icon" aria-hidden="true">
+            <Sparkles size={22} />
+          </div>
+          <h2>{state.name || t("creator:yourCompanion")}</h2>
+          <p>{t("creator:summaryHint")}</p>
+          <div className="creator-tags">
+            {tags.map((tag, index) => (
+              <span key={`${index}-${tag}`}>{tag}</span>
+            ))}
+          </div>
+          <div className="creator-summary-note">
+            <UserRound size={16} />
+            <p>{t("creator:choiceHint")}</p>
+          </div>
+        </aside>
+        <footer className="creator-footer">
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={step === 0 || state.isPending}
+            onClick={previous}
+          >
+            <ArrowLeft size={16} />
+            {t("creator:previous")}
+          </Button>
+          <span className="creator-footer-hint">
+            {t("creator:autoSaveHint")}
+          </span>
+          {step < 5 ? (
             <Button
+              key="continue"
               type="button"
-              variant="outline"
-              disabled={step === 0 || state.isPending}
-              onClick={() => setStep(step - 1)}
+              disabled={state.isPending}
+              onClick={event => {
+                event.preventDefault();
+                nextStep();
+              }}
             >
-              <ArrowLeft className="mr-2 size-4" />
-              {t("creator:previous")}
+              {t("creator:next")}
+              <ArrowRight size={16} />
             </Button>
-            {step < 5 ? (
-              <Button
-                key="continue"
-                type="button"
-                onClick={event => {
-                  event.preventDefault();
-                  nextStep();
-                }}
-              >
-                {t("creator:next")}
-                <ArrowRight className="ml-2 size-4" />
-              </Button>
-            ) : (
-              <Button key="create" type="submit" disabled={state.isPending}>
-                {state.isPending && (
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                )}
-                {state.isPreparingReference
-                  ? t("creator:preparing")
-                  : state.isPending
-                    ? t("setup:creating")
-                    : t("creator:create")}
-              </Button>
-            )}
-          </footer>
-        </form>
-      </div>
+          ) : (
+            <Button key="create" type="submit" disabled={state.isPending}>
+              {state.isPending ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Sparkles size={16} />
+              )}{" "}
+              {state.isPending ? t("creator:generating") : t("creator:create")}
+            </Button>
+          )}
+        </footer>
+      </form>
     </div>
   );
 }

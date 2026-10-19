@@ -8,7 +8,6 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useLocation, useParams, useSearch } from "wouter";
-import { loadCreatorReference, referenceBase64 } from "./creatorOptions";
 
 const ALLOWED_AVATAR_TYPES = [
   "image/jpeg",
@@ -49,13 +48,6 @@ export function useSetupController() {
   const [presetId, setPresetId] = useState<string | null>(
     initialPreset?.id || null
   );
-
-  const [optionReferenceUrl, setOptionReferenceUrl] = useState<string | null>(
-    !editId && !initialPreset
-      ? "/character-options/creator/style/realistic-female.webp"
-      : null
-  );
-  const [isPreparingReference, setIsPreparingReference] = useState(false);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
 
@@ -195,20 +187,11 @@ export function useSetupController() {
 
   const handleSelectPreset = (preset: CharacterPreset | null) => {
     setPresetId(preset?.id || null);
-    setOptionReferenceUrl(null);
     setName(preset?.name || "");
     setPersonality(preset?.personality || "");
     setAppearance(preset?.appearance || "");
     setInterests(preset?.interests || "");
     setCustomPrompt("");
-    setImageFile(null);
-    setImagePreview(null);
-    if (imageInputRef.current) imageInputRef.current.value = "";
-  };
-
-  const handleSelectReference = (url: string) => {
-    setOptionReferenceUrl(url);
-    setPresetId(null);
     setImageFile(null);
     setImagePreview(null);
     if (imageInputRef.current) imageInputRef.current.value = "";
@@ -294,59 +277,25 @@ export function useSetupController() {
         customPrompt: customPrompt || null,
       });
     } else {
-      // 创建模式
-      if (!imageFile && !presetId && !optionReferenceUrl) {
-        toast.error(t("setup:uploadAReferencePhoto"));
-        return;
-      }
-
-      if (!imageFile && presetId) {
-        createGirlfriend.mutate({
-          name,
-          personality,
-          appearance,
-          interests: interests || undefined,
-          customPrompt: customPrompt || undefined,
-          presetId: presetId!,
-        });
-        return;
-      }
-
-      setIsPreparingReference(true);
-      try {
-        const referenceFile =
-          imageFile ?? (await loadCreatorReference(optionReferenceUrl!));
-        const base64 = await referenceBase64(referenceFile);
-        createGirlfriend.mutate({
-          name,
-          personality,
-          appearance,
-          interests: interests || undefined,
-          customPrompt: customPrompt || undefined,
-          referenceImageBase64: base64,
-          referenceImageMimeType: referenceFile.type as
-            "image/jpeg" | "image/png" | "image/gif" | "image/webp",
-        });
-      } catch {
-        toast.error(t("creator:referenceFailed"));
-      } finally {
-        setIsPreparingReference(false);
-      }
+      createGirlfriend.mutate({
+        name: name.trim(),
+        personality,
+        appearance,
+        interests: interests || undefined,
+        customPrompt: customPrompt || undefined,
+        generatePortrait: true,
+      });
     }
   };
 
   const isEditing = !!editId;
 
-  const isPending =
-    isPreparingReference ||
-    createGirlfriend.isPending ||
-    updateGirlfriend.isPending;
+  const isPending = createGirlfriend.isPending || updateGirlfriend.isPending;
 
   const displayImage =
     imagePreview ||
     existingImageUrl ||
-    (presetId ? getCharacterPreset(presetId)?.imageUrl : null) ||
-    optionReferenceUrl;
+    (presetId ? getCharacterPreset(presetId)?.imageUrl : null);
 
   const displayAvatar = avatarPreview || existingAvatarUrl;
   return {
@@ -356,9 +305,6 @@ export function useSetupController() {
     handleSubmit,
     presetId,
     handleSelectPreset,
-    handleSelectReference,
-    optionReferenceUrl,
-    isPreparingReference,
     avatarInputRef,
     displayAvatar,
     handleAvatarChange,

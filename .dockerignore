@@ -5,6 +5,9 @@ data
 .env.*
 !.env.example
 .git
+tmp
+temp
+logs
 docs
 *.md
 !README.md

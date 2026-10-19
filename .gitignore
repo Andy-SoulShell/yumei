@@ -15,6 +15,7 @@ output/playwright/
 # Local configuration and runtime data
 .env*
 !.env.example
+!.env.test.example
 data/
 logs/
 *.log

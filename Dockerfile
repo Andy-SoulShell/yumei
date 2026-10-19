@@ -5,7 +5,6 @@ FROM node:22-alpine AS deps
 WORKDIR /app
 RUN corepack enable
 COPY package.json pnpm-lock.yaml ./
-COPY patches ./patches
 RUN pnpm install --frozen-lockfile
 
 # ---- build: client (vite) + server (esbuild) --------------------------------
@@ -23,7 +22,6 @@ FROM node:22-alpine AS prod-deps
 WORKDIR /app
 RUN corepack enable
 COPY package.json pnpm-lock.yaml ./
-COPY patches ./patches
 RUN pnpm install --frozen-lockfile --prod
 
 # ---- runtime -----------------------------------------------------------------

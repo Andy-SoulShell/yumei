@@ -13,14 +13,12 @@ coverage/
 drizzle/meta/
 drizzle/*.sql
 workflows/comfyui/*.json
-patches/
 # Imported product and historical design documents retain their original layout.
 docs/亚洲版成人AI角色陪伴产品_PRD_v0.6.md
 docs/YUMEI_原版设计说明书.md
 
 # Local runtime files
 data/
-attached_assets/
 .git/
 tmp/
 temp/

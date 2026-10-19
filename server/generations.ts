@@ -1,5 +1,11 @@
 /** 持久化生成请求，原子结算消息与额度，并补偿失败和过期预留。 */
 import { TRPCError } from "@trpc/server";
+import {
+  applyMessageRelationship,
+  awardIntimacy,
+  relationshipSummary,
+} from "./relationship";
+import { consumeTranscription } from "./transcriptions";
 import { and, eq, inArray, isNull, lte, sql } from "drizzle-orm";
 import {
   conversations,
@@ -35,7 +41,10 @@ async function requireConversation(
   conversationId: number
 ) {
   const [row] = await tx
-    .select({ girlfriendId: girlfriends.id })
+    .select({
+      girlfriendId: girlfriends.id,
+      intimacyLevel: girlfriends.intimacyLevel,
+    })
     .from(conversations)
     .innerJoin(girlfriends, eq(girlfriends.id, conversations.girlfriendId))
     .where(
@@ -64,6 +73,7 @@ export async function reserveGeneration(input: {
   timeoutMs?: number;
   outputKey?: string;
   temporaryKey?: string;
+  transcriptionId?: string;
 }): Promise<string> {
   const id = crypto.randomUUID();
   return withUserTransaction(input.userId, async tx => {
@@ -96,6 +106,7 @@ export async function reserveGeneration(input: {
       meterName: input.meter?.name ?? null,
       outputKey: input.outputKey,
       temporaryKey: input.temporaryKey,
+      transcriptionId: input.transcriptionId,
       expiresAt: new Date(Date.now() + (input.timeoutMs ?? 180_000)),
     });
     return id;
@@ -205,7 +216,10 @@ export async function completeTextGeneration(
 ) {
   return withUserTransaction(userId, async tx => {
     const request = await pendingRequest(tx, id, userId);
-    await requireConversation(tx, userId, request.conversationId);
+    const role = await requireConversation(tx, userId, request.conversationId);
+    const transcription = request.transcriptionId
+      ? await consumeTranscription(tx, request.transcriptionId, userId, content)
+      : null;
     const common = {
       conversationId: request.conversationId,
       generationRequestId: id,
@@ -221,12 +235,32 @@ export async function completeTextGeneration(
       role: "assistant",
       content: reply,
     });
+    await applyMessageRelationship(tx, userId, role.girlfriendId, userMessage);
+    await applyMessageRelationship(
+      tx,
+      userId,
+      role.girlfriendId,
+      assistantMessage
+    );
+    if (transcription)
+      await awardIntimacy(
+        tx,
+        role.girlfriendId,
+        userId,
+        5 + (transcription.durationMs > 30_000 ? 3 : 0),
+        "voice_message"
+      );
+    const relationship = await relationshipSummary(
+      tx,
+      role.girlfriendId,
+      role.intimacyLevel
+    );
     await cleanupMedia(tx, request, false);
     await tx
       .update(generationRequests)
       .set({ status: "succeeded" })
       .where(eq(generationRequests.id, id));
-    return { userMessage, assistantMessage };
+    return { userMessage, assistantMessage, relationship };
   });
 }
 
@@ -241,6 +275,15 @@ export async function completeImageGeneration(
   return withUserTransaction(userId, async tx => {
     const request = await pendingRequest(tx, id, userId);
     const role = await requireConversation(tx, userId, request.conversationId);
+    const transcription =
+      request.transcriptionId && chatContent !== undefined
+        ? await consumeTranscription(
+            tx,
+            request.transcriptionId,
+            userId,
+            chatContent
+          )
+        : null;
     const common = {
       conversationId: request.conversationId,
       generationRequestId: id,
@@ -272,6 +315,28 @@ export async function completeImageGeneration(
       .select()
       .from(selfies)
       .where(eq(selfies.id, Number(result.insertId)));
+    if (userMessage)
+      await applyMessageRelationship(
+        tx,
+        userId,
+        role.girlfriendId,
+        userMessage
+      );
+    await applyMessageRelationship(tx, userId, role.girlfriendId, message);
+    await awardIntimacy(tx, role.girlfriendId, userId, 10, "selfie");
+    if (transcription)
+      await awardIntimacy(
+        tx,
+        role.girlfriendId,
+        userId,
+        5 + (transcription.durationMs > 30_000 ? 3 : 0),
+        "voice_message"
+      );
+    const relationship = await relationshipSummary(
+      tx,
+      role.girlfriendId,
+      role.intimacyLevel
+    );
     await cleanupMedia(tx, request, false);
     await tx
       .update(generationRequests)
@@ -282,6 +347,7 @@ export async function completeImageGeneration(
       message,
       userMessage,
       imageGeneration: "completed" as const,
+      relationship,
     };
   });
 }
@@ -322,6 +388,7 @@ export async function failImageGeneration(
       message,
       userMessage,
       imageGeneration: "failed" as const,
+      relationship: null,
     };
   });
 }

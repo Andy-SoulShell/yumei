@@ -136,15 +136,12 @@ export default function Setup() {
   });
 
   // 亲密度经验值
-  const addPoints = trpc.girlfriend.addPoints.useMutation();
 
   const updateGirlfriend = trpc.girlfriend.update.useMutation({
     onSuccess: () => {
       toast.success(t("setup:companionUpdated"));
       // 触发编辑资料亲密度经验值
-      if (editId) {
-        addPoints.mutate({ girlfriendId: editId, reason: "edit_profile" });
-      }
+
       setLocation("/characters");
     },
     onError: error => {
@@ -162,9 +159,6 @@ export default function Setup() {
       setIsUploadingAvatar(false);
       toast.success(t("setup:avatarUploaded"));
       // 触发上传头像亲密度经验值
-      if (editId) {
-        addPoints.mutate({ girlfriendId: editId, reason: "edit_profile" });
-      }
     },
     onError: error => {
       setIsUploadingAvatar(false);

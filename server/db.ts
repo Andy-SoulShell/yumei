@@ -1,3 +1,4 @@
+import { awardIntimacy } from "./relationship";
 import { BusinessRuleError } from "./_core/businessError";
 import { PROACTIVE_MESSAGES, proactiveTitle } from "../shared/notifications";
 import type { LocalizedMessage } from "../shared/i18n";
@@ -26,7 +27,6 @@ import {
   apiConfigs,
   girlfriendMoods,
   notifications,
-  usageMeters,
   memories,
   mediaDeletions,
   type Girlfriend,
@@ -275,6 +275,20 @@ export async function updateGirlfriend(
         .where(eq(girlfriends.userId, userId));
     }
     await tx.update(girlfriends).set(data).where(eq(girlfriends.id, id));
+    const profileFields = [
+      "name",
+      "personality",
+      "appearance",
+      "interests",
+      "customPrompt",
+      "avatarKey",
+    ] as const;
+    if (
+      profileFields.some(
+        key => data[key] !== undefined && data[key] !== target[key]
+      )
+    )
+      await awardIntimacy(tx, id, userId, 5, "edit_profile");
   });
 }
 
@@ -935,9 +949,11 @@ export async function searchConversations(
 export async function getGirlfriendMood(
   userId: string,
   girlfriendId: number
-): Promise<GirlfriendMood | undefined> {
+): Promise<GirlfriendMood | null> {
   const db = await getDb();
-  if (!db) return undefined;
+  if (!db) throw new Error("Database not available");
+  if (!(await getActiveGirlfriend(userId, girlfriendId)))
+    throw new TRPCError({ code: "NOT_FOUND", message: "Companion not found" });
 
   const result = await db
     .select()
@@ -950,7 +966,7 @@ export async function getGirlfriendMood(
     )
     .limit(1);
 
-  return result[0];
+  return result[0] ?? null;
 }
 
 /** 读取后创建或更新角色心情及对话计数；调用方负责角色归属。 */
@@ -1245,13 +1261,7 @@ export async function checkAndCreateProactiveNotification(
 
 // 亲密度。
 
-import {
-  getLevelByPoints,
-  calculateDecay,
-  isNightTime,
-  POINTS_RULES,
-  DAILY_POINTS_LIMIT,
-} from "../shared/intimacy";
+import { getLevelByPoints, calculateDecay } from "../shared/intimacy";
 
 /** 读取并原子结算尚未处理的衰减天数，重复查询不会重复扣经验。 */
 export async function getIntimacyInfo(girlfriendId: number, userId: string) {
@@ -1287,142 +1297,6 @@ export async function getIntimacyInfo(girlfriendId: number, userId: string) {
       decayed: result.decayed,
     };
   });
-}
-
-import { todayUTC, tryConsumeMeterInTransaction } from "./_core/quota";
-import { METERS } from "../shared/quotas";
-
-/** 额度不足时携带原状态，事务回滚后向前端返回静默跳过结果。 */
-class IntimacyLimitError extends Error {
-  constructor(
-    readonly girlfriend: Girlfriend,
-    message: string
-  ) {
-    super(message);
-  }
-}
-
-/** 生成未获得经验时的真实角色状态。 */
-function skippedPoints(gf: Girlfriend, reason: string) {
-  return {
-    intimacyLevel: gf.intimacyLevel,
-    intimacyPoints: gf.intimacyPoints,
-    previousLevel: gf.intimacyLevel,
-    leveledUp: false,
-    consecutiveDays: gf.consecutiveDays,
-    pointsAdded: 0,
-    skipped: true,
-    skipReason: reason,
-  };
-}
-
-/**
- * 在同一事务内计算夜间奖励、消费每日额度并更新经验，返回实际加分。
- *
- * @remarks 行为次数、冷却和总经验上限共同结算；失败写入会回滚所有计量。
- */
-export async function addIntimacyPoints(
-  girlfriendId: number,
-  userId: string,
-  points: number,
-  reason: string
-) {
-  try {
-    return await withUserTransaction(userId, async tx => {
-      const [gf] = await tx
-        .select()
-        .from(girlfriends)
-        .where(
-          and(
-            eq(girlfriends.id, girlfriendId),
-            eq(girlfriends.userId, userId),
-            isNull(girlfriends.deletedAt)
-          )
-        )
-        .for("update");
-      if (!gf) throw new Error("Girlfriend not found");
-      const rule = POINTS_RULES[reason];
-      if (!rule || !Number.isSafeInteger(points) || points <= 0)
-        throw new Error("Invalid intimacy points");
-      const now = new Date();
-      const period = todayUTC();
-      const meter = METERS.intimacyReason(reason);
-      const [previous] = await tx
-        .select()
-        .from(usageMeters)
-        .where(
-          and(
-            eq(usageMeters.userId, userId),
-            eq(usageMeters.period, period),
-            eq(usageMeters.meter, meter)
-          )
-        );
-      if (
-        previous?.count &&
-        rule.cooldownMinutes &&
-        now.getTime() - previous.updatedAt.getTime() <
-          rule.cooldownMinutes * 60_000
-      )
-        return skippedPoints(gf, "冷却中，稍后再获得经验值");
-      const totalPoints =
-        points + (isNightTime(now) && reason !== "night_chat" ? 3 : 0);
-      const perReason = await tryConsumeMeterInTransaction(
-        tx,
-        userId,
-        meter,
-        rule.dailyLimit ?? Number.MAX_SAFE_INTEGER,
-        period
-      );
-      if (!perReason.allowed)
-        return skippedPoints(gf, "该行为今日经验值已达上限");
-      const total = await tryConsumeMeterInTransaction(
-        tx,
-        userId,
-        METERS.intimacyPoints,
-        DAILY_POINTS_LIMIT,
-        period,
-        totalPoints
-      );
-      if (!total.allowed)
-        throw new IntimacyLimitError(gf, "今日经验值总量已达上限");
-      const lastDay = gf.lastInteractionAt?.toISOString().slice(0, 10);
-      const yesterday = new Date(now.getTime() - 86_400_000)
-        .toISOString()
-        .slice(0, 10);
-      const consecutiveDays =
-        lastDay === period
-          ? gf.consecutiveDays
-          : lastDay === yesterday
-            ? gf.consecutiveDays + 1
-            : 1;
-      const intimacyPoints = gf.intimacyPoints + totalPoints;
-      const intimacyLevel = getLevelByPoints(intimacyPoints).level;
-      await tx
-        .update(girlfriends)
-        .set({
-          intimacyPoints,
-          intimacyLevel,
-          lastInteractionAt: now,
-          lastDecayAt: now,
-          consecutiveDays,
-        })
-        .where(eq(girlfriends.id, gf.id));
-      return {
-        intimacyLevel,
-        intimacyPoints,
-        previousLevel: gf.intimacyLevel,
-        leveledUp: intimacyLevel > gf.intimacyLevel,
-        consecutiveDays,
-        pointsAdded: totalPoints,
-        skipped: false,
-        skipReason: null,
-      };
-    });
-  } catch (error) {
-    if (error instanceof IntimacyLimitError)
-      return skippedPoints(error.girlfriend, error.message);
-    throw error;
-  }
 }
 
 /**

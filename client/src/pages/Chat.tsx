@@ -277,9 +277,6 @@ export default function Chat() {
     { girlfriendId: stableGirlfriendId! },
     { enabled: !!stableGirlfriendId }
   );
-  const updateMood = trpc.mood.update.useMutation({
-    onSuccess: () => refetchMood(),
-  });
   const { data: chatMessages, refetch: refetchMessages } =
     trpc.conversation.getMessages.useQuery(
       { conversationId: currentConversationId! },
@@ -309,21 +306,26 @@ export default function Chat() {
       ),
   });
 
-  // 亲密度经验值 mutation
-  const addPoints = trpc.girlfriend.addPoints.useMutation({
-    onSuccess: data => {
-      if (data.leveledUp && data.intimacyLevel) {
-        setLevelUpLevel(data.intimacyLevel);
-        setShowLevelUp(true);
-      }
-    },
-  });
-
+  const showRelationship = (data: object) => {
+    const relationship =
+      "relationship" in data
+        ? (data.relationship as {
+            leveledUp: boolean;
+            intimacyLevel: number;
+          } | null)
+        : null;
+    if (relationship?.leveledUp) {
+      setLevelUpLevel(relationship.intimacyLevel);
+      setShowLevelUp(true);
+    }
+  };
   const refreshConversation = async () => {
     await Promise.all([
       refetchMessages(),
       utils.conversation.listWithDetails.invalidate(),
       utils.conversation.list.invalidate(),
+      utils.girlfriend.invalidate(),
+      refetchMood(),
     ]);
   };
 
@@ -334,42 +336,17 @@ export default function Chat() {
       scrollToBottom();
     },
     onSuccess: async data => {
+      showRelationship(data);
       await refreshConversation();
       if (data.imageGeneration) {
         await selfieQuota.refetch();
         if (data.imageGeneration === "completed") {
           toast.success(t("chat:selfieSentToThisConversation"));
-          if (girlfriend)
-            addPoints.mutate({ girlfriendId: girlfriend.id, reason: "selfie" });
         } else {
           toast.error(t("chat:selfieGenerationFailedNoQuotaWasChargedDetails"));
           scrollToBottom();
           return;
         }
-      }
-
-      // 更新心情 - 用户消息
-      if (girlfriend) {
-        updateMood.mutate({
-          girlfriendId: girlfriend.id,
-          messageContent: data.userMessage.content,
-          isUserMessage: true,
-        });
-        // 更新心情 - AI 回复
-        if (data.assistantMessage?.content) {
-          updateMood.mutate({
-            girlfriendId: girlfriend.id,
-            messageContent: data.assistantMessage.content,
-            isUserMessage: false,
-          });
-        }
-
-        // 触发亲密度经验值增加
-        addPoints.mutate({
-          girlfriendId: girlfriend.id,
-          reason: "text_message",
-          messageLength: data.userMessage.content.trim().length,
-        });
       }
 
       // 开启自动播放或使用语音输入时，自动朗读 AI 回复。
@@ -428,18 +405,13 @@ export default function Chat() {
     : (selfieQuota.data?.remaining ?? null);
 
   const generateSelfie = trpc.selfie.generate.useMutation({
-    onSuccess: async () => {
+    onSuccess: async data => {
+      showRelationship(data);
       await refreshConversation();
       await selfieQuota.refetch();
       toast.success(t("chat:selfieGenerated"));
       scrollToBottom();
       // 触发自拍亲密度经验值
-      if (girlfriend) {
-        addPoints.mutate({
-          girlfriendId: girlfriend.id,
-          reason: "selfie",
-        });
-      }
     },
     onError: error => {
       void selfieQuota.refetch();
@@ -474,14 +446,12 @@ export default function Chat() {
 
   // 合照生成
   const generateCouple = trpc.selfie.generateCouple.useMutation({
-    onSuccess: async () => {
+    onSuccess: async data => {
+      showRelationship(data);
       await refreshConversation();
       await selfieQuota.refetch();
       toast.success(t("chat:couplePhotoGenerated"));
       scrollToBottom();
-      if (girlfriend) {
-        addPoints.mutate({ girlfriendId: girlfriend.id, reason: "selfie" });
-      }
     },
     onError: error => {
       void selfieQuota.refetch();
@@ -635,6 +605,7 @@ export default function Chat() {
               sendMessage.mutate({
                 conversationId: currentConversationId!,
                 content: data.text,
+                transcriptionId: data.transcriptionId,
               });
               toast.success(
                 t("chat:audioTranscribedS", {
@@ -642,13 +613,6 @@ export default function Chat() {
                 })
               );
               // 触发语音消息亲密度经验值
-              if (girlfriend) {
-                addPoints.mutate({
-                  girlfriendId: girlfriend.id,
-                  reason: "voice_message",
-                  voiceDuration: recordingDurationRef.current,
-                });
-              }
             } else {
               toast.error(t("chat:noSpeechWasRecognizedPleaseTryAgain"));
             }
@@ -676,8 +640,6 @@ export default function Chat() {
     setIsTranscribing,
     transcribeMutation,
     sendMessage,
-    girlfriend,
-    addPoints,
   ]);
 
   // 注册最大时长回调

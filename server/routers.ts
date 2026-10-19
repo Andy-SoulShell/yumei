@@ -1,3 +1,4 @@
+import { saveTranscription, validateTranscription } from "./transcriptions";
 import { BusinessRuleError } from "./_core/businessError";
 /** 业务 tRPC 路由入口，组织认证、角色、聊天、图片、记忆、套餐与语音流程。 */
 
@@ -54,7 +55,6 @@ import {
   createDefaultGirlfriend,
   searchConversations,
   getGirlfriendMood,
-  upsertGirlfriendMood,
   getAllGirlfriendMoods,
   getUserNotifications,
   getUnreadNotificationCount,
@@ -62,7 +62,6 @@ import {
   markAllNotificationsRead,
   checkAndCreateProactiveNotification,
   getIntimacyInfo,
-  addIntimacyPoints,
   setUserBirthDate,
 } from "./db";
 import { detectSelfHarm, SAFETY_SYSTEM_CLAUSE } from "../shared/safety";
@@ -77,7 +76,6 @@ import { DEFAULT_GIRLFRIEND } from "../shared/defaultGirlfriend";
 import { getCharacterPreset } from "../shared/characterPresets";
 import { readDefaultReference, readPresetReference } from "./characterPresets";
 import {
-  POINTS_RULES,
   getLevelInfo,
   getNextLevel,
   getLevelProgress,
@@ -496,97 +494,6 @@ export const appRouter = router({
           pointsToNext,
         };
       }),
-
-    /**
-     * 根据客户端上报行为计算经验，检查冷却及每日计量后写入亲密度。
-     *
-     * @remarks 行为是否真实发生、夜间额外加分和数据库写入一致性仍需进一步加固。
-     */
-    addPoints: protectedProcedure
-      .input(
-        z.object({
-          girlfriendId: z.number(),
-          reason: z.enum([
-            "text_message",
-            "voice_message",
-            "selfie",
-            "daily_first",
-            "edit_profile",
-            "long_conversation",
-            "night_chat",
-          ]),
-          messageLength: z.number().optional(), // 消息长度（用于加成计算）
-          voiceDuration: z.number().optional(), // 语音时长（秒）
-          conversationRounds: z.number().optional(), // 对话轮数
-        })
-      )
-      .mutation(async ({ ctx, input }) => {
-        const rule = POINTS_RULES[input.reason];
-        if (!rule)
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "无效的经验值类型",
-          });
-
-        // 服务端防刷分：冷却与每日上限过去只由前端
-        // "自觉"遵守，直连 tRPC 即可绕过。现在由服务端强制，超限时静默
-        // 返回 0 分（不报错——加分是聊天的副作用，不该打断主流程）。
-        const skipped = (reason: string) => ({
-          intimacyLevel: 0,
-          intimacyPoints: 0,
-          previousLevel: 0,
-          leveledUp: false,
-          consecutiveDays: 0,
-          pointsAdded: 0,
-          skipped: true,
-          skipReason: reason,
-        });
-
-        // 计算基础经验值
-        let points = rule.basePoints;
-
-        // 加成计算
-        switch (input.reason) {
-          case "text_message":
-            if (input.messageLength && input.messageLength > 50) {
-              points += rule.bonusPoints || 0;
-            }
-            break;
-          case "voice_message":
-            if (input.voiceDuration && input.voiceDuration > 30) {
-              points += rule.bonusPoints || 0;
-            }
-            break;
-          case "long_conversation":
-            if (input.conversationRounds && input.conversationRounds > 10) {
-              points += rule.bonusPoints || 0;
-            }
-            break;
-          default:
-            // 其他类型使用基础经验值
-            break;
-        }
-
-        // 过滤过短消息（< 5 字不计算）
-        if (
-          input.reason === "text_message" &&
-          input.messageLength &&
-          input.messageLength < 5
-        ) {
-          return skipped("消息过短，不计算经验值");
-        }
-
-        const result = await addIntimacyPoints(
-          input.girlfriendId,
-          ctx.user.id,
-          points,
-          input.reason
-        );
-
-        return {
-          ...result,
-        };
-      }),
   }),
 
   // 会话管理。
@@ -683,12 +590,19 @@ export const appRouter = router({
         z.object({
           conversationId: z.number(),
           content: z.string().min(1),
+          transcriptionId: z.string().uuid().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
         // 0. 年龄门 + 服务端限流。
         ensureAgeConfirmed(ctx.user);
         checkRateLimit(ctx.user.id, "chat");
+        if (input.transcriptionId)
+          await validateTranscription(
+            ctx.user.id,
+            input.transcriptionId,
+            input.content
+          );
 
         const selfieRequest = detectSelfieRequest(input.content);
         if (selfieRequest && !detectSelfHarm(input.content)) {
@@ -697,6 +611,7 @@ export const appRouter = router({
             {
               conversationId: input.conversationId,
               userContext: input.content,
+              transcriptionId: input.transcriptionId,
               generationMode: "reference",
               poseId: selfieRequest.poseId,
             },
@@ -707,6 +622,7 @@ export const appRouter = router({
             assistantMessage: result.message,
             safetyNotice: false,
             imageGeneration: result.imageGeneration,
+            relationship: result.relationship,
           };
         }
 
@@ -829,6 +745,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
           userId: ctx.user.id,
           conversationId: input.conversationId,
           kind: "chat",
+          transcriptionId: input.transcriptionId,
           meter:
             isBillingEnforced() && !isByokChat && limits.dailyMessages !== null
               ? {
@@ -1068,20 +985,21 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
             imageBuffer,
             "image/png"
           );
-          const { selfie, message } = await completeImageGeneration(
-            requestId,
-            ctx.user.id,
-            {
-              imageUrl: storedUrl,
-              imageKey: fileKey,
-              prompt,
-              userContext: input.userContext || "couple photo",
-              mode: "direct",
-            },
-            undefined,
-            "合照"
-          );
-          return { selfie, message };
+          const { selfie, message, relationship } =
+            await completeImageGeneration(
+              requestId,
+              ctx.user.id,
+              {
+                imageUrl: storedUrl,
+                imageKey: fileKey,
+                prompt,
+                userContext: input.userContext || "couple photo",
+                mode: "direct",
+              },
+              undefined,
+              "合照"
+            );
+          return { selfie, message, relationship };
         } catch (error) {
           log.error("[couple] generation failed", {
             requestId,
@@ -1536,174 +1454,6 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
     getAll: protectedProcedure.query(async ({ ctx }) => {
       return await getAllGirlfriendMoods(ctx.user.id);
     }),
-
-    /**
-     * 根据客户端上报消息与本地日期更新心情和消息计数。
-     *
-     * @remarks 当前未验证真实消息记录或角色是否存在，仅按当前用户写入心情表。
-     */
-    update: protectedProcedure
-      .input(
-        z.object({
-          girlfriendId: z.number(),
-          messageContent: z.string(),
-          isUserMessage: z.boolean(),
-        })
-      )
-      .mutation(async ({ ctx, input }) => {
-        // 获取当前心情
-        const currentMood = await getGirlfriendMood(
-          ctx.user.id,
-          input.girlfriendId
-        );
-
-        let moodScore = currentMood?.moodScore ?? 70;
-        let totalMessages = currentMood?.totalMessages ?? 0;
-        let todayMessages = currentMood?.todayMessages ?? 0;
-
-        // 检查是否是新的一天，重置今日消息数
-        const now = new Date();
-        const lastUpdate = currentMood?.lastMoodUpdate;
-        if (lastUpdate) {
-          const lastDay = new Date(lastUpdate).toDateString();
-          const today = now.toDateString();
-          if (lastDay !== today) {
-            todayMessages = 0;
-          }
-        }
-
-        // 增加消息计数
-        totalMessages += 1;
-        todayMessages += 1;
-
-        // 基于聊天内容调整心情分数
-        const content = input.messageContent.toLowerCase();
-
-        // 积极情绪关键词
-        const positiveKeywords = [
-          "爱",
-          "喜欢",
-          "开心",
-          "快乐",
-          "幸福",
-          "漂亮",
-          "可爱",
-          "棒",
-          "好棒",
-          "想你",
-          "想念",
-          "亲亲",
-          "抱抱",
-          "宝贝",
-          "亲爱",
-          "美丽",
-          "温柔",
-          "谢谢",
-          "感谢",
-          "太好了",
-          "开心",
-          "哈哈",
-          "嘻嘻",
-          "love",
-          "happy",
-          "cute",
-          "beautiful",
-          "miss",
-          "hug",
-          "kiss",
-        ];
-
-        // 消极情绪关键词
-        const negativeKeywords = [
-          "生气",
-          "不开心",
-          "难过",
-          "伤心",
-          "无聊",
-          "烦",
-          "累",
-          "讨厌",
-          "分手",
-          "再见",
-          "拜拜",
-          "不想",
-          "笨",
-          "丑",
-          "差",
-          "sad",
-          "angry",
-          "boring",
-          "hate",
-          "bye",
-          "ugly",
-        ];
-
-        // 计算情绪变化
-        let scoreDelta = 0;
-
-        // 用户发消息本身就是正面信号（表示在乎）
-        if (input.isUserMessage) {
-          scoreDelta += 2;
-        }
-
-        for (const kw of positiveKeywords) {
-          if (content.includes(kw)) {
-            scoreDelta += 3;
-            break;
-          }
-        }
-
-        for (const kw of negativeKeywords) {
-          if (content.includes(kw)) {
-            scoreDelta -= 5;
-            break;
-          }
-        }
-
-        // 今日聊天数量加成
-        if (todayMessages >= 20) scoreDelta += 2;
-        else if (todayMessages >= 10) scoreDelta += 1;
-
-        // 时间衰减：如果上次聊天超过24小时，心情下降
-        if (currentMood?.lastChatAt) {
-          const hoursSinceLastChat =
-            (now.getTime() - new Date(currentMood.lastChatAt).getTime()) /
-            3600000;
-          if (hoursSinceLastChat > 48) scoreDelta -= 10;
-          else if (hoursSinceLastChat > 24) scoreDelta -= 5;
-        }
-
-        // 更新分数（限制在 0-100 范围）
-        moodScore = Math.max(0, Math.min(100, moodScore + scoreDelta));
-
-        // 根据分数确定心情状态
-        let mood:
-          | "excited"
-          | "happy"
-          | "content"
-          | "neutral"
-          | "lonely"
-          | "sad";
-        if (moodScore >= 90) mood = "excited";
-        else if (moodScore >= 70) mood = "happy";
-        else if (moodScore >= 50) mood = "content";
-        else if (moodScore >= 30) mood = "neutral";
-        else if (moodScore >= 15) mood = "lonely";
-        else mood = "sad";
-
-        const result = await upsertGirlfriendMood({
-          userId: ctx.user.id,
-          girlfriendId: input.girlfriendId,
-          mood,
-          moodScore,
-          lastChatAt: now,
-          totalMessages,
-          todayMessages,
-          lastMoodUpdate: now,
-        });
-
-        return result;
-      }),
   }),
 
   // 站内通知。
@@ -1975,8 +1725,10 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
           });
         }
 
-        // 7. 返回转写结果
+        const transcriptionId = await saveTranscription(ctx.user.id, result);
+        // 7. 返回转写结果及仅由服务端签发的一次性行为凭据。
         return {
+          transcriptionId,
           text: (result as any).text?.trim() || "",
           language: (result as any).language || "unknown",
           duration: (result as any).duration || 0,

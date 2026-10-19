@@ -30,6 +30,7 @@ type SelfieInput = {
   userContext: string;
   generationMode: "reference" | "text";
   poseId?: string;
+  transcriptionId?: string;
 };
 
 /**
@@ -164,6 +165,7 @@ export async function generateConversationSelfie(
     userId: user.id,
     conversationId: input.conversationId,
     kind: "selfie",
+    transcriptionId: input.transcriptionId,
     meter,
     outputKey: fileKey,
     timeoutMs: Number(process.env.COMFYUI_TIMEOUT_MS || 600_000) + 180_000,

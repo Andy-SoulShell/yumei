@@ -1,0 +1,184 @@
+/** 通过真实结算验证心情并发、奖励来源、失败回滚及一次性语音凭据。 */
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { and, eq } from "drizzle-orm";
+import { girlfriendMoods, voiceTranscriptions } from "../drizzle/schema";
+import { appRouter } from "./routers";
+import { createTestGirlfriend } from "./testFixtures";
+import {
+  createConversation,
+  getConversationMessages,
+  getDb,
+  getGirlfriendMood,
+  getIntimacyInfo,
+  updateGirlfriend,
+} from "./db";
+import {
+  reserveGeneration,
+  completeTextGeneration,
+  completeImageGeneration,
+} from "./generations";
+import { saveTranscription } from "./transcriptions";
+import type { TranscriptionResponse } from "./_core/openaiWhisper";
+import type { TrpcContext } from "./_core/context";
+
+async function seed() {
+  const userId = `relationship-${crypto.randomUUID()}`;
+  const gf = await createTestGirlfriend({
+    userId,
+    name: "Test",
+    personality: "Test",
+    appearance: "Test",
+    referenceImageKey: "test-ref",
+    referenceImageUrl: "https://example.test/ref",
+  });
+  const conversation = await createConversation({
+    userId,
+    girlfriendId: gf.id,
+  });
+  const caller = appRouter.createCaller({
+    user: { id: userId },
+    req: {},
+    res: {},
+  } as TrpcContext);
+  const send = async (
+    content = "你好，我今天好开心",
+    reply = "我也喜欢你",
+    transcriptionId?: string
+  ) => {
+    const id = await reserveGeneration({
+      userId,
+      conversationId: conversation.id,
+      kind: "chat",
+      transcriptionId,
+    });
+    return completeTextGeneration(id, userId, content, reply);
+  };
+  return { userId, gf, conversation, caller, send };
+}
+afterEach(() => vi.useRealTimers());
+
+describe("server-owned relationship settlement", () => {
+  it("returns null for a fresh role and rejects missing or foreign roles", async () => {
+    const a = await seed(),
+      b = await seed();
+    expect(await a.caller.mood.get({ girlfriendId: a.gf.id })).toBeNull();
+    await expect(
+      a.caller.mood.get({ girlfriendId: b.gf.id })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(a.caller.mood.get({ girlfriendId: -1 })).rejects.toMatchObject(
+      { code: "NOT_FOUND" }
+    );
+  });
+  it("settles every committed user and assistant message once under concurrency", async () => {
+    const a = await seed();
+    await Promise.all(Array.from({ length: 8 }, () => a.send()));
+    const mood = await getGirlfriendMood(a.userId, a.gf.id);
+    expect(mood?.totalMessages).toBe(16);
+    expect(mood?.todayMessages).toBe(16);
+    expect(mood?.moodScore).toBeGreaterThanOrEqual(70);
+    const db = (await getDb())!;
+    expect(
+      await db
+        .select()
+        .from(girlfriendMoods)
+        .where(
+          and(
+            eq(girlfriendMoods.userId, a.userId),
+            eq(girlfriendMoods.girlfriendId, a.gf.id)
+          )
+        )
+    ).toHaveLength(1);
+    expect(
+      (await getIntimacyInfo(a.gf.id, a.userId)).intimacyPoints
+    ).toBeGreaterThan(0);
+  });
+  it("rolls back messages, mood and rewards if the assistant cannot be saved", async () => {
+    const a = await seed();
+    await expect(
+      a.send("这是一条足够长的测试消息", "x".repeat(70_000))
+    ).rejects.toThrow();
+    expect(await getConversationMessages(a.conversation.id)).toEqual([]);
+    expect(await getGirlfriendMood(a.userId, a.gf.id)).toBeNull();
+    expect((await getIntimacyInfo(a.gf.id, a.userId)).intimacyPoints).toBe(0);
+  });
+  it("rejects client-forged reward and mood mutation endpoints", async () => {
+    const a = await seed();
+    await expect(
+      (a.caller.girlfriend as any).addPoints({
+        girlfriendId: a.gf.id,
+        reason: "selfie",
+      })
+    ).rejects.toThrow();
+    await expect(
+      (a.caller.mood as any).update({
+        girlfriendId: a.gf.id,
+        messageContent: "fake",
+        isUserMessage: true,
+      })
+    ).rejects.toThrow();
+    expect((await getIntimacyInfo(a.gf.id, a.userId)).intimacyPoints).toBe(0);
+  });
+  it("awards a successful photo once and only rewards actual profile changes", async () => {
+    const a = await seed();
+    const id = await reserveGeneration({
+      userId: a.userId,
+      conversationId: a.conversation.id,
+      kind: "selfie",
+    });
+    const image = {
+      imageKey: "test-photo",
+      imageUrl: "https://example.test/photo",
+      prompt: "test",
+      userContext: "test",
+      mode: "direct" as const,
+    };
+    await completeImageGeneration(id, a.userId, image);
+    const before = (await getIntimacyInfo(a.gf.id, a.userId)).intimacyPoints;
+    expect(before).toBeGreaterThanOrEqual(10);
+    await expect(
+      completeImageGeneration(id, a.userId, image)
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    await updateGirlfriend(a.gf.id, a.userId, { personality: "Changed" });
+    const after = (await getIntimacyInfo(a.gf.id, a.userId)).intimacyPoints;
+    expect(after).toBeGreaterThan(before);
+    await updateGirlfriend(a.gf.id, a.userId, { personality: "Changed" });
+    expect((await getIntimacyInfo(a.gf.id, a.userId)).intimacyPoints).toBe(
+      after
+    );
+  });
+  it("uses server-issued transcription text and duration and rejects replay, expiry and cross-account use", async () => {
+    const a = await seed(),
+      b = await seed();
+    const content = "这是一段真实转写的语音消息";
+    const issue = () =>
+      saveTranscription(a.userId, {
+        text: content,
+        duration: 35,
+      } as TranscriptionResponse);
+    const receipt = await issue();
+    await expect(b.send(content, "reply", receipt)).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+    await expect(a.send("forged text", "reply", receipt)).rejects.toMatchObject(
+      { code: "BAD_REQUEST" }
+    );
+    await a.send(content, "reply", receipt);
+    const points = (await getIntimacyInfo(a.gf.id, a.userId)).intimacyPoints;
+    expect(points).toBeGreaterThanOrEqual(10);
+    await expect(a.send(content, "reply", receipt)).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+    const expired = await issue();
+    const db = (await getDb())!;
+    await db
+      .update(voiceTranscriptions)
+      .set({ expiresAt: new Date("2020-01-01") })
+      .where(eq(voiceTranscriptions.id, expired));
+    await expect(a.send(content, "reply", expired)).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+    expect((await getIntimacyInfo(a.gf.id, a.userId)).intimacyPoints).toBe(
+      points
+    );
+  });
+});

@@ -304,7 +304,7 @@ export const girlfriendMoods = mysqlTable(
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
   table => ({
-    byUserAndRole: index("idx_moods_user_role").on(
+    byUserAndRole: uniqueIndex("uniq_moods_user_role").on(
       table.userId,
       table.girlfriendId
     ),
@@ -499,6 +499,7 @@ export const generationRequests = mysqlTable(
     id: varchar("id", { length: 36 }).primaryKey(),
     userId: varchar("userId", { length: 255 }).notNull(),
     conversationId: int("conversationId").notNull(),
+    transcriptionId: varchar("transcriptionId", { length: 36 }),
     kind: mysqlEnum("kind", ["chat", "selfie", "couple"]).notNull(),
     status: mysqlEnum("status", ["pending", "succeeded", "failed"])
       .default("pending")
@@ -521,4 +522,18 @@ export const generationRequests = mysqlTable(
       table.expiresAt
     ),
   })
+);
+
+/** 服务端转写结果；只允许相同用户在成功保存对应文本消息时消费一次。 */
+export const voiceTranscriptions = mysqlTable(
+  "voiceTranscriptions",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    userId: varchar("userId", { length: 255 }).notNull(),
+    text: text("text").notNull(),
+    durationMs: int("durationMs").notNull(),
+    consumed: boolean("consumed").default(false).notNull(),
+    expiresAt: timestamp("expiresAt").notNull(),
+  },
+  table => ({ byExpiry: index("idx_transcription_expiry").on(table.expiresAt) })
 );

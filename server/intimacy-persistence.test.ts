@@ -5,9 +5,9 @@ import { usageMeters } from "../drizzle/schema";
 import { getLevelByPoints } from "../shared/intimacy";
 import { createGirlfriend, getDb, getIntimacyInfo } from "./db";
 import { createTestUser } from "./testFixtures";
-import { appRouter } from "./routers";
+import { awardIntimacy } from "./relationship";
+import { withUserTransaction } from "./db";
 import { getDailyMeter, todayUTC } from "./_core/quota";
-import type { TrpcContext } from "./_core/context";
 
 const profile = {
   name: "YUMEI",
@@ -59,19 +59,15 @@ describe("intimacy persistence", () => {
       meter: "intimacy:points",
       count: 195,
     });
-    const caller = appRouter.createCaller({
-      user: { id: userId },
-      req: {},
-      res: {},
-    } as TrpcContext);
-    const input = { girlfriendId: gf.id, reason: "edit_profile" as const };
-    expect((await caller.girlfriend.addPoints(input)).pointsAdded).toBe(0);
+    const award = () =>
+      withUserTransaction(userId, tx =>
+        awardIntimacy(tx, gf.id, userId, 5, "edit_profile")
+      );
+    expect((await award()).pointsAdded).toBe(0);
     expect(await getDailyMeter(userId, "intimacy:points")).toBe(195);
     expect(await getDailyMeter(userId, "intimacy:edit_profile")).toBe(0);
     await db.update(usageMeters).set({ count: 192 }).where(where);
-    const results = await Promise.all(
-      Array.from({ length: 3 }, () => caller.girlfriend.addPoints(input))
-    );
+    const results = await Promise.all(Array.from({ length: 3 }, () => award()));
     expect(results.map(r => r.pointsAdded).sort()).toEqual([0, 0, 8]);
     expect(await getDailyMeter(userId, "intimacy:points")).toBe(200);
     expect((await getIntimacyInfo(gf.id, userId)).intimacyPoints).toBe(8);

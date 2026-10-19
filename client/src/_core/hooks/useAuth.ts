@@ -1,6 +1,7 @@
 /** 统一读取当前用户、处理退出及可选的未登录跳转。 */
 
 import { trpc } from "@/lib/trpc";
+import { useQueryClient } from "@tanstack/react-query";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback, useEffect, useMemo } from "react";
 
@@ -15,12 +16,13 @@ type UseAuthOptions = {
 /**
  * 订阅当前用户查询并提供刷新和退出操作。
  *
- * @remarks 退出调用当前 tRPC Cookie 清理接口并刷新认证缓存；其他业务缓存不在此处清理。
+ * @remarks 退出会撤销服务端会话；成功后清除本地业务查询缓存，避免共享设备显示上一账号数据。
  */
 export function useAuth(options?: UseAuthOptions) {
   const { redirectOnUnauthenticated = false, redirectPath = "/login" } =
     options ?? {};
   const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: false,
@@ -29,6 +31,7 @@ export function useAuth(options?: UseAuthOptions) {
 
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: () => {
+      queryClient.clear();
       utils.auth.me.setData(undefined, null);
     },
   });
@@ -41,14 +44,13 @@ export function useAuth(options?: UseAuthOptions) {
         error instanceof TRPCClientError &&
         error.data?.code === "UNAUTHORIZED"
       ) {
+        queryClient.clear();
+        utils.auth.me.setData(undefined, null);
         return;
       }
       throw error;
-    } finally {
-      utils.auth.me.setData(undefined, null);
-      await utils.auth.me.invalidate();
     }
-  }, [logoutMutation, utils]);
+  }, [logoutMutation, utils, queryClient]);
 
   const state = useMemo(() => {
     return {

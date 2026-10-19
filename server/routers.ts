@@ -1,6 +1,8 @@
 /** 业务 tRPC 路由入口，组织认证、角色、聊天、图片、记忆、套餐与语音流程。 */
 
 import { log, providerErrorSummary } from "./_core/log";
+import { auth } from "./_core/auth";
+import { fromNodeHeaders } from "better-auth/node";
 import { getSessionCookieOptions } from "./_core/cookies";
 import {
   keyProvider,
@@ -180,25 +182,29 @@ export const appRouter = router({
         return { ok: true as const };
       }),
 
-    /**
-     * 清理当前请求对应的会话 Cookie 并返回成功。
-     *
-     * @remarks 当前不撤销数据库会话，也未处理 HTTPS 环境的安全前缀 Cookie。
-     */
-    logout: publicProcedure.mutation(({ ctx }) => {
-      // 此入口目前只清理固定名称的 Cookie；会话撤销和 HTTPS 前缀处理待补齐。
+    /** 撤销数据库会话，并清除普通与 HTTPS 安全前缀的会话 Cookie。 */
+    logout: publicProcedure.mutation(async ({ ctx }) => {
+      if (auth) {
+        const response = await auth.api.signOut({
+          headers: fromNodeHeaders(ctx.req.headers),
+          asResponse: true,
+        });
+        const cookies = response.headers.getSetCookie();
+        if (cookies.length) ctx.res.append("Set-Cookie", cookies);
+      }
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie("better-auth.session_token", {
-        ...cookieOptions,
-        maxAge: -1,
-      });
-      ctx.res.clearCookie("better-auth.session_data", {
-        ...cookieOptions,
-        maxAge: -1,
-      });
-      return {
-        success: true,
-      } as const;
+      for (const prefix of ["", "__Secure-"]) {
+        for (const name of [
+          "better-auth.session_token",
+          "better-auth.session_data",
+        ]) {
+          ctx.res.clearCookie(`${prefix}${name}`, {
+            ...cookieOptions,
+            secure: prefix ? true : cookieOptions.secure,
+          });
+        }
+      }
+      return { success: true } as const;
     }),
   }),
 

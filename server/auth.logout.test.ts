@@ -37,6 +37,7 @@ function createAuthContext(): {
       headers: {},
     } as TrpcContext["req"],
     res: {
+      append: () => {},
       clearCookie: (name: string, options: Record<string, unknown>) => {
         clearedCookies.push({ name, options });
       },
@@ -54,13 +55,14 @@ describe("auth.logout", () => {
     const result = await caller.auth.logout();
 
     expect(result).toEqual({ success: true });
-    expect(clearedCookies).toHaveLength(2);
+    expect(clearedCookies).toHaveLength(4);
     expect(clearedCookies.map(c => c.name)).toEqual([
       "better-auth.session_token",
       "better-auth.session_data",
+      "__Secure-better-auth.session_token",
+      "__Secure-better-auth.session_data",
     ]);
     expect(clearedCookies[0]?.options).toMatchObject({
-      maxAge: -1,
       secure: true,
       sameSite: "lax",
       httpOnly: true,

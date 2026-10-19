@@ -23,7 +23,7 @@ const authDb = getAuthDb();
 const PORT = process.env.PORT || "3000";
 const BASE_URL = ENV.publicUrl;
 
-/** 共享认证实例，负责邮箱链接、会话持久化与会话缓存 Cookie。 */
+/** 共享认证实例，负责邮箱链接和会话持久化；会话有效性以数据库为准。 */
 export const auth = authDb
   ? betterAuth({
       appName: "YUMEI",
@@ -45,8 +45,8 @@ export const auth = authDb
         expiresIn: 60 * 60 * 24 * 30,
         updateAge: 60 * 60 * 24 * 7,
         cookieCache: {
-          enabled: true,
-          maxAge: 60 * 5, // 五分钟
+          enabled: false,
+          maxAge: 60 * 5, // 缓存停用后由数据库判断会话是否仍有效
         },
       },
       // 本机 stdout 模式允许公开端口对应的回环别名；托管环境限制为公开来源。
@@ -78,7 +78,10 @@ export const auth = authDb
 export async function getSessionUser(req: { headers: any }) {
   if (!auth) return null;
   try {
-    const session = await auth.api.getSession({ headers: req.headers });
+    const session = await auth.api.getSession({
+      headers: req.headers,
+      query: { disableCookieCache: true },
+    });
     return session?.user ?? null;
   } catch {
     return null;

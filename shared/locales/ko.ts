@@ -1,6 +1,8 @@
 /** 与英文基准包保持相同 key 和插值参数。 */
 import type { MessageCatalog } from "./types";
+import { koCreator } from "./creator";
 export default {
+  creator: koCreator,
   explore: {
     collapseSidebar: "메뉴 접기",
     expandSidebar: "메뉴 펼치기",

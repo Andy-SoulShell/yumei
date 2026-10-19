@@ -1,6 +1,8 @@
 /** 与英文基准包保持相同 key 和插值参数。 */
 import type { MessageCatalog } from "./types";
+import { jaCreator } from "./creator";
 export default {
+  creator: jaCreator,
   explore: {
     collapseSidebar: "ナビゲーションを折りたたむ",
     expandSidebar: "ナビゲーションを展開",

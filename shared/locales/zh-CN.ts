@@ -1,6 +1,8 @@
 /** 与英文基准包保持相同 key 和插值参数。 */
 import type { MessageCatalog } from "./types";
+import { zhCreator } from "./creator";
 export default {
+  creator: zhCreator,
   explore: {
     collapseSidebar: "折叠导航",
     expandSidebar: "展开导航",

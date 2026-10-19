@@ -1,5 +1,7 @@
 /** 英文基准语言包；key 与插值参数构成类型契约。 */
+import { enCreator } from "./creator";
 export default {
+  creator: enCreator,
   explore: {
     collapseSidebar: "Collapse navigation",
     expandSidebar: "Expand navigation",

@@ -11,6 +11,7 @@ export default defineConfig({
       "client/src/lib/navigation.test.ts",
       "client/src/hooks/useCompanionChat.test.tsx",
       "client/src/pages/Explore.test.tsx",
+      "client/src/features/setup/CharacterCreator.test.tsx",
     ],
   },
 });

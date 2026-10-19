@@ -1,4 +1,4 @@
-import { CharacterPresetPicker } from "@/components/CharacterPresetPicker";
+import { CharacterCreator } from "@/features/setup/CharacterCreator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,8 +33,6 @@ export default function Setup() {
     t,
     isEditing,
     handleSubmit,
-    presetId,
-    handleSelectPreset,
     name,
     setName,
     personality,
@@ -47,6 +45,8 @@ export default function Setup() {
     deleteGirlfriend,
     handleDelete,
   } = state;
+
+  if (!isEditing) return <CharacterCreator state={state} />;
 
   return (
     <div
@@ -78,12 +78,6 @@ export default function Setup() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {!isEditing && (
-                <CharacterPresetPicker
-                  selectedId={presetId}
-                  onSelect={handleSelectPreset}
-                />
-              )}
               {/* 头像上传区域 - 编辑模式显示 */}
               {isEditing && <AvatarUpload {...state} />}
 

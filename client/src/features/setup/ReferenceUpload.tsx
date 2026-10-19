@@ -12,6 +12,7 @@ type Props = Pick<
   | "handleImageChange"
   | "imageFile"
   | "presetId"
+  | "optionReferenceUrl"
   | "setImageFile"
   | "setImagePreview"
 >;
@@ -25,6 +26,7 @@ export function ReferenceUpload({
   handleImageChange,
   imageFile,
   presetId,
+  optionReferenceUrl,
   setImageFile,
   setImagePreview,
 }: Props) {
@@ -81,7 +83,7 @@ export function ReferenceUpload({
           />
         )}
       </div>
-      {!isEditing && imageFile && presetId && (
+      {!isEditing && imageFile && (presetId || optionReferenceUrl) && (
         <Button
           type="button"
           variant="ghost"

@@ -8,6 +8,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useLocation, useParams, useSearch } from "wouter";
+import { loadCreatorReference, referenceBase64 } from "./creatorOptions";
 
 const ALLOWED_AVATAR_TYPES = [
   "image/jpeg",
@@ -48,6 +49,13 @@ export function useSetupController() {
   const [presetId, setPresetId] = useState<string | null>(
     initialPreset?.id || null
   );
+
+  const [optionReferenceUrl, setOptionReferenceUrl] = useState<string | null>(
+    !editId && !initialPreset
+      ? "/character-options/creator/style/realistic-female.webp"
+      : null
+  );
+  const [isPreparingReference, setIsPreparingReference] = useState(false);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
 
@@ -187,11 +195,20 @@ export function useSetupController() {
 
   const handleSelectPreset = (preset: CharacterPreset | null) => {
     setPresetId(preset?.id || null);
+    setOptionReferenceUrl(null);
     setName(preset?.name || "");
     setPersonality(preset?.personality || "");
     setAppearance(preset?.appearance || "");
     setInterests(preset?.interests || "");
     setCustomPrompt("");
+    setImageFile(null);
+    setImagePreview(null);
+    if (imageInputRef.current) imageInputRef.current.value = "";
+  };
+
+  const handleSelectReference = (url: string) => {
+    setOptionReferenceUrl(url);
+    setPresetId(null);
     setImageFile(null);
     setImagePreview(null);
     if (imageInputRef.current) imageInputRef.current.value = "";
@@ -261,7 +278,7 @@ export function useSetupController() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name || !personality || !appearance) {
+    if (!name.trim() || !personality.trim() || !appearance.trim()) {
       toast.error(t("setup:fillInAllRequiredFields"));
       return;
     }
@@ -278,12 +295,12 @@ export function useSetupController() {
       });
     } else {
       // 创建模式
-      if (!imageFile && !presetId) {
+      if (!imageFile && !presetId && !optionReferenceUrl) {
         toast.error(t("setup:uploadAReferencePhoto"));
         return;
       }
 
-      if (!imageFile) {
+      if (!imageFile && presetId) {
         createGirlfriend.mutate({
           name,
           personality,
@@ -295,9 +312,11 @@ export function useSetupController() {
         return;
       }
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = (reader.result as string).split(",")[1];
+      setIsPreparingReference(true);
+      try {
+        const referenceFile =
+          imageFile ?? (await loadCreatorReference(optionReferenceUrl!));
+        const base64 = await referenceBase64(referenceFile);
         createGirlfriend.mutate({
           name,
           personality,
@@ -305,22 +324,29 @@ export function useSetupController() {
           interests: interests || undefined,
           customPrompt: customPrompt || undefined,
           referenceImageBase64: base64,
-          referenceImageMimeType: imageFile.type as
+          referenceImageMimeType: referenceFile.type as
             "image/jpeg" | "image/png" | "image/gif" | "image/webp",
         });
-      };
-      reader.readAsDataURL(imageFile);
+      } catch {
+        toast.error(t("creator:referenceFailed"));
+      } finally {
+        setIsPreparingReference(false);
+      }
     }
   };
 
   const isEditing = !!editId;
 
-  const isPending = createGirlfriend.isPending || updateGirlfriend.isPending;
+  const isPending =
+    isPreparingReference ||
+    createGirlfriend.isPending ||
+    updateGirlfriend.isPending;
 
   const displayImage =
     imagePreview ||
     existingImageUrl ||
-    (presetId ? getCharacterPreset(presetId)?.imageUrl : null);
+    (presetId ? getCharacterPreset(presetId)?.imageUrl : null) ||
+    optionReferenceUrl;
 
   const displayAvatar = avatarPreview || existingAvatarUrl;
   return {
@@ -330,6 +356,9 @@ export function useSetupController() {
     handleSubmit,
     presetId,
     handleSelectPreset,
+    handleSelectReference,
+    optionReferenceUrl,
+    isPreparingReference,
     avatarInputRef,
     displayAvatar,
     handleAvatarChange,

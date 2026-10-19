@@ -2,6 +2,18 @@
 
 当前为 YUMEI v1.0.0 初始代码基线，后续以 [PRD v0.6](docs/亚洲版成人AI角色陪伴产品_PRD_v0.6.md) 为产品目标。已有功能和部署方式见 [README.md](README.md)。
 
+## 本轮维护验收（2026-10-20）
+
+- [x] R20～R25：相册双层归属、并发角色切换、跨分区草稿、媒体生命周期、真实行为结算和稳定心情空值，均补齐实际路径回归。
+- [x] 私人媒体退出缓存清理、会话活跃时间更新、会话与消息分页、归属范围内的字面量搜索。
+- [x] 数据库共享限流、带租约的记忆任务、远端删除不占用户事务、后台任务独立调度、请求关联日志和认证故障显式返回。
+- [x] 按用户、角色、会话、相册等拆分仓储和路由；拆分 Settings、Chat、Home、Setup 的控制器与展示区块，并按页面加载前端代码。
+- [x] 升级运行和测试依赖，生产依赖审计无已知漏洞；Windows 与 Linux 使用统一 Node 命令入口。
+- [x] 删除旧奖励/心情写接口和无效提示词模拟测试，新增设置控制器真实回归；完整回归 67 个文件、465 个用例通过。
+- [x] 开发阶段不维护旧数据兼容；23 表单次初始化基线已在重置后的专用测试库迁移。应用库未重置，部署当前代码前须重建开发库。
+
+本节是当前状态，以下验收数字和部署记录保留为历史。类型、lint、格式检查和生产构建通过；按页面拆包后入口约 917 kB、gzip 292 kB，仍有 500 kB 体积提示。未调用真实 AI、支付或邮件服务，未部署或修改应用配置。
+
 ## 已完成
 
 - [x] YUMEI 命名、默认角色、独立配置与初始化迁移
@@ -64,35 +76,35 @@
 - 本地 Docker 服务已备份数据库后更新，应用库已应用全部 6 份迁移和 12 个关联查询索引；健康探针、异常文件 URL、匿名会话入口通过，未发现历史孤立记忆或通知。备份保存在本机私有备份目录，权限为 0600。
 - 本地完成与 CI 相同的迁移、测试和构建验证；远端工作流需推送到 GitHub 后运行。构建仍有现有的前端单包超过 500 kB 提示。
 
-## 新增待办（2026-10-19 复查）
+## 复查问题及处理结果（2026-10-19）
 
-上一轮 R01～R19 已完成。R20～R24 是修复后静态复查确认的遗漏，尚未修复，也未新增运行复现或回归测试；上一轮 400 项测试通过不代表已覆盖这些路径。R25 在组件迁移的浏览器验收中运行确认，尚未修复。另记录两项当前配置状态，后续按运营目标处理，不计为代码缺陷。
+R01～R25 均已完成修复与回归。下面保留复查时的缺陷描述和验收要求，当前实现以“本轮维护验收”为准。C01、C02 是需要运营配置的后续事项，本轮不改动配置。
 
 ### 代码问题
 
-- [ ] **R20 · P1：相册接口缺少角色归属校验。**
-  - 位置：[selfie.listByGirlfriend](server/routers.ts)、[getGirlfriendSelfies](server/db.ts)。
+- [x] **R20 · P1：相册接口缺少角色归属校验。**
+  - 位置：[selfie.listByGirlfriend](server/routers.ts)、[getGirlfriendSelfies](server/repositories/photos.ts)。
   - 现象与影响：接口只检查登录，按传入的角色 ID 查询相册，未限定当前用户；已登录用户可能取得其他用户的照片记录和地址。当前文件入口持有完整地址即可访问，进一步扩大泄露影响。
   - 处理与验收：在路由和数据查询中约束当前用户及角色归属；补充用户 A 无法读取用户 B 相册、本人正常读取、角色不存在或已删除的回归。优先于其他新增问题处理。
-- [ ] **R21 · P2：切换激活角色缺少原子性。**
-  - 位置：[updateGirlfriend](server/db.ts)。
+- [x] **R21 · P2：切换激活角色缺少原子性。**
+  - 位置：[updateGirlfriend](server/repositories/companions.ts)。
   - 现象与影响：停用其他角色与激活目标角色分别写入，并发切换可能留下多个激活角色；传入不存在或不属于当前用户的目标 ID，会先停用当前用户的全部角色，随后仍返回成功。
   - 处理与验收：在同一用户事务锁内先验证目标存在、归属及未删除状态，再切换激活角色；补充并发切换只有一个激活角色，以及无效目标不改变原状态的回归。
-- [ ] **R22 · P2：配置刷新覆盖未保存的普通偏好。**
+- [x] **R22 · P2：配置刷新覆盖未保存的普通偏好。**
   - 位置：[Settings 的配置同步 useEffect 与 saveDirtyKeys](client/src/pages/Settings.tsx)。
   - 现象与影响：保存密钥后刷新配置，依赖 `apiConfig` 的同步逻辑会重设所有普通偏好，覆盖其他分区尚未保存的提示词、模型或声音选择。
   - 处理与验收：区分服务端已保存状态和各分区草稿，刷新时保留正在编辑的字段；补充跨分区保存密钥、请求期间继续编辑及后台刷新时不丢失草稿的页面回归。
-- [ ] **R23 · P2：部分媒体文件缺少回收流程。**
+- [x] **R23 · P2：部分媒体文件缺少回收流程。**
   - 位置：[角色创建、头像上传、tts.generate 与 voice.transcribe](server/routers.ts)、[媒体清理队列](server/mediaCleanup.ts)。
   - 现象与影响：更换头像后的旧文件、角色创建失败前上传的参考图、转写录音及 TTS 音频，缺少完整清理或过期机制；录音在检查密钥是否可用前即已上传。无引用文件持续占用存储，私人录音也缺少明确的保留期限。
   - 处理与验收：补齐上传后的失败补偿、旧头像引用释放和音频生命周期，将可回收文件交给持久清理队列；明确仍需播放的音频保留策略。验证成功、失败、替换、重复清理和共享引用场景。
-- [ ] **R24 · P2：亲密度奖励未关联真实行为。**
-  - 位置：[girlfriend.addPoints](server/routers.ts)、[addIntimacyPoints](server/db.ts)。
+- [x] **R24 · P2：亲密度奖励未关联真实行为。**
+  - 位置：[girlfriend.addPoints](server/routers.ts)、[awardIntimacy](server/relationship.ts)。
   - 现象与影响：行为类型、消息长度、语音时长和对话轮数由客户端上报，服务端未核对真实记录；虽然冷却和每日上限生效，仍可伪造行为领取上限内的积分。
   - 处理与验收：根据服务端成功落库的消息、生成结果或资料变更发放奖励，使用行为标识防止重复领取，并从真实记录计算加成。验证无真实行为、伪造指标、重复请求和失败生成均不产生不应有的奖励。
 
-- [ ] **R25 · P2：首次读取无记录的角色心情返回 undefined。**
-  - 位置：[mood.get](server/routers.ts)、[getGirlfriendMood](server/db.ts)。
+- [x] **R25 · P2：首次读取无记录的角色心情返回 undefined。**
+  - 位置：[mood.get](server/routers.ts)、[getGirlfriendMood](server/repositories/moods.ts)。
   - 现象与验证：独立测试库创建新账号、默认角色后进入聊天，尚无心情记录时查询直接返回 `undefined`，React Query 报 `Query data cannot be undefined`；页面仍能使用在线状态兜底，但该查询进入错误状态。
   - 处理与验收：定义无记录时的稳定空值或初始心情结构，并保持前后端一致；补充首次进入聊天、已有心情记录和角色不存在的接口与页面回归。
 
@@ -157,31 +169,31 @@
 
 #### R07：并发初始化可创建多个默认角色
 
-- 位置：[createDefaultGirlfriend](server/db.ts)、[girlfriend.ensureDefault](server/routers.ts)。验证：两个并发初始化请求同时通过空列表检查。
+- 位置：[createDefaultGirlfriend](server/repositories/companions.ts)、[girlfriend.ensureDefault](server/routers.ts)。验证：两个并发初始化请求同时通过空列表检查。
 - 现象：最终插入两个不同 ID 的默认角色。角色数量检查与创建之间也没有统一的原子约束。
 - 建议：后续对同一用户的默认初始化和数量检查串行化，使用事务、用户行锁或合适的唯一约束，保证初始化幂等及套餐上限。
 
 #### R08：从回收站恢复角色可绕过套餐数量上限
 
-- 位置：[girlfriend.restore](server/routers.ts)、[restoreGirlfriend](server/db.ts)。验证：实际 Free 套餐路由操作。
+- 位置：[girlfriend.restore](server/routers.ts)、[restoreGirlfriend](server/repositories/companions.ts)。验证：实际 Free 套餐路由操作。
 - 现象：删除旧角色、创建新角色后再恢复旧角色，得到两个未删除角色，超过 Free 的 1 个上限。
 - 建议：后续恢复时复用创建的数量限制，并将检查和恢复放入同一并发保护范围。
 
 #### R09：读取亲密度会重复扣除同一段时间的衰减
 
-- 位置：[getIntimacyInfo](server/db.ts)、[calculateDecay](shared/intimacy.ts)。验证：固定未互动时长后连续查询。
+- 位置：[getIntimacyInfo](server/repositories/intimacy.ts)、[calculateDecay](shared/intimacy.ts)。验证：固定未互动时长后连续查询。
 - 现象：初始经验 1234、十天未互动，两次紧邻读取依次得到 1219、1204；没有更新已计算衰减的时间基准。最低仍保留当前等级起点，不会无限扣到零。
 - 建议：后续记录已结算衰减的日期，或按单一时间基准计算，保证查询幂等，并分离纯查询与持久化结算。
 
 #### R10：夜间奖励未纳入每日经验上限，返回值与实际加分不一致
 
-- 位置：[girlfriend.addPoints](server/routers.ts)、[addIntimacyPoints](server/db.ts)。验证：固定夜间时间及当日已有 195 点的数据库记录。
+- 位置：[girlfriend.addPoints](server/routers.ts)、[addIntimacyPoints](server/database.ts)。验证：固定夜间时间及当日已有 195 点的数据库记录。
 - 现象：基础加分 5 使计量达到 200，但数据层再加夜间奖励 3，实际获得 8，当日总收益达到 203，接口仍报告只加 5。
 - 建议：后续先计算包含全部奖励的最终增量，再统一校验和扣计量；数据库更新与返回值使用同一结果。
 
 #### R11：永久删除角色后仍残留记忆、通知和媒体文件
 
-- 位置：[permanentDeleteGirlfriend / deleteSelfie](server/db.ts)、[文件存储](server/storage.ts)。验证：隔离角色、关联数据和临时媒体删除后检查。
+- 位置：[permanentDeleteGirlfriend / deleteSelfie](server/repositories/companions.ts)、[文件存储](server/storage.ts)。验证：隔离角色、关联数据和临时媒体删除后检查。
 - 现象：永久删除后仍各保留 1 条记忆、1 条通知，已关联的媒体字节仍可读取；数据库清理也没有统一事务。
 - 建议：后续建立完整关联清理清单和事务；媒体使用可重试的删除任务，并处理共享文件引用与缓存生命周期。
 
@@ -193,7 +205,7 @@
 
 #### R14：应用与数据库时区不同时，主动通知每日频控失效
 
-- 位置：[checkAndCreateProactiveNotification](server/db.ts)。验证：应用 `Asia/Shanghai`、MySQL UTC，固定日期运行。
+- 位置：[checkAndCreateProactiveNotification](server/repositories/notifications.ts)。验证：应用 `Asia/Shanghai`、MySQL UTC，固定日期运行。
 - 现象：同一 UTC 日期已有通知，再次检查仍生成一条。JavaScript 日期边界与 MySQL 参数转换使用不同的时区语义。
 - 建议：后续统一 UTC 存储和边界查询，显式配置驱动时区，并增加每日并发唯一约束。当前 Docker 应用与数据库均使用 UTC，此部署条件下不触发本次时区复现。
 
@@ -239,11 +251,14 @@
 ## 待办
 
 - [x] 按上述核查清单逐项修复并增加回归验证（R01～R19）
-- [ ] 处理新增复查问题 R20～R25 及配置待办 C01～C02（详见“新增待办”）
-- [ ] 数据层补充外键、热路径索引和事务
-- [ ] 拆分 `routers.ts`、`db.ts` 与大型页面组件
-- [ ] 补充 Provider 超时、重试与故障处理
-- [ ] 完善结构化日志和错误监控
-- [ ] 后台推送等界面之外的系统文案完整国际化
+- [x] 处理复查问题 R20～R25（详见“本轮维护验收”）
+- [ ] 根据运营目标处理 C01～C02 配置
+- [x] 数据层补充热路径索引和用户事务
+- [ ] 为受业务代码管理的关联关系补充数据库外键
+- [x] 拆分路由、数据操作与大型页面组件
+- [x] 补充 Provider 超时、生成失败补偿与后台任务重试
+- [x] 完善脱敏结构化日志与请求关联编号
+- [ ] 接入外部错误监控与告警
+- [x] 后台推送及站内通知按用户语言渲染
 - [ ] 账号数据导出和删除
 - [ ] 按 PRD 逐项核对并实现后续产品能力

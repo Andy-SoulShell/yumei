@@ -38,7 +38,7 @@ cd /path/to/yumei
 
 # 安装依赖
 corepack enable
-pnpm install --frozen-lockfile
+corepack pnpm install --frozen-lockfile
 
 # 启动开发服务器
 pnpm dev
@@ -51,7 +51,7 @@ pnpm lint:fix
 pnpm format
 
 # 运行测试
-TZ=UTC pnpm test
+pnpm test
 ```
 
 ## 代码规范
@@ -79,7 +79,9 @@ TZ=UTC pnpm test
 - 提交前运行 `pnpm check`，统一检查类型、lint 与格式；CI 同时执行生产构建
 - 前端组件使用函数式组件 + Hooks
 - 后端 API 使用 tRPC 过程定义
-- 数据库操作封装在 `server/db.ts` 中
+- 连接与用户事务锁位于 `server/database.ts`，数据操作按领域放入 `server/repositories/`；领域之间直接导入所需模块。
+- tRPC 过程放入 `server/routers/`，`server/routers.ts` 只组合路由；页面状态与操作流程放入 `client/src/features/` 的控制器，展示区块消费控制器状态。
+- 当前为开发阶段，不维护兼容层。允许删除过时接口、重建初始化迁移和重置开发库；表结构变更同步更新初始化 SQL、快照和真实数据库回归。
 
 ### 中文 TSDoc 注释
 
@@ -112,9 +114,10 @@ TZ=UTC pnpm test
 
 - 新增功能必须附带对应的测试用例
 - 测试文件放在 `server/` 或 `client/` 目录下，命名为 `*.test.ts` 或 `*.test.tsx`
-- 完整测试使用独立 MySQL 8 测试库，库名必须包含 `test`。本机先复制 `.env.test.example` 为 `.env.test.local`，填写两组测试专用密码及匹配的连接串，执行 `pnpm test:db:up`、`pnpm test:db:migrate`，再运行 `pnpm test`。测试命令自动读取该文件，环境变量优先；CI 继续显式提供 `DATABASE_URL`。测试不会读取应用 `.env` 的密钥。
+- 完整测试使用独立 MySQL 8 测试库，库名必须包含 `test`。本机先复制 `.env.test.example` 为 `.env.test.local`，填写两组测试专用密码及匹配的连接串，执行 `pnpm test:db:up`、`pnpm test:db:migrate`，再运行 `pnpm test`。基线改变时使用 `pnpm test:db:reset` 清除并重建测试库。测试命令自动读取测试配置，环境变量优先；CI 显式提供 `DATABASE_URL`。启动脚本只读取应用 `.env` 的数据库地址用于防止误连，不将应用密钥注入测试。
 - 测试启动会检查数据库连通性及当前全部迁移的校验和；缺少配置、连不上或未迁移时直接失败，不能静默当作测试通过。
 - CI 自动创建独立 MySQL，执行迁移、完整测试和上海时区通知回归；AI 和发信服务使用测试替身，不使用真实运营密钥。
+- 回归测试必须调用实际业务函数、路由或 Hook，覆盖失败回滚、归属、并发和重试边界；不要复制实现到测试里再验证复制出的结果。
 
 ## 项目结构
 

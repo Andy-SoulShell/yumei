@@ -11,14 +11,14 @@ YUMEI 是可自托管的 AI 角色陪伴 Web 应用，支持文字与语音聊�
 - 图片：fal.ai 或自托管 ComfyUI，参考图自拍、场景描述、亲密度姿势解锁及合照。
 - 语音：OpenAI Whisper 转写，浏览器、ElevenLabs、Fish Audio 朗读。
 - 养成：亲密度、动态心情、长期记忆提取与管理、站内通知和可选 Web Push。
-- 界面：中英文切换、八套主题配色、浅色/深色/跟随系统，登录后按账号保存偏好。
+- 界面：中文、英文、日文、韩文切换，八套主题配色、浅色/深色/跟随系统，登录后按账号保存偏好。
 - 部署：邮箱 magic-link 登录、本地或 S3 存储、Free/Plus/Pro 套餐、Lemon Squeezy 订阅及 BYOK。
 
 使用流程见 [USER_GUIDE.md](USER_GUIDE.md)。
 
 首页为可公开浏览的角色探索页，提供精选预设、搜索和写实／动漫筛选。PC 使用左侧导航，手机使用底部导航；“聊天”展示最近会话，“我的角色”保留编辑、亲密度与回收站。选择角色后可查看详情并添加到自己的角色列表、进入聊天，仍遵循现有套餐角色上限；“生成”可选择已有角色，进入聊天中的图片生成。所有角色封面沿用原图与原始比例，未增加金币充值或视频功能。
 
-在设置的“外观与语言”中选择界面语言、显示模式和主题，修改后立即生效并自动保存。界面语言默认跟随浏览器，支持简体中文和 English；显示模式默认跟随系统，默认配色为“东京日落”。八套配色可分别搭配浅色或深色模式。登录前的选择保存在本机，首次登录的新账号会继承这些选择；已有账号以服务端保存的偏好为准，其他设备登录后也可恢复。保存失败时保留本机选择并提供重试。
+在设置的“外观与语言”中选择界面语言、显示模式和主题，修改后立即生效并自动保存。界面语言默认跟随浏览器，支持简体中文、English、日本語和 한국어；显示模式默认跟随系统，默认配色为“东京日落”。八套配色可分别搭配浅色或深色模式。登录前的选择保存在本机，首次登录的新账号会继承这些选择；已有账号以服务端保存的偏好为准，其他设备登录后也可恢复。保存失败时保留本机选择并提供重试。
 
 界面语言独立于设置中的“AI 回复语言”；用户输入、已有角色资料、聊天记录和记忆原文保持原样。登录邮件按登录页面当前选择的语言生成。
 
@@ -26,7 +26,7 @@ YUMEI 是可自托管的 AI 角色陪伴 Web 应用，支持文字与语音聊�
 
 ## 本地开发
 
-需要 Node.js 22、Corepack 和 MySQL 8。
+需要 Node.js 22 或 24、Corepack 和 MySQL 8。项目固定使用 pnpm 10.4.1；执行 `corepack pnpm` 可避免全局 pnpm 版本覆盖项目版本。开发、构建、启动和测试入口均支持 Windows PowerShell 与 Linux shell。
 
 ```bash
 corepack enable
@@ -93,7 +93,7 @@ COMFYUI_TIMEOUT_MS=600000
 
 ## 数据库迁移
 
-首版仅保留 [0000_init.sql](drizzle/0000_init.sql) 与对应快照，一次创建 16 张表，面向新的 YUMEI 数据库。
+当前处于开发阶段，不维护旧表结构兼容或旧数据升级。仅保留 [0000_init.sql](drizzle/0000_init.sql) 与对应快照，一次创建 23 张表，面向新的 YUMEI 数据库。已有开发库需要删除并重新创建后再迁移；不要在旧库上直接套用这个初始化基线。
 
 ```bash
 pnpm db:migrate                      # 应用已有迁移
@@ -101,7 +101,7 @@ pnpm db:generate --name=change_name   # 修改 schema 后生成增量迁移
 pnpm db:migrate
 ```
 
-正式使用后保留已经执行的迁移历史。初始迁移不能直接用于升级其他项目已有的数据库；跨部署导入的 BYOK 密文也不能复用，需要重新录入 Key。
+本阶段允许重建初始化基线并重置开发数据。跨部署导入的 BYOK 密文不能复用，需要重新录入 Key。
 
 ## 开发检查与测试
 
@@ -116,20 +116,27 @@ pnpm db:migrate
 
 生成的迁移、快照、ComfyUI JSON 工作流及两份导入的产品文档不参与格式化。GitHub Actions 在 push 和 Pull Request 时运行静态检查、测试库迁移、完整测试、时区专项和生产构建。
 
-完整测试需要**已应用迁移的专用 MySQL 测试库**，库名必须包含 `test`，测试会写入数据。启动时会检查连通性和迁移校验和，缺少配置或迁移不匹配会失败。Vitest 不会自动加载 `.env` 中的数据库连接，请显式传入：
+完整测试需要**已应用迁移的专用 MySQL 测试库**，库名必须包含 `test`，测试会写入数据。复制 `.env.test.example` 为 `.env.test.local` 并配置测试专用密码后，执行以下命令；测试不会将应用 `.env` 的密钥加载进测试进程。
 
 ```bash
-DATABASE_URL=mysql://root:testpass@127.0.0.1:3306/yumei_test TZ=UTC pnpm db:migrate
-DATABASE_URL=mysql://root:testpass@127.0.0.1:3306/yumei_test TZ=UTC pnpm test
+pnpm test:db:up
+pnpm test:db:migrate
+pnpm test
+# 初始化基线改变时，重建专用测试库并迁移（清除测试数据）
+pnpm test:db:reset
 ```
 
-完整测试在 UTC 下运行；通知频控还会单独以 Asia/Shanghai 应用时区验证。数据库日期编解码和连接会话统一 UTC。CI 会创建独立 MySQL、应用迁移并执行完整测试。本地回归不调用真实 AI、支付或邮件服务。
+环境变量优先于 `.env.test.local`，CI 显式提供 `DATABASE_URL`。启动时检查库名、与应用库的隔离、连通性和迁移校验和，配置错误会直接失败。完整测试默认在 UTC 下运行；通知频控还会单独以 Asia/Shanghai 应用时区验证。数据库日期编解码和连接会话统一 UTC。CI 创建独立 MySQL，执行依赖审计、迁移、完整测试和构建。本地回归不调用真实 AI、支付或邮件服务。
 
 ## 项目结构
 
 ```text
 client/       React 19、Tailwind 4、PWA 与静态角色资源
+  src/features/ 页面控制器与按业务划分的展示区块
 server/       Express、tRPC、Better-Auth、AI 服务及测试
+  database.ts 连接、事务类型与用户事务锁
+  repositories/ 按用户、角色、会话、相册等划分的数据操作
+  routers/    按业务划分的 tRPC 过程，由 routers.ts 组合
 shared/       前后端共享的类型、角色、配额和提示词规则
 drizzle/      MySQL schema、初始化 SQL 与迁移元数据
 workflows/    ComfyUI 工作流
@@ -137,5 +144,7 @@ docs/         产品 PRD 与原版设计说明书
 ```
 
 认证使用邮箱 magic-link 和数据库会话。业务写操作校验归属与 CSRF，用户 API Key 采用 AES-256-GCM 加密存储，响应只返回密钥是否设置及末四位。聊天正文通过 React 文本节点渲染。详细说明见 [SECURITY.md](SECURITY.md)。
+
+消息、图片和资料修改在业务事务中结算亲密度与心情；客户端不能单独上报奖励。会话与消息使用游标分页，搜索先约束用户归属。限流窗口、记忆提取任务和媒体回收队列持久化到数据库，任务以租约领取，重启后可恢复；达到重试上限的记忆任务保留为失败状态供排查。进程启动即恢复后台处理，退出时停止调度。
 
 贡献流程见 [CONTRIBUTING.md](CONTRIBUTING.md)，变更见 [CHANGELOG.md](CHANGELOG.md)。代码采用 [MIT License](LICENSE)。

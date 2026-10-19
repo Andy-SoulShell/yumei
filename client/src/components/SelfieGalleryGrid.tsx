@@ -43,7 +43,7 @@ export function SelfieGalleryGrid({
   return (
     <div
       className="columns-2 md:columns-3 gap-2 sm:gap-3"
-      aria-label={t("自拍照片")}
+      aria-label={t("gallery:selfie")}
     >
       {selfies.map((selfie, index) => (
         <Card
@@ -58,11 +58,11 @@ export function SelfieGalleryGrid({
             onClick={() =>
               window.open(selfie.imageUrl, "_blank", "noopener,noreferrer")
             }
-            aria-label={t("查看第 {v0} 张自拍原图", { v0: index + 1 })}
+            aria-label={t("gallery:viewSelfieAtFullSize", { count: index + 1 })}
           >
             <img
               src={selfie.imageUrl}
-              alt={selfie.userContext || t("自拍照片")}
+              alt={selfie.userContext || t("gallery:selfie")}
               loading="lazy"
               decoding="async"
               className="block w-full h-auto"
@@ -74,10 +74,12 @@ export function SelfieGalleryGrid({
                 className="truncate flex-1"
                 title={selfie.userContext || undefined}
               >
-                {selfie.userContext || t("自拍照片")}
+                {selfie.userContext || t("gallery:selfie")}
               </p>
               <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full shrink-0">
-                {selfie.mode === "mirror" ? t("镜子") : t("直拍")}
+                {selfie.mode === "mirror"
+                  ? t("gallery:mirror")
+                  : t("gallery:direct")}
               </span>
             </div>
             <div className="flex items-center justify-between gap-1">
@@ -90,8 +92,8 @@ export function SelfieGalleryGrid({
                   variant="ghost"
                   size="icon"
                   className="size-7"
-                  aria-label={t("下载第 {v0} 张自拍", { v0: index + 1 })}
-                  title={t("下载照片")}
+                  aria-label={t("gallery:downloadSelfie", { count: index + 1 })}
+                  title={t("gallery:downloadPhoto")}
                   onClick={() => onDownload(selfie.imageUrl, selfie.id)}
                 >
                   <Download className="size-3.5" />
@@ -103,8 +105,10 @@ export function SelfieGalleryGrid({
                       variant="ghost"
                       size="icon"
                       className="size-7 text-destructive hover:text-destructive"
-                      aria-label={t("删除第 {v0} 张自拍", { v0: index + 1 })}
-                      title={t("删除照片")}
+                      aria-label={t("gallery:deleteSelfie", {
+                        count: index + 1,
+                      })}
+                      title={t("gallery:deletePhoto")}
                       disabled={isDeleting}
                     >
                       <Trash2 className="size-3.5" />
@@ -112,18 +116,22 @@ export function SelfieGalleryGrid({
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>{t("确认删除")}</AlertDialogTitle>
+                      <AlertDialogTitle>
+                        {t("common:confirmDeletion")}
+                      </AlertDialogTitle>
                       <AlertDialogDescription>
-                        {t("确定要删除这张自拍吗？此操作无法撤销。")}
+                        {t("gallery:deleteThisSelfieThisActionCannotBeUndone")}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>{t("取消")}</AlertDialogCancel>
+                      <AlertDialogCancel>
+                        {t("common:cancel")}
+                      </AlertDialogCancel>
                       <AlertDialogAction
                         disabled={isDeleting}
                         onClick={() => onDelete(selfie.id)}
                       >
-                        {t("删除")}
+                        {t("common:delete")}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>

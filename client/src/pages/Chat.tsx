@@ -1,3 +1,6 @@
+import { apiErrorMessage } from "@/lib/errors";
+import { resolveSpeechLanguage, selectSpeechVoice } from "@/lib/speech";
+import { intimacyMessages } from "@/locales/domain";
 /** 角色会话页面，组合文字、语音、自拍、记忆与养成反馈。 */
 
 import { useI18n } from "@/lib/i18n";
@@ -90,34 +93,27 @@ function useTTS() {
   const speakBrowser = useCallback(
     (text: string) => {
       if (!("speechSynthesis" in window)) {
-        toast.error(t("当前浏览器不支持语音功能"));
+        toast.error(t("common:thisBrowserDoesNotSupportSpeech"));
         return;
       }
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = "zh-CN";
+      utterance.lang = resolveSpeechLanguage(
+        apiConfig?.preferences?.replyLanguage
+      );
       utterance.rate = playbackSpeed * 0.95; // 基础速度 0.95 * 用户选择的倍速
       utterance.pitch = 1.2;
       utterance.volume = 1;
       const voices = window.speechSynthesis.getVoices();
-      const zhFemaleVoice = voices.find(
-        v =>
-          v.lang.startsWith("zh") &&
-          (v.name.toLowerCase().includes("female") ||
-            v.name.includes("Xiaoxiao") ||
-            v.name.includes("Xiaoyi") ||
-            v.name.includes("女"))
-      );
-      const zhVoice =
-        zhFemaleVoice || voices.find(v => v.lang.startsWith("zh"));
-      if (zhVoice) utterance.voice = zhVoice;
+      const voice = selectSpeechVoice(voices, utterance.lang);
+      if (voice) utterance.voice = voice;
       utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => setIsSpeaking(false);
       utterance.onerror = () => setIsSpeaking(false);
       utteranceRef.current = utterance;
       window.speechSynthesis.speak(utterance);
     },
-    [playbackSpeed, t]
+    [playbackSpeed, t, apiConfig?.preferences?.replyLanguage]
   );
 
   // API 语音（ElevenLabs / Fish Audio）
@@ -138,7 +134,7 @@ function useTTS() {
             audio.onended = () => setIsSpeaking(false);
             audio.onerror = () => {
               setIsSpeaking(false);
-              toast.error(t("语音播放失败"));
+              toast.error(t("common:audioPlaybackFailed"));
             };
             audio.play().catch(() => {
               setIsSpeaking(false);
@@ -146,7 +142,11 @@ function useTTS() {
           },
           onError: error => {
             setIsSpeaking(false);
-            toast.error(t("语音生成失败：{v0}", { v0: error.message }));
+            toast.error(
+              t("chat:speechGenerationFailed", {
+                error: apiErrorMessage(error, t),
+              })
+            );
           },
         }
       );
@@ -290,12 +290,20 @@ export default function Chat() {
       setLocation(`/chat/${data.id}`);
     },
     onError: error =>
-      toast.error(t("新建对话失败：{v0}", { v0: error.message })),
+      toast.error(
+        t("chat:couldNotStartAConversation", {
+          error: apiErrorMessage(error, t),
+        })
+      ),
   });
   const resumeChat = trpc.conversation.resume.useMutation({
     onSuccess: data => setLocation(`/chat/${data.id}`, { replace: true }),
     onError: error =>
-      toast.error(t("打开对话失败：{v0}", { v0: error.message })),
+      toast.error(
+        t("common:couldNotOpenTheConversation", {
+          error: apiErrorMessage(error, t),
+        })
+      ),
   });
 
   // 亲密度经验值 mutation
@@ -319,11 +327,11 @@ export default function Chat() {
       if (data.imageGeneration) {
         await selfieQuota.refetch();
         if (data.imageGeneration === "completed") {
-          toast.success(t("自拍已发到当前对话"));
+          toast.success(t("chat:selfieSentToThisConversation"));
           if (girlfriend)
             addPoints.mutate({ girlfriendId: girlfriend.id, reason: "selfie" });
         } else {
-          toast.error(t("自拍生成失败，本次未扣额度，详情已显示在对话中"));
+          toast.error(t("chat:selfieGenerationFailedNoQuotaWasChargedDetails"));
           scrollToBottom();
           return;
         }
@@ -376,19 +384,26 @@ export default function Chat() {
     onError: (error, variables) => {
       setMessage(current => current || variables.content);
       void refetchMessages();
-      if (error.message.startsWith("LEVEL_LOCKED")) {
-        toast.error(error.message.replace("LEVEL_LOCKED: ", ""));
+      if (error.data?.business?.reason === "LEVEL_LOCKED") {
+        toast.error(
+          t("selfie:poseLocked", {
+            required: error.data.business.requiredLevel,
+            current: error.data.business.currentLevel,
+          })
+        );
         return;
       }
-      if (error.message.startsWith("UPGRADE_REQUIRED")) {
-        toast.error(t("当前套餐不支持此功能，去设置查看订阅选项"), {
+      if (error.data?.business?.reason === "UPGRADE_REQUIRED") {
+        toast.error(t("chat:yourPlanDoesNotIncludeThisFeatureView"), {
           action: {
-            label: t("去设置"),
+            label: t("chat:openSettings"),
             onClick: () => setLocation("/settings"),
           },
         });
       } else {
-        toast.error(t("发送失败：{v0}", { v0: error.message }));
+        toast.error(
+          t("chat:couldNotSend", { error: apiErrorMessage(error, t) })
+        );
       }
     },
   });
@@ -405,7 +420,7 @@ export default function Chat() {
     onSuccess: async () => {
       await refetchMessages();
       await selfieQuota.refetch();
-      toast.success(t("自拍照片生成成功！"));
+      toast.success(t("chat:selfieGenerated"));
       scrollToBottom();
       // 触发自拍亲密度经验值
       if (girlfriend) {
@@ -417,29 +432,31 @@ export default function Chat() {
     },
     onError: error => {
       void selfieQuota.refetch();
-      if (error.message.startsWith("LEVEL_LOCKED")) {
-        toast.error(error.message.replace("LEVEL_LOCKED: ", ""));
-      } else if (error.data?.code === "TOO_MANY_REQUESTS") {
+      if (error.data?.business?.reason === "LEVEL_LOCKED") {
         toast.error(
-          t(
-            "自拍额度已用完（在设置里查看套餐，或配置自己的 fal.ai Key 解除限制）"
-          ),
-          {
-            action: {
-              label: t("去设置"),
-              onClick: () => setLocation("/settings"),
-            },
-          }
+          t("selfie:poseLocked", {
+            required: error.data.business.requiredLevel,
+            current: error.data.business.currentLevel,
+          })
         );
-      } else if (error.message.startsWith("UPGRADE_REQUIRED")) {
-        toast.error(t("当前套餐不支持此功能，去设置查看订阅选项"), {
+      } else if (error.data?.code === "TOO_MANY_REQUESTS") {
+        toast.error(t("chat:selfieQuotaReachedCheckYourPlanOrAdd"), {
           action: {
-            label: t("去设置"),
+            label: t("chat:openSettings"),
+            onClick: () => setLocation("/settings"),
+          },
+        });
+      } else if (error.data?.business?.reason === "UPGRADE_REQUIRED") {
+        toast.error(t("chat:yourPlanDoesNotIncludeThisFeatureView"), {
+          action: {
+            label: t("chat:openSettings"),
             onClick: () => setLocation("/settings"),
           },
         });
       } else {
-        toast.error(t("生成自拍失败：{v0}", { v0: error.message }));
+        toast.error(
+          t("chat:selfieGenerationFailed", { error: apiErrorMessage(error, t) })
+        );
       }
     },
   });
@@ -449,7 +466,7 @@ export default function Chat() {
     onSuccess: async () => {
       await refetchMessages();
       await selfieQuota.refetch();
-      toast.success(t("合照生成成功！"));
+      toast.success(t("chat:couplePhotoGenerated"));
       scrollToBottom();
       if (girlfriend) {
         addPoints.mutate({ girlfriendId: girlfriend.id, reason: "selfie" });
@@ -458,26 +475,23 @@ export default function Chat() {
     onError: error => {
       void selfieQuota.refetch();
       if (error.data?.code === "TOO_MANY_REQUESTS") {
-        toast.error(
-          t(
-            "自拍额度已用完（在设置里查看套餐，或配置自己的 fal.ai Key 解除限制）"
-          ),
-          {
-            action: {
-              label: t("去设置"),
-              onClick: () => setLocation("/settings"),
-            },
-          }
-        );
-      } else if (error.message.startsWith("UPGRADE_REQUIRED")) {
-        toast.error(t("当前套餐不支持此功能，去设置查看订阅选项"), {
+        toast.error(t("chat:selfieQuotaReachedCheckYourPlanOrAdd"), {
           action: {
-            label: t("去设置"),
+            label: t("chat:openSettings"),
+            onClick: () => setLocation("/settings"),
+          },
+        });
+      } else if (error.data?.business?.reason === "UPGRADE_REQUIRED") {
+        toast.error(t("chat:yourPlanDoesNotIncludeThisFeatureView"), {
+          action: {
+            label: t("chat:openSettings"),
             onClick: () => setLocation("/settings"),
           },
         });
       } else {
-        toast.error(t("生成自拍失败：{v0}", { v0: error.message }));
+        toast.error(
+          t("chat:selfieGenerationFailed", { error: apiErrorMessage(error, t) })
+        );
       }
     },
   });
@@ -539,14 +553,10 @@ export default function Chat() {
   ) => {
     if (!currentConversationId) return;
     if (selfieRemaining !== null && selfieRemaining <= 0) {
-      toast.error(
-        t(
-          "自拍额度已用完（在设置里查看套餐，或配置自己的 fal.ai Key 解除限制）"
-        )
-      );
+      toast.error(t("chat:selfieQuotaReachedCheckYourPlanOrAdd"));
       return;
     }
-    toast.info(t("正在生成自拍照片..."));
+    toast.info(t("chat:generatingASelfie"));
     generateSelfie.mutate({
       conversationId: currentConversationId,
       userContext: message.trim(),
@@ -562,7 +572,7 @@ export default function Chat() {
     reader.onload = () => {
       const dataUrl = reader.result as string;
       const base64 = dataUrl.split(",")[1] ?? "";
-      toast.info(t("正在生成合照..."));
+      toast.info(t("chat:generatingACouplePhoto"));
       generateCouple.mutate({
         conversationId: currentConversationId!,
         userPhotoBase64: base64,
@@ -587,7 +597,7 @@ export default function Chat() {
 
     // 最短录音时长检查
     if (currentDuration < 1) {
-      toast.info(t("录音时间太短，请重试"));
+      toast.info(t("chat:recordingIsTooShortPleaseTryAgain"));
       return;
     }
 
@@ -599,7 +609,7 @@ export default function Chat() {
       const base64 = (reader.result as string).split(",")[1];
       if (!base64) {
         setIsTranscribing(false);
-        toast.error(t("音频数据读取失败"));
+        toast.error(t("chat:couldNotReadTheAudio"));
         return;
       }
 
@@ -616,8 +626,8 @@ export default function Chat() {
                 content: data.text,
               });
               toast.success(
-                t("语音识别成功（{v0}秒）", {
-                  v0: data.duration?.toFixed(1) || 0,
+                t("chat:audioTranscribedS", {
+                  count: data.duration?.toFixed(1) || 0,
                 })
               );
               // 触发语音消息亲密度经验值
@@ -629,19 +639,23 @@ export default function Chat() {
                 });
               }
             } else {
-              toast.error(t("未识别到有效语音内容，请重试"));
+              toast.error(t("chat:noSpeechWasRecognizedPleaseTryAgain"));
             }
           },
           onError: error => {
             setIsTranscribing(false);
-            toast.error(t("语音识别失败：{v0}", { v0: error.message }));
+            toast.error(
+              t("chat:transcriptionFailed", {
+                error: apiErrorMessage(error, t),
+              })
+            );
           },
         }
       );
     };
     reader.onerror = () => {
       setIsTranscribing(false);
-      toast.error(t("音频数据读取失败"));
+      toast.error(t("chat:couldNotReadTheAudio"));
     };
     reader.readAsDataURL(result.blob);
   }, [
@@ -674,11 +688,13 @@ export default function Chat() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
         <Heart className="w-16 h-16 text-primary mb-4" />
-        <h2 className="text-2xl font-bold mb-2">{t("还没有女友配置")}</h2>
+        <h2 className="text-2xl font-bold mb-2">{t("chat:noCompanionYet")}</h2>
         <p className="text-muted-foreground mb-4">
-          {t("请先创建你的专属女友")}
+          {t("chat:createYourCompanionFirst")}
         </p>
-        <Button onClick={() => setLocation("/setup")}>{t("去设置")}</Button>
+        <Button onClick={() => setLocation("/setup")}>
+          {t("chat:openSettings")}
+        </Button>
       </div>
     );
   }
@@ -696,12 +712,16 @@ export default function Chat() {
     string,
     { emoji: string; label: string; color: string }
   > = {
-    excited: { emoji: "🥰", label: t("超开心"), color: "text-primary" },
-    happy: { emoji: "😊", label: t("开心"), color: "text-green-500" },
-    content: { emoji: "🙂", label: t("满足"), color: "text-blue-500" },
-    neutral: { emoji: "😐", label: t("平静"), color: "text-yellow-500" },
-    lonely: { emoji: "😢", label: t("想你了"), color: "text-purple-500" },
-    sad: { emoji: "😭", label: t("伤心"), color: "text-red-500" },
+    excited: { emoji: "🥰", label: t("chat:excited"), color: "text-primary" },
+    happy: { emoji: "😊", label: t("chat:happy"), color: "text-green-500" },
+    content: { emoji: "🙂", label: t("chat:content"), color: "text-blue-500" },
+    neutral: { emoji: "😐", label: t("chat:calm"), color: "text-yellow-500" },
+    lonely: {
+      emoji: "😢",
+      label: t("chat:missingYou"),
+      color: "text-purple-500",
+    },
+    sad: { emoji: "😭", label: t("chat:sad"), color: "text-red-500" },
   };
   const currentMoodInfo = moodData ? MOOD_CONFIG[moodData.mood] : null;
 
@@ -732,9 +752,9 @@ export default function Chat() {
             {currentMoodInfo && (
               <span
                 className="text-sm"
-                title={t("{v0} ({v1}分)", {
-                  v0: currentMoodInfo.label,
-                  v1: moodData!.moodScore,
+                title={t("common:points", {
+                  mood: currentMoodInfo.label,
+                  points: moodData!.moodScore,
                 })}
               >
                 {currentMoodInfo.emoji}
@@ -751,14 +771,14 @@ export default function Chat() {
                   type="button"
                   className={`text-xs flex items-center gap-0.5 ${info.color} hover:opacity-80 transition-opacity`}
                   onClick={() => setShowIntimacyPanel(true)}
-                  title={t("亲密度: {v0} Lv.{v1}", {
-                    v0: t(info.name),
-                    v1: level,
+                  title={t("chat:intimacyLv", {
+                    name: t(intimacyMessages[info.level].name),
+                    level: level,
                   })}
                 >
                   <span>{info.emoji}</span>
                   <span className="font-medium">
-                    {t("Lv.")}
+                    {t("common:lv")}
                     {level}
                   </span>
                 </Button>
@@ -768,14 +788,17 @@ export default function Chat() {
           <p className="text-xs text-muted-foreground">
             {currentMoodInfo ? (
               <span className={currentMoodInfo.color}>
-                {t(currentMoodInfo.label)}
+                {currentMoodInfo.label}
               </span>
             ) : (
-              t("在线")
+              t("chat:online")
             )}
-            {ttsLabel ? t(" · 语音: {v0}", { v0: ttsLabel }) : ""}
+            {ttsLabel ? t("chat:voice", { name: ttsLabel }) : ""}
             {/* / SB 243：AI 身份常驻披露 */}
-            <span className="opacity-70"> {t("· AI 虚拟角色，非真人")}</span>
+            <span className="opacity-70">
+              {" "}
+              {t("chat:aiCompanionNotARealPerson")}
+            </span>
           </p>
         </div>
 
@@ -783,8 +806,8 @@ export default function Chat() {
         <Button
           variant="ghost"
           size="sm"
-          aria-label={t("新建对话")}
-          title={t("新建对话，原有记录会保留")}
+          aria-label={t("chat:newConversation")}
+          title={t("chat:startANewConversationYourHistoryWillBe")}
           disabled={
             !currentConversationId ||
             createConversation.isPending ||
@@ -797,19 +820,23 @@ export default function Chat() {
           onClick={() =>
             createConversation.mutate({
               girlfriendId: girlfriend.id,
-              title: t("与 {v0} 的对话", { v0: girlfriend.name }),
+              title: t("chat:conversationWith", { name: girlfriend.name }),
             })
           }
         >
           <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline ml-1">{t("新建对话")}</span>
+          <span className="hidden sm:inline ml-1">
+            {t("chat:newConversation")}
+          </span>
         </Button>
         <Button
           variant={autoPlay ? "default" : "ghost"}
           size="icon"
           className="h-8 w-8 sm:h-10 sm:w-10"
           onClick={toggleAutoPlay}
-          title={autoPlay ? t("关闭自动语音") : t("开启自动语音")}
+          title={
+            autoPlay ? t("chat:turnOffAutoRead") : t("chat:turnOnAutoRead")
+          }
         >
           {autoPlay ? (
             <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -825,11 +852,11 @@ export default function Chat() {
               variant="ghost"
               size="sm"
               className="text-xs font-mono px-1.5 sm:px-2 h-8"
-              aria-label={t("语音播放速度")}
-              title={t("语音播放速度")}
+              aria-label={t("chat:playbackSpeed")}
+              title={t("chat:playbackSpeed")}
             >
               {playbackSpeed}
-              {t("x")}
+              {t("chat:x")}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -841,7 +868,9 @@ export default function Chat() {
                 );
                 if (!option) return;
                 updateSpeed(option.value);
-                toast.success(t("播放速度已设为 {v0}", { v0: option.label }));
+                toast.success(
+                  t("chat:playbackSpeedSetTo", { speed: option.label })
+                );
               }}
             >
               {SPEED_OPTIONS.map(option => (
@@ -873,7 +902,7 @@ export default function Chat() {
           variant="ghost"
           size="icon"
           className="h-8 w-8 sm:h-10 sm:w-10"
-          title={t("她记得你的事")}
+          title={t("common:memoriesAboutYou")}
           onClick={() => setLocation(`/memories/${girlfriend.id}`)}
         >
           <BookHeart className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -905,13 +934,10 @@ export default function Chat() {
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <Heart className="w-12 h-12 text-primary mb-4" />
                 <p className="text-muted-foreground">
-                  {t("开始和")}
-                  {girlfriend.name} {t("聊天吧~")}
+                  {t("chat:empty.start", { name: girlfriend.name })}
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  {t(
-                    "直接说「发张自拍」即可生成照片，也可以点击下方相机选择姿势"
-                  )}
+                  {t("chat:askForASelfieOrTapTheCamera")}
                 </p>
               </div>
             )
@@ -950,11 +976,11 @@ export default function Chat() {
                             href={msg.imageUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            aria-label={t("Selfie")}
+                            aria-label={t("chat:selfie")}
                           >
                             <img
                               src={msg.imageUrl}
-                              alt={t("Selfie")}
+                              alt={t("chat:selfie")}
                               className="rounded-lg max-w-full max-h-[65vh] w-auto h-auto object-contain"
                             />
                           </a>
@@ -980,8 +1006,8 @@ export default function Chat() {
                         type="button"
                         onClick={() => handleSpeakMessage(msg.content)}
                         className="self-start ml-1 text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-                        title={t("播放语音{v0}", {
-                          v0: ttsLabel ? ` (${ttsLabel})` : "",
+                        title={t("chat:playAudio", {
+                          suffix: ttsLabel ? ` (${ttsLabel})` : "",
                         })}
                       >
                         {isSpeaking ? (
@@ -995,7 +1021,9 @@ export default function Chat() {
 
                 {msg.role === "user" && (
                   <Avatar className="w-8 h-8 flex-shrink-0">
-                    <AvatarFallback>{user?.name?.[0] || t("U")}</AvatarFallback>
+                    <AvatarFallback>
+                      {user?.name?.[0] || t("chat:u")}
+                    </AvatarFallback>
                   </Avatar>
                 )}
               </div>
@@ -1014,7 +1042,9 @@ export default function Chat() {
                 {sendMessage.variables.content}
               </div>
               <Avatar className="w-8 h-8 flex-shrink-0">
-                <AvatarFallback>{user?.name?.[0] || t("U")}</AvatarFallback>
+                <AvatarFallback>
+                  {user?.name?.[0] || t("chat:u")}
+                </AvatarFallback>
               </Avatar>
             </div>
           )}
@@ -1035,7 +1065,7 @@ export default function Chat() {
                   className="flex items-center gap-2 text-sm text-muted-foreground"
                 >
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  {t("正在拍自拍，排队或生成中，请稍候…")}
+                  {t("chat:yourSelfieIsQueuedOrBeingGeneratedPlease")}
                 </div>
               ) : (
                 <div className="flex gap-1.5">
@@ -1069,7 +1099,7 @@ export default function Chat() {
             <div className="bg-muted rounded-2xl px-4 py-3">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                {t("正在排队或生成图片，请稍候…")}
+                {t("chat:yourImageIsQueuedOrBeingGeneratedPlease")}
               </div>
             </div>
           </div>
@@ -1083,18 +1113,18 @@ export default function Chat() {
         <div className="mx-3 sm:mx-4 mb-2 rounded-lg border border-amber-400/50 bg-amber-50 dark:bg-amber-950/40 px-3 py-2.5 text-xs sm:text-sm text-amber-900 dark:text-amber-100 flex items-start gap-2">
           <Heart className="w-4 h-4 mt-0.5 shrink-0" />
           <div className="flex-1">
-            <p className="font-medium">{t("你并不孤单，有人愿意倾听。")}</p>
+            <p className="font-medium">
+              {t("chat:youAreNotAloneSomeoneIsHereTo")}
+            </p>
             <p className="mt-0.5 opacity-90">
-              {t(
-                "中国心理援助热线 400-161-9995（24 小时） · US &amp; Canada: call/text 988 · 其他地区："
-              )}
+              {t("chat:china400161999524HoursUSCanada")}
               <a
                 href="https://findahelpline.com"
                 target="_blank"
                 rel="noreferrer"
                 className="underline"
               >
-                {t("findahelpline.com")}
+                {t("common:findahelplineCom")}
               </a>
             </p>
           </div>
@@ -1104,7 +1134,7 @@ export default function Chat() {
             type="button"
             className="opacity-60 hover:opacity-100 shrink-0"
             onClick={() => setShowCrisisAlert(false)}
-            aria-label={t("关闭提示")}
+            aria-label={t("chat:dismiss")}
           >
             ✕
           </Button>
@@ -1134,12 +1164,12 @@ export default function Chat() {
           }
           title={
             apiConfig?.imageProvider.configured === false
-              ? t("生图服务尚未配置")
+              ? t("chat:imageGenerationIsNotConfigured")
               : selfieRemaining === null || selfieRemaining === Infinity
-                ? t("让她拍一张自拍")
+                ? t("chat:askForASelfie")
                 : selfieRemaining > 0
-                  ? t("让她拍一张自拍（剩余 {v0} 张）", { v0: selfieRemaining })
-                  : t("自拍额度已用完")
+                  ? t("chat:askForASelfieRemaining", { count: selfieRemaining })
+                  : t("chat:selfieQuotaReached")
           }
           className="relative shrink-0 text-primary hover:text-primary hover:bg-primary/10"
         >
@@ -1162,7 +1192,7 @@ export default function Chat() {
               ref={inputRef}
               value={message}
               onChange={e => setMessage(e.target.value)}
-              placeholder={t("和 {v0} 说点什么...", { v0: girlfriend.name })}
+              placeholder={t("chat:saySomethingTo", { name: girlfriend.name })}
               disabled={sendMessage.isPending || generateSelfie.isPending}
               className="flex-1"
             />
@@ -1174,7 +1204,7 @@ export default function Chat() {
                 size="icon"
                 onClick={() => switchInputMode("voice")}
                 disabled={sendMessage.isPending || generateSelfie.isPending}
-                title={t("切换到语音输入")}
+                title={t("chat:switchToVoiceInput")}
                 className="shrink-0 text-muted-foreground hover:text-primary"
               >
                 <Mic className="w-5 h-5" />
@@ -1217,7 +1247,7 @@ export default function Chat() {
               size="icon"
               onClick={() => switchInputMode("text")}
               disabled={isRecording || isTranscribing}
-              title={t("切换到文字输入")}
+              title={t("chat:switchToTextInput")}
               className="shrink-0 text-muted-foreground hover:text-primary"
             >
               <Keyboard className="w-5 h-5" />

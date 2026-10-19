@@ -35,7 +35,7 @@ let current: ReturnType<typeof usePreferences>;
 function Probe() {
   current = usePreferences();
   const { t } = useI18n();
-  return <span>{t("设置")}</span>;
+  return <span>{t("common:settings")}</span>;
 }
 let root: Root;
 let container: HTMLDivElement;
@@ -87,6 +87,24 @@ afterEach(async () => {
 });
 
 describe("interface preference lifecycle", () => {
+  it("switches Japanese and Korean text, fonts and wrapping immediately", async () => {
+    await render();
+    await change({ language: "ja" });
+    expect(container.textContent).toBe("設定");
+    expect(document.documentElement.lang).toBe("ja");
+    expect(
+      document.querySelector<HTMLLinkElement>("#locale-font")?.href
+    ).toContain("Noto+Sans+JP");
+    await change({ language: "ko" });
+    expect(container.textContent).toBe("설정");
+    expect(document.documentElement.lang).toBe("ko");
+    expect(
+      document.documentElement.style.getPropertyValue("--locale-word-break")
+    ).toBe("keep-all");
+    expect(
+      document.querySelector<HTMLLinkElement>("#locale-font")?.href
+    ).toContain("Noto+Sans+KR");
+  });
   it("uses system defaults, applies a guest choice immediately and restores it", async () => {
     await render();
     expect(current.locale).toBe("en");

@@ -46,7 +46,7 @@ export function PushCard() {
     try {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
-        toast.error(t("浏览器拒绝了通知权限"));
+        toast.error(t("notifications:notificationPermissionWasDenied"));
         return;
       }
       const registration = await navigator.serviceWorker.ready;
@@ -62,9 +62,13 @@ export function PushCard() {
         keys: { p256dh: json.keys!.p256dh, auth: json.keys!.auth },
       });
       await utils.push.status.invalidate();
-      toast.success(t("推送已开启，她想你的时候会告诉你～"));
+      toast.success(t("notifications:pushNotificationsEnabled"));
     } catch (e: any) {
-      toast.error(t("开启推送失败：{v0}", { v0: e?.message ?? e }));
+      toast.error(
+        t("notifications:couldNotEnableNotifications", {
+          error: e?.message ?? e,
+        })
+      );
     } finally {
       setBusy(false);
     }
@@ -82,9 +86,13 @@ export function PushCard() {
         await subscription.unsubscribe();
       }
       await utils.push.status.invalidate();
-      toast.success(t("推送已关闭"));
+      toast.success(t("notifications:pushNotificationsDisabled"));
     } catch (e: any) {
-      toast.error(t("关闭推送失败：{v0}", { v0: e?.message ?? e }));
+      toast.error(
+        t("notifications:couldNotDisableNotifications", {
+          error: e?.message ?? e,
+        })
+      );
     } finally {
       setBusy(false);
     }
@@ -95,12 +103,10 @@ export function PushCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bell className="w-5 h-5 text-primary" />
-          {t("推送通知")}
+          {t("notifications:pushNotifications")}
         </CardTitle>
         <CardDescription>
-          {t(
-            "开启后，她的主动消息（早安、惦记着你说过的事）会推送到这台设备。每天最多 1 条。"
-          )}
+          {t("notifications:receiveProactiveMessagesOnThisDeviceSuchAs")}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -111,7 +117,7 @@ export function PushCard() {
             ) : (
               <BellOff className="w-4 h-4 mr-1.5" />
             )}
-            {t("关闭本设备推送")}
+            {t("notifications:disablePushOnThisDevice")}
           </Button>
         ) : (
           <Button onClick={enable} disabled={busy}>
@@ -120,7 +126,7 @@ export function PushCard() {
             ) : (
               <Bell className="w-4 h-4 mr-1.5" />
             )}
-            {t("开启推送")}
+            {t("notifications:enablePush")}
           </Button>
         )}
       </CardContent>

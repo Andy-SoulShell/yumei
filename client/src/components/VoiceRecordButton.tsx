@@ -96,7 +96,7 @@ export function VoiceRecordButton({
       <div className="flex-1 h-11 rounded-full bg-muted flex items-center justify-center gap-2 select-none">
         <Loader2 className="w-4 h-4 animate-spin text-primary" />
         <span className="text-sm text-muted-foreground">
-          {t("正在识别语音...")}
+          {t("voice:transcribing")}
         </span>
       </div>
     );
@@ -165,13 +165,13 @@ export function VoiceRecordButton({
             {formatDuration(duration)}
           </span>
           <span className="text-xs opacity-80">
-            {cancelZone ? t("松手取消") : t("松手发送")}
+            {cancelZone ? t("voice:releaseToCancel") : t("voice:releaseToSend")}
           </span>
         </>
       ) : (
         <>
           <Mic className="w-4 h-4" />
-          <span className="text-sm">{t("按住说话")}</span>
+          <span className="text-sm">{t("voice:holdToTalk")}</span>
         </>
       )}
 

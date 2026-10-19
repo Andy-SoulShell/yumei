@@ -1,3 +1,5 @@
+import { LANGUAGES, LOCALES } from "@shared/locales";
+import { themeMessages } from "@/locales/domain";
 /** 参考主题色卡的八套配色选择，以及独立的界面语言和显示模式。 */
 import { Check, Globe, Monitor, Moon, Palette, Sun } from "lucide-react";
 import {
@@ -37,13 +39,19 @@ export function LanguagePicker() {
         value={preferences.language}
         onValueChange={language => update({ language: language as UiLanguage })}
       >
-        <SelectTrigger aria-label={t("界面语言")} className="min-w-36">
+        <SelectTrigger
+          aria-label={t("appearance:interfaceLanguage")}
+          className="min-w-36"
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="system">{t("跟随系统")}</SelectItem>
-          <SelectItem value="zh-CN">简体中文</SelectItem>
-          <SelectItem value="en">English</SelectItem>
+          <SelectItem value="system">{t("appearance:system")}</SelectItem>
+          {LOCALES.map(locale => (
+            <SelectItem key={locale} value={locale}>
+              {LANGUAGES[locale].label}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
     </div>
@@ -54,36 +62,44 @@ export function LanguagePicker() {
 export function AppearanceSettings() {
   const { preferences, update, saving, saveError, retry } = usePreferences();
   const { t } = useI18n();
-  const modes: { value: ColorMode; label: string; icon: typeof Sun }[] = [
-    { value: "system", label: "跟随系统", icon: Monitor },
-    { value: "light", label: "浅色", icon: Sun },
-    { value: "dark", label: "深色", icon: Moon },
+  const modes: {
+    value: ColorMode;
+    label: import("@shared/i18n").StaticMessageKey;
+    icon: typeof Sun;
+  }[] = [
+    { value: "system", label: "appearance:system", icon: Monitor },
+    { value: "light", label: "common:light", icon: Sun },
+    { value: "dark", label: "common:dark", icon: Moon },
   ];
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Palette className="h-5 w-5 text-primary" />
-          {t("外观与语言")}
+          {t("appearance:appearanceLanguage")}
         </CardTitle>
         <CardDescription>
-          {t("按你的偏好显示，选择后自动保存到账号。")}
+          {t("appearance:makeYUMEIYoursChoicesAreSavedToYour")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-medium">{t("界面语言")}</p>
+            <p className="text-sm font-medium">
+              {t("appearance:interfaceLanguage")}
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {t("仅影响界面，不改变 AI 回复语言和聊天记录。")}
+              {t("appearance:onlyChangesTheInterfaceAIReplyLanguageAnd")}
             </p>
           </div>
           <LanguagePicker />
         </div>
         <fieldset>
-          <legend className="mb-3 text-sm font-medium">{t("显示模式")}</legend>
+          <legend className="mb-3 text-sm font-medium">
+            {t("appearance:displayMode")}
+          </legend>
           <RadioGroup
-            aria-label={t("显示模式")}
+            aria-label={t("appearance:displayMode")}
             className="grid grid-cols-3 gap-2"
             value={preferences.colorMode}
             onValueChange={colorMode =>
@@ -104,9 +120,11 @@ export function AppearanceSettings() {
           </RadioGroup>
         </fieldset>
         <fieldset>
-          <legend className="mb-3 text-sm font-medium">{t("主题")}</legend>
+          <legend className="mb-3 text-sm font-medium">
+            {t("appearance:theme")}
+          </legend>
           <RadioGroup
-            aria-label={t("主题")}
+            aria-label={t("appearance:theme")}
             className="grid grid-cols-1 gap-2.5 sm:grid-cols-2"
             value={preferences.theme}
             onValueChange={theme => update({ theme: theme as ThemeId })}
@@ -134,10 +152,10 @@ export function AppearanceSettings() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold">
-                      {t(theme.name)}
+                      {t(themeMessages[id].name)}
                     </span>
                     <span className="mt-1 block text-xs text-muted-foreground">
-                      {t(theme.description)}
+                      {t(themeMessages[id].description)}
                     </span>
                   </span>
                   {selected && (
@@ -153,7 +171,7 @@ export function AppearanceSettings() {
         <div aria-live="polite" className="text-xs text-muted-foreground">
           {saveError ? (
             <div className="flex items-center justify-between gap-2 text-destructive">
-              <span>{t("偏好尚未同步到账号，当前选择已在本机保留。")}</span>
+              <span>{t("appearance:notSyncedToYourAccountYetYourChoice")}</span>
               <Button
                 type="button"
                 size="sm"
@@ -161,13 +179,13 @@ export function AppearanceSettings() {
                 disabled={saving}
                 onClick={retry}
               >
-                {t("重试保存")}
+                {t("appearance:retrySave")}
               </Button>
             </div>
           ) : saving ? (
-            t("正在同步偏好…")
+            t("appearance:syncingPreferences")
           ) : (
-            t("选择后立即生效")
+            t("appearance:changesApplyImmediately")
           )}
         </div>
       </CardContent>

@@ -1,7 +1,7 @@
 /** 以本地日期字符串为边界的日历选择器，避免 UTC 时区导致生日偏移。 */
 import { useState } from "react";
 import { format, isValid, parse } from "date-fns";
-import { enUS, zhCN } from "date-fns/locale";
+import { LANGUAGES } from "@shared/locales";
 import { CalendarIcon } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "./button";
@@ -57,7 +57,7 @@ export function DatePicker({
         <Calendar
           mode="single"
           selected={selected}
-          locale={locale === "en" ? enUS : zhCN}
+          locale={LANGUAGES[locale].calendar}
           captionLayout="dropdown"
           startMonth={new Date(1900, 0, 1)}
           endMonth={maxDate}

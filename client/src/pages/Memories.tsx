@@ -1,3 +1,4 @@
+import { memoryMessages } from "@/locales/domain";
 /** 指定角色的长期记忆列表与用户管理入口。 */
 
 import { useI18n } from "@/lib/i18n";
@@ -6,11 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import {
-  MEMORY_CATEGORY_LABELS,
-  memoryCapacity,
-  type MemoryCategory,
-} from "../../../shared/memory";
+import { memoryCapacity, type MemoryCategory } from "../../../shared/memory";
 import {
   ArrowLeft,
   BookHeart,
@@ -47,14 +44,14 @@ export default function Memories() {
   const deleteMemory = trpc.memory.delete.useMutation({
     onSuccess: () => {
       utils.memory.list.invalidate({ girlfriendId });
-      toast.success(t("已删除这条记忆"));
+      toast.success(t("memories:memoryDeleted"));
     },
-    onError: e => toast.error(t("删除失败：{v0}", { v0: e.message })),
+    onError: e => toast.error(t("common:couldNotDelete", { error: e.message })),
   });
 
   const setPinned = trpc.memory.setPinned.useMutation({
     onSuccess: () => utils.memory.list.invalidate({ girlfriendId }),
-    onError: e => toast.error(t("操作失败：{v0}", { v0: e.message })),
+    onError: e => toast.error(t("memories:actionFailed", { error: e.message })),
   });
 
   if (authLoading || isLoading) {
@@ -65,7 +62,7 @@ export default function Memories() {
     );
   }
 
-  const categories = Object.keys(MEMORY_CATEGORY_LABELS) as MemoryCategory[];
+  const categories = Object.keys(memoryMessages) as MemoryCategory[];
   const grouped = categories
     .map(category => ({
       category,
@@ -88,12 +85,11 @@ export default function Memories() {
         <div className="flex-1 min-w-0">
           <h1 className="font-semibold text-sm sm:text-base truncate">
             {girlfriend
-              ? t("{v0} 记得你的事", { v0: girlfriend.name })
-              : t("她记得你的事")}
+              ? t("memories:whatRemembersAboutYou", { name: girlfriend.name })
+              : t("common:memoriesAboutYou")}
           </h1>
           <p className="text-xs text-muted-foreground">
-            {memories?.length ?? 0} / {capacity}{" "}
-            {t("条 · 亲密度越高，记得越多")}
+            {t("memories:capacity", { count: memories?.length ?? 0, capacity })}
           </p>
         </div>
       </header>
@@ -102,10 +98,12 @@ export default function Memories() {
         {!memories || memories.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <BookHeart className="w-12 h-12 text-muted-foreground/50 mb-4" />
-            <p className="text-muted-foreground">{t("她还没有记住你的事")}</p>
+            <p className="text-muted-foreground">
+              {t("memories:noMemoriesYet")}
+            </p>
             <p className="text-xs text-muted-foreground mt-2 max-w-xs">
               {t(
-                "多聊聊你自己——工作、喜好、最近发生的事。每聊几轮，她会自动记下重要的内容。"
+                "memories:shareYourWorkInterestsAndRecentExperiencesImportant"
               )}
             </p>
             <Button
@@ -113,14 +111,14 @@ export default function Memories() {
               className="mt-6"
               onClick={() => setLocation(`/chat/${girlfriendId}`)}
             >
-              {t("去聊天")}
+              {t("common:openChat")}
             </Button>
           </div>
         ) : (
           grouped.map(group => (
             <section key={group.category}>
               <h2 className="text-sm font-medium text-muted-foreground mb-2">
-                {t(MEMORY_CATEGORY_LABELS[group.category])}
+                {t(memoryMessages[group.category])}
                 <span className="ml-2 opacity-60">{group.items.length}</span>
               </h2>
               <div className="space-y-2">
@@ -137,7 +135,7 @@ export default function Memories() {
                               variant="secondary"
                               className="text-[10px] px-1.5 py-0"
                             >
-                              {t("已置顶")}
+                              {t("memories:pinned")}
                             </Badge>
                           )}
                           <span className="text-[10px] text-muted-foreground">
@@ -153,8 +151,8 @@ export default function Memories() {
                         className="w-8 h-8 shrink-0 text-muted-foreground hover:text-primary"
                         title={
                           memory.pinned
-                            ? t("取消置顶")
-                            : t("置顶（不会被自动遗忘）")
+                            ? t("memories:unpin")
+                            : t("memories:pinToKeepThisMemory")
                         }
                         onClick={() =>
                           setPinned.mutate({
@@ -173,7 +171,7 @@ export default function Memories() {
                         variant="ghost"
                         size="icon"
                         className="w-8 h-8 shrink-0 text-muted-foreground hover:text-destructive"
-                        title={t("删除这条记忆")}
+                        title={t("memories:deleteMemory")}
                         onClick={() => deleteMemory.mutate({ id: memory.id })}
                       >
                         <Trash2 className="w-4 h-4" />

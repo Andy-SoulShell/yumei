@@ -1,5 +1,8 @@
 /** 用户界面偏好的稳定标识；与 AI 回复语言及用户创作内容相互独立。 */
-export const UI_LANGUAGES = ["system", "zh-CN", "en"] as const;
+import { FALLBACK_LOCALE, LOCALES, matchLocale, type Locale } from "./locales";
+export { LANGUAGES, LOCALES, normalizeLocale } from "./locales";
+export type { Locale } from "./locales";
+export const UI_LANGUAGES = ["system", ...LOCALES] as const;
 export const COLOR_MODES = ["system", "light", "dark"] as const;
 export const THEME_IDS = [
   "tokyo-sunset",
@@ -13,7 +16,6 @@ export const THEME_IDS = [
 ] as const;
 
 export type UiLanguage = (typeof UI_LANGUAGES)[number];
-export type Locale = "zh-CN" | "en";
 export type ColorMode = (typeof COLOR_MODES)[number];
 export type ThemeId = (typeof THEME_IDS)[number];
 export interface InterfacePreferences {
@@ -45,15 +47,15 @@ export function parsePreferences(value: unknown): InterfacePreferences {
   };
 }
 
-/** 按浏览器语言优先级解析自动语言，中文使用简体中文，其余回退英文。 */
+/** 按浏览器优先级从注册语言中选择，所有候选均不支持时回退英文。 */
 export function resolveLocale(
   language: UiLanguage,
   browserLanguages: readonly string[]
 ): Locale {
   if (language !== "system") return language;
   for (const candidate of browserLanguages) {
-    if (/^zh(?:-|$)/i.test(candidate)) return "zh-CN";
-    if (/^en(?:-|$)/i.test(candidate)) return "en";
+    const matched = matchLocale(candidate);
+    if (matched) return matched;
   }
-  return "en";
+  return FALLBACK_LOCALE;
 }

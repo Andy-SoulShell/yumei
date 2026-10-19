@@ -1075,14 +1075,14 @@
         },
         "title": {
           "name": "title",
-          "type": "varchar(200)",
+          "type": "json",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
         "content": {
           "name": "content",
-          "type": "text",
+          "type": "json",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -1684,7 +1684,7 @@
         },
         "language": {
           "name": "language",
-          "type": "enum('system','zh-CN','en')",
+          "type": "varchar(35)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,

@@ -23,11 +23,11 @@ export default function Gallery() {
   const { data: selfies, isLoading, refetch } = trpc.selfie.list.useQuery();
   const deleteSelfie = trpc.selfie.delete.useMutation({
     onSuccess: () => {
-      toast.success(t("删除成功"));
+      toast.success(t("gallery:deleted"));
       refetch();
     },
     onError: error => {
-      toast.error(t("删除失败：{v0}", { v0: error.message }));
+      toast.error(t("common:couldNotDelete", { error: error.message }));
     },
   });
 
@@ -43,9 +43,9 @@ export default function Gallery() {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      toast.success(t("下载成功"));
+      toast.success(t("gallery:downloaded"));
     } catch (error) {
-      toast.error(t("下载失败"));
+      toast.error(t("gallery:downloadFailed"));
     }
   };
 
@@ -59,11 +59,13 @@ export default function Gallery() {
         <Button variant="ghost" size="icon" onClick={() => setLocation("/")}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h1 className="text-lg font-semibold flex-1">{t("自拍画廊")}</h1>
+        <h1 className="text-lg font-semibold flex-1">
+          {t("common:photoGallery")}
+        </h1>
         <Button
           variant="ghost"
           size="icon"
-          aria-label={t("切换显示模式")}
+          aria-label={t("common:toggleDisplayMode")}
           onClick={toggleTheme}
         >
           {theme === "light" ? (
@@ -84,18 +86,19 @@ export default function Gallery() {
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <ImageIcon className="w-16 h-16 text-muted-foreground mb-4" />
             <h2 className="text-xl font-semibold mb-2">
-              {t("还没有自拍照片")}
+              {t("gallery:noSelfiesYet")}
             </h2>
             <p className="text-muted-foreground mb-4">
-              {t("在聊天中说「发张自拍」，或点击相机选择场景和姿势")}
+              {t("gallery:askForASelfieInChatOrUse")}
             </p>
-            <Button onClick={() => setLocation("/chat")}>{t("去聊天")}</Button>
+            <Button onClick={() => setLocation("/chat")}>
+              {t("common:openChat")}
+            </Button>
           </div>
         ) : (
           <>
             <p className="text-sm text-muted-foreground mb-4">
-              {t("共")}
-              {selfies.length} {t("张照片")}
+              {t("gallery:photoCount", { count: selfies.length })}
             </p>
             <SelfieGalleryGrid
               selfies={selfies}

@@ -1,3 +1,4 @@
+import { poseMessages } from "@/locales/domain";
 /** 自拍姿势、生图方式与合照上传的选择弹窗。 */
 
 import { Input } from "@/components/ui/input";
@@ -56,9 +57,9 @@ export function SelfiePoseDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{t("让她拍一张…")}</DialogTitle>
+          <DialogTitle>{t("selfie:askForAPhoto")}</DialogTitle>
           <DialogDescription>
-            {t("姿势随亲密度解锁。输入框里的文字会作为场景描述一起生效。")}
+            {t("selfie:unlockPosesAsYouGrowCloserTextIn")}
           </DialogDescription>
         </DialogHeader>
 
@@ -66,24 +67,24 @@ export function SelfiePoseDialog({
           <div className="space-y-2">
             <RadioGroup
               className="grid grid-cols-2 gap-2"
-              aria-label={t("生图方式")}
+              aria-label={t("selfie:generationMode")}
               value={selectedMode}
               onValueChange={value =>
                 setGenerationMode(value as "reference" | "text")
               }
             >
               <RadioGroupChoice variant="segment" value="reference">
-                {t("参考图生图")}
+                {t("selfie:fromReference")}
               </RadioGroupChoice>
               <RadioGroupChoice variant="segment" value="text">
-                {t("文生图")}
+                {t("selfie:fromText")}
               </RadioGroupChoice>
             </RadioGroup>
             <p className="text-xs text-muted-foreground">
-              {t("默认生成 9:16 竖屏照片。")}
+              {t("selfie:generatesA916PortraitImageByDefault")}
               {selectedMode === "reference"
-                ? t("使用角色参考图，尽量保持人物外貌一致。")
-                : t("根据角色外貌与输入框中的场景描述生成，不使用参考图。")}
+                ? t("selfie:usesTheCharacterReferenceToHelpKeepThe")
+                : t("selfie:generatesFromTheCharacterDescriptionAndSceneText")}
             </p>
           </div>
         )}
@@ -100,8 +101,8 @@ export function SelfiePoseDialog({
                 disabled={locked}
                 title={
                   locked
-                    ? t("亲密度 Lv.{v0} 解锁", { v0: pose.minLevel })
-                    : t(pose.label)
+                    ? t("selfie:unlocksAtIntimacyLv", { level: pose.minLevel })
+                    : t(poseMessages[pose.id])
                 }
                 className={`flex flex-col items-center gap-1 rounded-lg border p-3 text-sm transition-colors ${
                   locked
@@ -115,7 +116,7 @@ export function SelfiePoseDialog({
               >
                 <span className="text-2xl leading-none">{pose.emoji}</span>
                 <span className="truncate w-full text-center">
-                  {t(pose.label)}
+                  {t(poseMessages[pose.id])}
                 </span>
                 {locked ? (
                   <Badge
@@ -123,7 +124,7 @@ export function SelfiePoseDialog({
                     className="text-[10px] px-1.5 py-0 gap-0.5"
                   >
                     <Lock className="w-2.5 h-2.5" />
-                    {t("Lv.")}
+                    {t("common:lv")}
                     {pose.minLevel}
                   </Badge>
                 ) : (
@@ -158,18 +159,18 @@ export function SelfiePoseDialog({
             disabled={!canCouplePhoto}
             title={
               canCouplePhoto
-                ? t("上传你的照片，和她同框")
-                : t("合照是 Pro 功能（或配置自己的 fal.ai Key）")
+                ? t("selfie:uploadYourPhotoToAppearTogether")
+                : t("selfie:couplePhotosRequireProOrYourOwnFal")
             }
           >
             <Users className="w-4 h-4 mr-1.5" />
-            {t("合照：上传你的照片，和她同框")}
+            {t("selfie:couplePhotoUploadYourPhotoToAppearTogether")}
             {!canCouplePhoto && (
               <Badge
                 variant="secondary"
                 className="ml-2 text-[10px] px-1.5 py-0"
               >
-                {t("Pro")}
+                {t("selfie:pro")}
               </Badge>
             )}
           </Button>

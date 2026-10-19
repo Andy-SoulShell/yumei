@@ -1,3 +1,4 @@
+import { intimacyMessages } from "@/locales/domain";
 /** 亲密度升级后的过渡动画与自动关闭回调。 */
 
 import { useI18n } from "@/lib/i18n";
@@ -91,27 +92,27 @@ export function LevelUpAnimation({
 
         {/* 升级文字 */}
         <h2 className="text-2xl font-bold mb-1 bg-gradient-to-r from-primary to-[var(--theme-secondary)] bg-clip-text text-transparent">
-          {t("亲密度升级！")}
+          {t("intimacy:intimacyLevelUp")}
         </h2>
 
         <div className={`text-3xl font-bold mb-2 ${levelInfo.color}`}>
-          {t("Lv.")}
-          {levelInfo.level} {t(levelInfo.name)}
+          {t("common:lv")}
+          {levelInfo.level} {t(intimacyMessages[levelInfo.level].name)}
         </div>
 
         <p className="text-sm text-muted-foreground mb-4">
-          {t(levelInfo.description)}
+          {t(intimacyMessages[levelInfo.level].description)}
         </p>
 
         {/* 解锁内容 */}
         {levelInfo.unlocks.length > 0 && (
           <div className="bg-muted/50 rounded-lg p-3 space-y-1">
             <p className="text-xs font-medium text-muted-foreground">
-              {t("🎉 解锁内容")}
+              {t("intimacy:newlyUnlocked")}
             </p>
-            {levelInfo.unlocks.map((unlock, i) => (
+            {levelInfo.unlocks.map((_, i) => (
               <p key={i} className="text-sm font-medium">
-                {t(unlock)}
+                {t(intimacyMessages[newLevel].unlocks[i])}
               </p>
             ))}
           </div>
@@ -120,9 +121,9 @@ export function LevelUpAnimation({
         {/* 称呼变化提示 */}
         {levelInfo.petName !== "你" && (
           <p className="text-xs text-muted-foreground mt-3">
-            {t("她现在会叫你「")}
-            {t(levelInfo.petName)}
-            {t("」了 💕")}
+            {t("intimacy:nickname", {
+              name: t(intimacyMessages[levelInfo.level].petName),
+            })}
           </p>
         )}
       </div>

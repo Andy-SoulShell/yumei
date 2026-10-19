@@ -1,6 +1,8 @@
+import { formatRelativeTime } from "@/lib/formatters";
+import { renderMessage } from "@shared/i18n";
 /** 站内通知入口，轮询未读数并定时请求生成主动通知。 */
 
-import { useI18n, translateNotificationTitle } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import { useState, useEffect, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import {
@@ -61,8 +63,8 @@ export function NotificationBell() {
         if (open) refetchList();
         // 尝试浏览器通知
         if ("Notification" in window && Notification.permission === "granted") {
-          new Notification(data.title, {
-            body: data.content,
+          new Notification(renderMessage(data.title, locale), {
+            body: renderMessage(data.content, locale),
             icon: "/icon-192x192.png",
             tag: `notification-${data.id}`,
           });
@@ -123,20 +125,7 @@ export function NotificationBell() {
     [markRead, navigate]
   );
 
-  const formatTime = (dateStr: string | Date) => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMin = Math.floor(diffMs / 60000);
-    const diffHour = Math.floor(diffMs / 3600000);
-    const diffDay = Math.floor(diffMs / 86400000);
-
-    if (diffMin < 1) return t("刚刚");
-    if (diffMin < 60) return t("{v0}分钟前", { v0: diffMin });
-    if (diffHour < 24) return t("{v0}小时前", { v0: diffHour });
-    if (diffDay < 7) return t("{v0}天前", { v0: diffDay });
-    return date.toLocaleDateString(locale);
-  };
+  const formatTime = (date: string | Date) => formatRelativeTime(date, locale);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -157,7 +146,9 @@ export function NotificationBell() {
       <SheetContent side="right" className="w-[320px] sm:w-[380px] p-0">
         <SheetHeader className="px-4 pt-4 pb-3 border-b border-border">
           <div className="flex items-center justify-between">
-            <SheetTitle className="text-lg">{t("通知")}</SheetTitle>
+            <SheetTitle className="text-lg">
+              {t("notifications:notifications")}
+            </SheetTitle>
             {unreadCount > 0 && (
               <Button
                 variant="ghost"
@@ -167,7 +158,7 @@ export function NotificationBell() {
                 disabled={markAllRead.isPending}
               >
                 <CheckCheck className="w-3.5 h-3.5 mr-1" />
-                {t("全部已读")}
+                {t("notifications:markAllAsRead")}
               </Button>
             )}
           </div>
@@ -177,9 +168,9 @@ export function NotificationBell() {
           {notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
               <Bell className="w-12 h-12 mb-3 opacity-30" />
-              <p className="text-sm">{t("暂无通知")}</p>
+              <p className="text-sm">{t("notifications:noNotificationsYet")}</p>
               <p className="text-xs mt-1 opacity-60">
-                {t("女友们会主动来找你聊天哦~")}
+                {t("notifications:yourCompanionsWillReachOutToYouHere")}
               </p>
             </div>
           ) : (
@@ -212,14 +203,14 @@ export function NotificationBell() {
                                 : "text-muted-foreground"
                             }`}
                           >
-                            {translateNotificationTitle(notif.title, locale)}
+                            {renderMessage(notif.title, locale)}
                           </span>
                           {!notif.isRead && (
                             <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                          {t(notif.content)}
+                          {renderMessage(notif.content, locale)}
                         </p>
                         <p className="text-[10px] text-muted-foreground/60 mt-1">
                           {formatTime(notif.createdAt)}
@@ -231,8 +222,8 @@ export function NotificationBell() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label={t("标记已读")}
-                      title={t("标记已读")}
+                      aria-label={t("notifications:markAsRead")}
+                      title={t("notifications:markAsRead")}
                       className="mt-3 h-7 w-7 shrink-0"
                       onClick={e => {
                         e.stopPropagation();

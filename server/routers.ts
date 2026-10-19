@@ -1,3 +1,4 @@
+import { BusinessRuleError } from "./_core/businessError";
 /** 业务 tRPC 路由入口，组织认证、角色、聊天、图片、记忆、套餐与语音流程。 */
 
 import {
@@ -99,7 +100,7 @@ import {
   savePushSubscription,
   removePushSubscription,
   hasPushSubscription,
-  sendPushToUser,
+  sendNotificationPush,
 } from "./push";
 import axios from "axios";
 import { resolveChatProvider } from "./_core/chatProvider";
@@ -285,7 +286,8 @@ export const appRouter = router({
             if (existing.length >= gfTier.limits.maxGirlfriends) {
               throw new TRPCError({
                 code: "FORBIDDEN",
-                message: `UPGRADE_REQUIRED: Your plan allows ${gfTier.limits.maxGirlfriends} companion${gfTier.limits.maxGirlfriends > 1 ? "s" : ""}. Upgrade in Settings to create more.`,
+                message: "UPGRADE_REQUIRED",
+                cause: new BusinessRuleError({ reason: "UPGRADE_REQUIRED" }),
               });
             }
           }
@@ -972,8 +974,8 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         if (isBillingEnforced() && !byokFal && coupleTier.tier !== "pro") {
           throw new TRPCError({
             code: "FORBIDDEN",
-            message:
-              "UPGRADE_REQUIRED: Couple photos are a Pro feature. Upgrade in Settings, or add your own fal.ai key.",
+            message: "UPGRADE_REQUIRED",
+            cause: new BusinessRuleError({ reason: "UPGRADE_REQUIRED" }),
           });
         }
 
@@ -1737,11 +1739,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         ctx.user.id
       );
       if (notification) {
-        void sendPushToUser(ctx.user.id, {
-          title: notification.title,
-          body: notification.content,
-          url: "/",
-        }).catch(() => {});
+        void sendNotificationPush(ctx.user.id, notification).catch(() => {});
       }
       return notification;
     }),
@@ -1787,7 +1785,8 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
             if (!ttsTier.limits.ttsProviders.includes(provider)) {
               throw new TRPCError({
                 code: "FORBIDDEN",
-                message: `UPGRADE_REQUIRED: ${provider === "elevenlabs" ? "ElevenLabs voices require a Plus subscription." : "Fish Audio voices require a Pro subscription."} Upgrade in Settings, or add your own key.`,
+                message: "UPGRADE_REQUIRED",
+                cause: new BusinessRuleError({ reason: "UPGRADE_REQUIRED" }),
               });
             }
           }
@@ -1916,8 +1915,8 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
           if (!stt.limits.voiceTranscription) {
             throw new TRPCError({
               code: "FORBIDDEN",
-              message:
-                "UPGRADE_REQUIRED: Voice transcription is a Plus feature. Upgrade in Settings, or add your own OpenAI key.",
+              message: "UPGRADE_REQUIRED",
+              cause: new BusinessRuleError({ reason: "UPGRADE_REQUIRED" }),
             });
           }
         }

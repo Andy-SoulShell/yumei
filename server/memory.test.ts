@@ -2,6 +2,7 @@
 
 import { createTestGirlfriend as createGirlfriend } from "./testFixtures";
 import { describe, expect, it } from "vitest";
+import { renderMessage } from "../shared/i18n";
 import { nanoid } from "nanoid";
 import {
   bigramOverlap,
@@ -252,7 +253,11 @@ describe("proactive notifications reference memories", () => {
 
     const notification = await checkAndCreateProactiveNotification(userId);
     expect(notification).toBeTruthy();
-    expect(notification!.content).toContain("婚礼");
+    expect(notification!.content).toEqual({
+      key: "notifications:memoryFollowUp",
+      values: { memory: "用户周五要参加朋友的婚礼" },
+    });
+    expect(renderMessage(notification!.content, "zh-CN")).toContain("婚礼");
 
     // Daily cap: second call the same day yields nothing.
     expect(await checkAndCreateProactiveNotification(userId)).toBeNull();

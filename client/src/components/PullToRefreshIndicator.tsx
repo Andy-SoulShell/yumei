@@ -38,7 +38,7 @@ export function PullToRefreshIndicator({
       {isRefreshing ? (
         <div className="flex items-center gap-2 text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin text-primary" />
-          <span className="text-xs">{t("刷新中...")}</span>
+          <span className="text-xs">{t("common:refreshing")}</span>
         </div>
       ) : (
         <div className="flex items-center gap-2 text-muted-foreground">
@@ -48,7 +48,7 @@ export function PullToRefreshIndicator({
             }`}
           />
           <span className="text-xs">
-            {isReady ? t("松手刷新") : t("下拉刷新")}
+            {isReady ? t("common:releaseToRefresh") : t("common:pullToRefresh")}
           </span>
         </div>
       )}

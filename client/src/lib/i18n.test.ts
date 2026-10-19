@@ -1,68 +1,184 @@
-/** 偏好解析和翻译边界，避免损坏缓存、语言切换或插值改变用户内容。 */
+/** 完整语言包、参数契约、语言匹配与回退行为。 */
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_PREFERENCES,
   parsePreferences,
   resolveLocale,
-  THEME_IDS,
 } from "@shared/preferences";
-import { translate } from "./i18n";
-import { THEMES } from "./themes";
-import { en } from "@/locales/messages";
+import { LANGUAGES, LOCALES, normalizeLocale } from "@shared/locales";
+import {
+  i18n,
+  renderMessage,
+  translate,
+  type MessageKey,
+  type Translator,
+} from "@shared/i18n";
+import { apiErrorMessage } from "./errors";
+import en from "@shared/locales/en";
+import {
+  intimacyMessages,
+  memoryMessages,
+  poseMessages,
+  presetMessages,
+  themeMessages,
+} from "@/locales/domain";
 import { INTIMACY_LEVELS } from "@shared/intimacy";
 import { SELFIE_POSES } from "@shared/selfiePoses";
-import { MEMORY_CATEGORY_LABELS } from "@shared/memory";
 import { CHARACTER_PRESETS } from "@shared/characterPresets";
+import { THEMES } from "./themes";
+import { formatPrice, formatRelativeTime } from "./formatters";
+import { TIER_PRICES } from "@shared/quotas";
+
+const parameters = (text: string) =>
+  Array.from(text.matchAll(/\{\{([^}]+)\}\}/g))
+    .map(match => match[1])
+    .sort();
 
 describe("interface localization", () => {
-  it("covers shared interface labels and preserves every interpolation parameter", () => {
-    const labels = [
-      ...Object.values(THEMES).flatMap(theme => [
-        theme.name,
-        theme.description,
-      ]),
-      ...INTIMACY_LEVELS.flatMap(level => [
-        level.name,
-        level.description,
-        ...level.unlocks,
-      ]),
-      ...SELFIE_POSES.map(pose => pose.label),
-      ...Object.values(MEMORY_CATEGORY_LABELS),
-      ...CHARACTER_PRESETS.flatMap(preset => [preset.label, preset.tagline]),
-    ];
-    for (const label of labels) expect(en[label], label).toBeTypeOf("string");
-    const parameters = (value: string) =>
-      Array.from(value.matchAll(/\{([a-zA-Z0-9_]+)\}/g))
-        .map(match => match[1])
-        .sort();
-    for (const [source, target] of Object.entries(en))
-      expect(parameters(target), source).toEqual(parameters(source));
-  });
-  it("follows supported browser languages and respects explicit choices", () => {
-    expect(resolveLocale("system", ["zh-TW", "en-US"])).toBe("zh-CN");
-    expect(resolveLocale("system", ["fr-FR", "en-GB", "zh-CN"])).toBe("en");
-    expect(resolveLocale("zh-CN", ["en-US"])).toBe("zh-CN");
-    expect(resolveLocale("system", [])).toBe("en");
-  });
-  it("rejects invalid persisted values without losing supported fields", () => {
-    expect(parsePreferences(null)).toEqual(DEFAULT_PREFERENCES);
+  it("uses grammatical plurals and localizes structured business failures", () => {
+    expect(translate("gallery:photoCount", "en", { count: 1 })).toBe("1 photo");
+    expect(translate("gallery:photoCount", "en", { count: 2 })).toBe(
+      "2 photos"
+    );
+    expect(translate("gallery:photoCount", "ko", { count: 1 })).toBe(
+      "사진 1장"
+    );
+    const t = i18n.getFixedT("ja") as Translator;
+    const error = {
+      message: "LEVEL_LOCKED",
+      data: {
+        business: {
+          reason: "LEVEL_LOCKED",
+          requiredLevel: 5,
+          currentLevel: 2,
+        } as const,
+      },
+    };
+    expect(apiErrorMessage(error, t)).toContain("Lv.5");
+    expect(apiErrorMessage(error, t)).toContain("Lv.2");
+    expect(apiErrorMessage(error, t)).not.toContain("LEVEL_LOCKED");
     expect(
-      parsePreferences({
-        theme: "<script>",
-        language: "en",
-        colorMode: "invalid",
-      })
-    ).toEqual({ ...DEFAULT_PREFERENCES, language: "en" });
-    expect(THEME_IDS.every(id => THEMES[id])).toBe(true);
+      apiErrorMessage({ message: "Provider diagnostic <example>" }, t)
+    ).toBe("Provider diagnostic <example>");
   });
-  it("translates both original English and Chinese pages without translating parameters", () => {
-    expect(translate("设置", "en")).toBe("Settings");
-    expect(translate("Sign in to continue", "zh-CN")).toBe("登录以继续");
-    expect(
-      translate("与 {v0} 的对话", "en", { v0: "用户原名 <YUMEI> {v1}" })
-    ).toBe("Conversation with 用户原名 <YUMEI> {v1}");
-    expect(translate("unsaved private content", "en")).toBe(
-      "unsaved private content"
+  it("formats structured prices and relative times in the selected language", () => {
+    expect(formatPrice(TIER_PRICES.plus, "en")).toBe("$9.99/month");
+    expect(formatPrice(TIER_PRICES.plus, "ja")).toBe("$9.99/月");
+    const now = new Date("2026-10-19T12:00:00Z");
+    expect(formatRelativeTime("2026-10-19T10:00:00Z", "ja", now)).toMatch(
+      /2\s*時間前/
+    );
+    expect(formatRelativeTime("2026-10-19T10:00:00Z", "ko", now)).toBe(
+      "2시간 전"
     );
   });
+  it("requires identical keys and interpolation parameters in every published language", () => {
+    for (const locale of LOCALES) {
+      const catalog = LANGUAGES[locale].messages;
+      expect(Object.keys(catalog).sort()).toEqual(Object.keys(en).sort());
+      for (const namespace of Object.keys(en) as (keyof typeof en)[]) {
+        expect(
+          Object.keys(catalog[namespace]).sort(),
+          `${locale}:${namespace}`
+        ).toEqual(Object.keys(en[namespace]).sort());
+        for (const [key, text] of Object.entries(en[namespace])) {
+          const target = (catalog[namespace] as Record<string, string>)[key];
+          expect(target.trim(), `${locale}:${namespace}:${key}`).not.toBe("");
+          expect(parameters(target), `${locale}:${namespace}:${key}`).toEqual(
+            parameters(text)
+          );
+        }
+      }
+    }
+  });
+  it("covers domain labels by stable business identifiers", () => {
+    for (const level of INTIMACY_LEVELS) {
+      const labels = intimacyMessages[level.level];
+      expect(labels.unlocks).toHaveLength(level.unlocks.length);
+      for (const key of [
+        labels.name,
+        labels.description,
+        labels.petName,
+        ...labels.unlocks,
+      ])
+        for (const locale of LOCALES)
+          expect(
+            i18n.exists(key, { lng: locale, fallbackLng: false }),
+            key
+          ).toBe(true);
+    }
+    expect(Object.keys(themeMessages).sort()).toEqual(
+      Object.keys(THEMES).sort()
+    );
+    expect(Object.keys(poseMessages).sort()).toEqual(
+      SELFIE_POSES.map(pose => pose.id).sort()
+    );
+    expect(Object.keys(presetMessages).sort()).toEqual(
+      CHARACTER_PRESETS.map(preset => preset.id).sort()
+    );
+    expect(Object.keys(memoryMessages).sort()).toEqual(
+      ["event", "preference", "relationship", "fact"].sort()
+    );
+  });
+  it("matches browser priority, region variants, and explicit choices", () => {
+    expect(resolveLocale("system", ["zh-TW", "en-US"])).toBe("zh-CN");
+    expect(resolveLocale("system", ["fr-FR", "ja-JP", "en-US"])).toBe("ja");
+    expect(resolveLocale("system", ["ko-KR", "ja-JP"])).toBe("ko");
+    expect(resolveLocale("ko", ["ja-JP"])).toBe("ko");
+    expect(resolveLocale("system", [])).toBe("en");
+    expect(normalizeLocale("JA_jp")).toBe("ja");
+    expect(normalizeLocale("not-a-language")).toBe("en");
+  });
+  it("persists all registered languages without losing unrelated preferences", () => {
+    expect(parsePreferences(null)).toEqual(DEFAULT_PREFERENCES);
+    for (const language of LOCALES)
+      expect(parsePreferences({ language, theme: "sakura" })).toEqual({
+        ...DEFAULT_PREFERENCES,
+        language,
+        theme: "sakura",
+      });
+    expect(
+      parsePreferences({ language: "unsupported", theme: "sakura" })
+    ).toEqual({ ...DEFAULT_PREFERENCES, theme: "sakura" });
+  });
+  it("renders complete sentences without translating or re-interpolating user content", () => {
+    const name = "用户原名 <YUMEI> {{count}} $t(common:cancel)";
+    expect(translate("chat:empty.start", "ja", { name })).toBe(
+      `${name}と話してみましょう`
+    );
+    expect(translate("chat:empty.start", "ko", { name })).toBe(
+      `${name} 님과 대화를 시작해 보세요`
+    );
+    expect(
+      translate("auth:linkSent", "en", { email: "test@example.com" })
+    ).toContain("test@example.com");
+    expect(
+      renderMessage(
+        { key: "notifications:title.random", values: { name } },
+        "ja"
+      )
+    ).toBe(`${name}: 💬 新着メッセージ`);
+  });
+  it("falls back to English for an untranslated key without changing another request's language", () => {
+    const resource = i18n.getResourceBundle("ja", "common");
+    try {
+      i18n.removeResourceBundle("ja", "common");
+      expect(translate("common:cancel", "ja")).toBe("Cancel");
+      expect(translate("common:cancel", "ko")).toBe("취소");
+    } finally {
+      i18n.addResourceBundle("ja", "common", resource);
+    }
+  });
 });
+
+// 这些错误由 typecheck 验证，避免业务代码传入任意原文或遗漏插值。
+function translationTypeContract() {
+  // @ts-expect-error 未注册的消息标识
+  const unknown: MessageKey = "settings:missingKey";
+  void unknown;
+  // @ts-expect-error 必须提供 name
+  translate("chat:empty.start", "ja");
+  // @ts-expect-error 参数名称必须与语言包一致
+  translate("chat:empty.start", "ja", { v0: "Yumi" });
+}
+void translationTypeContract;

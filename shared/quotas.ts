@@ -63,11 +63,11 @@ export const TIER_LABELS: Record<Tier, string> = {
 };
 
 /** 升级按钮的展示价格；实际收款金额以配置的支付结账页为准。 */
-export const TIER_PRICES: Record<Tier, string> = {
-  free: "$0",
-  plus: "$9.99/月",
-  pro: "$19.99/月",
-};
+export const TIER_PRICES = {
+  free: { amount: 0, currency: "USD", period: "month" },
+  plus: { amount: 9.99, currency: "USD", period: "month" },
+  pro: { amount: 19.99, currency: "USD", period: "month" },
+} as const;
 
 /** OpenRouter 免费用户默认使用的聊天模型标识。 */
 export const FREE_TIER_DEFAULT_MODEL = "openai/gpt-4o-mini";

@@ -2,6 +2,7 @@
 
 import {
   date,
+  json,
   int,
   mysqlEnum,
   mysqlTable,
@@ -12,6 +13,8 @@ import {
   boolean,
   index,
 } from "drizzle-orm/mysql-core";
+import type { UiLanguage } from "../shared/preferences";
+import type { LocalizedMessage } from "../shared/i18n";
 
 /** 用户资料、认证邮箱、应用角色与成年确认信息。 */
 export const users = mysqlTable("users", {
@@ -36,7 +39,8 @@ export type InsertUser = typeof users.$inferInsert;
 /** 账号级界面语言、配色与显示模式；独立于模型和 AI 回复偏好。 */
 export const userPreferences = mysqlTable("userPreferences", {
   userId: varchar("userId", { length: 255 }).primaryKey(),
-  language: mysqlEnum("language", ["system", "zh-CN", "en"])
+  language: varchar("language", { length: 35 })
+    .$type<UiLanguage>()
     .default("system")
     .notNull(),
   theme: mysqlEnum("theme", [
@@ -319,8 +323,8 @@ export const notifications = mysqlTable(
     id: int("id").autoincrement().primaryKey(),
     userId: varchar("userId", { length: 255 }).notNull(),
     girlfriendId: int("girlfriendId").notNull(),
-    title: varchar("title", { length: 200 }).notNull(),
-    content: text("content").notNull(),
+    title: json("title").$type<LocalizedMessage>().notNull(),
+    content: json("content").$type<LocalizedMessage>().notNull(),
     type: mysqlEnum("type", [
       "miss_you",
       "good_morning",

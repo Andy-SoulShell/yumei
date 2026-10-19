@@ -1,3 +1,4 @@
+import { normalizeLocale } from "@shared/locales";
 /** 捕获子组件渲染异常并展示刷新入口，不处理事件或异步请求错误。 */
 
 import { Button } from "@/components/ui/button";
@@ -35,11 +36,8 @@ class ErrorBoundary extends Component<Props, State> {
 
   /** 正常时展示子节点，异常时展示错误堆栈和页面刷新入口。 */
   render() {
-    const t = (text: string) =>
-      translate(
-        text,
-        document.documentElement.lang.startsWith("en") ? "en" : "zh-CN"
-      );
+    const t = (text: import("@shared/i18n").StaticMessageKey) =>
+      translate(text, normalizeLocale(document.documentElement.lang));
     if (this.state.hasError) {
       return (
         <div className="flex items-center justify-center min-h-screen p-8 bg-background">
@@ -50,7 +48,7 @@ class ErrorBoundary extends Component<Props, State> {
             />
 
             <h2 className="text-xl mb-4">
-              {t("An unexpected error occurred.")}
+              {t("common:anUnexpectedErrorOccurred")}
             </h2>
 
             <div className="p-4 w-full rounded bg-muted overflow-auto mb-6">
@@ -65,7 +63,7 @@ class ErrorBoundary extends Component<Props, State> {
               className="gap-2"
             >
               <RotateCcw size={16} />
-              {t("Reload Page")}
+              {t("common:reloadPage")}
             </Button>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { intimacyMessages } from "@/locales/domain";
 /** 亲密度详情侧栏，展示当前等级、升级进度和互动规则。 */
 
 import { useI18n } from "@/lib/i18n";
@@ -55,11 +56,10 @@ export function IntimacyPanel({
         <SheetHeader className="p-6 pb-4">
           <SheetTitle className="flex items-center gap-2">
             <span className="text-2xl">{levelInfo.emoji}</span>
-            {t("亲密度详情")}
+            {t("intimacy:intimacy")}
           </SheetTitle>
           <SheetDescription>
-            {t("你与")}
-            {girlfriendName} {t("的关系")}
+            {t("intimacy:relationship", { name: girlfriendName })}
           </SheetDescription>
         </SheetHeader>
 
@@ -70,11 +70,11 @@ export function IntimacyPanel({
               <div className="text-5xl">{levelInfo.emoji}</div>
               <div>
                 <h3 className={`text-2xl font-bold ${levelInfo.color}`}>
-                  {t("Lv.")}
-                  {levelInfo.level} {t(levelInfo.name)}
+                  {t("common:lv")}
+                  {levelInfo.level} {t(intimacyMessages[levelInfo.level].name)}
                 </h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {t(levelInfo.description)}
+                  {t(intimacyMessages[levelInfo.level].description)}
                 </p>
               </div>
 
@@ -82,12 +82,12 @@ export function IntimacyPanel({
               <div className="space-y-1">
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>
-                    {intimacyPoints} {t("经验值")}
+                    {intimacyPoints} {t("intimacy:xp")}
                   </span>
                   <span>
                     {pointsToNext !== null
-                      ? t("还需 {v0} 升级", { v0: pointsToNext })
-                      : t("已满级 ✨")}
+                      ? t("common:xpToNextLevel", { points: pointsToNext })
+                      : t("common:maxLevel")}
                   </span>
                 </div>
                 <div className="h-2.5 bg-muted rounded-full overflow-hidden">
@@ -105,7 +105,7 @@ export function IntimacyPanel({
                     {consecutiveDays}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {t("连续互动天数")}
+                    {t("intimacy:consecutiveDaysTogether")}
                   </p>
                 </div>
                 <div className="bg-background rounded-lg p-3">
@@ -113,7 +113,7 @@ export function IntimacyPanel({
                     {intimacyPoints}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {t("总经验值")}
+                    {t("intimacy:totalXP")}
                   </p>
                 </div>
               </div>
@@ -123,17 +123,18 @@ export function IntimacyPanel({
             {levelInfo.petName !== "你" && (
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-center">
                 <p className="text-sm">
-                  {t("她现在叫你")}{" "}
-                  <span className="font-bold text-primary">
-                    「{t(levelInfo.petName)}」
-                  </span>
+                  {t("intimacy:nickname", {
+                    name: t(intimacyMessages[levelInfo.level].petName),
+                  })}
                 </p>
               </div>
             )}
 
             {/* 已解锁内容 */}
             <div>
-              <h4 className="font-semibold text-sm mb-3">{t("已解锁内容")}</h4>
+              <h4 className="font-semibold text-sm mb-3">
+                {t("intimacy:unlockedFeatures")}
+              </h4>
               <div className="space-y-2">
                 {INTIMACY_LEVELS.filter(l => l.level <= intimacyLevel).map(
                   l => (
@@ -141,12 +142,12 @@ export function IntimacyPanel({
                       <span className="text-sm flex-shrink-0">{l.emoji}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium">
-                          {t("Lv.")}
-                          {l.level} {t(l.name)}
+                          {t("common:lv")}
+                          {l.level} {t(intimacyMessages[l.level].name)}
                         </p>
                         {l.unlocks.map((u, i) => (
                           <p key={i} className="text-xs text-muted-foreground">
-                            {t(u)}
+                            {t(intimacyMessages[l.level].unlocks[i])}
                           </p>
                         ))}
                       </div>
@@ -154,7 +155,7 @@ export function IntimacyPanel({
                         variant="secondary"
                         className="text-[10px] flex-shrink-0"
                       >
-                        {t("已解锁")}
+                        {t("intimacy:unlocked")}
                       </Badge>
                     </div>
                   )
@@ -166,7 +167,7 @@ export function IntimacyPanel({
             {intimacyLevel < 10 && (
               <div>
                 <h4 className="font-semibold text-sm mb-3 text-muted-foreground">
-                  {t("待解锁")}
+                  {t("intimacy:locked")}
                 </h4>
                 <div className="space-y-2 opacity-60">
                   {INTIMACY_LEVELS.filter(l => l.level > intimacyLevel).map(
@@ -175,16 +176,18 @@ export function IntimacyPanel({
                         <span className="text-sm flex-shrink-0">🔒</span>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium">
-                            {t("Lv.")}
-                            {l.level} {t(l.name)} ({l.requiredPoints}{" "}
-                            {t("经验)")}
+                            {t("intimacy:lockedLevel", {
+                              level: l.level,
+                              name: t(intimacyMessages[l.level].name),
+                              points: l.requiredPoints,
+                            })}
                           </p>
                           {l.unlocks.map((u, i) => (
                             <p
                               key={i}
                               className="text-xs text-muted-foreground"
                             >
-                              {t(u)}
+                              {t(intimacyMessages[l.level].unlocks[i])}
                             </p>
                           ))}
                         </div>
@@ -198,7 +201,7 @@ export function IntimacyPanel({
             {/* 经验值获取方式 */}
             <div>
               <h4 className="font-semibold text-sm mb-3">
-                {t("经验值获取方式")}
+                {t("intimacy:howToEarnXP")}
               </h4>
               <div className="space-y-1.5">
                 {Object.values(POINTS_RULES).map(rule => (
@@ -207,13 +210,18 @@ export function IntimacyPanel({
                     className="flex items-center justify-between text-xs bg-muted/30 rounded-lg px-3 py-2"
                   >
                     <span className="text-muted-foreground">
-                      {rule.type === "text_message" && t("💬 发送文字消息")}
-                      {rule.type === "voice_message" && t("🎤 发送语音消息")}
-                      {rule.type === "selfie" && t("📸 生成自拍")}
-                      {rule.type === "daily_first" && t("🌅 每日首次互动")}
-                      {rule.type === "edit_profile" && t("✏️ 编辑女友资料")}
-                      {rule.type === "long_conversation" && t("💭 深度对话")}
-                      {rule.type === "night_chat" && t("🌙 夜间互动")}
+                      {rule.type === "text_message" &&
+                        t("intimacy:sendATextMessage")}
+                      {rule.type === "voice_message" &&
+                        t("intimacy:sendAVoiceMessage")}
+                      {rule.type === "selfie" && t("intimacy:generateASelfie")}
+                      {rule.type === "daily_first" &&
+                        t("intimacy:firstInteractionOfTheDay")}
+                      {rule.type === "edit_profile" &&
+                        t("intimacy:editCompanionProfile")}
+                      {rule.type === "long_conversation" &&
+                        t("intimacy:haveADeeperConversation")}
+                      {rule.type === "night_chat" && t("intimacy:chatAtNight")}
                     </span>
                     <span className="font-medium text-primary">
                       +{rule.basePoints}
@@ -225,9 +233,7 @@ export function IntimacyPanel({
                 ))}
               </div>
               <p className="text-[10px] text-muted-foreground mt-2">
-                {t(
-                  "每日经验值上限 200 · 超过 7 天未互动会衰减 · 过短消息不计算"
-                )}
+                {t("intimacy:upTo200XPPerDayDecaysAfter")}
               </p>
             </div>
           </div>

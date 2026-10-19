@@ -67,9 +67,12 @@ describe("media cleanup", () => {
     await db
       .insert(memories)
       .values({ userId, girlfriendId: gf.id, content: "用户喜欢猫" });
-    await db
-      .insert(notifications)
-      .values({ userId, girlfriendId: gf.id, title: "test", content: "test" });
+    await db.insert(notifications).values({
+      userId,
+      girlfriendId: gf.id,
+      title: { key: "notifications:title.random", values: { name: "Test" } },
+      content: { key: "notifications:heyAreYouFreeIDLoveTo" },
+    });
     await db.insert(girlfriendMoods).values({ userId, girlfriendId: gf.id });
     await permanentDeleteGirlfriend(gf.id, userId);
     for (const table of [

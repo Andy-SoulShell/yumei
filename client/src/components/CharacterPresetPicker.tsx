@@ -1,3 +1,4 @@
+import { presetMessages } from "@/locales/domain";
 /** 内置角色预设的画风筛选与受控选择界面。 */
 
 import { useI18n } from "@/lib/i18n";
@@ -22,26 +23,27 @@ export function CharacterPresetPicker({
   const { t } = useI18n();
   const [style, setStyle] = useState<"all" | CharacterPreset["style"]>("all");
   return (
-    <section className="space-y-4" aria-label={t("角色预设")}>
+    <section
+      className="space-y-4"
+      aria-label={t("characters:characterPresets")}
+    >
       <div>
-        <h2 className="font-semibold">{t("从一个角色开始")}</h2>
+        <h2 className="font-semibold">{t("characters:startWithACharacter")}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          {t(
-            "选择后自动填写资料和参考图，你可以继续修改。所有角色均为成年 AI 虚构人物。"
-          )}
+          {t("characters:chooseAPresetToFillInAProfile")}
         </p>
       </div>
       <RadioGroup
         value={style}
         onValueChange={value => setStyle(value as typeof style)}
         className="flex flex-wrap gap-2"
-        aria-label={t("角色画风")}
+        aria-label={t("characters:characterStyle")}
       >
         {(
           [
-            ["all", t("全部 8 位")],
-            ["realistic", t("写实")],
-            ["anime", t("动漫")],
+            ["all", t("characters:all8")],
+            ["realistic", t("characters:realistic")],
+            ["anime", t("characters:anime")],
           ] as const
         ).map(([value, label]) => (
           <RadioGroupChoice
@@ -55,7 +57,7 @@ export function CharacterPresetPicker({
         ))}
       </RadioGroup>
       <RadioGroup
-        aria-label={t("角色预设")}
+        aria-label={t("characters:characterPresets")}
         value={selectedId ?? "custom"}
         onValueChange={id =>
           onSelect(CHARACTER_PRESETS.find(preset => preset.id === id) ?? null)
@@ -68,7 +70,7 @@ export function CharacterPresetPicker({
             <RadioGroupChoice
               key={preset.id}
               value={preset.id}
-              aria-label={t("选择{v0}", { v0: preset.name })}
+              aria-label={t("characters:select", { name: preset.name })}
               className={`relative overflow-hidden rounded-xl border text-left transition-colors focus-visible:outline-2 focus-visible:outline-primary ${selectedId === preset.id ? "border-primary ring-2 ring-primary" : "border-border hover:border-primary/60"}`}
             >
               <img
@@ -86,12 +88,14 @@ export function CharacterPresetPicker({
                 <p className="font-medium">
                   {preset.name}
                   <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                    {preset.age} {t("岁")}
+                    {t("characters:age", { age: preset.age })}
                   </span>
                 </p>
-                <p className="text-xs text-primary">{t(preset.label)}</p>
+                <p className="text-xs text-primary">
+                  {t(presetMessages[preset.id].label)}
+                </p>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  {t(preset.tagline)}
+                  {t(presetMessages[preset.id].tagline)}
                 </p>
               </div>
             </RadioGroupChoice>
@@ -103,7 +107,7 @@ export function CharacterPresetPicker({
           className="w-full border-dashed"
         >
           <Pencil className="mr-2 h-4 w-4" />
-          {t("从零自定义")}
+          {t("characters:createFromScratch")}
         </RadioGroupChoice>
       </RadioGroup>
     </section>

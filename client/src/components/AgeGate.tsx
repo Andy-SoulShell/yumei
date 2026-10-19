@@ -54,34 +54,30 @@ export function AgeGate() {
         {underage ? (
           <>
             <DialogHeader>
-              <DialogTitle>{t("We can't let you in")}</DialogTitle>
+              <DialogTitle>{t("auth:weCanTLetYouIn")}</DialogTitle>
               <DialogDescription>
-                {t(
-                  "YUMEI is an 18+ service and isn't available to minors. If you're going through a hard time, you're not alone — reach out to someone you trust, or find help at"
-                )}{" "}
+                {t("auth:yumeiIsAn18ServiceAndIsnT")}{" "}
                 <a
                   className="underline"
                   href="https://findahelpline.com"
                   target="_blank"
                   rel="noreferrer"
                 >
-                  {t("findahelpline.com")}
+                  {t("common:findahelplineCom")}
                 </a>
                 .
               </DialogDescription>
             </DialogHeader>
             <Button variant="outline" onClick={() => logout()}>
-              {t("Sign out")}
+              {t("auth:signOut")}
             </Button>
           </>
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>{t("Confirm your age")}</DialogTitle>
+              <DialogTitle>{t("auth:confirmYourAge")}</DialogTitle>
               <DialogDescription>
-                {t(
-                  "YUMEI is an adults-only (18+) service, and your companion is AI-generated — not a real person. Enter your date of birth to continue. We only use it to confirm you're an adult."
-                )}
+                {t("auth:yumeiIsAnAdultsOnly18ServiceAnd")}
               </DialogDescription>
             </DialogHeader>
             <form
@@ -92,10 +88,10 @@ export function AgeGate() {
                 confirmAge.mutate({ birthDate });
               }}
             >
-              <Label htmlFor="birth-date">{t("出生日期")}</Label>
+              <Label htmlFor="birth-date">{t("auth:dateOfBirth")}</Label>
               <DatePicker
                 id="birth-date"
-                label={t("出生日期")}
+                label={t("auth:dateOfBirth")}
                 value={birthDate}
                 onValueChange={setBirthDate}
               />
@@ -105,8 +101,8 @@ export function AgeGate() {
                 disabled={confirmAge.isPending || !birthDate}
               >
                 {confirmAge.isPending
-                  ? t("Confirming…")
-                  : t("I'm 18 or older — continue")}
+                  ? t("auth:confirming")
+                  : t("auth:iM18OrOlderContinue")}
               </Button>
             </form>
           </>

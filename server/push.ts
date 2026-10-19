@@ -1,3 +1,7 @@
+import { renderMessage } from "../shared/i18n";
+import { resolveLocale } from "../shared/preferences";
+import { getInterfacePreferences } from "./preferences";
+import type { Notification } from "../drizzle/schema";
 /** Web Push 订阅管理、通知投递及每小时主动消息调度。 */
 
 import { eq } from "drizzle-orm";
@@ -165,11 +169,7 @@ export function startProactivePushScheduler(): void {
           const notification =
             await checkAndCreateProactiveNotification(userId);
           if (notification) {
-            await sendPushToUser(userId, {
-              title: notification.title,
-              body: notification.content,
-              url: "/",
-            });
+            await sendNotificationPush(userId, notification);
           }
         } catch (error) {
           log.error(
@@ -186,4 +186,18 @@ export function startProactivePushScheduler(): void {
   schedulerTimer = setInterval(tick, 60 * 60 * 1000);
   schedulerTimer.unref();
   console.log("[boot] proactive push scheduler started (hourly)");
+}
+
+/** 推送离开应用前，按账号语言把结构化系统通知渲染为文本。 */
+export async function sendNotificationPush(
+  userId: string,
+  notification: Notification
+) {
+  const preferences = await getInterfacePreferences(userId);
+  const locale = resolveLocale(preferences.language, []);
+  return sendPushToUser(userId, {
+    title: renderMessage(notification.title, locale),
+    body: renderMessage(notification.content, locale),
+    url: "/",
+  });
 }

@@ -31,12 +31,12 @@ export default function Login() {
         fetchOptions: { headers: { "x-yumei-locale": locale } },
       });
       if (authError) {
-        setError(t(authError.message ?? "Failed to send magic link"));
+        setError(t("common:failedToSendMagicLink"));
       } else {
         setSent(true);
       }
     } catch {
-      setError(t("Network error — please try again."));
+      setError(t("auth:networkErrorPleaseTryAgain"));
     } finally {
       setLoading(false);
     }
@@ -48,12 +48,10 @@ export default function Login() {
         <div className="flex flex-col items-center gap-6 p-8 max-w-md w-full">
           <LanguagePicker />
           <h1 className="text-2xl font-semibold tracking-tight text-center">
-            {t("Check your inbox")}
+            {t("auth:checkYourInbox")}
           </h1>
           <p className="text-sm text-muted-foreground text-center max-w-sm">
-            {t("We sent a sign-in link to")}
-            <strong>{email}</strong>
-            {t(". Click the link in the email to continue.")}
+            {t("auth:linkSent", { email })}
           </p>
           <Button
             variant="ghost"
@@ -62,7 +60,7 @@ export default function Login() {
               setEmail("");
             }}
           >
-            {t("Use a different email")}
+            {t("auth:useADifferentEmail")}
           </Button>
         </div>
       </div>
@@ -74,15 +72,15 @@ export default function Login() {
       <div className="flex flex-col items-center gap-6 p-8 max-w-md w-full">
         <LanguagePicker />
         <h1 className="text-2xl font-semibold tracking-tight text-center">
-          {t("Sign in to continue")}
+          {t("auth:signInToContinue")}
         </h1>
         <p className="text-sm text-muted-foreground text-center max-w-sm">
-          {t("Enter your email and we'll send you a magic link.")}
+          {t("auth:enterYourEmailAndWeLlSendYou")}
         </p>
         <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
           <Input
             type="email"
-            placeholder={t("you@example.com")}
+            placeholder={t("auth:youExampleCom")}
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
@@ -92,13 +90,11 @@ export default function Login() {
             <p className="text-sm text-destructive text-center">{error}</p>
           )}
           <Button type="submit" size="lg" className="w-full" disabled={loading}>
-            {loading ? t("Sending…") : t("Send magic link")}
+            {loading ? t("auth:sending") : t("auth:sendMagicLink")}
           </Button>
         </form>
         <p className="text-xs text-muted-foreground text-center max-w-sm">
-          {t(
-            "18+ only. Companions on YUMEI are AI-generated — not real people. We never train models on your conversations."
-          )}
+          {t("auth:guide18OnlyCompanionsOnYUMEIAreAIGenerated")}
         </p>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { apiErrorMessage } from "@/lib/errors";
 /** 创建或编辑角色资料、预设、参考图及自定义提示词。 */
 
 import { useI18n } from "@/lib/i18n";
@@ -116,11 +117,13 @@ export default function Setup() {
   const createGirlfriend = trpc.girlfriend.create.useMutation({
     onSuccess: async () => {
       await utils.girlfriend.invalidate();
-      toast.success(t("女友配置创建成功！"));
+      toast.success(t("setup:companionCreated"));
       setLocation("/");
     },
     onError: error => {
-      toast.error(t("创建失败：{v0}", { v0: error.message }));
+      toast.error(
+        t("setup:couldNotCreateCompanion", { error: apiErrorMessage(error, t) })
+      );
     },
   });
 
@@ -129,7 +132,7 @@ export default function Setup() {
 
   const updateGirlfriend = trpc.girlfriend.update.useMutation({
     onSuccess: () => {
-      toast.success(t("女友配置更新成功！"));
+      toast.success(t("setup:companionUpdated"));
       // 触发编辑资料亲密度经验值
       if (editId) {
         addPoints.mutate({ girlfriendId: editId, reason: "edit_profile" });
@@ -137,7 +140,9 @@ export default function Setup() {
       setLocation("/");
     },
     onError: error => {
-      toast.error(t("更新失败：{v0}", { v0: error.message }));
+      toast.error(
+        t("setup:couldNotUpdate", { error: apiErrorMessage(error, t) })
+      );
     },
   });
 
@@ -147,7 +152,7 @@ export default function Setup() {
       setAvatarFile(null);
       setAvatarPreview(null);
       setIsUploadingAvatar(false);
-      toast.success(t("头像上传成功！"));
+      toast.success(t("setup:avatarUploaded"));
       // 触发上传头像亲密度经验值
       if (editId) {
         addPoints.mutate({ girlfriendId: editId, reason: "edit_profile" });
@@ -155,17 +160,21 @@ export default function Setup() {
     },
     onError: error => {
       setIsUploadingAvatar(false);
-      toast.error(t("头像上传失败：{v0}", { v0: error.message }));
+      toast.error(
+        t("setup:avatarUploadFailed", { error: apiErrorMessage(error, t) })
+      );
     },
   });
 
   const deleteGirlfriend = trpc.girlfriend.delete.useMutation({
     onSuccess: () => {
-      toast.success(t("已移入回收站，7天内可恢复"));
+      toast.success(t("common:movedToTrashYouCanRestoreItWithin"));
       setLocation("/");
     },
     onError: error => {
-      toast.error(t("删除失败：{v0}", { v0: error.message }));
+      toast.error(
+        t("common:couldNotDelete", { error: apiErrorMessage(error, t) })
+      );
     },
   });
 
@@ -182,7 +191,7 @@ export default function Setup() {
         !ALLOWED_AVATAR_TYPES.includes(file.type) ||
         file.size > MAX_AVATAR_SIZE
       ) {
-        toast.error(t("请选择 10MB 以内的 JPG、PNG、GIF 或 WebP 图片"));
+        toast.error(t("setup:chooseAJPGPNGGIFOrWebPImage"));
         e.target.value = "";
         return;
       }
@@ -214,15 +223,15 @@ export default function Setup() {
 
     // 格式校验
     if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
-      toast.error(t("不支持的图片格式，请选择 JPG、PNG、GIF 或 WebP 格式"));
+      toast.error(t("setup:unsupportedFormatChooseJPGPNGGIFOrWebP"));
       return;
     }
 
     // 大小校验
     if (file.size > MAX_AVATAR_SIZE) {
       toast.error(
-        t("图片文件过大（{v0}MB），请选择 10MB 以内的图片", {
-          v0: (file.size / 1024 / 1024).toFixed(1),
+        t("setup:imageIsTooLargeMBChooseAnImage", {
+          size: (file.size / 1024 / 1024).toFixed(1),
         })
       );
       return;
@@ -275,7 +284,7 @@ export default function Setup() {
     e.preventDefault();
 
     if (!name || !personality || !appearance) {
-      toast.error(t("请填写所有必填项"));
+      toast.error(t("setup:fillInAllRequiredFields"));
       return;
     }
 
@@ -292,7 +301,7 @@ export default function Setup() {
     } else {
       // 创建模式
       if (!imageFile && !presetId) {
-        toast.error(t("请上传参考照片"));
+        toast.error(t("setup:uploadAReferencePhoto"));
         return;
       }
 
@@ -349,18 +358,20 @@ export default function Setup() {
           onClick={() => setLocation("/")}
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          {t("返回")}
+          {t("setup:back")}
         </Button>
 
         <Card>
           <CardHeader>
             <CardTitle className="text-xl sm:text-2xl">
-              {isEditing ? t("编辑女友配置") : t("创建你的专属女友")}
+              {isEditing
+                ? t("setup:editCompanion")
+                : t("setup:createYourCompanion")}
             </CardTitle>
             <CardDescription>
               {isEditing
-                ? t("修改性格特征和兴趣爱好")
-                : t("从 8 位预设角色中选择，或上传照片创建自己的角色")}
+                ? t("setup:editPersonalityAndInterests")
+                : t("setup:chooseFrom8PresetsOrUploadAPhoto")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -374,11 +385,9 @@ export default function Setup() {
               {/* 头像上传区域 - 编辑模式显示 */}
               {isEditing && (
                 <div className="space-y-2">
-                  <Label>{t("头像照片")}</Label>
+                  <Label>{t("setup:avatar")}</Label>
                   <p className="text-xs text-muted-foreground">
-                    {t(
-                      "上传一张头像照片，将在首页卡片和聊天页展示（支持 JPG/PNG/GIF/WebP，最大 10MB）"
-                    )}
+                    {t("setup:uploadAnAvatarForTheHomeAndChat")}
                   </p>
                   <div className="flex items-center gap-4">
                     {/* 头像预览 */}
@@ -386,7 +395,7 @@ export default function Setup() {
                       variant="plain"
                       size="none"
                       type="button"
-                      aria-label={t("上传")}
+                      aria-label={t("setup:upload")}
                       className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-border flex-shrink-0 cursor-pointer group"
                       onClick={() => avatarInputRef.current?.click()}
                     >
@@ -394,7 +403,7 @@ export default function Setup() {
                         <>
                           <img
                             src={displayAvatar}
-                            alt={t("Avatar")}
+                            alt={t("setup:avatar2")}
                             className="w-full h-full object-cover"
                           />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -405,7 +414,7 @@ export default function Setup() {
                         <div className="w-full h-full bg-muted flex flex-col items-center justify-center gap-0.5">
                           <Camera className="w-5 h-5 text-muted-foreground" />
                           <span className="text-[10px] text-muted-foreground">
-                            {t("上传")}
+                            {t("setup:upload")}
                           </span>
                         </div>
                       )}
@@ -431,12 +440,12 @@ export default function Setup() {
                             {isUploadingAvatar ? (
                               <>
                                 <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
-                                {t("上传中...")}
+                                {t("setup:uploading")}
                               </>
                             ) : (
                               <>
                                 <Upload className="w-3.5 h-3.5 mr-1" />
-                                {t("确认上传")}
+                                {t("setup:confirmUpload")}
                               </>
                             )}
                           </Button>
@@ -460,7 +469,9 @@ export default function Setup() {
                           onClick={() => avatarInputRef.current?.click()}
                         >
                           <Camera className="w-3.5 h-3.5 mr-1" />
-                          {displayAvatar ? t("更换头像") : t("选择图片")}
+                          {displayAvatar
+                            ? t("setup:changeAvatar")
+                            : t("setup:chooseImage")}
                         </Button>
                       )}
                       {existingAvatarUrl && !avatarFile && (
@@ -472,7 +483,7 @@ export default function Setup() {
                           onClick={handleRemoveAvatar}
                         >
                           <X className="w-3 h-3 mr-1" />
-                          {t("移除头像")}
+                          {t("setup:removeAvatar")}
                         </Button>
                       )}
                     </div>
@@ -483,7 +494,7 @@ export default function Setup() {
               {/* 参考照片上传 */}
               <div className="space-y-2">
                 <Label htmlFor="image">
-                  {t("参考照片")}
+                  {t("setup:referencePhoto")}
                   {!isEditing && "*"}
                 </Label>
                 <div className="flex flex-col items-center gap-3 sm:gap-4">
@@ -491,7 +502,7 @@ export default function Setup() {
                     <div className="relative w-36 h-36 sm:w-48 sm:h-48 rounded-lg overflow-hidden border-2 border-border">
                       <img
                         src={displayImage}
-                        alt={t("Preview")}
+                        alt={t("setup:preview")}
                         className="w-full h-full object-cover"
                       />
                       {!isEditing && (
@@ -504,7 +515,7 @@ export default function Setup() {
                             imageInputRef.current?.click();
                           }}
                         >
-                          {t("更换")}
+                          {t("setup:change")}
                         </Button>
                       )}
                     </div>
@@ -515,10 +526,10 @@ export default function Setup() {
                     >
                       <Upload className="w-12 h-12 text-muted-foreground mb-2" />
                       <span className="text-sm text-muted-foreground">
-                        {t("点击上传照片")}
+                        {t("setup:clickToUploadAPhoto")}
                       </span>
                       <span className="text-xs text-muted-foreground mt-1">
-                        {t("支持 JPG、PNG、GIF、WebP，最大 10MB")}
+                        {t("setup:jpgPNGGIFOrWebPUpTo10")}
                       </span>
                     </label>
                   )}
@@ -545,22 +556,24 @@ export default function Setup() {
                         imageInputRef.current.value = "";
                     }}
                   >
-                    {t("恢复预设参考图")}
+                    {t("setup:restorePresetReference")}
                   </Button>
                 )}
                 {isEditing && (
                   <p className="text-xs text-muted-foreground text-center">
-                    {t("编辑模式下暂不支持更换参考照片，如需更换请创建新女友")}
+                    {t(
+                      "setup:referencePhotosCannotBeChangedWhileEditingCreate"
+                    )}
                   </p>
                 )}
               </div>
 
               {/* 名字 */}
               <div className="space-y-2">
-                <Label htmlFor="name">{t("名字 *")}</Label>
+                <Label htmlFor="name">{t("setup:name")}</Label>
                 <Input
                   id="name"
-                  placeholder={t("例如：小雨")}
+                  placeholder={t("setup:forExampleYumi")}
                   value={name}
                   onChange={e => setName(e.target.value)}
                   required
@@ -569,11 +582,11 @@ export default function Setup() {
 
               {/* 性格特征 */}
               <div className="space-y-2">
-                <Label htmlFor="personality">{t("性格特征 *")}</Label>
+                <Label htmlFor="personality">{t("setup:personality")}</Label>
                 <Textarea
                   id="personality"
                   placeholder={t(
-                    "例如：温柔体贴，善解人意，喜欢撒娇，偶尔会有点小任性..."
+                    "setup:forExampleGentleThoughtfulAffectionateAndALittle"
                   )}
                   value={personality}
                   onChange={e => setPersonality(e.target.value)}
@@ -581,34 +594,34 @@ export default function Setup() {
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  {t("详细描述性格特征，这将影响 AI 的对话风格")}
+                  {t("setup:describeThePersonalityToShapeTheCompanionS")}
                 </p>
               </div>
 
               {/* 外貌描述 */}
               <div className="space-y-2">
-                <Label htmlFor="appearance">{t("外貌描述 *")}</Label>
+                <Label htmlFor="appearance">{t("setup:appearance")}</Label>
                 <Textarea
                   id="appearance"
-                  placeholder={t(
-                    "例如：长发飘逸，皮肤白皙，身材苗条，喜欢穿裙子..."
-                  )}
+                  placeholder={t("setup:forExampleLongFlowingHairASlimBuild")}
                   value={appearance}
                   onChange={e => setAppearance(e.target.value)}
                   rows={3}
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  {t("描述外貌特征，用于生成自拍照片")}
+                  {t("setup:describeTheAppearanceUsedWhenGeneratingSelfies")}
                 </p>
               </div>
 
               {/* 兴趣爱好 */}
               <div className="space-y-2">
-                <Label htmlFor="interests">{t("兴趣爱好（可选）")}</Label>
+                <Label htmlFor="interests">
+                  {t("setup:interestsOptional")}
+                </Label>
                 <Textarea
                   id="interests"
-                  placeholder={t("例如：喜欢看电影、听音乐、旅行、美食...")}
+                  placeholder={t("setup:forExampleMoviesMusicTravelAndFood")}
                   value={interests}
                   onChange={e => setInterests(e.target.value)}
                   rows={2}
@@ -634,20 +647,22 @@ export default function Setup() {
                       <ChevronDown className="w-4 h-4" />
                     )}
                     <Brain className="w-4 h-4" />
-                    {t("高级提示词定制")}
+                    {t("setup:advancedPrompt")}
                     <span className="text-xs px-1.5 py-0.5 rounded bg-muted">
-                      {t("可选")}
+                      {t("setup:optional")}
                     </span>
                   </Button>
                 </CollapsibleTrigger>
 
                 <CollapsibleContent className="mt-3 space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="customPrompt">{t("专属提示词")}</Label>
+                    <Label htmlFor="customPrompt">
+                      {t("setup:companionSpecificPrompt")}
+                    </Label>
                     <Textarea
                       id="customPrompt"
                       placeholder={t(
-                        "例如：说话带点傲娇，偶尔用日语词汇，喜欢用哼开头..."
+                        "setup:forExampleAPlayfulToneOccasionalJapaneseWords"
                       )}
                       value={customPrompt}
                       onChange={e => setCustomPrompt(e.target.value)}
@@ -657,7 +672,7 @@ export default function Setup() {
                     />
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-muted-foreground">
-                        {t("仅对这个女友生效，会追加到全局提示词之后")}
+                        {t("setup:onlyAppliesToThisCompanionAfterTheShared")}
                       </p>
                       <span className="text-xs text-muted-foreground">
                         {customPrompt.length}/300
@@ -680,21 +695,21 @@ export default function Setup() {
                       >
                         <Eye className="w-3.5 h-3.5" />
                         {showPromptPreview
-                          ? t("收起预览")
-                          : t("查看最终生效的提示词")}
+                          ? t("setup:hidePreview")
+                          : t("setup:previewTheCombinedPrompt")}
                       </Button>
                     </CollapsibleTrigger>
 
                     <CollapsibleContent className="rounded-lg border bg-muted/30 p-3 space-y-2 text-sm">
                       <p className="text-xs font-medium text-muted-foreground mb-2">
-                        {t("最终发送给 AI 的提示词预览：")}
+                        {t("setup:previewOfThePromptSentToTheAI")}
                       </p>
 
                       {/* 全局提示词 */}
                       {apiConfig?.preferences?.globalPrompt ? (
                         <div className="rounded p-2 bg-blue-500/10 border border-blue-500/20">
                           <span className="text-[10px] font-semibold text-blue-500 uppercase">
-                            {t("全局提示词")}
+                            {t("setup:sharedPrompt")}
                           </span>
                           <p className="mt-1 text-foreground/80">
                             {apiConfig.preferences?.globalPrompt}
@@ -703,10 +718,10 @@ export default function Setup() {
                       ) : (
                         <div className="rounded p-2 bg-muted/50 border border-dashed">
                           <span className="text-[10px] font-semibold text-muted-foreground uppercase">
-                            {t("全局提示词")}
+                            {t("setup:sharedPrompt")}
                           </span>
                           <p className="mt-1 text-muted-foreground italic">
-                            {t("未设置，可在设置页配置")}
+                            {t("setup:notSetConfigureItInSettings")}
                           </p>
                         </div>
                       )}
@@ -715,7 +730,7 @@ export default function Setup() {
                       {customPrompt ? (
                         <div className="rounded p-2 bg-primary/10 border border-primary/20">
                           <span className="text-[10px] font-semibold text-primary uppercase">
-                            {t("个体提示词")}
+                            {t("setup:companionPrompt")}
                           </span>
                           <p className="mt-1 text-foreground/80">
                             {customPrompt}
@@ -724,10 +739,10 @@ export default function Setup() {
                       ) : (
                         <div className="rounded p-2 bg-muted/50 border border-dashed">
                           <span className="text-[10px] font-semibold text-muted-foreground uppercase">
-                            {t("个体提示词")}
+                            {t("setup:companionPrompt")}
                           </span>
                           <p className="mt-1 text-muted-foreground italic">
-                            {t("未设置")}
+                            {t("setup:notSet")}
                           </p>
                         </div>
                       )}
@@ -735,13 +750,15 @@ export default function Setup() {
                       {/* 性格 + 外貌结构化字段 */}
                       <div className="rounded p-2 bg-purple-500/10 border border-purple-500/20">
                         <span className="text-[10px] font-semibold text-purple-500 uppercase">
-                          {t("角色设定")}
+                          {t("setup:characterProfile")}
                         </span>
                         <p className="mt-1 text-foreground/80">
-                          {t("性格：")}
-                          {personality || t("未填写")} {t("| 外貌：")}
-                          {appearance || t("未填写")}
-                          {interests && t(" | 兴趣：{v0}", { v0: interests })}
+                          {t("setup:personality2")}
+                          {personality || t("setup:notProvided")}{" "}
+                          {t("setup:appearance2")}
+                          {appearance || t("setup:notProvided")}
+                          {interests &&
+                            t("setup:interests", { interests: interests })}
                         </p>
                       </div>
                     </CollapsibleContent>
@@ -753,12 +770,12 @@ export default function Setup() {
                 {isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {isEditing ? t("保存中...") : t("创建中...")}
+                    {isEditing ? t("common:saving") : t("setup:creating")}
                   </>
                 ) : isEditing ? (
-                  t("保存修改")
+                  t("setup:saveChanges")
                 ) : (
-                  t("创建女友")
+                  t("setup:createCompanion")
                 )}
               </Button>
 
@@ -776,40 +793,40 @@ export default function Setup() {
                         {deleteGirlfriend.isPending ? (
                           <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            {t("删除中...")}
+                            {t("common:deleting")}
                           </>
                         ) : (
                           <>
                             <Trash2 className="w-4 h-4 mr-2" />
-                            {t("删除女友")}
+                            {t("setup:deleteCompanion")}
                           </>
                         )}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>{t("确认删除")}</AlertDialogTitle>
+                        <AlertDialogTitle>
+                          {t("common:confirmDeletion")}
+                        </AlertDialogTitle>
                         <AlertDialogDescription>
-                          {t("确定要删除")}
-                          <strong>{name}</strong>{" "}
-                          {t(
-                            "吗？她将被移入回收站，7 天内可以在首页回收站中恢复。"
-                          )}
+                          {t("setup:deleteConfirm", { name })}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>{t("取消")}</AlertDialogCancel>
+                        <AlertDialogCancel>
+                          {t("common:cancel")}
+                        </AlertDialogCancel>
                         <AlertDialogAction
                           onClick={handleDelete}
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                          {t("移入回收站")}
+                          {t("common:moveToTrash")}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
                   <p className="text-xs text-muted-foreground text-center mt-2">
-                    {t("删除后可在首页回收站中恢复，7 天后自动永久删除")}
+                    {t("setup:restoreFromTrashWithin7DaysAfterThat")}
                   </p>
                 </div>
               )}

@@ -123,3 +123,16 @@ TZ=UTC pnpm test
 ## 联系方式
 
 如有任何问题，欢迎通过 GitHub Issues 联系我们。
+
+## 新增界面语言
+
+1. 在 `shared/locales/` 添加语言包，按 `en.ts` 的命名空间、语义 key 和插值参数翻译完整句子，并使用 `satisfies MessageCatalog` 校验覆盖范围。
+2. 在 `shared/locales/index.ts` 导入语言包并增加一条 `LANGUAGES` 配置，填写语言自称、地区匹配前缀、date-fns 日历、语音语言及别名、字体和换行策略。语言选择器、偏好校验、系统识别、邮件和翻译资源会自动使用注册信息，不需要增加数据库枚举。
+
+运行 `pnpm test:i18n` 检查所有注册语言的 key、非空文案、插值参数、回退行为、账号语言切换和本地化邮件。此命令不连接数据库；完整集成测试继续使用独立 MySQL 测试库。
+
+业务组件使用 `t("chat:empty.start", { name })`，不要用原文作 key、拆句拼接或修改展示字符串来转换价格。key 与插值参数有类型检查；金额、相对时间和列表分别使用 `Intl.NumberFormat`、`Intl.RelativeTimeFormat` 和 `Intl.ListFormat`。
+
+主题、姿势、亲密度和预设角色的显示文案通过 `client/src/locales/domain.ts` 关联稳定业务 ID。用户资料、角色设定、聊天记录和 AI 回复保持原文；界面语言不改变 AI 回复语言。系统通知保存 `{ key, values }`，显示或推送时才渲染。新增本地化业务错误应传结构化原因和参数，不要在错误正文中编码前缀。
+
+当前开发阶段直接使用新表结构：通知标题和正文在初始建表时使用 JSON，账号语言在建表时使用 varchar(35)。不保留旧文案兼容层。已有开发库需要清空后重新迁移。

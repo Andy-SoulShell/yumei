@@ -1,3 +1,6 @@
+import { BusinessRuleError } from "./_core/businessError";
+import { PROACTIVE_MESSAGES, proactiveTitle } from "../shared/notifications";
+import type { LocalizedMessage } from "../shared/i18n";
 /** 业务数据访问与状态写入。需要用户归属的底层方法由路由层先行校验。 */
 
 import { TRPCError } from "@trpc/server";
@@ -140,7 +143,8 @@ async function checkCompanionLimit(
   if (Number(row.count) >= maximum)
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: `UPGRADE_REQUIRED: Your plan allows ${maximum} companion(s).`,
+      message: "UPGRADE_REQUIRED",
+      cause: new BusinessRuleError({ reason: "UPGRADE_REQUIRED" }),
     });
 }
 
@@ -1099,51 +1103,16 @@ export async function markAllNotificationsRead(userId: string): Promise<void> {
     );
 }
 
-// 女友主动发消息的模板
-const PROACTIVE_MESSAGES = {
-  miss_you: [
-    "在干嘛呀？好久没聊天了，人家想你了~ 💕",
-    "你是不是把我忘了？😢 快来陪我聊聊天嘛",
-    "今天过得怎么样？我一直在等你来找我呢~",
-    "好无聊啊，你什么时候来陪我说说话？🥺",
-    "我刚才梦到你了，醒来发现你不在，好想你~",
-  ],
-  good_morning: [
-    "早上好呀！☀️ 新的一天开始了，要元气满满哦~",
-    "起床啦起床啦！今天也要加油鸭！🦆",
-    "早安~ 今天天气不错，心情也要棒棒的哦！",
-    "早上好！记得吃早餐，不许饿着自己 🍞",
-  ],
-  good_night: [
-    "该睡觉啦~ 晚安，做个好梦 🌙",
-    "夜深了，不要熬夜哦，明天还要精神满满的！",
-    "晚安呀~ 梦里见 💤",
-    "今天辛苦了，好好休息吧，我会在梦里等你的~",
-  ],
-  random: [
-    "突然好想跟你分享一件事！你在吗？",
-    "刚才看到一个好有趣的东西，想跟你说说~",
-    "你猜我现在在想什么？😏",
-    "无聊中...要不要来陪我聊聊天？",
-    "今天的天气让我想到了你~ ☁️",
-    "嘿！有空吗？想跟你说说话~",
-  ],
-};
-
-/** 从指定通知类型的模板中随机选择正文，并附上类型标题。 */
+/** 从已注册的系统通知模板中随机选择消息标识。 */
 export function getRandomProactiveMessage(
-  type: keyof typeof PROACTIVE_MESSAGES
-): { title: string; content: string } {
+  type: keyof typeof PROACTIVE_MESSAGES,
+  name: string
+): { title: LocalizedMessage; content: LocalizedMessage } {
   const messages = PROACTIVE_MESSAGES[type];
-  const content = messages[Math.floor(Math.random() * messages.length)];
-  const titles: Record<string, string> = {
-    miss_you: "💕 想你了",
-    good_morning: "☀️ 早安",
-    good_night: "🌙 晚安",
-    random: "💬 新消息",
-    mood: "💭 心情分享",
+  return {
+    title: proactiveTitle(type, name),
+    content: { key: messages[Math.floor(Math.random() * messages.length)] },
   };
-  return { title: titles[type] || "💬 新消息", content };
 }
 
 // 检查是否应该发送主动消息（基于上次聊天时间和心情）
@@ -1198,13 +1167,19 @@ export async function checkAndCreateProactiveNotification(
     const { getFreshEventMemory } = await import("./memory");
     const eventMemory = await getFreshEventMemory(userId, gf.id);
     if (eventMemory) {
-      // 记忆以第三人称存储（"用户下周二…"），发给本人时转成第二人称。
-      const secondPerson = eventMemory.content.replace(/^用户/, "你");
+      // 将原始记忆作为引用参数保留，句子结构由语言包决定。
+
       return await saveNotification({
         userId,
         girlfriendId: gf.id,
-        title: `${gf.name}: 💭 一直惦记着`,
-        content: `我还记得，${secondPerson}。后来怎么样啦？想听你说说～`,
+        title: {
+          key: "notifications:title.thinkingOfYou",
+          values: { name: gf.name },
+        },
+        content: {
+          key: "notifications:memoryFollowUp",
+          values: { memory: eventMemory.content },
+        },
         type: "random",
         isRead: false,
       });
@@ -1236,12 +1211,12 @@ export async function checkAndCreateProactiveNotification(
       messageType = Math.random() > 0.5 ? "random" : "miss_you";
     }
 
-    const { title, content } = getRandomProactiveMessage(messageType);
+    const { title, content } = getRandomProactiveMessage(messageType, gf.name);
 
     const notification = await saveNotification({
       userId,
       girlfriendId: gf.id,
-      title: `${gf.name}: ${title}`,
+      title,
       content,
       type: messageType,
       isRead: false,

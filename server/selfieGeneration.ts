@@ -1,3 +1,4 @@
+import { BusinessRuleError } from "./_core/businessError";
 /** 聊天与相机共用的自拍生成流程，负责归属、姿势、套餐和保存。 */
 
 import { TRPCError } from "@trpc/server";
@@ -83,7 +84,12 @@ export async function generateConversationSelfie(
     if (pose.minLevel > (girlfriend.intimacyLevel || 1)) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: `LEVEL_LOCKED: 「${pose.label}」需要亲密度 Lv.${pose.minLevel}（当前 Lv.${girlfriend.intimacyLevel || 1}）。多聊聊天升级吧～`,
+        message: "LEVEL_LOCKED",
+        cause: new BusinessRuleError({
+          reason: "LEVEL_LOCKED",
+          requiredLevel: pose.minLevel,
+          currentLevel: girlfriend.intimacyLevel || 1,
+        }),
       });
     }
   }

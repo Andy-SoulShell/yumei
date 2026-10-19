@@ -4,6 +4,8 @@ import { Resend } from "resend";
 import nodemailer from "nodemailer";
 import { ENV } from "./env";
 import { log } from "./log";
+import { translate } from "../../shared/i18n";
+import { FALLBACK_LOCALE, type Locale } from "../../shared/locales";
 
 /** 一封登录邮件的收件人、主题、正文与原始登录链接。 */
 
@@ -158,24 +160,16 @@ export function _resetEmailDriverForTests() {
 export async function sendMagicLinkEmail(args: {
   to: string;
   magicLinkUrl: string;
-  locale?: "zh-CN" | "en";
+  locale?: Locale;
 }) {
   const driver = getDriver();
-  const chinese = args.locale === "zh-CN";
-  const subject = chinese ? "登录 YUMEI" : "Sign in to YUMEI";
-  const greeting = chinese ? "你好，" : "Hi,";
-  const instruction = chinese
-    ? "请点击以下链接登录 YUMEI："
-    : "Click the link below to sign in to YUMEI:";
-  const expiry = chinese
-    ? "链接 15 分钟内有效，且仅可使用一次。"
-    : "This link expires in 15 minutes and can only be used once.";
-  const ignore = chinese
-    ? "如果这不是你的操作，请忽略此邮件。"
-    : "If you didn't request this, you can safely ignore this email.";
-  const fallback = chinese
-    ? "如果按钮无法打开，请将以下地址复制到浏览器："
-    : "If the button doesn't work, paste this URL into your browser:";
+  const locale = args.locale ?? FALLBACK_LOCALE;
+  const subject = translate("email:subject", locale);
+  const greeting = translate("email:greeting", locale);
+  const instruction = translate("email:instruction", locale);
+  const expiry = translate("email:expiry", locale);
+  const ignore = translate("email:ignore", locale);
+  const fallback = translate("email:fallback", locale);
   const text = [
     greeting,
     ``,
@@ -188,11 +182,11 @@ export async function sendMagicLinkEmail(args: {
     ignore,
   ].join("\n");
   const html = `<!doctype html>
-<html lang="${chinese ? "zh-CN" : "en"}"><body style="font-family:system-ui,-apple-system,sans-serif;line-height:1.6;max-width:480px;margin:40px auto;padding:0 16px;">
+<html lang="${locale}"><body style="font-family:system-ui,-apple-system,sans-serif;line-height:1.6;max-width:480px;margin:40px auto;padding:0 16px;">
   <h2 style="color:#e91e63;margin:0 0 16px 0;">${subject}</h2>
   <p>${instruction} ${expiry}</p>
   <p style="margin:32px 0;">
-    <a href="${args.magicLinkUrl}" style="display:inline-block;padding:12px 24px;background:#e91e63;color:white;text-decoration:none;border-radius:8px;font-weight:600;">${chinese ? "登录" : "Sign in"}</a>
+    <a href="${args.magicLinkUrl}" style="display:inline-block;padding:12px 24px;background:#e91e63;color:white;text-decoration:none;border-radius:8px;font-weight:600;">${translate("email:signIn", locale)}</a>
   </p>
   <p style="color:#666;font-size:13px;">${fallback}</p>
   <p style="color:#666;font-size:13px;word-break:break-all;"><a href="${args.magicLinkUrl}" style="color:#e91e63;">${args.magicLinkUrl}</a></p>

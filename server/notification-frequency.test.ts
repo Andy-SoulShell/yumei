@@ -21,8 +21,8 @@ describe("proactive frequency", () => {
     await createNotification({
       userId,
       girlfriendId: gf.id,
-      title: "已有通知",
-      content: "你好",
+      title: { key: "notifications:title.random", values: { name: "Test" } },
+      content: { key: "notifications:heyAreYouFreeIDLoveTo" },
       createdAt: new Date(),
     });
     expect(await checkAndCreateProactiveNotification(userId)).toBeNull();

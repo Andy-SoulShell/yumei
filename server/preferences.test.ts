@@ -18,6 +18,17 @@ async function caller() {
 }
 
 describe("interface preferences", () => {
+  it.each(["ja", "ko"] as const)(
+    "persists %s through the real API and database",
+    async language => {
+      const { api } = await caller();
+      await api.preferences.update({ language });
+      expect(await api.preferences.get()).toMatchObject({
+        language,
+        initialized: true,
+      });
+    }
+  );
   it("uses system defaults for a new account and requires authentication", async () => {
     const { userId, api } = await caller();
     expect(await api.preferences.get()).toEqual({

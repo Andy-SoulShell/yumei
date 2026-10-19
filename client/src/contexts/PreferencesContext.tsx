@@ -1,3 +1,4 @@
+import { LANGUAGES } from "@shared/locales";
 /** 账号级界面偏好；访客本机保存，登录后读取服务端，连续修改按顺序写入。 */
 import {
   createContext,
@@ -195,6 +196,19 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     const root = document.documentElement;
     const palette = THEMES[value.theme];
     root.lang = locale;
+    const language = LANGUAGES[locale];
+    root.style.setProperty("--locale-font", language.fontFamily);
+    root.style.setProperty("--locale-word-break", language.wordBreak);
+    let font = document.querySelector<HTMLLinkElement>("#locale-font");
+    if (language.fontStylesheet) {
+      if (!font) {
+        font = document.createElement("link");
+        font.id = "locale-font";
+        font.rel = "stylesheet";
+        document.head.append(font);
+      }
+      font.href = language.fontStylesheet;
+    } else font?.remove();
     root.dataset.theme = value.theme;
     root.classList.toggle("dark", resolvedMode === "dark");
     root.style.colorScheme = resolvedMode;

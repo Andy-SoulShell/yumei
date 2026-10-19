@@ -12,17 +12,19 @@ export function KeyStatusIndicator({ name, value, saved = false }: Props) {
   if (!value)
     return saved ? (
       <span className="text-xs text-muted-foreground">
-        {t("已保存 · 未验证")}
+        {t("common:savedNotVerified")}
       </span>
     ) : null;
   try {
     assertProviderKeyFormat(name, value);
     return (
       <span className="text-xs text-muted-foreground">
-        {t("格式通过 · 待保存，未验证")}
+        {t("common:formatOKUnsavedNotVerified")}
       </span>
     );
   } catch {
-    return <span className="text-xs text-red-500">{t("格式不符")}</span>;
+    return (
+      <span className="text-xs text-red-500">{t("common:invalidFormat")}</span>
+    );
   }
 }

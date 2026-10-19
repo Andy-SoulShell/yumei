@@ -9,6 +9,7 @@ import * as schema from "../../drizzle/schema";
 import { ENV } from "./env";
 import { sendMagicLinkEmail } from "./email";
 import { getTrustedAuthOrigins } from "./authOrigins";
+import { normalizeLocale } from "../../shared/locales";
 
 /** 按认证表 schema 创建 Drizzle 实例，无数据库配置时返回 null。 */
 function getAuthDb() {
@@ -73,7 +74,7 @@ export const auth = authDb
             await sendMagicLinkEmail({
               to: email,
               magicLinkUrl: url,
-              locale: locale === "zh-CN" ? "zh-CN" : "en",
+              locale: normalizeLocale(locale),
             });
           },
         }),

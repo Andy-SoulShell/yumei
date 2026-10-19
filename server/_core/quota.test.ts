@@ -70,16 +70,9 @@ describe("daily meters (free-tier caps, )", () => {
     expect(todayUTC()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  it("allows everything when no DB is configured (test carve-out)", async () => {
-    const db = await getDb();
-    if (db) return; // covered by the DB-backed cases below
-    const result = await tryConsumeDailyMeter("meter-user-x", "chat", 1);
-    expect(result.allowed).toBe(true);
-  });
-
   it("counts up to the limit and then denies (DB-backed)", async () => {
     const db = await getDb();
-    if (!db) return; // requires DATABASE_URL
+    if (!db) throw new Error("DATABASE_URL required");
 
     const userId = `meter-user-${nanoid(8)}`;
     const first = await tryConsumeDailyMeter(userId, "chat", 2);
@@ -96,7 +89,7 @@ describe("daily meters (free-tier caps, )", () => {
 
   it("supports weighted consumption (intimacy points)", async () => {
     const db = await getDb();
-    if (!db) return;
+    if (!db) throw new Error("DATABASE_URL required");
 
     const userId = `meter-user-${nanoid(8)}`;
     const big = await tryConsumeDailyMeter(userId, "intimacy:points", 200, 150);
@@ -115,7 +108,7 @@ describe("daily meters (free-tier caps, )", () => {
 
   it("scopes meters per user and per meter name", async () => {
     const db = await getDb();
-    if (!db) return;
+    if (!db) throw new Error("DATABASE_URL required");
 
     const a = `meter-user-${nanoid(8)}`;
     const b = `meter-user-${nanoid(8)}`;
@@ -124,5 +117,25 @@ describe("daily meters (free-tier caps, )", () => {
     const otherMeter = await tryConsumeDailyMeter(a, "chat", 30);
     expect(otherUser.allowed).toBe(true);
     expect(otherMeter.allowed).toBe(true);
+  });
+});
+
+describe("quota concurrency", () => {
+  it("admits exactly one request for the final slot", async () => {
+    const user = `quota-last-${nanoid(8)}`;
+    await tryConsumeDailyMeter(user, "chat", 30, 29);
+    const results = await Promise.all(
+      Array.from({ length: 12 }, () => tryConsumeDailyMeter(user, "chat", 30))
+    );
+    expect(results.filter(r => r.allowed)).toHaveLength(1);
+    expect(await getDailyMeter(user, "chat")).toBe(30);
+  });
+  it("admits exactly the available slots from an empty meter", async () => {
+    const user = `quota-empty-${nanoid(8)}`;
+    const results = await Promise.all(
+      Array.from({ length: 12 }, () => tryConsumeDailyMeter(user, "chat", 4))
+    );
+    expect(results.filter(r => r.allowed)).toHaveLength(4);
+    expect(await getDailyMeter(user, "chat")).toBe(4);
   });
 });

@@ -122,10 +122,10 @@ export type MeterResult = {
 };
 
 /**
- * 先递增周期用量，再读取计数；超限时减回本次增量。
+ * 在事务中锁定用户周期计量，原子判断是否还有足够额度。
  *
- * @param amount - 本次拟消费的数量，默认一次
- * @remarks 递增、读取和回退是独立 SQL，尚不能保证并发场景下的判定一致性；无数据库时按测试回退策略放行。
+ * @param amount - 本次消费的正整数数量，默认一次
+ * @remarks 拒绝的请求不会改变计数；未配置数据库时拒绝执行，避免绕过额度。
  */
 export async function tryConsumePeriodMeter(
   userId: string,
@@ -134,39 +134,38 @@ export async function tryConsumePeriodMeter(
   period: string,
   amount = 1
 ): Promise<MeterResult> {
-  const db = await getDb();
-  if (!db) return { allowed: true, count: 0, limit };
-
-  await db
-    .insert(usageMeters)
-    .values({ userId, period, meter, count: amount })
-    .onDuplicateKeyUpdate({
-      set: { count: sql`${usageMeters.count} + ${amount}` },
-    });
-
-  const rows = await db
-    .select({ count: usageMeters.count })
-    .from(usageMeters)
-    .where(
-      sql`${usageMeters.userId} = ${userId} AND ${usageMeters.period} = ${period} AND ${usageMeters.meter} = ${meter}`
-    )
-    .limit(1);
-
-  const count = rows[0]?.count ?? amount;
-
-  if (count > limit) {
-    // Roll back so retries after midnight (or limit raises in M3) see an
-    // accurate spend figure rather than denial-inflated counts.
-    await db
-      .update(usageMeters)
-      .set({ count: sql`${usageMeters.count} - ${amount}` })
-      .where(
-        sql`${usageMeters.userId} = ${userId} AND ${usageMeters.period} = ${period} AND ${usageMeters.meter} = ${meter}`
-      );
-    return { allowed: false, count: count - amount, limit };
+  if (
+    !Number.isSafeInteger(amount) ||
+    amount <= 0 ||
+    !Number.isSafeInteger(limit) ||
+    limit < 0
+  ) {
+    throw new Error(
+      "Quota amount and limit must be nonnegative integers, with positive amount"
+    );
   }
-
-  return { allowed: true, count, limit };
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.transaction(async tx => {
+    // 唯一键冲突更新在事务结束前持有行锁，串行化同一周期的判定。
+    await tx
+      .insert(usageMeters)
+      .values({ userId, period, meter, count: 0 })
+      .onDuplicateKeyUpdate({ set: { count: sql`${usageMeters.count}` } });
+    const where = sql`${usageMeters.userId} = ${userId} AND ${usageMeters.period} = ${period} AND ${usageMeters.meter} = ${meter}`;
+    const [row] = await tx
+      .select({ count: usageMeters.count })
+      .from(usageMeters)
+      .where(where)
+      .for("update");
+    const count = row.count;
+    if (count > limit - amount) return { allowed: false, count, limit };
+    await tx
+      .update(usageMeters)
+      .set({ count: count + amount })
+      .where(where);
+    return { allowed: true, count: count + amount, limit };
+  });
 }
 
 /** 按当前 UTC 日期尝试消费额度，超限通过 allowed 返回。 */

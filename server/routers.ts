@@ -59,7 +59,15 @@ import {
 import { DEFAULT_GIRLFRIEND } from "../shared/defaultGirlfriend";
 import { getCharacterPreset } from "../shared/characterPresets";
 import { readPresetReference } from "./characterPresets";
-import { POINTS_RULES, DAILY_POINTS_LIMIT, getLevelByPoints, getLevelInfo, getNextLevel, getLevelProgress, getPointsToNextLevel } from "../shared/intimacy";
+import {
+  POINTS_RULES,
+  DAILY_POINTS_LIMIT,
+  getLevelByPoints,
+  getLevelInfo,
+  getNextLevel,
+  getLevelProgress,
+  getPointsToNextLevel,
+} from "../shared/intimacy";
 import { FREE_TIER_DEFAULT_MODEL, METERS, TIER_LIMITS } from "../shared/quotas";
 import {
   getBillingMode,
@@ -90,7 +98,10 @@ import {
 } from "./push";
 import axios from "axios";
 import { resolveChatProvider } from "./_core/chatProvider";
-import { resolveImageProvider, generateProviderImage } from "./_core/imageProvider";
+import {
+  resolveImageProvider,
+  generateProviderImage,
+} from "./_core/imageProvider";
 import { generateConversationSelfie } from "./selfieGeneration";
 import { detectSelfieRequest } from "../shared/selfieRequest";
 import { transcribeWithOpenAI } from "./_core/openaiWhisper";
@@ -112,7 +123,10 @@ function yearsSince(date: Date): number {
   const now = new Date();
   let years = now.getUTCFullYear() - date.getUTCFullYear();
   const monthDiff = now.getUTCMonth() - date.getUTCMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && now.getUTCDate() < date.getUTCDate())) {
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && now.getUTCDate() < date.getUTCDate())
+  ) {
     years -= 1;
   }
   return years;
@@ -121,7 +135,7 @@ function yearsSince(date: Date): number {
 export const appRouter = router({
   system: systemRouter,
   auth: router({
-    me: publicProcedure.query((opts) => opts.ctx.user),
+    me: publicProcedure.query(opts => opts.ctx.user),
 
     // M1-6: one-time 18+ confirmation. Validated server-side; the date
     // itself is only used to prove majority (SB 243 baseline).
@@ -157,8 +171,14 @@ export const appRouter = router({
       // primary signout path; this clears the same cookies for clients
       // that hit tRPC directly. See ADR 0006.
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie("better-auth.session_token", { ...cookieOptions, maxAge: -1 });
-      ctx.res.clearCookie("better-auth.session_data", { ...cookieOptions, maxAge: -1 });
+      ctx.res.clearCookie("better-auth.session_token", {
+        ...cookieOptions,
+        maxAge: -1,
+      });
+      ctx.res.clearCookie("better-auth.session_data", {
+        ...cookieOptions,
+        maxAge: -1,
+      });
       // Also clear the legacy v3 cookie if any client still has it.
       ctx.res.clearCookie("app_session_id", { ...cookieOptions, maxAge: -1 });
       return {
@@ -172,21 +192,29 @@ export const appRouter = router({
     // 创建女友配置
     create: protectedProcedure
       .input(
-        z.object({
-          name: z.string().min(1).max(100),
-          personality: z.string().min(1),
-          appearance: z.string().min(1),
-          interests: z.string().optional(),
-          customPrompt: z.string().max(300).optional(),
-          presetId: z.string().refine(id => !!getCharacterPreset(id), "角色预设不存在").optional(),
-          referenceImageBase64: z.string().min(1).optional(),
-          referenceImageMimeType: z.enum(["image/jpeg", "image/png", "image/gif", "image/webp"]).optional(),
-        }).refine(input =>
-          input.referenceImageBase64
-            ? !!input.referenceImageMimeType
-            : !input.referenceImageMimeType && !!input.presetId,
-          "请选择角色预设或上传参考照片"
-        )
+        z
+          .object({
+            name: z.string().min(1).max(100),
+            personality: z.string().min(1),
+            appearance: z.string().min(1),
+            interests: z.string().optional(),
+            customPrompt: z.string().max(300).optional(),
+            presetId: z
+              .string()
+              .refine(id => !!getCharacterPreset(id), "角色预设不存在")
+              .optional(),
+            referenceImageBase64: z.string().min(1).optional(),
+            referenceImageMimeType: z
+              .enum(["image/jpeg", "image/png", "image/gif", "image/webp"])
+              .optional(),
+          })
+          .refine(
+            input =>
+              input.referenceImageBase64
+                ? !!input.referenceImageMimeType
+                : !input.referenceImageMimeType && !!input.presetId,
+            "请选择角色预设或上传参考照片"
+          )
       )
       .mutation(async ({ ctx, input }) => {
         // 档位上限（M3 / ADR 0005）：Free 1 个、Plus 3 个、Pro 不限。
@@ -208,13 +236,22 @@ export const appRouter = router({
         const imageBuffer = input.referenceImageBase64
           ? Buffer.from(input.referenceImageBase64, "base64")
           : await readPresetReference(input.presetId!);
-        const mimeType = input.referenceImageBase64 ? input.referenceImageMimeType! : "image/jpeg";
+        const mimeType = input.referenceImageBase64
+          ? input.referenceImageMimeType!
+          : "image/jpeg";
         if (imageBuffer.length > 10 * 1024 * 1024) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "参考照片不能超过 10MB" });
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "参考照片不能超过 10MB",
+          });
         }
         const fileKey = `girlfriend-${ctx.user.id}-${nanoid()}.${mimeType.split("/")[1]}`;
 
-        const { url: imageUrl } = await storagePut(fileKey, imageBuffer, mimeType);
+        const { url: imageUrl } = await storagePut(
+          fileKey,
+          imageBuffer,
+          mimeType
+        );
 
         // 创建女友配置
         const girlfriend = await createGirlfriend({
@@ -269,21 +306,33 @@ export const appRouter = router({
         z.object({
           girlfriendId: z.number(),
           imageBase64: z.string(), // Base64 编码的图片
-          mimeType: z.enum(["image/jpeg", "image/png", "image/gif", "image/webp"]),
+          mimeType: z.enum([
+            "image/jpeg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+          ]),
         })
       )
       .mutation(async ({ ctx, input }) => {
         // 验证文件大小（Base64 编码后约为原始大小的 4/3，10MB 原始文件 ≈ 13.33MB Base64）
-        const maxBase64Size = 10 * 1024 * 1024 * 4 / 3; // ~13.33MB
+        const maxBase64Size = (10 * 1024 * 1024 * 4) / 3; // ~13.33MB
         if (input.imageBase64.length > maxBase64Size) {
           throw new Error("图片文件过大，请选择 10MB 以内的图片");
         }
 
         const imageBuffer = Buffer.from(input.imageBase64, "base64");
-        const ext = input.mimeType.split("/")[1] === "jpeg" ? "jpg" : input.mimeType.split("/")[1];
+        const ext =
+          input.mimeType.split("/")[1] === "jpeg"
+            ? "jpg"
+            : input.mimeType.split("/")[1];
         const fileKey = `avatar-${ctx.user.id}-${input.girlfriendId}-${nanoid()}.${ext}`;
 
-        const { url: avatarUrl } = await storagePut(fileKey, imageBuffer, input.mimeType);
+        const { url: avatarUrl } = await storagePut(
+          fileKey,
+          imageBuffer,
+          input.mimeType
+        );
 
         // 更新女友记录
         await updateGirlfriend(input.girlfriendId, ctx.user.id, {
@@ -390,7 +439,11 @@ export const appRouter = router({
       )
       .mutation(async ({ ctx, input }) => {
         const rule = POINTS_RULES[input.reason];
-        if (!rule) throw new TRPCError({ code: "BAD_REQUEST", message: "无效的经验值类型" });
+        if (!rule)
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "无效的经验值类型",
+          });
 
         // 服务端防刷分（M1-3 / issue #5）：冷却与每日上限过去只由前端
         // "自觉"遵守，直连 tRPC 即可绕过。现在由服务端强制，超限时静默
@@ -448,7 +501,11 @@ export const appRouter = router({
         }
 
         // 过滤过短消息（< 5 字不计算）
-        if (input.reason === "text_message" && input.messageLength && input.messageLength < 5) {
+        if (
+          input.reason === "text_message" &&
+          input.messageLength &&
+          input.messageLength < 5
+        ) {
           return skipped("消息过短，不计算经验值");
         }
 
@@ -486,8 +543,15 @@ export const appRouter = router({
     resume: protectedProcedure
       .input(z.object({ girlfriendId: z.number().int().positive() }))
       .mutation(async ({ ctx, input }) => {
-        const conversation = await resumeConversation(ctx.user.id, input.girlfriendId);
-        if (!conversation) throw new TRPCError({ code: "NOT_FOUND", message: "角色不存在或已删除" });
+        const conversation = await resumeConversation(
+          ctx.user.id,
+          input.girlfriendId
+        );
+        if (!conversation)
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "角色不存在或已删除",
+          });
         return conversation;
       }),
     // 创建新对话
@@ -499,9 +563,20 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
-        const girlfriend = await getActiveGirlfriend(ctx.user.id, input.girlfriendId);
-        if (!girlfriend) throw new TRPCError({ code: "NOT_FOUND", message: "角色不存在或已删除" });
-        return await createConversation({ userId: ctx.user.id, girlfriendId: girlfriend.id, title: input.title });
+        const girlfriend = await getActiveGirlfriend(
+          ctx.user.id,
+          input.girlfriendId
+        );
+        if (!girlfriend)
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "角色不存在或已删除",
+          });
+        return await createConversation({
+          userId: ctx.user.id,
+          girlfriendId: girlfriend.id,
+          title: input.title,
+        });
       }),
 
     // 获取对话列表
@@ -515,16 +590,21 @@ export const appRouter = router({
     }),
 
     // 获取单个对话
-    get: protectedProcedure.input(z.object({ id: z.number() })).query(async ({ ctx, input }) => {
-      return await getConversation(input.id, ctx.user.id);
-    }),
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ ctx, input }) => {
+        return await getConversation(input.id, ctx.user.id);
+      }),
 
     // 获取对话消息
     getMessages: protectedProcedure
       .input(z.object({ conversationId: z.number() }))
       .query(async ({ ctx, input }) => {
-        if (!await getConversation(input.conversationId, ctx.user.id)) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Conversation not found or not owned by current user" });
+        if (!(await getConversation(input.conversationId, ctx.user.id))) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Conversation not found or not owned by current user",
+          });
         }
         return await getConversationMessages(input.conversationId);
       }),
@@ -554,12 +634,16 @@ export const appRouter = router({
 
         const selfieRequest = detectSelfieRequest(input.content);
         if (selfieRequest && !detectSelfHarm(input.content)) {
-          const result = await generateConversationSelfie(ctx.user, {
-            conversationId: input.conversationId,
-            userContext: input.content,
-            generationMode: "reference",
-            poseId: selfieRequest.poseId,
-          }, input.content);
+          const result = await generateConversationSelfie(
+            ctx.user,
+            {
+              conversationId: input.conversationId,
+              userContext: input.content,
+              generationMode: "reference",
+              poseId: selfieRequest.poseId,
+            },
+            input.content
+          );
           return {
             userMessage: result.userMessage!,
             assistantMessage: result.message,
@@ -574,15 +658,17 @@ export const appRouter = router({
         if (!chatProvider.apiKey) {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
-            message:
-              `Chat is not configured yet. Set ${chatProvider.name === "deepseek" ? "OPERATOR_DEEPSEEK_KEY" : "OPERATOR_OPENROUTER_KEY"} on the server, or add your own OpenRouter key in Settings.`,
+            message: `Chat is not configured yet. Set ${chatProvider.name === "deepseek" ? "OPERATOR_DEEPSEEK_KEY" : "OPERATOR_OPENROUTER_KEY"} on the server, or add your own OpenRouter key in Settings.`,
           });
         }
 
         // 1. 验证对话所有权（必须在写入前完成 — 见 issue #4）
         // 之前的实现顺序是 createMessage → getConversation，这意味着任何登录用户
         // 传一个别人的 conversationId 也能成功 INSERT 一条 user message 进对方对话。
-        const conversation = await getConversation(input.conversationId, ctx.user.id);
+        const conversation = await getConversation(
+          input.conversationId,
+          ctx.user.id
+        );
         if (!conversation) {
           throw new TRPCError({
             code: "FORBIDDEN",
@@ -590,7 +676,10 @@ export const appRouter = router({
           });
         }
 
-        const girlfriend = await getActiveGirlfriend(ctx.user.id, conversation.girlfriendId);
+        const girlfriend = await getActiveGirlfriend(
+          ctx.user.id,
+          conversation.girlfriendId
+        );
         if (!girlfriend) {
           throw new TRPCError({
             code: "NOT_FOUND",
@@ -604,7 +693,11 @@ export const appRouter = router({
         const userKeyInfo = await keyProvider.describeUserKeys(ctx.user.id);
         const isByokChat = userKeyInfo.openrouter?.isSet === true;
         const { tier, limits } = await getTierLimits(ctx.user.id);
-        if (isBillingEnforced() && !isByokChat && limits.dailyMessages !== null) {
+        if (
+          isBillingEnforced() &&
+          !isByokChat &&
+          limits.dailyMessages !== null
+        ) {
           await consumeDailyMeter(
             ctx.user.id,
             METERS.chat,
@@ -624,7 +717,10 @@ export const appRouter = router({
         });
 
         // 3. 获取最近的消息历史（用于上下文）
-        const recentMessages = await getRecentMessages(input.conversationId, 10);
+        const recentMessages = await getRecentMessages(
+          input.conversationId,
+          10
+        );
 
         // 4. 获取用户全局提示词配置
         const apiConfig = await getUserApiConfig(ctx.user.id);
@@ -670,7 +766,10 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
             girlfriend.intimacyLevel || 1
           );
         } catch (error) {
-          console.error("[Chat] memory injection failed (non-blocking):", error);
+          console.error(
+            "[Chat] memory injection failed (non-blocking):",
+            error
+          );
         }
 
         // 安全条款（M1-6 / SB 243）：常驻，且排在所有用户可控提示词之后，
@@ -684,7 +783,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         // 6. 构建消息历史
         const messages = [
           { role: "system" as const, content: systemPrompt },
-          ...recentMessages.map((msg) => ({
+          ...recentMessages.map(msg => ({
             role: msg.role as "user" | "assistant",
             content: msg.content,
           })),
@@ -698,11 +797,12 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
             {
               // 免费档锁定 gpt-4o-mini（成本上限依据，ADR 0005）；
               // 付费档 / BYOK / 自托管可自由选模型。
-              model: chatProvider.name === "deepseek"
-                ? chatProvider.model
-                : isBillingEnforced() && limits.modelLocked && !isByokChat
-                  ? FREE_TIER_DEFAULT_MODEL
-                  : apiConfig?.llmModel || FREE_TIER_DEFAULT_MODEL,
+              model:
+                chatProvider.name === "deepseek"
+                  ? chatProvider.model
+                  : isBillingEnforced() && limits.modelLocked && !isByokChat
+                    ? FREE_TIER_DEFAULT_MODEL
+                    : apiConfig?.llmModel || FREE_TIER_DEFAULT_MODEL,
               messages,
               ...(chatProvider.name === "deepseek"
                 ? { thinking: { type: "disabled" }, max_tokens: 4096 }
@@ -750,8 +850,6 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
           imageGeneration: null,
         };
       }),
-
-
   }),
 
   // ============ Selfie Generation ============
@@ -767,7 +865,9 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
           poseId: z.string().optional(),
         })
       )
-      .mutation(({ ctx, input }) => generateConversationSelfie(ctx.user, input)),
+      .mutation(({ ctx, input }) =>
+        generateConversationSelfie(ctx.user, input)
+      ),
 
     // 合照（M4-2）：用户上传自己的照片，和她同框。Kissable 用这一个
     // 功能立住差异化；我们的 fal edit 管线天然支持双图输入。
@@ -785,16 +885,25 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         ensureAgeConfirmed(ctx.user);
         checkRateLimit(ctx.user.id, "selfie");
 
-        const conversation = await getConversation(input.conversationId, ctx.user.id);
+        const conversation = await getConversation(
+          input.conversationId,
+          ctx.user.id
+        );
         if (!conversation) {
           throw new TRPCError({
             code: "FORBIDDEN",
             message: "Conversation not found or not owned by current user",
           });
         }
-        const girlfriend = await getActiveGirlfriend(ctx.user.id, conversation.girlfriendId);
+        const girlfriend = await getActiveGirlfriend(
+          ctx.user.id,
+          conversation.girlfriendId
+        );
         if (!girlfriend) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "No active girlfriend found" });
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "No active girlfriend found",
+          });
         }
 
         // 档位门：Pro 专属（BYOK fal 或自托管除外）。
@@ -850,7 +959,10 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         }
         const photoBuffer = Buffer.from(input.userPhotoBase64, "base64");
         if (photoBuffer.length > 10 * 1024 * 1024) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Photo exceeds 10MB" });
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Photo exceeds 10MB",
+          });
         }
         const ext = input.userPhotoMimeType.split("/")[1];
         const photoKey = `couple-input-${ctx.user.id}-${nanoid()}.${ext}`;
@@ -863,9 +975,10 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         const scene = input.userContext?.trim()
           ? `, ${input.userContext.trim()}`
           : ", in a cozy warm setting";
-        const prompt = imageProvider.name === "comfyui"
-          ? `Create a natural couple photo of the people from <image1> and <image2> together, standing close and happy, looking at the camera${scene}. Use each image as an identity reference and preserve both faces.`
-          : `a natural couple photo of these two people together, standing close and happy, looking at the camera${scene}. keep both faces consistent with the source images`;
+        const prompt =
+          imageProvider.name === "comfyui"
+            ? `Create a natural couple photo of the people from <image1> and <image2> together, standing close and happy, looking at the camera${scene}. Use each image as an identity reference and preserve both faces.`
+            : `a natural couple photo of these two people together, standing close and happy, looking at the camera${scene}. keep both faces consistent with the source images`;
 
         let imageBuffer: Buffer;
         try {
@@ -873,16 +986,29 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
             prompt,
             mode: "reference",
             references: [
-              { key: girlfriend.referenceImageKey, url: girlfriend.referenceImageUrl },
+              {
+                key: girlfriend.referenceImageKey,
+                url: girlfriend.referenceImageUrl,
+              },
               { key: photoKey, url: userPhotoUrl },
             ],
           });
         } catch (error) {
-          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: imageProvider.name === "comfyui" && error instanceof Error ? error.message : "Failed to generate couple photo" });
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              imageProvider.name === "comfyui" && error instanceof Error
+                ? error.message
+                : "Failed to generate couple photo",
+          });
         }
 
         const fileKey = `couple-${ctx.user.id}-${nanoid()}.png`;
-        const { url: storedUrl } = await storagePut(fileKey, imageBuffer, "image/png");
+        const { url: storedUrl } = await storagePut(
+          fileKey,
+          imageBuffer,
+          "image/png"
+        );
 
         const selfie = await createSelfie({
           userId: ctx.user.id,
@@ -1038,7 +1164,10 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
               endsAt: subscription.endsAt,
             }
           : null,
-        checkoutUrls: mode === "lemonsqueezy" ? getCheckoutUrls() : { plus: null, pro: null },
+        checkoutUrls:
+          mode === "lemonsqueezy"
+            ? getCheckoutUrls()
+            : { plus: null, pro: null },
       };
     }),
   }),
@@ -1178,19 +1307,20 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
       if (!apiKey) {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
-          message:
-            `Chat key not configured. Set ${chatProvider.name === "deepseek" ? "OPERATOR_DEEPSEEK_KEY" : "OPERATOR_OPENROUTER_KEY"} on the server, or add your own OpenRouter key in Settings.`,
+          message: `Chat key not configured. Set ${chatProvider.name === "deepseek" ? "OPERATOR_DEEPSEEK_KEY" : "OPERATOR_OPENROUTER_KEY"} on the server, or add your own OpenRouter key in Settings.`,
         });
       }
       if (chatProvider.name === "deepseek") {
         return {
-          models: [{
-            id: chatProvider.model,
-            name: chatProvider.model,
-            contextLength: 0,
-            pricing: { prompt: "0", completion: "0" },
-            provider: "deepseek",
-          }],
+          models: [
+            {
+              id: chatProvider.model,
+              name: chatProvider.model,
+              contextLength: 0,
+              pricing: { prompt: "0", completion: "0" },
+              provider: "deepseek",
+            },
+          ],
           total: 1,
         };
       }
@@ -1205,9 +1335,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
             if (!arch) return true;
             const inputMods = arch.input_modalities || [];
             const outputMods = arch.output_modalities || [];
-            return (
-              inputMods.includes("text") && outputMods.includes("text")
-            );
+            return inputMods.includes("text") && outputMods.includes("text");
           })
           .map((m: any) => ({
             id: m.id,
@@ -1294,13 +1422,10 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         try {
           const params: any = { page_size: 100, page_number: 1 };
           if (input.search) params.title = input.search;
-          const response = await axios.get(
-            "https://api.fish.audio/model",
-            {
-              headers: { Authorization: `Bearer ${apiKey}` },
-              params,
-            }
-          );
+          const response = await axios.get("https://api.fish.audio/model", {
+            headers: { Authorization: `Bearer ${apiKey}` },
+            params,
+          });
           const models = response.data.items.map((m: any) => ({
             id: m._id,
             name: m.title || m._id,
@@ -1359,7 +1484,10 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
       )
       .mutation(async ({ ctx, input }) => {
         // 获取当前心情
-        const currentMood = await getGirlfriendMood(ctx.user.id, input.girlfriendId);
+        const currentMood = await getGirlfriendMood(
+          ctx.user.id,
+          input.girlfriendId
+        );
 
         let moodScore = currentMood?.moodScore ?? 70;
         let totalMessages = currentMood?.totalMessages ?? 0;
@@ -1385,17 +1513,61 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
 
         // 积极情绪关键词
         const positiveKeywords = [
-          "爱", "喜欢", "开心", "快乐", "幸福", "漂亮", "可爱", "棒", "好棒",
-          "想你", "想念", "亲亲", "抱抱", "宝贝", "亲爱", "美丽", "温柔",
-          "谢谢", "感谢", "太好了", "开心", "哈哈", "嘻嘻",
-          "love", "happy", "cute", "beautiful", "miss", "hug", "kiss",
+          "爱",
+          "喜欢",
+          "开心",
+          "快乐",
+          "幸福",
+          "漂亮",
+          "可爱",
+          "棒",
+          "好棒",
+          "想你",
+          "想念",
+          "亲亲",
+          "抱抱",
+          "宝贝",
+          "亲爱",
+          "美丽",
+          "温柔",
+          "谢谢",
+          "感谢",
+          "太好了",
+          "开心",
+          "哈哈",
+          "嘻嘻",
+          "love",
+          "happy",
+          "cute",
+          "beautiful",
+          "miss",
+          "hug",
+          "kiss",
         ];
 
         // 消极情绪关键词
         const negativeKeywords = [
-          "生气", "不开心", "难过", "伤心", "无聊", "烦", "累", "讨厌",
-          "分手", "再见", "拜拜", "不想", "笨", "丑", "差",
-          "sad", "angry", "boring", "hate", "bye", "ugly",
+          "生气",
+          "不开心",
+          "难过",
+          "伤心",
+          "无聊",
+          "烦",
+          "累",
+          "讨厌",
+          "分手",
+          "再见",
+          "拜拜",
+          "不想",
+          "笨",
+          "丑",
+          "差",
+          "sad",
+          "angry",
+          "boring",
+          "hate",
+          "bye",
+          "ugly",
         ];
 
         // 计算情绪变化
@@ -1426,7 +1598,9 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
 
         // 时间衰减：如果上次聊天超过24小时，心情下降
         if (currentMood?.lastChatAt) {
-          const hoursSinceLastChat = (now.getTime() - new Date(currentMood.lastChatAt).getTime()) / 3600000;
+          const hoursSinceLastChat =
+            (now.getTime() - new Date(currentMood.lastChatAt).getTime()) /
+            3600000;
           if (hoursSinceLastChat > 48) scoreDelta -= 10;
           else if (hoursSinceLastChat > 24) scoreDelta -= 5;
         }
@@ -1435,7 +1609,13 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         moodScore = Math.max(0, Math.min(100, moodScore + scoreDelta));
 
         // 根据分数确定心情状态
-        let mood: "excited" | "happy" | "content" | "neutral" | "lonely" | "sad";
+        let mood:
+          | "excited"
+          | "happy"
+          | "content"
+          | "neutral"
+          | "lonely"
+          | "sad";
         if (moodScore >= 90) mood = "excited";
         else if (moodScore >= 70) mood = "happy";
         else if (moodScore >= 50) mood = "content";
@@ -1486,7 +1666,9 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
 
     // 检查并生成主动通知（前端定时调用；M4-4 起同时推送到已订阅设备）
     checkProactive: protectedProcedure.mutation(async ({ ctx }) => {
-      const notification = await checkAndCreateProactiveNotification(ctx.user.id);
+      const notification = await checkAndCreateProactiveNotification(
+        ctx.user.id
+      );
       if (notification) {
         void sendPushToUser(ctx.user.id, {
           title: notification.title,
@@ -1575,7 +1757,11 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
             // 上传音频到 S3
             const audioBuffer = Buffer.from(response.data);
             const fileKey = `tts-${ctx.user.id}-${nanoid()}.mp3`;
-            const { url } = await storagePut(fileKey, audioBuffer, "audio/mpeg");
+            const { url } = await storagePut(
+              fileKey,
+              audioBuffer,
+              "audio/mpeg"
+            );
 
             return { audioUrl: url, provider: "elevenlabs" as const };
           } catch (error: any) {
@@ -1617,7 +1803,11 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
             // 上传音频到 S3
             const audioBuffer = Buffer.from(response.data);
             const fileKey = `tts-${ctx.user.id}-${nanoid()}.mp3`;
-            const { url } = await storagePut(fileKey, audioBuffer, "audio/mpeg");
+            const { url } = await storagePut(
+              fileKey,
+              audioBuffer,
+              "audio/mpeg"
+            );
 
             return { audioUrl: url, provider: "fishaudio" as const };
           } catch (error: any) {
@@ -1676,10 +1866,10 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         const ext = input.mimeType.includes("webm")
           ? "webm"
           : input.mimeType.includes("mp4")
-          ? "m4a"
-          : input.mimeType.includes("ogg")
-          ? "ogg"
-          : "audio";
+            ? "m4a"
+            : input.mimeType.includes("ogg")
+              ? "ogg"
+              : "audio";
         const fileKey = `voice-messages/${ctx.user.id}/${Date.now()}-${nanoid(8)}.${ext}`;
         const { url: audioUrl } = await storagePut(
           fileKey,

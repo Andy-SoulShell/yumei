@@ -82,8 +82,8 @@ export default function Login() {
           </Button>
         </form>
         <p className="text-xs text-muted-foreground text-center max-w-sm">
-          18+ only. Companions on YUMEI are AI-generated — not real people.
-          We never train models on your conversations.
+          18+ only. Companions on YUMEI are AI-generated — not real people. We
+          never train models on your conversations.
         </p>
       </div>
     </div>

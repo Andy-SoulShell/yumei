@@ -110,9 +110,9 @@ describe("TTS Providers - Fish Audio Model List API (Phase 1b-i)", () => {
   it("listFishAudioModels rejects when no key resolved", async () => {
     const { ctx } = createAuthContext();
     const caller = appRouter.createCaller(ctx);
-    await expect(
-      caller.apiConfig.listFishAudioModels({})
-    ).rejects.toThrow(/Fish Audio key not configured/);
+    await expect(caller.apiConfig.listFishAudioModels({})).rejects.toThrow(
+      /Fish Audio key not configured/
+    );
   });
 
   // (legacy fetchFishAudioModels removal is exercised via the
@@ -139,7 +139,7 @@ describe("TTS Providers - ttsProvider enum validation", () => {
   it("should accept 'browser' as ttsProvider", () => {
     // Test the enum values are correctly defined
     const validProviders = ["browser", "elevenlabs", "fishaudio"];
-    validProviders.forEach((provider) => {
+    validProviders.forEach(provider => {
       expect(["browser", "elevenlabs", "fishaudio"]).toContain(provider);
     });
   });

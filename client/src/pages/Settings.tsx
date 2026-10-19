@@ -1,13 +1,42 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { trpc } from "@/lib/trpc";
 import {
-  ArrowLeft, Loader2, Save, Volume2, Sun, Moon, Search, Check,
-  ExternalLink, Zap, Mic, Music, Globe, Brain, ChevronDown, ChevronUp, Sparkles, Eye,
-  Star, CheckCircle, XCircle, AlertCircle, BarChart3, RefreshCw, DollarSign, TrendingUp,
+  ArrowLeft,
+  Loader2,
+  Save,
+  Volume2,
+  Sun,
+  Moon,
+  Search,
+  Check,
+  ExternalLink,
+  Zap,
+  Mic,
+  Music,
+  Globe,
+  Brain,
+  ChevronDown,
+  ChevronUp,
+  Sparkles,
+  Eye,
+  Star,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  BarChart3,
+  RefreshCw,
+  DollarSign,
+  TrendingUp,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useState, useCallback, useMemo } from "react";
@@ -56,11 +85,14 @@ export default function Settings() {
 
   // TTS states
   const [ttsProvider, setTtsProvider] = useState<TTSProvider>("browser");
-  
+
   // Whisper 语音转写配置 states
-  const [whisperProvider, setWhisperProvider] = useState<"manus" | "openai">("manus");
+  const [whisperProvider, setWhisperProvider] = useState<"manus" | "openai">(
+    "manus"
+  );
   const [whisperApiKey, setWhisperApiKey] = useState("");
-  const [hasUnsavedWhisperChanges, setHasUnsavedWhisperChanges] = useState(false);
+  const [hasUnsavedWhisperChanges, setHasUnsavedWhisperChanges] =
+    useState(false);
   const [ttsAutoPlay, setTtsAutoPlay] = useState(() => {
     return localStorage.getItem("tts-autoplay") === "true";
   });
@@ -95,7 +127,9 @@ export default function Settings() {
   const [favoriteModels, setFavoriteModels] = useState<string[]>(() => {
     try {
       return JSON.parse(localStorage.getItem("favorite-models") || "[]");
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   });
 
   // 全局提示词 states
@@ -106,12 +140,30 @@ export default function Settings() {
 
   // 快捷模板
   const promptTemplates = [
-    { label: "🏠 日常陪伴", text: "回复要温柔体贴，多关心对方的日常生活，适当使用可爱的表情和语气词，像真实的女友一样聊天。" },
-    { label: "🎭 角色扮演", text: "始终保持角色设定，不要跳出角色。回复时融入角色的性格特点和语言习惯，让对话更有沉浸感。" },
-    { label: "✨ 简短回复", text: "回复要简洁，每次不超过 2-3 句话。用口语化的表达，像微信聊天一样自然。" },
-    { label: "💬 深度对话", text: "可以进行深入的话题讨论，分享观点和想法，回复可以稍长一些，展现思考深度和情感共鸣。" },
-    { label: "🌟 活泼搞怪", text: "回复要充满活力和幽默感，经常开玩笑、吐槽、撩人，语气俏皮可爱，让人忍不住笑。" },
-    { label: "🌿 治愈系", text: "回复要温暖治愈，充满关怀和鼓励。当对方不开心时要特别温柔，像一个安全温暖的港湾。" },
+    {
+      label: "🏠 日常陪伴",
+      text: "回复要温柔体贴，多关心对方的日常生活，适当使用可爱的表情和语气词，像真实的女友一样聊天。",
+    },
+    {
+      label: "🎭 角色扮演",
+      text: "始终保持角色设定，不要跳出角色。回复时融入角色的性格特点和语言习惯，让对话更有沉浸感。",
+    },
+    {
+      label: "✨ 简短回复",
+      text: "回复要简洁，每次不超过 2-3 句话。用口语化的表达，像微信聊天一样自然。",
+    },
+    {
+      label: "💬 深度对话",
+      text: "可以进行深入的话题讨论，分享观点和想法，回复可以稍长一些，展现思考深度和情感共鸣。",
+    },
+    {
+      label: "🌟 活泼搞怪",
+      text: "回复要充满活力和幽默感，经常开玩笑、吐槽、撩人，语气俏皮可爱，让人忍不住笑。",
+    },
+    {
+      label: "🌿 治愈系",
+      text: "回复要温暖治愈，充满关怀和鼓励。当对方不开心时要特别温柔，像一个安全温暖的港湾。",
+    },
   ];
 
   // 加载已有配置（Phase 1b-i shape: { preferences, keys }）
@@ -119,22 +171,39 @@ export default function Settings() {
 
   // 服务端解析运营方或用户密钥，前端只获取可用状态。
   const usesDeepSeek = apiConfig?.chatProvider.name === "deepseek";
-  const openRouterReady = !!apiConfig?.chatProvider.configured || !!apiConfig?.keys.openrouter.isSet || openRouterKey.length > 10;
-  const { data: modelsData, isLoading: modelsLoading, error: modelsError } = trpc.apiConfig.listModels.useQuery(
-    undefined,
-    { enabled: openRouterReady && !usesDeepSeek, retry: false }
-  );
+  const openRouterReady =
+    !!apiConfig?.chatProvider.configured ||
+    !!apiConfig?.keys.openrouter.isSet ||
+    openRouterKey.length > 10;
+  const {
+    data: modelsData,
+    isLoading: modelsLoading,
+    error: modelsError,
+  } = trpc.apiConfig.listModels.useQuery(undefined, {
+    enabled: openRouterReady && !usesDeepSeek,
+    retry: false,
+  });
 
   // ElevenLabs 声音列表
-  const elevenLabsReady = !!apiConfig?.keys.elevenlabs.isSet || elevenlabsApiKey.length > 10;
-  const { data: elevenLabsData, isLoading: elevenLabsLoading, error: elevenLabsError } = trpc.apiConfig.listElevenLabsVoices.useQuery(
-    undefined,
-    { enabled: elevenLabsReady, retry: false }
-  );
+  const elevenLabsReady =
+    !!apiConfig?.keys.elevenlabs.isSet || elevenlabsApiKey.length > 10;
+  const {
+    data: elevenLabsData,
+    isLoading: elevenLabsLoading,
+    error: elevenLabsError,
+  } = trpc.apiConfig.listElevenLabsVoices.useQuery(undefined, {
+    enabled: elevenLabsReady,
+    retry: false,
+  });
 
   // Fish Audio 模型列表
-  const fishAudioReady = !!apiConfig?.keys["fish-audio"].isSet || fishAudioApiKey.length > 10;
-  const { data: fishAudioData, isLoading: fishAudioLoading, error: fishAudioError } = trpc.apiConfig.listFishAudioModels.useQuery(
+  const fishAudioReady =
+    !!apiConfig?.keys["fish-audio"].isSet || fishAudioApiKey.length > 10;
+  const {
+    data: fishAudioData,
+    isLoading: fishAudioLoading,
+    error: fishAudioError,
+  } = trpc.apiConfig.listFishAudioModels.useQuery(
     { search: fishAudioSearch || undefined },
     { enabled: fishAudioReady, retry: false }
   );
@@ -144,7 +213,7 @@ export default function Settings() {
     onSuccess: () => {
       toast.success("配置保存成功");
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`保存失败：${error.message}`);
     },
   });
@@ -159,11 +228,17 @@ export default function Settings() {
    * Returns the count of successfully saved keys, for the toast.
    */
   async function saveDirtyKeys() {
-    const pending: Array<{ name: "openrouter" | "fal" | "elevenlabs" | "fish-audio" | "openai"; value: string }> = [];
-    if (openRouterKey) pending.push({ name: "openrouter", value: openRouterKey });
+    const pending: Array<{
+      name: "openrouter" | "fal" | "elevenlabs" | "fish-audio" | "openai";
+      value: string;
+    }> = [];
+    if (openRouterKey)
+      pending.push({ name: "openrouter", value: openRouterKey });
     if (falApiKey) pending.push({ name: "fal", value: falApiKey });
-    if (elevenlabsApiKey) pending.push({ name: "elevenlabs", value: elevenlabsApiKey });
-    if (fishAudioApiKey) pending.push({ name: "fish-audio", value: fishAudioApiKey });
+    if (elevenlabsApiKey)
+      pending.push({ name: "elevenlabs", value: elevenlabsApiKey });
+    if (fishAudioApiKey)
+      pending.push({ name: "fish-audio", value: fishAudioApiKey });
     if (whisperApiKey) pending.push({ name: "openai", value: whisperApiKey });
 
     let saved = 0;
@@ -191,7 +266,7 @@ export default function Settings() {
 
   // TTS 测试
   const ttsGenerate = trpc.tts.generate.useMutation({
-    onError: (error) => {
+    onError: error => {
       toast.error(`语音测试失败：${error.message}`);
     },
   });
@@ -308,18 +383,21 @@ export default function Settings() {
       return;
     }
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance("你好呀，我是你的虚拟女友，很高兴认识你~");
+    const utterance = new SpeechSynthesisUtterance(
+      "你好呀，我是你的虚拟女友，很高兴认识你~"
+    );
     utterance.lang = "zh-CN";
     utterance.rate = 0.95;
     utterance.pitch = 1.2;
     const voices = window.speechSynthesis.getVoices();
-    const zhVoice = voices.find(
-      (v) =>
-        v.lang.startsWith("zh") &&
-        (v.name.toLowerCase().includes("female") ||
-          v.name.includes("Xiaoxiao") ||
-          v.name.includes("女"))
-    ) || voices.find((v) => v.lang.startsWith("zh"));
+    const zhVoice =
+      voices.find(
+        v =>
+          v.lang.startsWith("zh") &&
+          (v.name.toLowerCase().includes("female") ||
+            v.name.includes("Xiaoxiao") ||
+            v.name.includes("女"))
+      ) || voices.find(v => v.lang.startsWith("zh"));
     if (zhVoice) utterance.voice = zhVoice;
     window.speechSynthesis.speak(utterance);
   }, []);
@@ -330,7 +408,7 @@ export default function Settings() {
     ttsGenerate.mutate(
       { text: "你好呀，我是你的虚拟女友，很高兴认识你~" },
       {
-        onSuccess: (data) => {
+        onSuccess: data => {
           const audio = new Audio(data.audioUrl);
           audio.play();
           toast.success("语音播放中");
@@ -428,7 +506,13 @@ export default function Settings() {
   const orCreditsLoading = false;
   const orCreditsError = null as { message: string } | null;
   const elevenLabsUsage = undefined as
-    | { tier: string; characterCount: number; characterLimit: number; remaining: number; status: string }
+    | {
+        tier: string;
+        characterCount: number;
+        characterLimit: number;
+        remaining: number;
+        status: string;
+      }
     | undefined;
   const elUsageLoading = false;
   const elUsageError = null as { message: string } | null;
@@ -446,10 +530,11 @@ export default function Settings() {
   };
 
   // 计算是否有任何可用的用量数据
-  const hasAnyUsageData = (openRouterKey.length > 10 && !!modelsData) ||
+  const hasAnyUsageData =
+    (openRouterKey.length > 10 && !!modelsData) ||
     (elevenlabsApiKey.length > 10 && !!elevenLabsData) ||
     (fishAudioApiKey.length > 10 && !!fishAudioData) ||
-    (falApiKey.length >= 10);
+    falApiKey.length >= 10;
 
   // API Key 有效性状态派生
   const openRouterKeyStatus = useMemo(() => {
@@ -527,7 +612,12 @@ export default function Settings() {
     return `$${num.toFixed(6)}`;
   };
 
-  const ttsProviderOptions: { value: TTSProvider; label: string; icon: React.ReactNode; desc: string }[] = [
+  const ttsProviderOptions: {
+    value: TTSProvider;
+    label: string;
+    icon: React.ReactNode;
+    desc: string;
+  }[] = [
     {
       value: "browser",
       label: "浏览器内置语音",
@@ -551,13 +641,20 @@ export default function Settings() {
   return (
     <div className="min-h-screen bg-background">
       {/* 顶部导航栏 */}
-      <header className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 border-b bg-card sticky top-0 z-10" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
+      <header
+        className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 border-b bg-card sticky top-0 z-10"
+        style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}
+      >
         <Button variant="ghost" size="icon" onClick={() => setLocation("/")}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <h1 className="text-base sm:text-lg font-semibold flex-1">设置</h1>
         <Button variant="ghost" size="icon" onClick={toggleTheme}>
-          {theme === "light" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+          {theme === "light" ? (
+            <Moon className="w-5 h-5" />
+          ) : (
+            <Sun className="w-5 h-5" />
+          )}
         </Button>
       </header>
 
@@ -595,14 +692,17 @@ export default function Settings() {
                       开启后，AI 女友的每条回复都会自动朗读
                     </p>
                   </div>
-                  <Switch checked={ttsAutoPlay} onCheckedChange={handleTtsToggle} />
+                  <Switch
+                    checked={ttsAutoPlay}
+                    onCheckedChange={handleTtsToggle}
+                  />
                 </div>
 
                 {/* 语音引擎选择 */}
                 <div className="space-y-3">
                   <Label>语音引擎</Label>
                   <div className="grid gap-3">
-                    {ttsProviderOptions.map((option) => (
+                    {ttsProviderOptions.map(option => (
                       <button
                         key={option.value}
                         onClick={() => {
@@ -615,21 +715,29 @@ export default function Settings() {
                             : "border-border hover:border-primary/30 hover:bg-accent/30"
                         }`}
                       >
-                        <div className={`p-2 rounded-lg ${
-                          ttsProvider === option.value ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                        }`}>
+                        <div
+                          className={`p-2 rounded-lg ${
+                            ttsProvider === option.value
+                              ? "bg-primary/10 text-primary"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
                           {option.icon}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-sm">{option.label}</span>
+                            <span className="font-medium text-sm">
+                              {option.label}
+                            </span>
                             {option.value === "browser" && (
                               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-600 font-medium">
                                 免费
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground mt-0.5">{option.desc}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {option.desc}
+                          </p>
                         </div>
                         {ttsProvider === option.value && (
                           <Check className="w-4 h-4 text-primary shrink-0" />
@@ -642,7 +750,11 @@ export default function Settings() {
                 {/* ===== 浏览器内置语音配置 ===== */}
                 {ttsProvider === "browser" && (
                   <div className="space-y-3 pt-2 border-t">
-                    <Button variant="outline" size="sm" onClick={handleTestBrowserVoice}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleTestBrowserVoice}
+                    >
                       <Volume2 className="w-4 h-4 mr-2" />
                       测试浏览器语音
                     </Button>
@@ -656,7 +768,10 @@ export default function Settings() {
                 {ttsProvider === "elevenlabs" && (
                   <div className="space-y-4 pt-2 border-t">
                     <div className="space-y-2">
-                      <Label htmlFor="elevenlabsKey" className="flex items-center justify-between">
+                      <Label
+                        htmlFor="elevenlabsKey"
+                        className="flex items-center justify-between"
+                      >
                         <span>ElevenLabs API Key</span>
                         <KeyStatusIndicator status={elevenLabsKeyStatus} />
                       </Label>
@@ -665,7 +780,7 @@ export default function Settings() {
                         type="password"
                         placeholder="输入你的 ElevenLabs API Key"
                         value={elevenlabsApiKey}
-                        onChange={(e) => {
+                        onChange={e => {
                           setElevenlabsApiKey(e.target.value);
                           setHasUnsavedVoiceChanges(true);
                         }}
@@ -687,7 +802,9 @@ export default function Settings() {
                     {elevenlabsApiKey.length > 10 && elevenLabsLoading && (
                       <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        <span className="text-sm text-muted-foreground">正在加载声音列表...</span>
+                        <span className="text-sm text-muted-foreground">
+                          正在加载声音列表...
+                        </span>
                       </div>
                     )}
 
@@ -705,15 +822,21 @@ export default function Settings() {
                           <div>
                             <div className="flex items-center gap-2">
                               <Check className="w-4 h-4 text-primary" />
-                              <span className="font-medium text-sm">当前声音</span>
+                              <span className="font-medium text-sm">
+                                当前声音
+                              </span>
                             </div>
-                            <p className="text-sm mt-1">{elevenlabsVoiceName || elevenlabsVoiceId}</p>
+                            <p className="text-sm mt-1">
+                              {elevenlabsVoiceName || elevenlabsVoiceId}
+                            </p>
                           </div>
                           {elevenLabsData && (
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => setShowElevenLabsVoices(!showElevenLabsVoices)}
+                              onClick={() =>
+                                setShowElevenLabsVoices(!showElevenLabsVoices)
+                              }
                             >
                               更换声音
                             </Button>
@@ -723,82 +846,102 @@ export default function Settings() {
                     )}
 
                     {/* 声音列表 */}
-                    {elevenLabsData && !elevenLabsLoading && (showElevenLabsVoices || !elevenlabsVoiceId) && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <Label>选择声音（共 {elevenLabsData.total} 个可用）</Label>
-                          {elevenlabsVoiceId && (
-                            <Button variant="ghost" size="sm" onClick={() => setShowElevenLabsVoices(false)}>
-                              收起
-                            </Button>
-                          )}
-                        </div>
+                    {elevenLabsData &&
+                      !elevenLabsLoading &&
+                      (showElevenLabsVoices || !elevenlabsVoiceId) && (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label>
+                              选择声音（共 {elevenLabsData.total} 个可用）
+                            </Label>
+                            {elevenlabsVoiceId && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowElevenLabsVoices(false)}
+                              >
+                                收起
+                              </Button>
+                            )}
+                          </div>
 
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                          <Input
-                            placeholder="搜索声音名称..."
-                            value={elevenLabsSearch}
-                            onChange={(e) => setElevenLabsSearch(e.target.value)}
-                            className="pl-9"
-                          />
-                        </div>
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                              placeholder="搜索声音名称..."
+                              value={elevenLabsSearch}
+                              onChange={e =>
+                                setElevenLabsSearch(e.target.value)
+                              }
+                              className="pl-9"
+                            />
+                          </div>
 
-                        <div className="max-h-72 overflow-y-auto rounded-lg border divide-y">
-                          {groupedElevenLabsVoices.length === 0 ? (
-                            <div className="p-4 text-center text-sm text-muted-foreground">
-                              没有找到匹配的声音
-                            </div>
-                          ) : (
-                            groupedElevenLabsVoices.map(([category, voices]) => (
-                              <div key={category}>
-                                <div className="px-3 py-2 bg-muted/30 text-xs font-semibold text-muted-foreground uppercase sticky top-0">
-                                  {category} ({voices.length})
-                                </div>
-                                {voices.map((voice: ElevenLabsVoice) => (
-                                  <button
-                                    key={voice.id}
-                                    className={`w-full text-left px-3 py-2.5 hover:bg-accent/50 transition-colors flex items-center justify-between gap-2 ${
-                                      elevenlabsVoiceId === voice.id ? "bg-primary/10 border-l-2 border-primary" : ""
-                                    }`}
-                                    onClick={() => handleSelectElevenLabsVoice(voice)}
-                                  >
-                                    <div className="min-w-0 flex-1">
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-sm font-medium">{voice.name}</span>
-                                        {elevenlabsVoiceId === voice.id && (
-                                          <Check className="w-3.5 h-3.5 text-primary shrink-0" />
-                                        )}
-                                      </div>
-                                      {voice.description && (
-                                        <p className="text-xs text-muted-foreground truncate mt-0.5">
-                                          {voice.description}
-                                        </p>
-                                      )}
-                                    </div>
-                                    {voice.previewUrl && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="shrink-0 h-7 w-7 p-0"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          const audio = new Audio(voice.previewUrl);
-                                          audio.play();
-                                        }}
-                                        title="试听"
-                                      >
-                                        <Volume2 className="w-3.5 h-3.5" />
-                                      </Button>
-                                    )}
-                                  </button>
-                                ))}
+                          <div className="max-h-72 overflow-y-auto rounded-lg border divide-y">
+                            {groupedElevenLabsVoices.length === 0 ? (
+                              <div className="p-4 text-center text-sm text-muted-foreground">
+                                没有找到匹配的声音
                               </div>
-                            ))
-                          )}
+                            ) : (
+                              groupedElevenLabsVoices.map(
+                                ([category, voices]) => (
+                                  <div key={category}>
+                                    <div className="px-3 py-2 bg-muted/30 text-xs font-semibold text-muted-foreground uppercase sticky top-0">
+                                      {category} ({voices.length})
+                                    </div>
+                                    {voices.map((voice: ElevenLabsVoice) => (
+                                      <button
+                                        key={voice.id}
+                                        className={`w-full text-left px-3 py-2.5 hover:bg-accent/50 transition-colors flex items-center justify-between gap-2 ${
+                                          elevenlabsVoiceId === voice.id
+                                            ? "bg-primary/10 border-l-2 border-primary"
+                                            : ""
+                                        }`}
+                                        onClick={() =>
+                                          handleSelectElevenLabsVoice(voice)
+                                        }
+                                      >
+                                        <div className="min-w-0 flex-1">
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-sm font-medium">
+                                              {voice.name}
+                                            </span>
+                                            {elevenlabsVoiceId === voice.id && (
+                                              <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+                                            )}
+                                          </div>
+                                          {voice.description && (
+                                            <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                              {voice.description}
+                                            </p>
+                                          )}
+                                        </div>
+                                        {voice.previewUrl && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="shrink-0 h-7 w-7 p-0"
+                                            onClick={e => {
+                                              e.stopPropagation();
+                                              const audio = new Audio(
+                                                voice.previewUrl
+                                              );
+                                              audio.play();
+                                            }}
+                                            title="试听"
+                                          >
+                                            <Volume2 className="w-3.5 h-3.5" />
+                                          </Button>
+                                        )}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )
+                              )
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
                     {/* 测试按钮 */}
                     {elevenlabsVoiceId && (
@@ -823,7 +966,10 @@ export default function Settings() {
                 {ttsProvider === "fishaudio" && (
                   <div className="space-y-4 pt-2 border-t">
                     <div className="space-y-2">
-                      <Label htmlFor="fishAudioKey" className="flex items-center justify-between">
+                      <Label
+                        htmlFor="fishAudioKey"
+                        className="flex items-center justify-between"
+                      >
                         <span>Fish Audio API Key</span>
                         <KeyStatusIndicator status={fishAudioKeyStatus} />
                       </Label>
@@ -832,7 +978,7 @@ export default function Settings() {
                         type="password"
                         placeholder="输入你的 Fish Audio API Key"
                         value={fishAudioApiKey}
-                        onChange={(e) => {
+                        onChange={e => {
                           setFishAudioApiKey(e.target.value);
                           setHasUnsavedVoiceChanges(true);
                         }}
@@ -854,7 +1000,9 @@ export default function Settings() {
                     {fishAudioApiKey.length > 10 && fishAudioLoading && (
                       <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        <span className="text-sm text-muted-foreground">正在加载声音模型列表...</span>
+                        <span className="text-sm text-muted-foreground">
+                          正在加载声音模型列表...
+                        </span>
                       </div>
                     )}
 
@@ -872,15 +1020,21 @@ export default function Settings() {
                           <div>
                             <div className="flex items-center gap-2">
                               <Check className="w-4 h-4 text-primary" />
-                              <span className="font-medium text-sm">当前声音模型</span>
+                              <span className="font-medium text-sm">
+                                当前声音模型
+                              </span>
                             </div>
-                            <p className="text-sm mt-1">{fishAudioModelName || fishAudioModelId}</p>
+                            <p className="text-sm mt-1">
+                              {fishAudioModelName || fishAudioModelId}
+                            </p>
                           </div>
                           {fishAudioData && (
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => setShowFishAudioModels(!showFishAudioModels)}
+                              onClick={() =>
+                                setShowFishAudioModels(!showFishAudioModels)
+                              }
                             >
                               更换模型
                             </Button>
@@ -890,71 +1044,90 @@ export default function Settings() {
                     )}
 
                     {/* 声音模型列表 */}
-                    {fishAudioData && !fishAudioLoading && (showFishAudioModels || !fishAudioModelId) && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <Label>选择声音模型（共 {fishAudioData.total} 个可用）</Label>
-                          {fishAudioModelId && (
-                            <Button variant="ghost" size="sm" onClick={() => setShowFishAudioModels(false)}>
-                              收起
-                            </Button>
-                          )}
-                        </div>
-
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                          <Input
-                            placeholder="搜索声音模型名称..."
-                            value={fishAudioSearch}
-                            onChange={(e) => setFishAudioSearch(e.target.value)}
-                            className="pl-9"
-                          />
-                        </div>
-
-                        <div className="max-h-72 overflow-y-auto rounded-lg border divide-y">
-                          {filteredFishAudioModels.length === 0 ? (
-                            <div className="p-4 text-center text-sm text-muted-foreground">
-                              没有找到匹配的声音模型
-                            </div>
-                          ) : (
-                            filteredFishAudioModels.map((model: FishAudioModel) => (
-                              <button
-                                key={model.id}
-                                className={`w-full text-left px-3 py-2.5 hover:bg-accent/50 transition-colors ${
-                                  fishAudioModelId === model.id ? "bg-primary/10 border-l-2 border-primary" : ""
-                                }`}
-                                onClick={() => handleSelectFishAudioModel(model)}
+                    {fishAudioData &&
+                      !fishAudioLoading &&
+                      (showFishAudioModels || !fishAudioModelId) && (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label>
+                              选择声音模型（共 {fishAudioData.total} 个可用）
+                            </Label>
+                            {fishAudioModelId && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowFishAudioModels(false)}
                               >
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-sm font-medium">{model.name}</span>
-                                      {fishAudioModelId === model.id && (
-                                        <Check className="w-3.5 h-3.5 text-primary shrink-0" />
-                                      )}
-                                    </div>
-                                    {model.description && (
-                                      <p className="text-xs text-muted-foreground truncate mt-0.5">
-                                        {model.description}
-                                      </p>
-                                    )}
-                                    {model.tags.length > 0 && (
-                                      <div className="flex gap-1 mt-1 flex-wrap">
-                                        {model.tags.slice(0, 3).map((tag) => (
-                                          <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
-                                            {tag}
+                                收起
+                              </Button>
+                            )}
+                          </div>
+
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                              placeholder="搜索声音模型名称..."
+                              value={fishAudioSearch}
+                              onChange={e => setFishAudioSearch(e.target.value)}
+                              className="pl-9"
+                            />
+                          </div>
+
+                          <div className="max-h-72 overflow-y-auto rounded-lg border divide-y">
+                            {filteredFishAudioModels.length === 0 ? (
+                              <div className="p-4 text-center text-sm text-muted-foreground">
+                                没有找到匹配的声音模型
+                              </div>
+                            ) : (
+                              filteredFishAudioModels.map(
+                                (model: FishAudioModel) => (
+                                  <button
+                                    key={model.id}
+                                    className={`w-full text-left px-3 py-2.5 hover:bg-accent/50 transition-colors ${
+                                      fishAudioModelId === model.id
+                                        ? "bg-primary/10 border-l-2 border-primary"
+                                        : ""
+                                    }`}
+                                    onClick={() =>
+                                      handleSelectFishAudioModel(model)
+                                    }
+                                  >
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-sm font-medium">
+                                            {model.name}
                                           </span>
-                                        ))}
+                                          {fishAudioModelId === model.id && (
+                                            <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+                                          )}
+                                        </div>
+                                        {model.description && (
+                                          <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                            {model.description}
+                                          </p>
+                                        )}
+                                        {model.tags.length > 0 && (
+                                          <div className="flex gap-1 mt-1 flex-wrap">
+                                            {model.tags.slice(0, 3).map(tag => (
+                                              <span
+                                                key={tag}
+                                                className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground"
+                                              >
+                                                {tag}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        )}
                                       </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </button>
-                            ))
-                          )}
+                                    </div>
+                                  </button>
+                                )
+                              )
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
                     {/* 测试按钮 */}
                     {fishAudioModelId && (
@@ -1019,7 +1192,8 @@ export default function Settings() {
                   语音转写 API 配置
                 </CardTitle>
                 <CardDescription>
-                  语音消息通过 OpenAI Whisper 转写。默认使用运营方的密钥（按套餐额度），
+                  语音消息通过 OpenAI Whisper
+                  转写。默认使用运营方的密钥（按套餐额度），
                   也可以在下方填入自己的 Key（BYOK，走你自己的账户、不占额度）。
                 </CardDescription>
               </CardHeader>
@@ -1032,7 +1206,7 @@ export default function Settings() {
                     type="password"
                     placeholder="留空则使用运营方密钥；或填入你的 sk-..."
                     value={whisperApiKey}
-                    onChange={(e) => {
+                    onChange={e => {
                       setWhisperApiKey(e.target.value);
                       setWhisperProvider("openai");
                       setHasUnsavedWhisperChanges(true);
@@ -1121,7 +1295,11 @@ export default function Settings() {
             {/* ========== fal.ai API 配置 ========== */}
             <Card>
               <CardHeader>
-                <CardTitle>{apiConfig?.imageProvider.name === "comfyui" ? "ComfyUI 生图 / fal.ai 可选配置" : "fal.ai API 配置"}</CardTitle>
+                <CardTitle>
+                  {apiConfig?.imageProvider.name === "comfyui"
+                    ? "ComfyUI 生图 / fal.ai 可选配置"
+                    : "fal.ai API 配置"}
+                </CardTitle>
                 <CardDescription>
                   用于生成自拍照片。获取 API Key：
                   <a
@@ -1137,11 +1315,15 @@ export default function Settings() {
               <CardContent className="space-y-4">
                 {apiConfig?.imageProvider.name === "comfyui" && (
                   <p className="text-sm text-muted-foreground">
-                    当前使用服务器配置的 ComfyUI。聊天页点击相机，可选择参考图生图或文生图，也可上传照片生成合照。
+                    当前使用服务器配置的
+                    ComfyUI。聊天页点击相机，可选择参考图生图或文生图，也可上传照片生成合照。
                   </p>
                 )}
                 <div className="space-y-2">
-                  <Label htmlFor="falApiKey" className="flex items-center justify-between">
+                  <Label
+                    htmlFor="falApiKey"
+                    className="flex items-center justify-between"
+                  >
                     <span>fal.ai API Key</span>
                     <KeyStatusIndicator status={falKeyStatus} />
                   </Label>
@@ -1150,12 +1332,15 @@ export default function Settings() {
                     type="password"
                     placeholder="输入你的 fal.ai API Key"
                     value={falApiKey}
-                    onChange={(e) => {
+                    onChange={e => {
                       setFalApiKey(e.target.value);
                       setHasUnsavedFalChanges(true);
                     }}
                   />
-                  <p className="text-xs text-muted-foreground">可选：填写后使用你的 fal.ai 账户；留空沿用服务器配置的生图服务。</p>
+                  <p className="text-xs text-muted-foreground">
+                    可选：填写后使用你的 fal.ai
+                    账户；留空沿用服务器配置的生图服务。
+                  </p>
                 </div>
 
                 {/* fal.ai 配置保存生效按钮 */}
@@ -1203,7 +1388,10 @@ export default function Settings() {
                 </CardTitle>
                 <CardDescription>
                   {usesDeepSeek ? (
-                    <>当前使用 DeepSeek 官方服务，默认模型为 {apiConfig?.chatProvider.model}。</>
+                    <>
+                      当前使用 DeepSeek 官方服务，默认模型为{" "}
+                      {apiConfig?.chatProvider.model}。
+                    </>
                   ) : (
                     <>
                       通过 OpenRouter 接入数百种 AI 模型。获取 API Key：
@@ -1221,7 +1409,10 @@ export default function Settings() {
               </CardHeader>
               <CardContent className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="openRouterKey" className="flex items-center justify-between">
+                  <Label
+                    htmlFor="openRouterKey"
+                    className="flex items-center justify-between"
+                  >
                     <span>OpenRouter API Key</span>
                     <KeyStatusIndicator status={openRouterKeyStatus} />
                   </Label>
@@ -1230,7 +1421,7 @@ export default function Settings() {
                     type="password"
                     placeholder="sk-or-v1-xxxxxxxxxxxx"
                     value={openRouterKey}
-                    onChange={(e) => {
+                    onChange={e => {
                       setOpenRouterKey(e.target.value);
                       setHasUnsavedLlmChanges(true);
                     }}
@@ -1239,14 +1430,17 @@ export default function Settings() {
                     {usesDeepSeek
                       ? "留空则使用已配置的 DeepSeek 服务。此处仅接受 OpenRouter Key。"
                       : "留空则使用运营方的 OpenRouter 密钥（按套餐额度，免费档锁定 gpt-4o-mini）。"}
-                    填入自己的 Key 后走你自己的账户、不占额度，并可自由选择模型。
+                    填入自己的 Key
+                    后走你自己的账户、不占额度，并可自由选择模型。
                   </p>
                 </div>
 
                 {openRouterKey.length > 10 && modelsLoading && (
                   <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm text-muted-foreground">正在加载可用模型列表...</span>
+                    <span className="text-sm text-muted-foreground">
+                      正在加载可用模型列表...
+                    </span>
                   </div>
                 )}
 
@@ -1264,12 +1458,20 @@ export default function Settings() {
                           <Check className="w-4 h-4 text-primary" />
                           <span className="font-medium text-sm">当前模型</span>
                         </div>
-                        <p className="text-sm mt-1 font-mono">{selectedModel}</p>
+                        <p className="text-sm mt-1 font-mono">
+                          {selectedModel}
+                        </p>
                         {selectedModelInfo && !usesDeepSeek && (
                           <p className="text-xs text-muted-foreground mt-1">
-                            上下文：{(selectedModelInfo.contextLength / 1000).toFixed(0)}K tokens |
-                            输入：{formatPrice(selectedModelInfo.pricing.prompt)}/token |
-                            输出：{formatPrice(selectedModelInfo.pricing.completion)}/token
+                            上下文：
+                            {(selectedModelInfo.contextLength / 1000).toFixed(
+                              0
+                            )}
+                            K tokens | 输入：
+                            {formatPrice(selectedModelInfo.pricing.prompt)}
+                            /token | 输出：
+                            {formatPrice(selectedModelInfo.pricing.completion)}
+                            /token
                           </p>
                         )}
                       </div>
@@ -1286,120 +1488,147 @@ export default function Settings() {
                   </div>
                 )}
 
-                {modelsData && !usesDeepSeek && !modelsLoading && (showModelList || !selectedModel) && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label>选择模型（共 {modelsData.total} 个可用）</Label>
-                      {selectedModel && (
-                        <Button variant="ghost" size="sm" onClick={() => setShowModelList(false)}>
-                          收起
-                        </Button>
-                      )}
-                    </div>
+                {modelsData &&
+                  !usesDeepSeek &&
+                  !modelsLoading &&
+                  (showModelList || !selectedModel) && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label>选择模型（共 {modelsData.total} 个可用）</Label>
+                        {selectedModel && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowModelList(false)}
+                          >
+                            收起
+                          </Button>
+                        )}
+                      </div>
 
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        placeholder="搜索模型名称、ID 或提供商..."
-                        value={modelSearch}
-                        onChange={(e) => setModelSearch(e.target.value)}
-                        className="pl-9"
-                      />
-                    </div>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          placeholder="搜索模型名称、ID 或提供商..."
+                          value={modelSearch}
+                          onChange={e => setModelSearch(e.target.value)}
+                          className="pl-9"
+                        />
+                      </div>
 
-                    <div className="max-h-80 overflow-y-auto rounded-lg border divide-y">
-                      {/* 收藏模型置顶显示 */}
-                      {(() => {
-                        const favModels = filteredModels.filter((m: ModelInfo) => favoriteModels.includes(m.id));
-                        const nonFavModels = filteredModels.filter((m: ModelInfo) => !favoriteModels.includes(m.id));
-                        const nonFavGrouped: Record<string, ModelInfo[]> = {};
-                        for (const model of nonFavModels) {
-                          if (!nonFavGrouped[model.provider]) nonFavGrouped[model.provider] = [];
-                          nonFavGrouped[model.provider].push(model);
-                        }
-                        const nonFavEntries = Object.entries(nonFavGrouped).sort(([a], [b]) => a.localeCompare(b));
+                      <div className="max-h-80 overflow-y-auto rounded-lg border divide-y">
+                        {/* 收藏模型置顶显示 */}
+                        {(() => {
+                          const favModels = filteredModels.filter(
+                            (m: ModelInfo) => favoriteModels.includes(m.id)
+                          );
+                          const nonFavModels = filteredModels.filter(
+                            (m: ModelInfo) => !favoriteModels.includes(m.id)
+                          );
+                          const nonFavGrouped: Record<string, ModelInfo[]> = {};
+                          for (const model of nonFavModels) {
+                            if (!nonFavGrouped[model.provider])
+                              nonFavGrouped[model.provider] = [];
+                            nonFavGrouped[model.provider].push(model);
+                          }
+                          const nonFavEntries = Object.entries(
+                            nonFavGrouped
+                          ).sort(([a], [b]) => a.localeCompare(b));
 
-                        if (favModels.length === 0 && nonFavEntries.length === 0) {
-                          return (
-                            <div className="p-4 text-center text-sm text-muted-foreground">
-                              没有找到匹配的模型
+                          if (
+                            favModels.length === 0 &&
+                            nonFavEntries.length === 0
+                          ) {
+                            return (
+                              <div className="p-4 text-center text-sm text-muted-foreground">
+                                没有找到匹配的模型
+                              </div>
+                            );
+                          }
+
+                          const renderModelItem = (model: ModelInfo) => (
+                            <div
+                              key={model.id}
+                              className={`w-full text-left px-3 py-2.5 hover:bg-accent/50 transition-colors flex items-center justify-between gap-2 ${
+                                selectedModel === model.id
+                                  ? "bg-primary/10 border-l-2 border-primary"
+                                  : ""
+                              }`}
+                            >
+                              <button
+                                className="min-w-0 flex-1 text-left"
+                                onClick={() => handleSelectModel(model.id)}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium truncate">
+                                    {model.name}
+                                  </span>
+                                  {selectedModel === model.id && (
+                                    <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground font-mono truncate">
+                                  {model.id}
+                                </p>
+                              </button>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <div className="text-right">
+                                  <p className="text-xs text-muted-foreground">
+                                    {(model.contextLength / 1000).toFixed(0)}K
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {formatPrice(model.pricing.prompt)}
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    toggleFavoriteModel(model.id);
+                                  }}
+                                  className="p-1 rounded hover:bg-accent transition-colors"
+                                  title={
+                                    favoriteModels.includes(model.id)
+                                      ? "取消收藏"
+                                      : "收藏模型"
+                                  }
+                                >
+                                  <Star
+                                    className={`w-3.5 h-3.5 ${
+                                      favoriteModels.includes(model.id)
+                                        ? "fill-amber-400 text-amber-400"
+                                        : "text-muted-foreground"
+                                    }`}
+                                  />
+                                </button>
+                              </div>
                             </div>
                           );
-                        }
 
-                        const renderModelItem = (model: ModelInfo) => (
-                          <div
-                            key={model.id}
-                            className={`w-full text-left px-3 py-2.5 hover:bg-accent/50 transition-colors flex items-center justify-between gap-2 ${
-                              selectedModel === model.id ? "bg-primary/10 border-l-2 border-primary" : ""
-                            }`}
-                          >
-                            <button
-                              className="min-w-0 flex-1 text-left"
-                              onClick={() => handleSelectModel(model.id)}
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium truncate">{model.name}</span>
-                                {selectedModel === model.id && (
-                                  <Check className="w-3.5 h-3.5 text-primary shrink-0" />
-                                )}
-                              </div>
-                              <p className="text-xs text-muted-foreground font-mono truncate">
-                                {model.id}
-                              </p>
-                            </button>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <div className="text-right">
-                                <p className="text-xs text-muted-foreground">
-                                  {(model.contextLength / 1000).toFixed(0)}K
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {formatPrice(model.pricing.prompt)}
-                                </p>
-                              </div>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleFavoriteModel(model.id);
-                                }}
-                                className="p-1 rounded hover:bg-accent transition-colors"
-                                title={favoriteModels.includes(model.id) ? "取消收藏" : "收藏模型"}
-                              >
-                                <Star className={`w-3.5 h-3.5 ${
-                                  favoriteModels.includes(model.id)
-                                    ? "fill-amber-400 text-amber-400"
-                                    : "text-muted-foreground"
-                                }`} />
-                              </button>
-                            </div>
-                          </div>
-                        );
-
-                        return (
-                          <>
-                            {favModels.length > 0 && (
-                              <div>
-                                <div className="px-3 py-2 bg-amber-500/10 text-xs font-semibold text-amber-600 uppercase sticky top-0 flex items-center gap-1.5">
-                                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                                  收藏模型 ({favModels.length})
+                          return (
+                            <>
+                              {favModels.length > 0 && (
+                                <div>
+                                  <div className="px-3 py-2 bg-amber-500/10 text-xs font-semibold text-amber-600 uppercase sticky top-0 flex items-center gap-1.5">
+                                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                                    收藏模型 ({favModels.length})
+                                  </div>
+                                  {favModels.map(renderModelItem)}
                                 </div>
-                                {favModels.map(renderModelItem)}
-                              </div>
-                            )}
-                            {nonFavEntries.map(([provider, models]) => (
-                              <div key={provider}>
-                                <div className="px-3 py-2 bg-muted/30 text-xs font-semibold text-muted-foreground uppercase sticky top-0">
-                                  {provider} ({models.length})
+                              )}
+                              {nonFavEntries.map(([provider, models]) => (
+                                <div key={provider}>
+                                  <div className="px-3 py-2 bg-muted/30 text-xs font-semibold text-muted-foreground uppercase sticky top-0">
+                                    {provider} ({models.length})
+                                  </div>
+                                  {models.map(renderModelItem)}
                                 </div>
-                                {models.map(renderModelItem)}
-                              </div>
-                            ))}
-                          </>
-                        );
-                      })()}
+                              ))}
+                            </>
+                          );
+                        })()}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
                 {/* LLM 配置保存生效按钮 */}
                 {(openRouterKey.length > 0 || selectedModel) && (
                   <div className="pt-3 border-t">
@@ -1455,7 +1684,7 @@ export default function Settings() {
                     id="globalPrompt"
                     placeholder="例如：回复要简短可爱，多用表情，不要说教..."
                     value={globalPrompt}
-                    onChange={(e) => {
+                    onChange={e => {
                       setGlobalPrompt(e.target.value);
                       setHasUnsavedAiChanges(true);
                     }}
@@ -1467,7 +1696,9 @@ export default function Settings() {
                     <p className="text-xs text-muted-foreground">
                       此提示词将应用于所有女友的对话中
                     </p>
-                    <span className="text-xs text-muted-foreground">{globalPrompt.length}/500</span>
+                    <span className="text-xs text-muted-foreground">
+                      {globalPrompt.length}/500
+                    </span>
                   </div>
                 </div>
 
@@ -1477,9 +1708,11 @@ export default function Settings() {
                     <Sparkles className="w-3.5 h-3.5" />
                     快捷模板
                   </Label>
-                  <p className="text-xs text-muted-foreground">点击即可快速填充提示词，也可以在此基础上修改</p>
+                  <p className="text-xs text-muted-foreground">
+                    点击即可快速填充提示词，也可以在此基础上修改
+                  </p>
                   <div className="grid grid-cols-2 gap-2">
-                    {promptTemplates.map((tpl) => (
+                    {promptTemplates.map(tpl => (
                       <button
                         key={tpl.label}
                         onClick={() => {
@@ -1488,7 +1721,9 @@ export default function Settings() {
                           toast.success(`已应用模板：${tpl.label}`);
                         }}
                         className={`text-left p-2.5 rounded-lg border text-sm transition-all hover:border-primary/40 hover:bg-primary/5 ${
-                          globalPrompt === tpl.text ? "border-primary bg-primary/10" : "border-border"
+                          globalPrompt === tpl.text
+                            ? "border-primary bg-primary/10"
+                            : "border-border"
                         }`}
                       >
                         <span className="font-medium">{tpl.label}</span>
@@ -1503,7 +1738,11 @@ export default function Settings() {
                     onClick={() => setShowAdvancedPrompt(!showAdvancedPrompt)}
                     className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full"
                   >
-                    {showAdvancedPrompt ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    {showAdvancedPrompt ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
                     高级选项
                   </button>
 
@@ -1515,7 +1754,7 @@ export default function Settings() {
                           id="replyLanguage"
                           placeholder="默认中文，可设置为英文、日文等"
                           value={replyLanguage}
-                          onChange={(e) => {
+                          onChange={e => {
                             setReplyLanguage(e.target.value);
                             setHasUnsavedAiChanges(true);
                           }}
@@ -1528,7 +1767,7 @@ export default function Settings() {
                           id="replyLengthLimit"
                           placeholder="例如：50字以内、2-3句话、不限制"
                           value={replyLengthLimit}
-                          onChange={(e) => {
+                          onChange={e => {
                             setReplyLengthLimit(e.target.value);
                             setHasUnsavedAiChanges(true);
                           }}
@@ -1587,7 +1826,11 @@ export default function Settings() {
                         实时查看各平台 API 余额和使用情况
                       </CardDescription>
                     </div>
-                    <Button variant="outline" size="sm" onClick={handleRefreshUsage}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRefreshUsage}
+                    >
                       <RefreshCw className="w-4 h-4 mr-1" />
                       刷新
                     </Button>
@@ -1604,29 +1847,45 @@ export default function Settings() {
                           </div>
                           <div>
                             <p className="font-medium text-sm">OpenRouter</p>
-                            <p className="text-xs text-muted-foreground">LLM 对话模型</p>
+                            <p className="text-xs text-muted-foreground">
+                              LLM 对话模型
+                            </p>
                           </div>
                         </div>
-                        {orCreditsLoading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+                        {orCreditsLoading && (
+                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                        )}
                       </div>
                       {orCreditsError ? (
                         <p className="text-xs text-amber-500 flex items-center gap-1">
                           <AlertCircle className="w-3.5 h-3.5" />
-                          {orCreditsError.message.includes("不支持") ? "当前 Key 类型不支持余额查询" : "查询失败，请稍后重试"}
+                          {orCreditsError.message.includes("不支持")
+                            ? "当前 Key 类型不支持余额查询"
+                            : "查询失败，请稍后重试"}
                         </p>
                       ) : openRouterCredits ? (
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">总额度</span>
-                            <span className="font-mono font-medium">${openRouterCredits.totalCredits.toFixed(4)}</span>
+                            <span className="text-muted-foreground">
+                              总额度
+                            </span>
+                            <span className="font-mono font-medium">
+                              ${openRouterCredits.totalCredits.toFixed(4)}
+                            </span>
                           </div>
                           <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">已使用</span>
-                            <span className="font-mono text-orange-500">${openRouterCredits.totalUsage.toFixed(4)}</span>
+                            <span className="text-muted-foreground">
+                              已使用
+                            </span>
+                            <span className="font-mono text-orange-500">
+                              ${openRouterCredits.totalUsage.toFixed(4)}
+                            </span>
                           </div>
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">剩余</span>
-                            <span className={`font-mono font-semibold ${openRouterCredits.remaining < 1 ? 'text-red-500' : 'text-green-600'}`}>
+                            <span
+                              className={`font-mono font-semibold ${openRouterCredits.remaining < 1 ? "text-red-500" : "text-green-600"}`}
+                            >
                               ${openRouterCredits.remaining.toFixed(4)}
                             </span>
                           </div>
@@ -1635,17 +1894,22 @@ export default function Settings() {
                             <div
                               className={`h-full rounded-full transition-all ${
                                 openRouterCredits.totalCredits > 0
-                                  ? (openRouterCredits.totalUsage / openRouterCredits.totalCredits) > 0.9
-                                    ? 'bg-red-500'
-                                    : (openRouterCredits.totalUsage / openRouterCredits.totalCredits) > 0.7
-                                    ? 'bg-orange-500'
-                                    : 'bg-violet-500'
-                                  : 'bg-violet-500'
+                                  ? openRouterCredits.totalUsage /
+                                      openRouterCredits.totalCredits >
+                                    0.9
+                                    ? "bg-red-500"
+                                    : openRouterCredits.totalUsage /
+                                          openRouterCredits.totalCredits >
+                                        0.7
+                                      ? "bg-orange-500"
+                                      : "bg-violet-500"
+                                  : "bg-violet-500"
                               }`}
                               style={{
-                                width: openRouterCredits.totalCredits > 0
-                                  ? `${Math.min((openRouterCredits.totalUsage / openRouterCredits.totalCredits) * 100, 100)}%`
-                                  : '0%'
+                                width:
+                                  openRouterCredits.totalCredits > 0
+                                    ? `${Math.min((openRouterCredits.totalUsage / openRouterCredits.totalCredits) * 100, 100)}%`
+                                    : "0%",
                               }}
                             />
                           </div>
@@ -1670,10 +1934,14 @@ export default function Settings() {
                           </div>
                           <div>
                             <p className="font-medium text-sm">ElevenLabs</p>
-                            <p className="text-xs text-muted-foreground">AI 语音合成</p>
+                            <p className="text-xs text-muted-foreground">
+                              AI 语音合成
+                            </p>
                           </div>
                         </div>
-                        {elUsageLoading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+                        {elUsageLoading && (
+                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                        )}
                       </div>
                       {elUsageError ? (
                         <p className="text-xs text-red-500 flex items-center gap-1">
@@ -1683,22 +1951,34 @@ export default function Settings() {
                       ) : elevenLabsUsage ? (
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">订阅等级</span>
+                            <span className="text-muted-foreground">
+                              订阅等级
+                            </span>
                             <span className="font-medium capitalize px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs">
                               {elevenLabsUsage.tier}
                             </span>
                           </div>
                           <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">字符配额</span>
+                            <span className="text-muted-foreground">
+                              字符配额
+                            </span>
                             <span className="font-mono">
-                              <span className="text-orange-500">{elevenLabsUsage.characterCount.toLocaleString()}</span>
+                              <span className="text-orange-500">
+                                {elevenLabsUsage.characterCount.toLocaleString()}
+                              </span>
                               <span className="text-muted-foreground"> / </span>
-                              <span className="font-medium">{elevenLabsUsage.characterLimit.toLocaleString()}</span>
+                              <span className="font-medium">
+                                {elevenLabsUsage.characterLimit.toLocaleString()}
+                              </span>
                             </span>
                           </div>
                           <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">剩余字符</span>
-                            <span className={`font-mono font-semibold ${elevenLabsUsage.remaining < 1000 ? 'text-red-500' : 'text-green-600'}`}>
+                            <span className="text-muted-foreground">
+                              剩余字符
+                            </span>
+                            <span
+                              className={`font-mono font-semibold ${elevenLabsUsage.remaining < 1000 ? "text-red-500" : "text-green-600"}`}
+                            >
                               {elevenLabsUsage.remaining.toLocaleString()}
                             </span>
                           </div>
@@ -1707,23 +1987,43 @@ export default function Settings() {
                             <div
                               className={`h-full rounded-full transition-all ${
                                 elevenLabsUsage.characterLimit > 0
-                                  ? (elevenLabsUsage.characterCount / elevenLabsUsage.characterLimit) > 0.9
-                                    ? 'bg-red-500'
-                                    : (elevenLabsUsage.characterCount / elevenLabsUsage.characterLimit) > 0.7
-                                    ? 'bg-orange-500'
-                                    : 'bg-blue-500'
-                                  : 'bg-blue-500'
+                                  ? elevenLabsUsage.characterCount /
+                                      elevenLabsUsage.characterLimit >
+                                    0.9
+                                    ? "bg-red-500"
+                                    : elevenLabsUsage.characterCount /
+                                          elevenLabsUsage.characterLimit >
+                                        0.7
+                                      ? "bg-orange-500"
+                                      : "bg-blue-500"
+                                  : "bg-blue-500"
                               }`}
                               style={{
-                                width: elevenLabsUsage.characterLimit > 0
-                                  ? `${Math.min((elevenLabsUsage.characterCount / elevenLabsUsage.characterLimit) * 100, 100)}%`
-                                  : '0%'
+                                width:
+                                  elevenLabsUsage.characterLimit > 0
+                                    ? `${Math.min((elevenLabsUsage.characterCount / elevenLabsUsage.characterLimit) * 100, 100)}%`
+                                    : "0%",
                               }}
                             />
                           </div>
                           <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>状态：{elevenLabsUsage.status === 'active' ? '✅ 活跃' : elevenLabsUsage.status}</span>
-                            <span>使用率：{elevenLabsUsage.characterLimit > 0 ? ((elevenLabsUsage.characterCount / elevenLabsUsage.characterLimit) * 100).toFixed(1) : 0}%</span>
+                            <span>
+                              状态：
+                              {elevenLabsUsage.status === "active"
+                                ? "✅ 活跃"
+                                : elevenLabsUsage.status}
+                            </span>
+                            <span>
+                              使用率：
+                              {elevenLabsUsage.characterLimit > 0
+                                ? (
+                                    (elevenLabsUsage.characterCount /
+                                      elevenLabsUsage.characterLimit) *
+                                    100
+                                  ).toFixed(1)
+                                : 0}
+                              %
+                            </span>
                           </div>
                         </div>
                       ) : null}
@@ -1740,10 +2040,14 @@ export default function Settings() {
                           </div>
                           <div>
                             <p className="font-medium text-sm">Fish Audio</p>
-                            <p className="text-xs text-muted-foreground">中文语音合成</p>
+                            <p className="text-xs text-muted-foreground">
+                              中文语音合成
+                            </p>
                           </div>
                         </div>
-                        {faCreditsLoading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+                        {faCreditsLoading && (
+                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                        )}
                       </div>
                       {faCreditsError ? (
                         <p className="text-xs text-red-500 flex items-center gap-1">
@@ -1753,8 +2057,12 @@ export default function Settings() {
                       ) : fishAudioCredits ? (
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">账户余额</span>
-                            <span className={`font-mono font-semibold ${fishAudioCredits.credit < 1 ? 'text-red-500' : 'text-green-600'}`}>
+                            <span className="text-muted-foreground">
+                              账户余额
+                            </span>
+                            <span
+                              className={`font-mono font-semibold ${fishAudioCredits.credit < 1 ? "text-red-500" : "text-green-600"}`}
+                            >
                               ${fishAudioCredits.credit.toFixed(4)}
                             </span>
                           </div>
@@ -1785,7 +2093,9 @@ export default function Settings() {
                           </div>
                           <div>
                             <p className="font-medium text-sm">fal.ai</p>
-                            <p className="text-xs text-muted-foreground">AI 图片生成</p>
+                            <p className="text-xs text-muted-foreground">
+                              AI 图片生成
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -1815,7 +2125,11 @@ export default function Settings() {
             )}
 
             {/* ========== 保存按钮 ========== */}
-            <Button className="w-full" onClick={handleSave} disabled={updatePreferences.isPending}>
+            <Button
+              className="w-full"
+              onClick={handleSave}
+              disabled={updatePreferences.isPending}
+            >
               {updatePreferences.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1836,13 +2150,17 @@ export default function Settings() {
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground space-y-2">
                 <p>
-                  <strong>1. 语音功能：</strong>三种引擎可选 — 浏览器内置（免费）、ElevenLabs（高品质）、Fish Audio（中文优化）
+                  <strong>1. 语音功能：</strong>三种引擎可选 —
+                  浏览器内置（免费）、ElevenLabs（高品质）、Fish
+                  Audio（中文优化）
                 </p>
                 <p>
-                  <strong>2. fal.ai API Key：</strong>可选（用于生成自拍），留空则使用运营方密钥，成本约 $0.022/张
+                  <strong>2. fal.ai API Key：</strong>
+                  可选（用于生成自拍），留空则使用运营方密钥，成本约 $0.022/张
                 </p>
                 <p>
-                  <strong>3. OpenRouter API Key：</strong>可选，留空则使用运营方密钥（按套餐额度）
+                  <strong>3. OpenRouter API Key：</strong>
+                  可选，留空则使用运营方密钥（按套餐额度）
                 </p>
                 <p>
                   <strong>4. 语音引擎对比：</strong>

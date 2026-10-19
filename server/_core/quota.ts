@@ -43,13 +43,18 @@ function sweepIfNeeded(now: number) {
 }
 
 /** Throws TOO_MANY_REQUESTS when the per-minute cap for this action is hit. */
-export function checkRateLimit(userId: string, action: RateLimitedAction): void {
+export function checkRateLimit(
+  userId: string,
+  action: RateLimitedAction
+): void {
   const limit = RATE_LIMITS_PER_MINUTE[action];
   const now = Date.now();
   sweepIfNeeded(now);
 
   const key = `${userId}:${action}`;
-  const timestamps = (requestLog.get(key) ?? []).filter(t => now - t < WINDOW_MS);
+  const timestamps = (requestLog.get(key) ?? []).filter(
+    t => now - t < WINDOW_MS
+  );
 
   if (timestamps.length >= limit) {
     const retryAfterSec = Math.ceil((timestamps[0] + WINDOW_MS - now) / 1000);
@@ -76,7 +81,11 @@ export function resetRateLimits(): void {
 const cooldowns = new Map<string, number>();
 
 /** True when `action` was marked within the last `minutes` for this user. */
-export function isOnCooldown(userId: string, action: string, minutes: number): boolean {
+export function isOnCooldown(
+  userId: string,
+  action: string,
+  minutes: number
+): boolean {
   const last = cooldowns.get(`${userId}:${action}`);
   return last !== undefined && Date.now() - last < minutes * 60_000;
 }
@@ -220,16 +229,26 @@ export async function consumeMonthlyMeter(
 }
 
 /** Current spend on today's meter (0 when unset or no DB). */
-export async function getDailyMeter(userId: string, meter: string): Promise<number> {
+export async function getDailyMeter(
+  userId: string,
+  meter: string
+): Promise<number> {
   return getPeriodMeter(userId, meter, todayUTC());
 }
 
 /** Current spend on this month's meter (0 when unset or no DB). */
-export async function getMonthlyMeter(userId: string, meter: string): Promise<number> {
+export async function getMonthlyMeter(
+  userId: string,
+  meter: string
+): Promise<number> {
   return getPeriodMeter(userId, meter, monthUTC());
 }
 
-async function getPeriodMeter(userId: string, meter: string, period: string): Promise<number> {
+async function getPeriodMeter(
+  userId: string,
+  meter: string,
+  period: string
+): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
   const rows = await db

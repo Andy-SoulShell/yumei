@@ -65,7 +65,9 @@ describe("provider selection by env", () => {
       const { sendMagicLinkEmail } = await import("./email");
       await sendMagicLinkEmail({ to: "user@example.com", magicLinkUrl: url });
       expect(info).toHaveBeenCalledWith("[email:stdout]", expect.any(String));
-      expect(JSON.parse(info.mock.calls[0][1])).toMatchObject({ magicLinkUrl: url });
+      expect(JSON.parse(info.mock.calls[0][1])).toMatchObject({
+        magicLinkUrl: url,
+      });
       expect(resendSendMock).not.toHaveBeenCalled();
       expect(nodemailerCreateTransportMock).not.toHaveBeenCalled();
     } finally {

@@ -103,9 +103,7 @@ describe("encryption (issue #2)", () => {
 
   it("handles unicode payloads", async () => {
     const out = await encryptToString("中文 + emoji 🥰 + sk-key-末尾");
-    expect(await decryptFromString(out)).toBe(
-      "中文 + emoji 🥰 + sk-key-末尾"
-    );
+    expect(await decryptFromString(out)).toBe("中文 + emoji 🥰 + sk-key-末尾");
   });
 });
 

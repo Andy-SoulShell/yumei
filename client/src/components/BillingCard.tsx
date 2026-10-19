@@ -43,7 +43,8 @@ export function BillingCard() {
       ? Math.min(100, (info.usage.selfiesUsed / info.usage.selfieLimit) * 100)
       : null;
   const nearLimit =
-    (chatPct !== null && chatPct >= 80) || (selfiePct !== null && selfiePct >= 80);
+    (chatPct !== null && chatPct >= 80) ||
+    (selfiePct !== null && selfiePct >= 80);
 
   return (
     <Card>
@@ -90,7 +91,9 @@ export function BillingCard() {
           {info.usage.selfieLimit != null && !info.byok.selfie && (
             <div>
               <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                <span>{info.usage.selfiePeriod === "day" ? "今日自拍" : "本月自拍"}</span>
+                <span>
+                  {info.usage.selfiePeriod === "day" ? "今日自拍" : "本月自拍"}
+                </span>
                 <span>
                   {info.usage.selfiesUsed} / {info.usage.selfieLimit}
                 </span>
@@ -113,7 +116,9 @@ export function BillingCard() {
               {info.tier === "free" && info.checkoutUrls.plus && (
                 <Button
                   className="flex-1"
-                  onClick={() => window.open(checkoutUrl(info.checkoutUrls.plus)!, "_blank")}
+                  onClick={() =>
+                    window.open(checkoutUrl(info.checkoutUrls.plus)!, "_blank")
+                  }
                 >
                   <Sparkles className="w-4 h-4 mr-1.5" />
                   升级 Plus（{TIER_PRICES.plus}）
@@ -123,7 +128,9 @@ export function BillingCard() {
                 <Button
                   variant={info.tier === "free" ? "outline" : "default"}
                   className="flex-1"
-                  onClick={() => window.open(checkoutUrl(info.checkoutUrls.pro)!, "_blank")}
+                  onClick={() =>
+                    window.open(checkoutUrl(info.checkoutUrls.pro)!, "_blank")
+                  }
                 >
                   <Crown className="w-4 h-4 mr-1.5" />
                   升级 Pro（{TIER_PRICES.pro}）
@@ -133,7 +140,8 @@ export function BillingCard() {
           )}
           {info.mode === "free" && (
             <p className="text-xs text-muted-foreground">
-              本站尚未开通付费订阅；需要更高额度可在下方配置自己的 API Key（BYOK）。
+              本站尚未开通付费订阅；需要更高额度可在下方配置自己的 API
+              Key（BYOK）。
             </p>
           )}
         </CardContent>

@@ -61,7 +61,7 @@ describe("conversation.search", () => {
     // 应该能找到包含 "公园" 的对话
     expect(results.length).toBeGreaterThan(0);
 
-    const found = results.find((r) => r.id === convo.id);
+    const found = results.find(r => r.id === convo.id);
     expect(found).toBeDefined();
     expect(found?.matchedMessage).toContain("公园");
   });
@@ -101,7 +101,14 @@ describe("mood system", () => {
     expect(result.moodScore).toBeGreaterThanOrEqual(70); // 积极消息应该维持或提高分数
     expect(result.totalMessages).toBeGreaterThanOrEqual(1);
     expect(result.todayMessages).toBeGreaterThanOrEqual(1);
-    expect(["excited", "happy", "content", "neutral", "lonely", "sad"]).toContain(result.mood);
+    expect([
+      "excited",
+      "happy",
+      "content",
+      "neutral",
+      "lonely",
+      "sad",
+    ]).toContain(result.mood);
   });
 
   it("should decrease mood score for negative messages", async () => {

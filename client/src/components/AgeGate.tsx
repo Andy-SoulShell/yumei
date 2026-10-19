@@ -53,9 +53,9 @@ export function AgeGate() {
             <DialogHeader>
               <DialogTitle>We can't let you in</DialogTitle>
               <DialogDescription>
-                YUMEI is an 18+ service and isn't available to minors. If
-                you're going through a hard time, you're not alone — reach out
-                to someone you trust, or find help at{" "}
+                YUMEI is an 18+ service and isn't available to minors. If you're
+                going through a hard time, you're not alone — reach out to
+                someone you trust, or find help at{" "}
                 <a
                   className="underline"
                   href="https://findahelpline.com"
@@ -97,8 +97,13 @@ export function AgeGate() {
                 onChange={e => setBirthDate(e.target.value)}
               />
               {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" disabled={confirmAge.isPending || !birthDate}>
-                {confirmAge.isPending ? "Confirming…" : "I'm 18 or older — continue"}
+              <Button
+                type="submit"
+                disabled={confirmAge.isPending || !birthDate}
+              >
+                {confirmAge.isPending
+                  ? "Confirming…"
+                  : "I'm 18 or older — continue"}
               </Button>
             </form>
           </>

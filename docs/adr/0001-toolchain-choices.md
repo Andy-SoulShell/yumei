@@ -17,14 +17,14 @@ MySQL. We want a predictable bootstrap path that:
 
 ## Decision
 
-| Concern              | Choice                            | Alternatives considered            |
-| -------------------- | --------------------------------- | ---------------------------------- |
-| OS package manager   | **Homebrew**                      | MacPorts, Nix                      |
-| Node version manager | **mise**                          | nvm, fnm, asdf, Volta              |
+| Concern              | Choice                             | Alternatives considered            |
+| -------------------- | ---------------------------------- | ---------------------------------- |
+| OS package manager   | **Homebrew**                       | MacPorts, Nix                      |
+| Node version manager | **mise**                           | nvm, fnm, asdf, Volta              |
 | Node runtime         | **Node 22 LTS** (`22.22.2` pinned) | Node 20 (older), Node 24 (current) |
-| JS package manager   | **pnpm 10**                       | npm, yarn, bun                     |
-| Container runtime    | **OrbStack**                      | Docker Desktop, Colima, podman     |
-| Local DB             | **MySQL 8 in docker**             | host MySQL via brew, sqlite-shim   |
+| JS package manager   | **pnpm 10**                        | npm, yarn, bun                     |
+| Container runtime    | **OrbStack**                       | Docker Desktop, Colima, podman     |
+| Local DB             | **MySQL 8 in docker**              | host MySQL via brew, sqlite-shim   |
 
 Versions are pinned in:
 

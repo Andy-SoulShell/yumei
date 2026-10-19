@@ -39,7 +39,8 @@ describe("girlfriend.create", () => {
       personality: "温柔体贴，善解人意",
       appearance: "长发飘逸，皮肤白皙",
       interests: "看电影、听音乐",
-      referenceImageBase64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      referenceImageBase64:
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
       referenceImageMimeType: "image/png",
     });
 
@@ -78,7 +79,8 @@ describe("girlfriend.getActive", () => {
       name: "小雨",
       personality: "温柔体贴",
       appearance: "长发飘逸",
-      referenceImageBase64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      referenceImageBase64:
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
       referenceImageMimeType: "image/png",
     });
 

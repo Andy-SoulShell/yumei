@@ -54,7 +54,7 @@ describe("OpenRouter API Integration", () => {
 
   it("fetchModels should reject empty API key", async () => {
     const caller = appRouter.createCaller(createAuthContext().ctx);
-    
+
     // Empty string should fail validation (min length 1)
     await expect(
       caller.apiConfig.fetchModels({ apiKey: "" })
@@ -63,7 +63,7 @@ describe("OpenRouter API Integration", () => {
 
   it("fetchModels should reject invalid API key with proper error message", async () => {
     const caller = appRouter.createCaller(createAuthContext().ctx);
-    
+
     // An invalid key should trigger a 401 from OpenRouter
     try {
       await caller.apiConfig.fetchModels({ apiKey: "sk-invalid-key-12345" });
@@ -76,15 +76,15 @@ describe("OpenRouter API Integration", () => {
 
   it("router structure should have all expected procedures", () => {
     const caller = appRouter.createCaller(createAuthContext().ctx);
-    
+
     // Verify all API config procedures exist
     expect(caller.apiConfig.get).toBeDefined();
     expect(caller.apiConfig.upsert).toBeDefined();
     expect(caller.apiConfig.fetchModels).toBeDefined();
-    
+
     // Verify chat procedure exists
     expect(caller.chat.sendMessage).toBeDefined();
-    
+
     // Verify girlfriend procedures exist
     expect(caller.girlfriend.create).toBeDefined();
     expect(caller.girlfriend.list).toBeDefined();

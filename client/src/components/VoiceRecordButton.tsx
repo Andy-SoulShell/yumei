@@ -97,7 +97,7 @@ export function VoiceRecordButton({
         <>
           {/* 波形动画 */}
           <div className="flex items-center gap-[3px]">
-            {[0, 1, 2, 3, 4].map((i) => (
+            {[0, 1, 2, 3, 4].map(i => (
               <span
                 key={i}
                 className={`w-[3px] rounded-full ${

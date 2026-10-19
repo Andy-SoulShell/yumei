@@ -248,7 +248,7 @@ describe("girlfriend avatar in list", () => {
 
     // 获取列表
     const list = await caller.girlfriend.list();
-    const found = list.find((g) => g.id === gf.id);
+    const found = list.find(g => g.id === gf.id);
 
     expect(found).toBeDefined();
     expect(found?.avatarUrl).toBeDefined();

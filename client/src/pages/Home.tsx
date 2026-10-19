@@ -1,7 +1,13 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { AgeGate } from "@/components/AgeGate";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import {
@@ -54,16 +60,54 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { NotificationBell } from "@/components/NotificationBell";
 import { usePullToRefresh } from "@/hooks/useGestures";
 import { PullToRefreshIndicator } from "@/components/PullToRefreshIndicator";
-import { getLevelInfo, getLevelProgress, getLevelGradient, getPointsToNextLevel } from "../../../shared/intimacy";
+import {
+  getLevelInfo,
+  getLevelProgress,
+  getLevelGradient,
+  getPointsToNextLevel,
+} from "../../../shared/intimacy";
 
 // 心情配置
-const MOOD_CONFIG: Record<string, { emoji: string; label: string; color: string; bgColor: string }> = {
-  excited: { emoji: "🥰", label: "超开心", color: "text-pink-500", bgColor: "bg-pink-500/10" },
-  happy: { emoji: "😊", label: "开心", color: "text-green-500", bgColor: "bg-green-500/10" },
-  content: { emoji: "🙂", label: "满足", color: "text-blue-500", bgColor: "bg-blue-500/10" },
-  neutral: { emoji: "😐", label: "平静", color: "text-yellow-500", bgColor: "bg-yellow-500/10" },
-  lonely: { emoji: "😢", label: "想你了", color: "text-purple-500", bgColor: "bg-purple-500/10" },
-  sad: { emoji: "😭", label: "伤心", color: "text-red-500", bgColor: "bg-red-500/10" },
+const MOOD_CONFIG: Record<
+  string,
+  { emoji: string; label: string; color: string; bgColor: string }
+> = {
+  excited: {
+    emoji: "🥰",
+    label: "超开心",
+    color: "text-pink-500",
+    bgColor: "bg-pink-500/10",
+  },
+  happy: {
+    emoji: "😊",
+    label: "开心",
+    color: "text-green-500",
+    bgColor: "bg-green-500/10",
+  },
+  content: {
+    emoji: "🙂",
+    label: "满足",
+    color: "text-blue-500",
+    bgColor: "bg-blue-500/10",
+  },
+  neutral: {
+    emoji: "😐",
+    label: "平静",
+    color: "text-yellow-500",
+    bgColor: "bg-yellow-500/10",
+  },
+  lonely: {
+    emoji: "😢",
+    label: "想你了",
+    color: "text-purple-500",
+    bgColor: "bg-purple-500/10",
+  },
+  sad: {
+    emoji: "😭",
+    label: "伤心",
+    color: "text-red-500",
+    bgColor: "bg-red-500/10",
+  },
 };
 
 export default function Home() {
@@ -76,7 +120,11 @@ export default function Home() {
   const [debouncedKeyword, setDebouncedKeyword] = useState("");
   const defaultCreatedRef = useRef(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string; isActive: boolean } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: number;
+    name: string;
+    isActive: boolean;
+  } | null>(null);
   const [batchMode, setBatchMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [batchDeleteConfirm, setBatchDeleteConfirm] = useState(false);
@@ -96,41 +144,55 @@ export default function Home() {
     },
   });
 
-  const { data: girlfriends, isLoading: girlfriendsLoading, refetch } = trpc.girlfriend.list.useQuery(
-    undefined,
-    { enabled: isAuthenticated }
-  );
+  const {
+    data: girlfriends,
+    isLoading: girlfriendsLoading,
+    refetch,
+  } = trpc.girlfriend.list.useQuery(undefined, { enabled: isAuthenticated });
 
   // 回收站列表
-  const { data: trashItems, refetch: refetchTrash } = trpc.girlfriend.trash.useQuery(
-    undefined,
-    { enabled: isAuthenticated && trashOpen }
-  );
+  const { data: trashItems, refetch: refetchTrash } =
+    trpc.girlfriend.trash.useQuery(undefined, {
+      enabled: isAuthenticated && trashOpen,
+    });
 
   // 历史对话列表
-  const { data: conversationsWithDetails } = trpc.conversation.listWithDetails.useQuery(
-    undefined,
-    { enabled: isAuthenticated }
-  );
+  const { data: conversationsWithDetails } =
+    trpc.conversation.listWithDetails.useQuery(undefined, {
+      enabled: isAuthenticated,
+    });
 
   // 搜索对话
-  const { data: searchResults, isLoading: searchLoading } = trpc.conversation.search.useQuery(
-    { keyword: debouncedKeyword },
-    { enabled: !!debouncedKeyword && debouncedKeyword.length > 0 }
-  );
+  const { data: searchResults, isLoading: searchLoading } =
+    trpc.conversation.search.useQuery(
+      { keyword: debouncedKeyword },
+      { enabled: !!debouncedKeyword && debouncedKeyword.length > 0 }
+    );
 
   // 获取所有女友心情
-  const { data: allMoods } = trpc.mood.getAll.useQuery(
-    undefined,
-    { enabled: isAuthenticated }
-  );
+  const { data: allMoods } = trpc.mood.getAll.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
 
   // 亲密度信息缓存 map
-  const [intimacyMap, setIntimacyMap] = useState<Record<number, { level: number; points: number; progress: number; pointsToNext: number | null }>>({});
+  const [intimacyMap, setIntimacyMap] = useState<
+    Record<
+      number,
+      {
+        level: number;
+        points: number;
+        progress: number;
+        pointsToNext: number | null;
+      }
+    >
+  >({});
 
   // 心情 map：girlfriendId -> mood
   const moodMap = useMemo(() => {
-    const map: Record<number, typeof allMoods extends (infer T)[] | undefined ? T : never> = {};
+    const map: Record<
+      number,
+      typeof allMoods extends (infer T)[] | undefined ? T : never
+    > = {};
     if (allMoods) {
       for (const m of allMoods) {
         map[m.girlfriendId] = m;
@@ -150,7 +212,15 @@ export default function Home() {
   // 计算亲密度信息（从女友数据中直接读取）
   useEffect(() => {
     if (girlfriends && girlfriends.length > 0) {
-      const map: Record<number, { level: number; points: number; progress: number; pointsToNext: number | null }> = {};
+      const map: Record<
+        number,
+        {
+          level: number;
+          points: number;
+          progress: number;
+          pointsToNext: number | null;
+        }
+      > = {};
       for (const gf of girlfriends) {
         const level = gf.intimacyLevel || 1;
         const points = gf.intimacyPoints || 0;
@@ -174,7 +244,12 @@ export default function Home() {
 
   // 登录后自动创建默认女友
   useEffect(() => {
-    if (isAuthenticated && girlfriends && girlfriends.length === 0 && !defaultCreatedRef.current) {
+    if (
+      isAuthenticated &&
+      girlfriends &&
+      girlfriends.length === 0 &&
+      !defaultCreatedRef.current
+    ) {
       defaultCreatedRef.current = true;
       ensureDefault.mutate();
     }
@@ -187,21 +262,21 @@ export default function Home() {
       setDeleteTarget(null);
       toast.success("已移入回收站，7天内可恢复");
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`删除失败：${error.message}`);
     },
   });
 
   // 批量软删除
   const batchDeleteGirlfriends = trpc.girlfriend.batchDelete.useMutation({
-    onSuccess: (data) => {
+    onSuccess: data => {
       refetch();
       setBatchDeleteConfirm(false);
       setBatchMode(false);
       setSelectedIds(new Set());
       toast.success(`已将 ${data.count} 位女友移入回收站`);
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`批量删除失败：${error.message}`);
     },
   });
@@ -213,7 +288,7 @@ export default function Home() {
       refetchTrash();
       toast.success("已恢复");
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`恢复失败：${error.message}`);
     },
   });
@@ -224,7 +299,7 @@ export default function Home() {
       refetchTrash();
       toast.success("已永久删除");
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`删除失败：${error.message}`);
     },
   });
@@ -253,7 +328,7 @@ export default function Home() {
   };
 
   const toggleSelect = (id: number) => {
-    setSelectedIds((prev) => {
+    setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -266,14 +341,14 @@ export default function Home() {
     if (selectedIds.size === girlfriends.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(girlfriends.map((gf) => gf.id)));
+      setSelectedIds(new Set(girlfriends.map(gf => gf.id)));
     }
   };
 
   // 检查批量删除中是否包含当前激活的女友
   const hasActiveInSelection = useMemo(() => {
     if (!girlfriends) return false;
-    return girlfriends.some((gf) => gf.isActive && selectedIds.has(gf.id));
+    return girlfriends.some(gf => gf.isActive && selectedIds.has(gf.id));
   }, [girlfriends, selectedIds]);
 
   const formatTime = (date: Date | string) => {
@@ -295,12 +370,16 @@ export default function Home() {
     if (!deletedAt) return 7;
     const deleted = new Date(deletedAt);
     const expiry = new Date(deleted.getTime() + 7 * 24 * 60 * 60 * 1000);
-    const remaining = Math.ceil((expiry.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+    const remaining = Math.ceil(
+      (expiry.getTime() - Date.now()) / (24 * 60 * 60 * 1000)
+    );
     return Math.max(0, remaining);
   };
 
   // 侧边栏展示的对话列表（搜索结果或全部）
-  const displayConversations = debouncedKeyword ? searchResults : conversationsWithDetails;
+  const displayConversations = debouncedKeyword
+    ? searchResults
+    : conversationsWithDetails;
   const isSearchMode = !!debouncedKeyword;
 
   if (loading) {
@@ -318,7 +397,11 @@ export default function Home() {
         {/* 主题切换按钮 */}
         <div className="absolute top-4 right-4">
           <Button variant="ghost" size="icon" onClick={toggleTheme}>
-            {theme === "light" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+            {theme === "light" ? (
+              <Moon className="w-5 h-5" />
+            ) : (
+              <Sun className="w-5 h-5" />
+            )}
           </Button>
         </div>
 
@@ -340,7 +423,9 @@ export default function Home() {
                   <MessageCircle className="w-5 h-5 text-primary" />
                   智能对话
                 </CardTitle>
-                <CardDescription>基于先进的 AI 技术，提供自然流畅的对话体验</CardDescription>
+                <CardDescription>
+                  基于先进的 AI 技术，提供自然流畅的对话体验
+                </CardDescription>
               </CardHeader>
             </Card>
 
@@ -350,7 +435,9 @@ export default function Home() {
                   <Image className="w-5 h-5 text-primary" />
                   场景化自拍
                 </CardTitle>
-                <CardDescription>根据对话内容自动生成相应场景的自拍照片</CardDescription>
+                <CardDescription>
+                  根据对话内容自动生成相应场景的自拍照片
+                </CardDescription>
               </CardHeader>
             </Card>
 
@@ -360,7 +447,9 @@ export default function Home() {
                   <Sparkles className="w-5 h-5 text-primary" />
                   语音对话
                 </CardTitle>
-                <CardDescription>AI 女友可以用甜美的声音和你说话</CardDescription>
+                <CardDescription>
+                  AI 女友可以用甜美的声音和你说话
+                </CardDescription>
               </CardHeader>
             </Card>
 
@@ -370,12 +459,18 @@ export default function Home() {
                   <Settings className="w-5 h-5 text-primary" />
                   个性化配置
                 </CardTitle>
-                <CardDescription>自定义性格、外貌和兴趣爱好，支持多个女友</CardDescription>
+                <CardDescription>
+                  自定义性格、外貌和兴趣爱好，支持多个女友
+                </CardDescription>
               </CardHeader>
             </Card>
           </div>
 
-          <Button size="lg" className="w-full text-base" onClick={() => (window.location.href = "/login")}>
+          <Button
+            size="lg"
+            className="w-full text-base"
+            onClick={() => (window.location.href = "/login")}
+          >
             <Heart className="w-5 h-5 mr-2" />
             立即开始
           </Button>
@@ -396,7 +491,10 @@ export default function Home() {
       {/* M1-6：一次性 18+ 年龄确认（服务端同样强制） */}
       <AgeGate />
       {/* 顶部导航栏 */}
-      <header className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b bg-card sticky top-0 z-10" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
+      <header
+        className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b bg-card sticky top-0 z-10"
+        style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}
+      >
         <div className="flex items-center gap-2">
           <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
           <h1 className="text-base sm:text-lg font-bold">YUMEI</h1>
@@ -413,7 +511,10 @@ export default function Home() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => { setTrashOpen(true); refetchTrash(); }}
+            onClick={() => {
+              setTrashOpen(true);
+              refetchTrash();
+            }}
             title="回收站"
             className="relative"
           >
@@ -426,9 +527,17 @@ export default function Home() {
           </Button>
           <NotificationBell />
           <Button variant="ghost" size="icon" onClick={toggleTheme}>
-            {theme === "light" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+            {theme === "light" ? (
+              <Moon className="w-5 h-5" />
+            ) : (
+              <Sun className="w-5 h-5" />
+            )}
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => setLocation("/settings")}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setLocation("/settings")}
+          >
             <Settings className="w-5 h-5" />
           </Button>
           <Button
@@ -454,8 +563,12 @@ export default function Home() {
         {/* 欢迎信息 + 批量操作 */}
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <h2 className="text-xl sm:text-2xl font-bold">你好，{user?.name || "朋友"} 👋</h2>
-            <p className="text-sm sm:text-base text-muted-foreground">选择一位女友开始聊天吧</p>
+            <h2 className="text-xl sm:text-2xl font-bold">
+              你好，{user?.name || "朋友"} 👋
+            </h2>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              选择一位女友开始聊天吧
+            </p>
           </div>
           {girlfriends && girlfriends.length > 1 && (
             <Button
@@ -467,9 +580,15 @@ export default function Home() {
               }}
             >
               {batchMode ? (
-                <><X className="w-4 h-4 mr-1" />取消</>
+                <>
+                  <X className="w-4 h-4 mr-1" />
+                  取消
+                </>
               ) : (
-                <><CheckSquare className="w-4 h-4 mr-1" />批量管理</>
+                <>
+                  <CheckSquare className="w-4 h-4 mr-1" />
+                  批量管理
+                </>
               )}
             </Button>
           )}
@@ -480,9 +599,15 @@ export default function Home() {
           <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
             <Button variant="outline" size="sm" onClick={selectAll}>
               {selectedIds.size === girlfriends.length ? (
-                <><CheckSquare className="w-4 h-4 mr-1" />取消全选</>
+                <>
+                  <CheckSquare className="w-4 h-4 mr-1" />
+                  取消全选
+                </>
               ) : (
-                <><Square className="w-4 h-4 mr-1" />全选</>
+                <>
+                  <Square className="w-4 h-4 mr-1" />
+                  全选
+                </>
               )}
             </Button>
             <span className="text-sm text-muted-foreground">
@@ -526,7 +651,7 @@ export default function Home() {
           </Card>
         ) : (
           <div className="space-y-3">
-            {girlfriends.map((gf) => {
+            {girlfriends.map(gf => {
               const mood = moodMap[gf.id];
               const moodInfo = mood ? MOOD_CONFIG[mood.mood] : null;
               const isSelected = selectedIds.has(gf.id);
@@ -553,8 +678,13 @@ export default function Home() {
                       {/* 头像 */}
                       <div className="relative flex-shrink-0">
                         <Avatar className="w-12 h-12 sm:w-16 sm:h-16">
-                          <AvatarImage src={gf.avatarUrl || gf.referenceImageUrl} alt={gf.name} />
-                          <AvatarFallback className="text-lg">{gf.name[0]}</AvatarFallback>
+                          <AvatarImage
+                            src={gf.avatarUrl || gf.referenceImageUrl}
+                            alt={gf.name}
+                          />
+                          <AvatarFallback className="text-lg">
+                            {gf.name[0]}
+                          </AvatarFallback>
                         </Avatar>
                         {/* 心情气泡 */}
                         {moodInfo && (
@@ -570,9 +700,14 @@ export default function Home() {
                       {/* 信息 */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-lg truncate">{gf.name}</h3>
+                          <h3 className="font-semibold text-lg truncate">
+                            {gf.name}
+                          </h3>
                           {gf.isActive && (
-                            <Badge variant="default" className="text-xs flex-shrink-0">
+                            <Badge
+                              variant="default"
+                              className="text-xs flex-shrink-0"
+                            >
                               当前
                             </Badge>
                           )}
@@ -587,7 +722,9 @@ export default function Home() {
                                 title={`${levelInfo.name} Lv.${levelInfo.level} - ${intimacy.points}经验值`}
                               >
                                 <span>{levelInfo.emoji}</span>
-                                <span className="font-medium">Lv.{levelInfo.level}</span>
+                                <span className="font-medium">
+                                  Lv.{levelInfo.level}
+                                </span>
                               </span>
                             );
                           })()}
@@ -604,7 +741,9 @@ export default function Home() {
                           return (
                             <div className="mt-1.5">
                               <div className="flex items-center justify-between mb-0.5">
-                                <span className={`text-[10px] font-medium ${levelInfo.color}`}>
+                                <span
+                                  className={`text-[10px] font-medium ${levelInfo.color}`}
+                                >
                                   {levelInfo.name}
                                 </span>
                                 <span className="text-[10px] text-muted-foreground">
@@ -625,7 +764,9 @@ export default function Home() {
                         {/* 心情状态文字 */}
                         {moodInfo && (
                           <div className="flex items-center gap-1.5 mt-1">
-                            <span className={`text-xs font-medium ${moodInfo.color}`}>
+                            <span
+                              className={`text-xs font-medium ${moodInfo.color}`}
+                            >
                               {moodInfo.label}
                             </span>
                             {mood!.todayMessages > 0 && (
@@ -642,7 +783,9 @@ export default function Home() {
                         <div className="flex flex-col gap-1.5 sm:gap-2 flex-shrink-0">
                           <Button
                             size="sm"
-                            disabled={updateGirlfriend.isPending || resumeChat.isPending}
+                            disabled={
+                              updateGirlfriend.isPending || resumeChat.isPending
+                            }
                             onClick={() => handleStartChat(gf.id)}
                           >
                             <MessageCircle className="w-4 h-4 mr-1" />
@@ -660,7 +803,13 @@ export default function Home() {
                             variant="outline"
                             size="sm"
                             className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
-                            onClick={() => setDeleteTarget({ id: gf.id, name: gf.name, isActive: gf.isActive })}
+                            onClick={() =>
+                              setDeleteTarget({
+                                id: gf.id,
+                                name: gf.name,
+                                isActive: gf.isActive,
+                              })
+                            }
                           >
                             <Trash2 className="w-4 h-4 mr-1" />
                             删除
@@ -724,14 +873,17 @@ export default function Home() {
       </div>
 
       {/* 历史对话侧边栏（含搜索） */}
-      <Sheet open={historyOpen} onOpenChange={(open) => {
-        setHistoryOpen(open);
-        if (!open) {
-          setSearchKeyword("");
-          setDebouncedKeyword("");
-        }
-      }}>
-          <SheetContent side="left" className="w-[85vw] max-w-[360px] p-0">
+      <Sheet
+        open={historyOpen}
+        onOpenChange={open => {
+          setHistoryOpen(open);
+          if (!open) {
+            setSearchKeyword("");
+            setDebouncedKeyword("");
+          }
+        }}
+      >
+        <SheetContent side="left" className="w-[85vw] max-w-[360px] p-0">
           <SheetHeader className="p-4 pb-2 border-b">
             <SheetTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-primary" />
@@ -747,7 +899,7 @@ export default function Home() {
                 ref={searchInputRef}
                 placeholder="搜索聊天记录..."
                 value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
+                onChange={e => setSearchKeyword(e.target.value)}
                 className="pl-9 pr-8 h-9"
               />
               {searchKeyword && (
@@ -773,21 +925,33 @@ export default function Home() {
               </div>
             )}
 
-            {isSearchMode && !searchLoading && (!searchResults || searchResults.length === 0) && (
-              <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-                <Search className="w-12 h-12 text-muted-foreground mb-3" />
-                <p className="text-sm text-muted-foreground">未找到包含 "{debouncedKeyword}" 的对话</p>
-                <p className="text-xs text-muted-foreground mt-1">试试其他关键词</p>
-              </div>
-            )}
+            {isSearchMode &&
+              !searchLoading &&
+              (!searchResults || searchResults.length === 0) && (
+                <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+                  <Search className="w-12 h-12 text-muted-foreground mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    未找到包含 "{debouncedKeyword}" 的对话
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    试试其他关键词
+                  </p>
+                </div>
+              )}
 
-            {!isSearchMode && (!conversationsWithDetails || conversationsWithDetails.length === 0) && (
-              <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-                <MessageCircle className="w-12 h-12 text-muted-foreground mb-3" />
-                <p className="text-sm text-muted-foreground">还没有对话记录</p>
-                <p className="text-xs text-muted-foreground mt-1">选择一位女友开始聊天吧</p>
-              </div>
-            )}
+            {!isSearchMode &&
+              (!conversationsWithDetails ||
+                conversationsWithDetails.length === 0) && (
+                <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+                  <MessageCircle className="w-12 h-12 text-muted-foreground mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    还没有对话记录
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    选择一位女友开始聊天吧
+                  </p>
+                </div>
+              )}
 
             {displayConversations && displayConversations.length > 0 && (
               <div>
@@ -799,7 +963,7 @@ export default function Home() {
                   </div>
                 )}
                 <div className="divide-y">
-                  {displayConversations.map((convo) => (
+                  {displayConversations.map(convo => (
                     <button
                       key={convo.id}
                       className="w-full text-left px-4 py-3 hover:bg-accent/50 transition-colors flex items-center gap-3"
@@ -812,7 +976,10 @@ export default function Home() {
                     >
                       <Avatar className="w-10 h-10 flex-shrink-0">
                         {convo.girlfriendImage ? (
-                          <AvatarImage src={convo.girlfriendImage} alt={convo.girlfriendName || ""} />
+                          <AvatarImage
+                            src={convo.girlfriendImage}
+                            alt={convo.girlfriendName || ""}
+                          />
                         ) : null}
                         <AvatarFallback className="text-sm">
                           {convo.girlfriendName?.[0] || "?"}
@@ -855,7 +1022,7 @@ export default function Home() {
 
       {/* 回收站侧边栏 */}
       <Sheet open={trashOpen} onOpenChange={setTrashOpen}>
-          <SheetContent side="right" className="w-[85vw] max-w-[360px] p-0">
+        <SheetContent side="right" className="w-[85vw] max-w-[360px] p-0">
           <SheetHeader className="p-4 pb-3 border-b">
             <SheetTitle className="flex items-center gap-2">
               <Trash className="w-5 h-5 text-destructive" />
@@ -871,22 +1038,31 @@ export default function Home() {
               <div className="flex flex-col items-center justify-center py-16 text-center px-4">
                 <Trash className="w-12 h-12 text-muted-foreground mb-3" />
                 <p className="text-sm text-muted-foreground">回收站是空的</p>
-                <p className="text-xs text-muted-foreground mt-1">删除的女友会在这里保留 7 天</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  删除的女友会在这里保留 7 天
+                </p>
               </div>
             ) : (
               <div className="divide-y">
-                {trashItems.map((gf) => {
+                {trashItems.map(gf => {
                   const remaining = getRemainingDays(gf.deletedAt);
                   return (
-                    <div key={gf.id} className="px-4 py-3 flex items-center gap-3">
+                    <div
+                      key={gf.id}
+                      className="px-4 py-3 flex items-center gap-3"
+                    >
                       <Avatar className="w-12 h-12 flex-shrink-0 opacity-60">
                         <AvatarImage src={gf.referenceImageUrl} alt={gf.name} />
                         <AvatarFallback>{gf.name[0]}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{gf.name}</p>
+                        <p className="font-medium text-sm truncate">
+                          {gf.name}
+                        </p>
                         <p className="text-xs text-destructive">
-                          {remaining > 0 ? `${remaining} 天后永久删除` : "即将永久删除"}
+                          {remaining > 0
+                            ? `${remaining} 天后永久删除`
+                            : "即将永久删除"}
                         </p>
                       </div>
                       <div className="flex flex-col gap-1.5 flex-shrink-0">
@@ -894,7 +1070,9 @@ export default function Home() {
                           variant="outline"
                           size="sm"
                           className="h-7 text-xs"
-                          onClick={() => restoreGirlfriend.mutate({ id: gf.id })}
+                          onClick={() =>
+                            restoreGirlfriend.mutate({ id: gf.id })
+                          }
                           disabled={restoreGirlfriend.isPending}
                         >
                           <Undo2 className="w-3 h-3 mr-1" />
@@ -921,7 +1099,10 @@ export default function Home() {
       </Sheet>
 
       {/* 单个删除确认弹窗 */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={open => !open && setDeleteTarget(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -931,12 +1112,21 @@ export default function Home() {
               <div className="space-y-2">
                 {deleteTarget?.isActive && (
                   <p className="text-amber-600 dark:text-amber-400 font-medium">
-                    你正在删除当前正在聊天的女友「{deleteTarget.name}」，删除后需要重新选择一位女友才能继续聊天。
+                    你正在删除当前正在聊天的女友「{deleteTarget.name}
+                    」，删除后需要重新选择一位女友才能继续聊天。
                   </p>
                 )}
                 <p>
-                  {deleteTarget?.isActive ? "确定要继续吗？" : (
-                    <>你确定要删除 <span className="font-semibold text-foreground">{deleteTarget?.name}</span> 吗？</>
+                  {deleteTarget?.isActive ? (
+                    "确定要继续吗？"
+                  ) : (
+                    <>
+                      你确定要删除{" "}
+                      <span className="font-semibold text-foreground">
+                        {deleteTarget?.name}
+                      </span>{" "}
+                      吗？
+                    </>
                   )}
                   她将被移入回收站，7 天内可以恢复。
                 </p>
@@ -947,11 +1137,16 @@ export default function Home() {
             <AlertDialogCancel>取消</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => deleteTarget && deleteGirlfriend.mutate({ id: deleteTarget.id })}
+              onClick={() =>
+                deleteTarget && deleteGirlfriend.mutate({ id: deleteTarget.id })
+              }
               disabled={deleteGirlfriend.isPending}
             >
               {deleteGirlfriend.isPending ? (
-                <><Loader2 className="w-4 h-4 mr-1 animate-spin" />删除中...</>
+                <>
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  删除中...
+                </>
               ) : (
                 "移入回收站"
               )}
@@ -961,11 +1156,16 @@ export default function Home() {
       </AlertDialog>
 
       {/* 批量删除确认弹窗 */}
-      <AlertDialog open={batchDeleteConfirm} onOpenChange={setBatchDeleteConfirm}>
+      <AlertDialog
+        open={batchDeleteConfirm}
+        onOpenChange={setBatchDeleteConfirm}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {hasActiveInSelection ? "⚠️ 批量删除包含当前女友" : "确认批量删除"}
+              {hasActiveInSelection
+                ? "⚠️ 批量删除包含当前女友"
+                : "确认批量删除"}
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-2">
@@ -975,7 +1175,11 @@ export default function Home() {
                   </p>
                 )}
                 <p>
-                  你确定要删除选中的 <span className="font-semibold text-foreground">{selectedIds.size}</span> 位女友吗？她们将被移入回收站，7 天内可以恢复。
+                  你确定要删除选中的{" "}
+                  <span className="font-semibold text-foreground">
+                    {selectedIds.size}
+                  </span>{" "}
+                  位女友吗？她们将被移入回收站，7 天内可以恢复。
                 </p>
               </div>
             </AlertDialogDescription>
@@ -984,11 +1188,16 @@ export default function Home() {
             <AlertDialogCancel>取消</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => batchDeleteGirlfriends.mutate({ ids: Array.from(selectedIds) })}
+              onClick={() =>
+                batchDeleteGirlfriends.mutate({ ids: Array.from(selectedIds) })
+              }
               disabled={batchDeleteGirlfriends.isPending}
             >
               {batchDeleteGirlfriends.isPending ? (
-                <><Loader2 className="w-4 h-4 mr-1 animate-spin" />删除中...</>
+                <>
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  删除中...
+                </>
               ) : (
                 `移入回收站 (${selectedIds.size})`
               )}

@@ -39,7 +39,10 @@ describe("log.redact (issue #11)", () => {
   });
 
   it("masks emails", () => {
-    const out = redact({ email: "alice@example.com" }) as Record<string, string>;
+    const out = redact({ email: "alice@example.com" }) as Record<
+      string,
+      string
+    >;
     expect(out.email).toBe("a***@example.com");
   });
 

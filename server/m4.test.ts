@@ -38,7 +38,10 @@ function createAuthContext(userId: string): { ctx: TrpcContext } {
   };
 }
 
-async function seedGirlfriendAndConversation(userId: string, intimacyLevel = 1) {
+async function seedGirlfriendAndConversation(
+  userId: string,
+  intimacyLevel = 1
+) {
   const gf = await createGirlfriend({
     userId,
     name: "M4Test",

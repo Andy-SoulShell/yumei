@@ -6,7 +6,7 @@
 
 **你的 AI 虚拟女友 — 她记得你、给你发自拍、你的对话从不拿去训练模型**
 
-*Self-hostable AI companion · Remembers you · Scene-matched selfies · Your data stays yours*
+_Self-hostable AI companion · Remembers you · Scene-matched selfies · Your data stays yours_
 
 <br/>
 
@@ -114,7 +114,7 @@
 
 <img src="docs/screenshots/demo_flow.gif" alt="YUMEI 演示：首页 → 聊天 → 亲密度面板 → 记忆管理" width="920" />
 
-*首页女友卡片 → 对话界面 → Lv.5 亲密度详情 → 「她记得你的事」*
+_首页女友卡片 → 对话界面 → Lv.5 亲密度详情 → 「她记得你的事」_
 
 </div>
 
@@ -126,7 +126,7 @@
 
 <img src="docs/screenshots/demo_live2d.gif" alt="Live2D 表情演示：倾听、交互、撒娇、生气、哭泣" width="420" />
 
-*倾听 → 交互比心 → 撒娇 → 生气 → 哭泣 · 同一看板娘，五种情绪*
+_倾听 → 交互比心 → 撒娇 → 生气 → 哭泣 · 同一看板娘，五种情绪_
 
 </div>
 
@@ -191,30 +191,30 @@
 
 ## ✨ 功能亮点
 
-| | 能力 | 说明 |
-|:--:|------|------|
-| 💬 | **智能对话** | OpenRouter 接入 GPT-4o / Claude / Grok 等 500+ 模型；六套人格模板 + 四层提示词精细控制 |
-| 📸 | **场景自拍** | fal.ai 图生图，保持角色一致；亲密度解锁多种姿势；Pro 支持「合照」 |
-| 🎙️ | **语音互动** | 按住说话 + Whisper 转写；浏览器 / ElevenLabs / Fish Audio 朗读；语音输入后可自动语音回复 |
-| 💕 | **亲密度养成** | 10 级关系、动态心情、升级动画；服务端防刷分，真实互动才有回报 |
-| 🧠 | **长期记忆** | 自动提取事实/偏好/事件，聊天时智能注入；用户可查看、置顶、删除「她记得什么」 |
-| 🔔 | **主动消息** | 记忆感知的站内通知 + Web Push 推送（早安、想你了……） |
-| 👥 | **多角色** | 多个女友自由切换、回收站、历史搜索、自拍画廊 |
-| 🔑 | **BYOK** | 用户自带 API Key（AES-256-GCM 加密存储）；自带 Key 的用户绕过免费额度限制 |
-| 📱 | **移动优先** | 响应式布局、PWA 可安装、手势操作、暗黑模式 |
+|     | 能力           | 说明                                                                                     |
+| :-: | -------------- | ---------------------------------------------------------------------------------------- |
+| 💬  | **智能对话**   | OpenRouter 接入 GPT-4o / Claude / Grok 等 500+ 模型；六套人格模板 + 四层提示词精细控制   |
+| 📸  | **场景自拍**   | fal.ai 图生图，保持角色一致；亲密度解锁多种姿势；Pro 支持「合照」                        |
+| 🎙️  | **语音互动**   | 按住说话 + Whisper 转写；浏览器 / ElevenLabs / Fish Audio 朗读；语音输入后可自动语音回复 |
+| 💕  | **亲密度养成** | 10 级关系、动态心情、升级动画；服务端防刷分，真实互动才有回报                            |
+| 🧠  | **长期记忆**   | 自动提取事实/偏好/事件，聊天时智能注入；用户可查看、置顶、删除「她记得什么」             |
+| 🔔  | **主动消息**   | 记忆感知的站内通知 + Web Push 推送（早安、想你了……）                                     |
+| 👥  | **多角色**     | 多个女友自由切换、回收站、历史搜索、自拍画廊                                             |
+| 🔑  | **BYOK**       | 用户自带 API Key（AES-256-GCM 加密存储）；自带 Key 的用户绕过免费额度限制                |
+| 📱  | **移动优先**   | 响应式布局、PWA 可安装、手势操作、暗黑模式                                               |
 
 ---
 
 ## 🆚 为什么选择 YUMEI？
 
-| | 主流 SaaS（Replika / Character.AI 等） | **YUMEI** |
-|:--:|:--|:--|
-| 数据归属 | 平台服务器 | **你的 MySQL + 你的磁盘/S3** |
-| 模型选择 | 平台限定 | **OpenRouter 500+ 模型任选** |
-| 自拍一致性 | 有限或额外付费 | **参考图锁定 + 场景匹配生成** |
-| 长期记忆 | 黑盒 | **可编辑、可删除、可审计** |
-| 部署方式 | 只能用官方 App | **`docker compose up` 自托管** |
-| 商业化 | 封闭订阅 | **Free / Plus / Pro 分层 + 自托管模式全解锁** |
+|            | 主流 SaaS（Replika / Character.AI 等） | **YUMEI**                                     |
+| :--------: | :------------------------------------- | :-------------------------------------------- |
+|  数据归属  | 平台服务器                             | **你的 MySQL + 你的磁盘/S3**                  |
+|  模型选择  | 平台限定                               | **OpenRouter 500+ 模型任选**                  |
+| 自拍一致性 | 有限或额外付费                         | **参考图锁定 + 场景匹配生成**                 |
+|  长期记忆  | 黑盒                                   | **可编辑、可删除、可审计**                    |
+|  部署方式  | 只能用官方 App                         | **`docker compose up` 自托管**                |
+|   商业化   | 封闭订阅                               | **Free / Plus / Pro 分层 + 自托管模式全解锁** |
 
 > 适合：想拥有自己的 AI 陪伴产品、注重隐私的开发者、以及希望 **BYOK + 自托管** 的高级玩家。
 
@@ -314,16 +314,16 @@ pnpm build && pnpm start
 
 完整变量说明见 [`.env.example`](.env.example)。核心项：
 
-| 变量 | 必填 | 用途 |
-|------|:----:|------|
-| `DATABASE_URL` | ✅ | MySQL 连接串 |
-| `JWT_SECRET` / `KEY_ENCRYPTION_KEY` | ✅ | 会话签名 / BYOK 加密（两个不同的 ≥32 字符密钥） |
-| `BETTER_AUTH_URL` | 生产 | 公网访问地址 |
-| `RESEND_API_KEY` 或 `SMTP_*` + `EMAIL_FROM` | 生产 | Magic-link 登录邮件 |
-| `STORAGE_DRIVER` | — | `local`（默认）或 `s3` |
-| `OPERATOR_OPENROUTER_KEY` | 对话 | 为未自带 Key 的用户提供对话能力 |
-| `OPERATOR_FAL_KEY` 等 | 可选 | 自拍 / Whisper / 高级 TTS |
-| `BILLING_PROVIDER` | — | `free`（默认分层配额）/ `lemonsqueezy` / `none`（自托管全解锁） |
+| 变量                                        | 必填 | 用途                                                            |
+| ------------------------------------------- | :--: | --------------------------------------------------------------- |
+| `DATABASE_URL`                              |  ✅  | MySQL 连接串                                                    |
+| `JWT_SECRET` / `KEY_ENCRYPTION_KEY`         |  ✅  | 会话签名 / BYOK 加密（两个不同的 ≥32 字符密钥）                 |
+| `BETTER_AUTH_URL`                           | 生产 | 公网访问地址                                                    |
+| `RESEND_API_KEY` 或 `SMTP_*` + `EMAIL_FROM` | 生产 | Magic-link 登录邮件                                             |
+| `STORAGE_DRIVER`                            |  —   | `local`（默认）或 `s3`                                          |
+| `OPERATOR_OPENROUTER_KEY`                   | 对话 | 为未自带 Key 的用户提供对话能力                                 |
+| `OPERATOR_FAL_KEY` 等                       | 可选 | 自拍 / Whisper / 高级 TTS                                       |
+| `BILLING_PROVIDER`                          |  —   | `free`（默认分层配额）/ `lemonsqueezy` / `none`（自托管全解锁） |
 
 **免费层配额**（每用户每 UTC 日，服务端强制）：30 条消息、1 张自拍。Settings 中配置自有 Key 可绕过。详见 [`shared/quotas.ts`](shared/quotas.ts)。
 
@@ -352,12 +352,12 @@ Express 4                                       (server/)
 
 **YUMEI v1.0.0 — 首版迁移基线。** 沿用原项目已有的自托管能力，后续按 YUMEI PRD 迭代。
 
-| 里程碑 | 内容 |
-|--------|------|
+| 里程碑          | 内容                                                                                       |
+| --------------- | ------------------------------------------------------------------------------------------ |
 | **M1** 独立 MVP | Better-Auth 登录 · 本地/S3 存储 · OpenRouter 唯一 AI 路径 · 限流配额 · Docker · 合规三件套 |
-| **M2** 留存引擎 | 长期记忆（提取→注入→用户可编辑）· 记忆感知主动消息 |
-| **M3** 商业化 | Lemon Squeezy 订阅 Free/Plus/Pro · 自托管 `BILLING_PROVIDER=none` 全解锁 |
-| **M4** 体验增强 | 亲密度解锁自拍姿势 · 合照 · 语音往返 · Web Push 真推送 |
+| **M2** 留存引擎 | 长期记忆（提取→注入→用户可编辑）· 记忆感知主动消息                                         |
+| **M3** 商业化   | Lemon Squeezy 订阅 Free/Plus/Pro · 自托管 `BILLING_PROVIDER=none` 全解锁                   |
+| **M4** 体验增强 | 亲密度解锁自拍姿势 · 合照 · 语音往返 · Web Push 真推送                                     |
 
 365 个自动化测试（独立 MySQL 8 + UTC 验证）· 空库迁移验证通过 · 重构历程见 [`docs/REFACTORING.md`](docs/REFACTORING.md)
 
@@ -381,6 +381,6 @@ Express 4                                       (server/)
 
 **Built with ❤️ by Dawei**
 
-*She remembers you. She sends selfies. Your secrets stay on your server.*
+_She remembers you. She sends selfies. Your secrets stay on your server._
 
 </div>

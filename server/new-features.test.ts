@@ -66,7 +66,8 @@ describe("girlfriend.delete", () => {
       name: "测试删除",
       personality: "温柔",
       appearance: "长发",
-      referenceImageBase64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      referenceImageBase64:
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
       referenceImageMimeType: "image/png",
     });
 
@@ -79,7 +80,7 @@ describe("girlfriend.delete", () => {
 
     // 验证已删除 - 列表中不应包含该女友
     const list = await caller.girlfriend.list();
-    const found = list.find((g) => g.id === gf.id);
+    const found = list.find(g => g.id === gf.id);
     expect(found).toBeUndefined();
   });
 });
@@ -107,7 +108,7 @@ describe("conversation.listWithDetails", () => {
     expect(Array.isArray(list)).toBe(true);
     expect(list.length).toBeGreaterThan(0);
 
-    const found = list.find((c) => c.id === convo.id);
+    const found = list.find(c => c.id === convo.id);
     expect(found).toBeDefined();
     expect(found?.girlfriendName).toBe("YUMEI");
   });

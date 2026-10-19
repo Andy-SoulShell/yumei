@@ -98,14 +98,14 @@ to retrofit. Issue #7 closes when this PR ships.
 
 ## Why Lucia over the alternatives
 
-| Option | Why we picked / didn't pick |
-| --- | --- |
-| **Lucia v3** ✅ | Library, not framework. We own the surface. Drizzle + MySQL adapter ready. Active maintenance. Direct support for email-magic-link + GitHub OAuth in Phase 1b-ii. |
-| Better-Auth | Newer, faster-moving, nicer DX. Still in pre-1.0 churn. Picking it means absorbing breaking changes into a security-critical path. Reconsider in 6 months. |
-| Self-rolled email-magic-link | Minimum dependencies but maximum surface area to test (token generation, replay protection, rate-limiting, session rotation). We don't get to be sloppy on auth code, and Lucia already got it right. |
-| Keep Manus OAuth + add HMAC | Doesn't address (1) the dependency or (3) the inflexibility. Pure rework. |
-| Auth0 / Clerk / Supabase Auth | Hosted services. Solve the wrong problem (we want self-hostable). The "free tier" trap is real. |
-| Lucia v2 | Superseded by v3. Don't start on a deprecated major version. |
+| Option                        | Why we picked / didn't pick                                                                                                                                                                           |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Lucia v3** ✅               | Library, not framework. We own the surface. Drizzle + MySQL adapter ready. Active maintenance. Direct support for email-magic-link + GitHub OAuth in Phase 1b-ii.                                     |
+| Better-Auth                   | Newer, faster-moving, nicer DX. Still in pre-1.0 churn. Picking it means absorbing breaking changes into a security-critical path. Reconsider in 6 months.                                            |
+| Self-rolled email-magic-link  | Minimum dependencies but maximum surface area to test (token generation, replay protection, rate-limiting, session rotation). We don't get to be sloppy on auth code, and Lucia already got it right. |
+| Keep Manus OAuth + add HMAC   | Doesn't address (1) the dependency or (3) the inflexibility. Pure rework.                                                                                                                             |
+| Auth0 / Clerk / Supabase Auth | Hosted services. Solve the wrong problem (we want self-hostable). The "free tier" trap is real.                                                                                                       |
+| Lucia v2                      | Superseded by v3. Don't start on a deprecated major version.                                                                                                                                          |
 
 ## Consequences
 

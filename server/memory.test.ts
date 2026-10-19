@@ -17,7 +17,11 @@ import {
   setMemoryPinned,
   getFreshEventMemory,
 } from "./memory";
-import { getDb, checkAndCreateProactiveNotification, createGirlfriend } from "./db";
+import {
+  getDb,
+  checkAndCreateProactiveNotification,
+  createGirlfriend,
+} from "./db";
 
 // ---------------------------------------------------------------------------
 // Pure scoring (no DB)
@@ -25,7 +29,9 @@ import { getDb, checkAndCreateProactiveNotification, createGirlfriend } from "./
 
 describe("shared/memory scoring", () => {
   it("bigramOverlap finds zh overlap", () => {
-    expect(bigramOverlap("面试", "用户下周二有一场产品经理面试")).toBeGreaterThan(0.5);
+    expect(
+      bigramOverlap("面试", "用户下周二有一场产品经理面试")
+    ).toBeGreaterThan(0.5);
     expect(bigramOverlap("今天吃什么", "用户养了一只叫团团的猫")).toBe(0);
   });
 
@@ -45,7 +51,11 @@ describe("shared/memory scoring", () => {
   it("keyword affinity outranks a heavier but unrelated memory", () => {
     const now = new Date();
     const base = { pinned: false, lastRecalledAt: null, createdAt: now };
-    const related = { ...base, content: "用户下周二有一场产品经理面试", weight: 40 };
+    const related = {
+      ...base,
+      content: "用户下周二有一场产品经理面试",
+      weight: 40,
+    };
     const unrelated = { ...base, content: "用户喜欢喝拿铁", weight: 90 };
     const message = "好紧张，马上要面试了";
     expect(scoreMemory(related, message, now)).toBeGreaterThan(
@@ -70,7 +80,9 @@ describe("parseExtractionResponse", () => {
   it("parses a clean JSON response", () => {
     const out = parseExtractionResponse(
       JSON.stringify({
-        memories: [{ category: "fact", content: "用户是产品经理", importance: 7 }],
+        memories: [
+          { category: "fact", content: "用户是产品经理", importance: 7 },
+        ],
       })
     );
     expect(out).toHaveLength(1);
@@ -87,14 +99,20 @@ describe("parseExtractionResponse", () => {
 
   it("returns [] on invalid shapes instead of throwing", () => {
     expect(parseExtractionResponse("not json at all")).toEqual([]);
-    expect(parseExtractionResponse('{"memories":[{"category":"nope","content":"x","importance":5}]}')).toEqual([]);
+    expect(
+      parseExtractionResponse(
+        '{"memories":[{"category":"nope","content":"x","importance":5}]}'
+      )
+    ).toEqual([]);
     expect(parseExtractionResponse("")).toEqual([]);
   });
 
   it("truncates over-long content", () => {
     const long = "用".repeat(500);
     const out = parseExtractionResponse(
-      JSON.stringify({ memories: [{ category: "fact", content: long, importance: 5 }] })
+      JSON.stringify({
+        memories: [{ category: "fact", content: long, importance: 5 }],
+      })
     );
     // 400+ chars exceeds the schema max — rejected outright is acceptable,
     // but if accepted it must be truncated to MEMORY_MAX_LENGTH.
@@ -174,11 +192,20 @@ describe("memory storage (DB)", () => {
     const gf = await makeGirlfriend(userId);
 
     await storeExtractedMemories(userId, gf.id, [
-      { category: "event", content: "用户下周二有一场重要的面试", importance: 8 },
+      {
+        category: "event",
+        content: "用户下周二有一场重要的面试",
+        importance: 8,
+      },
       { category: "preference", content: "用户喜欢喝拿铁咖啡", importance: 5 },
     ]);
 
-    const block = await buildMemoryPromptBlock(userId, gf.id, "面试好紧张啊", 1);
+    const block = await buildMemoryPromptBlock(
+      userId,
+      gf.id,
+      "面试好紧张啊",
+      1
+    );
     expect(block).toContain("你记得的关于用户的事");
     expect(block).toContain("面试");
 

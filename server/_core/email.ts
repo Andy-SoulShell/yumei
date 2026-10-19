@@ -86,11 +86,14 @@ class StdoutDriver implements EmailDriver {
   async send({ to, subject, magicLinkUrl }: SendArgs) {
     // This explicit local driver prints a single copyable line; the normal
     // logger truncates long strings, which would invalidate login tokens.
-    console.log("[email:stdout]", JSON.stringify({
-      to: typeof to === "string" ? to : "[redacted]",
-      subject,
-      magicLinkUrl,
-    }));
+    console.log(
+      "[email:stdout]",
+      JSON.stringify({
+        to: typeof to === "string" ? to : "[redacted]",
+        subject,
+        magicLinkUrl,
+      })
+    );
   }
 }
 
@@ -180,5 +183,11 @@ export async function sendMagicLinkEmail(args: {
   <hr style="border:none;border-top:1px solid #eee;margin:32px 0;">
   <p style="color:#999;font-size:12px;">If you didn't request this, you can safely ignore this email.</p>
 </body></html>`;
-  await driver.send({ to: args.to, subject, html, text, magicLinkUrl: args.magicLinkUrl });
+  await driver.send({
+    to: args.to,
+    subject,
+    html,
+    text,
+    magicLinkUrl: args.magicLinkUrl,
+  });
 }

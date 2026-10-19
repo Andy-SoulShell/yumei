@@ -29,7 +29,10 @@ function loadEnv() {
   const issues: string[] = [];
   const env = process.env;
 
-  if (env.LLM_PROVIDER && !["openrouter", "deepseek"].includes(env.LLM_PROVIDER)) {
+  if (
+    env.LLM_PROVIDER &&
+    !["openrouter", "deepseek"].includes(env.LLM_PROVIDER)
+  ) {
     issues.push('LLM_PROVIDER: must be "openrouter" or "deepseek".');
   }
 
@@ -39,13 +42,29 @@ function loadEnv() {
   if (env.IMAGE_PROVIDER === "comfyui") {
     try {
       const url = new URL(env.COMFYUI_BASE_URL || "");
-      if (!["http:", "https:"].includes(url.protocol) || url.search || url.hash || url.username || url.password) throw new Error();
+      if (
+        !["http:", "https:"].includes(url.protocol) ||
+        url.search ||
+        url.hash ||
+        url.username ||
+        url.password
+      )
+        throw new Error();
     } catch {
-      issues.push("COMFYUI_BASE_URL: required for ComfyUI; use an HTTP(S) base URL without credentials, query or fragment.");
+      issues.push(
+        "COMFYUI_BASE_URL: required for ComfyUI; use an HTTP(S) base URL without credentials, query or fragment."
+      );
     }
   }
-  if (env.COMFYUI_TIMEOUT_MS && (!/^\d+$/.test(env.COMFYUI_TIMEOUT_MS) || Number(env.COMFYUI_TIMEOUT_MS) < 1000 || Number(env.COMFYUI_TIMEOUT_MS) > 1_800_000)) {
-    issues.push("COMFYUI_TIMEOUT_MS: must be an integer between 1000 and 1800000.");
+  if (
+    env.COMFYUI_TIMEOUT_MS &&
+    (!/^\d+$/.test(env.COMFYUI_TIMEOUT_MS) ||
+      Number(env.COMFYUI_TIMEOUT_MS) < 1000 ||
+      Number(env.COMFYUI_TIMEOUT_MS) > 1_800_000)
+  ) {
+    issues.push(
+      "COMFYUI_TIMEOUT_MS: must be an integer between 1000 and 1800000."
+    );
   }
 
   // --- Required: JWT_SECRET ---
@@ -128,8 +147,10 @@ function loadEnv() {
     );
   }
   if (storageDriver === "s3") {
-    if (!env.S3_BUCKET) issues.push("S3_BUCKET: required when STORAGE_DRIVER=s3.");
-    if (!env.S3_REGION) issues.push("S3_REGION: required when STORAGE_DRIVER=s3.");
+    if (!env.S3_BUCKET)
+      issues.push("S3_BUCKET: required when STORAGE_DRIVER=s3.");
+    if (!env.S3_REGION)
+      issues.push("S3_REGION: required when STORAGE_DRIVER=s3.");
     // Access keys are optional on purpose: AWS deployments may use an
     // instance profile / IRSA instead of static credentials.
   }

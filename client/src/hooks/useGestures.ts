@@ -5,7 +5,10 @@ import { useLocation } from "wouter";
  * 左滑返回手势 Hook
  * 从屏幕左边缘开始向右滑动触发返回
  */
-export function useSwipeBack(options?: { enabled?: boolean; threshold?: number }) {
+export function useSwipeBack(options?: {
+  enabled?: boolean;
+  threshold?: number;
+}) {
   const { enabled = true, threshold = 80 } = options ?? {};
   const [, navigate] = useLocation();
   const touchStartX = useRef(0);
@@ -64,7 +67,8 @@ export function useSwipeBack(options?: { enabled?: boolean; threshold?: number }
         isSwipingBack.current = false;
         if (indicatorRef.current) {
           indicatorRef.current.style.opacity = "0";
-          indicatorRef.current.style.transform = "translateY(-50%) translateX(-100%)";
+          indicatorRef.current.style.transform =
+            "translateY(-50%) translateX(-100%)";
         }
         return;
       }
@@ -76,9 +80,11 @@ export function useSwipeBack(options?: { enabled?: boolean; threshold?: number }
         indicatorRef.current.style.transform = `translateY(-50%) translateX(${translateX}px) scale(${0.6 + progress * 0.4})`;
 
         if (progress >= 1) {
-          indicatorRef.current.style.background = "linear-gradient(135deg, #22c55e, #10b981)";
+          indicatorRef.current.style.background =
+            "linear-gradient(135deg, #22c55e, #10b981)";
         } else {
-          indicatorRef.current.style.background = "linear-gradient(135deg, #ec4899, #a855f7)";
+          indicatorRef.current.style.background =
+            "linear-gradient(135deg, #ec4899, #a855f7)";
         }
       }
     };
@@ -96,7 +102,8 @@ export function useSwipeBack(options?: { enabled?: boolean; threshold?: number }
       // 重置指示器
       if (indicatorRef.current) {
         indicatorRef.current.style.opacity = "0";
-        indicatorRef.current.style.transform = "translateY(-50%) translateX(-100%)";
+        indicatorRef.current.style.transform =
+          "translateY(-50%) translateX(-100%)";
       }
 
       isSwipingBack.current = false;
@@ -105,7 +112,9 @@ export function useSwipeBack(options?: { enabled?: boolean; threshold?: number }
       touchCurrentX.current = 0;
     };
 
-    document.addEventListener("touchstart", handleTouchStart, { passive: true });
+    document.addEventListener("touchstart", handleTouchStart, {
+      passive: true,
+    });
     document.addEventListener("touchmove", handleTouchMove, { passive: true });
     document.addEventListener("touchend", handleTouchEnd, { passive: true });
 
@@ -196,16 +205,32 @@ export function usePullToRefresh(options: {
     };
 
     const target = containerRef?.current || document;
-    target.addEventListener("touchstart", handleTouchStart as EventListener, { passive: true });
-    target.addEventListener("touchmove", handleTouchMove as EventListener, { passive: true });
-    target.addEventListener("touchend", handleTouchEnd as EventListener, { passive: true });
+    target.addEventListener("touchstart", handleTouchStart as EventListener, {
+      passive: true,
+    });
+    target.addEventListener("touchmove", handleTouchMove as EventListener, {
+      passive: true,
+    });
+    target.addEventListener("touchend", handleTouchEnd as EventListener, {
+      passive: true,
+    });
 
     return () => {
-      target.removeEventListener("touchstart", handleTouchStart as EventListener);
+      target.removeEventListener(
+        "touchstart",
+        handleTouchStart as EventListener
+      );
       target.removeEventListener("touchmove", handleTouchMove as EventListener);
       target.removeEventListener("touchend", handleTouchEnd as EventListener);
     };
-  }, [enabled, threshold, isRefreshing, pullDistance, handleRefresh, containerRef]);
+  }, [
+    enabled,
+    threshold,
+    isRefreshing,
+    pullDistance,
+    handleRefresh,
+    containerRef,
+  ]);
 
   return { isPulling, pullDistance, isRefreshing };
 }

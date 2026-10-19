@@ -8,7 +8,14 @@ import {
   memoryCapacity,
   type MemoryCategory,
 } from "../../../shared/memory";
-import { ArrowLeft, BookHeart, Loader2, Pin, PinOff, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  BookHeart,
+  Loader2,
+  Pin,
+  PinOff,
+  Trash2,
+} from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 
@@ -124,7 +131,10 @@ export default function Memories() {
                         </p>
                         <div className="flex items-center gap-2 mt-1.5">
                           {memory.pinned && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                            <Badge
+                              variant="secondary"
+                              className="text-[10px] px-1.5 py-0"
+                            >
                               已置顶
                             </Badge>
                           )}
@@ -137,9 +147,14 @@ export default function Memories() {
                         variant="ghost"
                         size="icon"
                         className="w-8 h-8 shrink-0 text-muted-foreground hover:text-primary"
-                        title={memory.pinned ? "取消置顶" : "置顶（不会被自动遗忘）"}
+                        title={
+                          memory.pinned ? "取消置顶" : "置顶（不会被自动遗忘）"
+                        }
                         onClick={() =>
-                          setPinned.mutate({ id: memory.id, pinned: !memory.pinned })
+                          setPinned.mutate({
+                            id: memory.id,
+                            pinned: !memory.pinned,
+                          })
                         }
                       >
                         {memory.pinned ? (

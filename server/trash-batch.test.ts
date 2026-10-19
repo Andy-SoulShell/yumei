@@ -35,12 +35,12 @@ describe("Soft Delete (Trash)", () => {
 
     // Should not appear in normal list
     const list = await getUserGirlfriends(TEST_USER_ID);
-    const found = list.find((g) => g.id === gf.id);
+    const found = list.find(g => g.id === gf.id);
     expect(found).toBeUndefined();
 
     // Should appear in trash
     const trash = await getTrashGirlfriends(TEST_USER_ID);
-    const inTrash = trash.find((g) => g.id === gf.id);
+    const inTrash = trash.find(g => g.id === gf.id);
     expect(inTrash).toBeDefined();
     expect(inTrash!.deletedAt).not.toBeNull();
 
@@ -67,13 +67,13 @@ describe("Soft Delete (Trash)", () => {
 
     // Should appear in normal list again
     const list = await getUserGirlfriends(TEST_USER_ID);
-    const found = list.find((g) => g.id === gf.id);
+    const found = list.find(g => g.id === gf.id);
     expect(found).toBeDefined();
     expect(found!.deletedAt).toBeNull();
 
     // Should not appear in trash
     const trash = await getTrashGirlfriends(TEST_USER_ID);
-    const inTrash = trash.find((g) => g.id === gf.id);
+    const inTrash = trash.find(g => g.id === gf.id);
     expect(inTrash).toBeUndefined();
 
     // Cleanup
@@ -95,10 +95,10 @@ describe("Soft Delete (Trash)", () => {
 
     // Should not appear in any list
     const list = await getUserGirlfriends(TEST_USER_ID);
-    expect(list.find((g) => g.id === gf.id)).toBeUndefined();
+    expect(list.find(g => g.id === gf.id)).toBeUndefined();
 
     const trash = await getTrashGirlfriends(TEST_USER_ID);
-    expect(trash.find((g) => g.id === gf.id)).toBeUndefined();
+    expect(trash.find(g => g.id === gf.id)).toBeUndefined();
   });
 
   it("should deactivate girlfriend on soft delete", async () => {
@@ -162,14 +162,14 @@ describe("Batch Delete", () => {
 
     // Only gf3 should remain in list
     const list = await getUserGirlfriends(TEST_USER_ID_2);
-    const ids = list.map((g) => g.id);
+    const ids = list.map(g => g.id);
     expect(ids).not.toContain(gf1.id);
     expect(ids).not.toContain(gf2.id);
     expect(ids).toContain(gf3.id);
 
     // gf1 and gf2 should be in trash
     const trash = await getTrashGirlfriends(TEST_USER_ID_2);
-    const trashIds = trash.map((g) => g.id);
+    const trashIds = trash.map(g => g.id);
     expect(trashIds).toContain(gf1.id);
     expect(trashIds).toContain(gf2.id);
 
@@ -201,7 +201,7 @@ describe("Cleanup Expired Trash", () => {
 
     // Should still be in trash
     const trash = await getTrashGirlfriends(TEST_USER_ID_3);
-    expect(trash.find((g) => g.id === gf.id)).toBeDefined();
+    expect(trash.find(g => g.id === gf.id)).toBeDefined();
 
     // Cleanup
     await permanentDeleteGirlfriend(gf.id, TEST_USER_ID_3);

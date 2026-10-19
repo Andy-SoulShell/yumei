@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { getLevelInfo, getLevelGradient, type IntimacyLevel } from "../../../shared/intimacy";
+import {
+  getLevelInfo,
+  getLevelGradient,
+  type IntimacyLevel,
+} from "../../../shared/intimacy";
 
 interface LevelUpAnimationProps {
   show: boolean;
@@ -7,7 +11,11 @@ interface LevelUpAnimationProps {
   onClose: () => void;
 }
 
-export function LevelUpAnimation({ show, newLevel, onClose }: LevelUpAnimationProps) {
+export function LevelUpAnimation({
+  show,
+  newLevel,
+  onClose,
+}: LevelUpAnimationProps) {
   const [phase, setPhase] = useState<"enter" | "show" | "exit">("enter");
   const levelInfo = getLevelInfo(newLevel);
 
@@ -31,7 +39,11 @@ export function LevelUpAnimation({ show, newLevel, onClose }: LevelUpAnimationPr
   return (
     <div
       className={`fixed inset-0 z-50 flex items-center justify-center pointer-events-none transition-opacity duration-500 ${
-        phase === "enter" ? "opacity-0" : phase === "exit" ? "opacity-0" : "opacity-100"
+        phase === "enter"
+          ? "opacity-0"
+          : phase === "exit"
+            ? "opacity-0"
+            : "opacity-100"
       }`}
     >
       {/* 背景遮罩 */}
@@ -52,7 +64,11 @@ export function LevelUpAnimation({ show, newLevel, onClose }: LevelUpAnimationPr
               opacity: 0.6 + Math.random() * 0.4,
             }}
           >
-            {["❤️", "💕", "✨", "💖", "🌟", "💗"][Math.floor(Math.random() * 6)]}
+            {
+              ["❤️", "💕", "✨", "💖", "🌟", "💗"][
+                Math.floor(Math.random() * 6)
+              ]
+            }
           </div>
         ))}
       </div>
@@ -63,8 +79,8 @@ export function LevelUpAnimation({ show, newLevel, onClose }: LevelUpAnimationPr
           phase === "show"
             ? "scale-100 translate-y-0"
             : phase === "enter"
-            ? "scale-50 translate-y-8"
-            : "scale-90 translate-y-4"
+              ? "scale-50 translate-y-8"
+              : "scale-90 translate-y-4"
         }`}
       >
         {/* 等级图标 */}
@@ -79,12 +95,16 @@ export function LevelUpAnimation({ show, newLevel, onClose }: LevelUpAnimationPr
           Lv.{levelInfo.level} {levelInfo.name}
         </div>
 
-        <p className="text-sm text-muted-foreground mb-4">{levelInfo.description}</p>
+        <p className="text-sm text-muted-foreground mb-4">
+          {levelInfo.description}
+        </p>
 
         {/* 解锁内容 */}
         {levelInfo.unlocks.length > 0 && (
           <div className="bg-muted/50 rounded-lg p-3 space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">🎉 解锁内容</p>
+            <p className="text-xs font-medium text-muted-foreground">
+              🎉 解锁内容
+            </p>
             {levelInfo.unlocks.map((unlock, i) => (
               <p key={i} className="text-sm font-medium">
                 {unlock}

@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import { UNAUTHED_ERR_MSG } from '@shared/const';
+import { UNAUTHED_ERR_MSG } from "@shared/const";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, TRPCClientError } from "@trpc/client";
 import { createRoot } from "react-dom/client";
@@ -43,7 +43,9 @@ queryClient.getMutationCache().subscribe(event => {
 function readCookie(name: string): string | undefined {
   if (typeof document === "undefined") return undefined;
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = document.cookie.match(new RegExp("(?:^|; )" + escaped + "=([^;]*)"));
+  const match = document.cookie.match(
+    new RegExp("(?:^|; )" + escaped + "=([^;]*)")
+  );
   return match ? decodeURIComponent(match[1]) : undefined;
 }
 

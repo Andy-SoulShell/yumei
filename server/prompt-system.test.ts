@@ -89,7 +89,9 @@ describe("Prompt System - Layered Architecture", () => {
 
       // Simulate the merging logic from routers.ts
       const parts: string[] = [];
-      parts.push(`你是一个AI女友角色。性格：${personality}。外貌：${appearance}。`);
+      parts.push(
+        `你是一个AI女友角色。性格：${personality}。外貌：${appearance}。`
+      );
       if (globalPrompt) parts.push(`用户全局偏好：${globalPrompt}`);
       if (customPrompt) parts.push(`角色专属指令：${customPrompt}`);
 
@@ -175,7 +177,7 @@ describe("Prompt System - Layered Architecture", () => {
     });
 
     it("each template should have label and text", () => {
-      templates.forEach((tpl) => {
+      templates.forEach(tpl => {
         expect(tpl.label).toBeTruthy();
         expect(tpl.text).toBeTruthy();
         expect(tpl.text.length).toBeGreaterThan(5);
@@ -183,7 +185,7 @@ describe("Prompt System - Layered Architecture", () => {
     });
 
     it("template text should fit within global prompt limit", () => {
-      templates.forEach((tpl) => {
+      templates.forEach(tpl => {
         expect(tpl.text.length).toBeLessThanOrEqual(500);
       });
     });

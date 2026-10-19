@@ -1,4 +1,14 @@
-import { eq, desc, and, like, sql, isNull, isNotNull, inArray, lte } from "drizzle-orm";
+import {
+  eq,
+  desc,
+  and,
+  like,
+  sql,
+  isNull,
+  isNotNull,
+  inArray,
+  lte,
+} from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   users,
@@ -58,7 +68,10 @@ export async function getUserById(id: string) {
 }
 
 /** M1-6 age gate: birth date is validated as 18+ in auth.confirmAge. */
-export async function setUserBirthDate(userId: string, birthDate: Date): Promise<void> {
+export async function setUserBirthDate(
+  userId: string,
+  birthDate: Date
+): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(users).set({ birthDate }).where(eq(users.id, userId));
@@ -66,7 +79,9 @@ export async function setUserBirthDate(userId: string, birthDate: Date): Promise
 
 // ============ Girlfriend Functions ============
 
-export async function createGirlfriend(data: InsertGirlfriend): Promise<Girlfriend> {
+export async function createGirlfriend(
+  data: InsertGirlfriend
+): Promise<Girlfriend> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -90,20 +105,33 @@ export async function createGirlfriend(data: InsertGirlfriend): Promise<Girlfrie
   return inserted[0]!;
 }
 
-export async function getActiveGirlfriend(userId: string, girlfriendId?: number): Promise<Girlfriend | undefined> {
+export async function getActiveGirlfriend(
+  userId: string,
+  girlfriendId?: number
+): Promise<Girlfriend | undefined> {
   const db = await getDb();
   if (!db) return undefined;
 
   const result = await db
     .select()
     .from(girlfriends)
-    .where(and(eq(girlfriends.userId, userId), girlfriendId === undefined ? eq(girlfriends.isActive, true) : eq(girlfriends.id, girlfriendId), isNull(girlfriends.deletedAt)))
+    .where(
+      and(
+        eq(girlfriends.userId, userId),
+        girlfriendId === undefined
+          ? eq(girlfriends.isActive, true)
+          : eq(girlfriends.id, girlfriendId),
+        isNull(girlfriends.deletedAt)
+      )
+    )
     .limit(1);
 
   return result[0];
 }
 
-export async function getUserGirlfriends(userId: string): Promise<Girlfriend[]> {
+export async function getUserGirlfriends(
+  userId: string
+): Promise<Girlfriend[]> {
   const db = await getDb();
   if (!db) return [];
 
@@ -139,25 +167,53 @@ export async function updateGirlfriend(
 // ============ Conversation Functions ============
 
 /** Serialize first visits so repeated clicks cannot create duplicate conversations. */
-export async function resumeConversation(userId: string, girlfriendId: number): Promise<Conversation | undefined> {
+export async function resumeConversation(
+  userId: string,
+  girlfriendId: number
+): Promise<Conversation | undefined> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   return db.transaction(async tx => {
-    const [girlfriend] = await tx.select().from(girlfriends)
-      .where(and(eq(girlfriends.id, girlfriendId), eq(girlfriends.userId, userId), isNull(girlfriends.deletedAt)))
-      .limit(1).for("update");
+    const [girlfriend] = await tx
+      .select()
+      .from(girlfriends)
+      .where(
+        and(
+          eq(girlfriends.id, girlfriendId),
+          eq(girlfriends.userId, userId),
+          isNull(girlfriends.deletedAt)
+        )
+      )
+      .limit(1)
+      .for("update");
     if (!girlfriend) return undefined;
-    const [latest] = await tx.select().from(conversations)
-      .where(and(eq(conversations.userId, userId), eq(conversations.girlfriendId, girlfriendId)))
-      .orderBy(desc(conversations.updatedAt), desc(conversations.id)).limit(1);
+    const [latest] = await tx
+      .select()
+      .from(conversations)
+      .where(
+        and(
+          eq(conversations.userId, userId),
+          eq(conversations.girlfriendId, girlfriendId)
+        )
+      )
+      .orderBy(desc(conversations.updatedAt), desc(conversations.id))
+      .limit(1);
     if (latest) return latest;
-    const [result] = await tx.insert(conversations).values({ userId, girlfriendId, title: `与 ${girlfriend.name} 的对话` });
-    const [created] = await tx.select().from(conversations).where(eq(conversations.id, Number(result.insertId))).limit(1);
+    const [result] = await tx
+      .insert(conversations)
+      .values({ userId, girlfriendId, title: `与 ${girlfriend.name} 的对话` });
+    const [created] = await tx
+      .select()
+      .from(conversations)
+      .where(eq(conversations.id, Number(result.insertId)))
+      .limit(1);
     return created;
   });
 }
 
-export async function createConversation(data: InsertConversation): Promise<Conversation> {
+export async function createConversation(
+  data: InsertConversation
+): Promise<Conversation> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -173,7 +229,9 @@ export async function createConversation(data: InsertConversation): Promise<Conv
   return inserted[0]!;
 }
 
-export async function getUserConversations(userId: string): Promise<Conversation[]> {
+export async function getUserConversations(
+  userId: string
+): Promise<Conversation[]> {
   const db = await getDb();
   if (!db) return [];
 
@@ -209,14 +267,23 @@ export async function createMessage(data: InsertMessage): Promise<Message> {
   const result = await db.insert(messages).values(data);
   const insertedId = Number(result[0].insertId);
 
-  const inserted = await db.select().from(messages).where(eq(messages.id, insertedId)).limit(1);
+  const inserted = await db
+    .select()
+    .from(messages)
+    .where(eq(messages.id, insertedId))
+    .limit(1);
 
-  await db.update(conversations).set({ updatedAt: new Date() }).where(eq(conversations.id, data.conversationId));
+  await db
+    .update(conversations)
+    .set({ updatedAt: new Date() })
+    .where(eq(conversations.id, data.conversationId));
 
   return inserted[0]!;
 }
 
-export async function getConversationMessages(conversationId: number): Promise<Message[]> {
+export async function getConversationMessages(
+  conversationId: number
+): Promise<Message[]> {
   const db = await getDb();
   if (!db) return [];
 
@@ -227,7 +294,10 @@ export async function getConversationMessages(conversationId: number): Promise<M
     .orderBy(messages.createdAt);
 }
 
-export async function getRecentMessages(conversationId: number, limit: number): Promise<Message[]> {
+export async function getRecentMessages(
+  conversationId: number,
+  limit: number
+): Promise<Message[]> {
   const db = await getDb();
   if (!db) return [];
 
@@ -250,7 +320,11 @@ export async function createSelfie(data: InsertSelfie): Promise<Selfie> {
   const result = await db.insert(selfies).values(data);
   const insertedId = Number(result[0].insertId);
 
-  const inserted = await db.select().from(selfies).where(eq(selfies.id, insertedId)).limit(1);
+  const inserted = await db
+    .select()
+    .from(selfies)
+    .where(eq(selfies.id, insertedId))
+    .limit(1);
 
   return inserted[0]!;
 }
@@ -266,7 +340,9 @@ export async function getUserSelfies(userId: string): Promise<Selfie[]> {
     .orderBy(desc(selfies.createdAt));
 }
 
-export async function getGirlfriendSelfies(girlfriendId: number): Promise<Selfie[]> {
+export async function getGirlfriendSelfies(
+  girlfriendId: number
+): Promise<Selfie[]> {
   const db = await getDb();
   if (!db) return [];
 
@@ -281,12 +357,16 @@ export async function deleteSelfie(id: number, userId: string): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  await db.delete(selfies).where(and(eq(selfies.id, id), eq(selfies.userId, userId)));
+  await db
+    .delete(selfies)
+    .where(and(eq(selfies.id, id), eq(selfies.userId, userId)));
 }
 
 // ============ API Config Functions ============
 
-export async function upsertApiConfig(data: InsertApiConfig): Promise<ApiConfig> {
+export async function upsertApiConfig(
+  data: InsertApiConfig
+): Promise<ApiConfig> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -323,7 +403,9 @@ export async function upsertApiConfig(data: InsertApiConfig): Promise<ApiConfig>
   }
 }
 
-export async function getUserApiConfig(userId: string): Promise<ApiConfig | undefined> {
+export async function getUserApiConfig(
+  userId: string
+): Promise<ApiConfig | undefined> {
   const db = await getDb();
   if (!db) return undefined;
 
@@ -339,7 +421,10 @@ export async function getUserApiConfig(userId: string): Promise<ApiConfig | unde
 // ============ Soft Delete Girlfriend (Trash) ============
 
 /** 软删除：设置 deletedAt 时间戳，保留 7 天可恢复 */
-export async function softDeleteGirlfriend(id: number, userId: string): Promise<void> {
+export async function softDeleteGirlfriend(
+  id: number,
+  userId: string
+): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -350,7 +435,10 @@ export async function softDeleteGirlfriend(id: number, userId: string): Promise<
 }
 
 /** 批量软删除 */
-export async function softDeleteGirlfriends(ids: number[], userId: string): Promise<void> {
+export async function softDeleteGirlfriends(
+  ids: number[],
+  userId: string
+): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -363,7 +451,10 @@ export async function softDeleteGirlfriends(ids: number[], userId: string): Prom
 }
 
 /** 恢复女友：清除 deletedAt */
-export async function restoreGirlfriend(id: number, userId: string): Promise<void> {
+export async function restoreGirlfriend(
+  id: number,
+  userId: string
+): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -374,7 +465,10 @@ export async function restoreGirlfriend(id: number, userId: string): Promise<voi
 }
 
 /** 永久删除：级联清除所有关联数据 */
-export async function permanentDeleteGirlfriend(id: number, userId: string): Promise<void> {
+export async function permanentDeleteGirlfriend(
+  id: number,
+  userId: string
+): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -382,9 +476,11 @@ export async function permanentDeleteGirlfriend(id: number, userId: string): Pro
   const convos = await db
     .select({ id: conversations.id })
     .from(conversations)
-    .where(and(eq(conversations.girlfriendId, id), eq(conversations.userId, userId)));
+    .where(
+      and(eq(conversations.girlfriendId, id), eq(conversations.userId, userId))
+    );
 
-  const convoIds = convos.map((c) => c.id);
+  const convoIds = convos.map(c => c.id);
 
   // 2. 删除所有对话中的消息
   for (const convoId of convoIds) {
@@ -397,24 +493,39 @@ export async function permanentDeleteGirlfriend(id: number, userId: string): Pro
   }
 
   // 4. 删除所有自拍
-  await db.delete(selfies).where(and(eq(selfies.girlfriendId, id), eq(selfies.userId, userId)));
+  await db
+    .delete(selfies)
+    .where(and(eq(selfies.girlfriendId, id), eq(selfies.userId, userId)));
 
   // 5. 删除心情记录
-  await db.delete(girlfriendMoods).where(and(eq(girlfriendMoods.girlfriendId, id), eq(girlfriendMoods.userId, userId)));
+  await db
+    .delete(girlfriendMoods)
+    .where(
+      and(
+        eq(girlfriendMoods.girlfriendId, id),
+        eq(girlfriendMoods.userId, userId)
+      )
+    );
 
   // 6. 永久删除女友
-  await db.delete(girlfriends).where(and(eq(girlfriends.id, id), eq(girlfriends.userId, userId)));
+  await db
+    .delete(girlfriends)
+    .where(and(eq(girlfriends.id, id), eq(girlfriends.userId, userId)));
 }
 
 /** 获取回收站列表（已软删除的女友） */
-export async function getTrashGirlfriends(userId: string): Promise<Girlfriend[]> {
+export async function getTrashGirlfriends(
+  userId: string
+): Promise<Girlfriend[]> {
   const db = await getDb();
   if (!db) return [];
 
   return db
     .select()
     .from(girlfriends)
-    .where(and(eq(girlfriends.userId, userId), isNotNull(girlfriends.deletedAt)))
+    .where(
+      and(eq(girlfriends.userId, userId), isNotNull(girlfriends.deletedAt))
+    )
     .orderBy(desc(girlfriends.deletedAt));
 }
 
@@ -446,7 +557,12 @@ export async function cleanupExpiredTrash(userId: string): Promise<number> {
 // ============ Conversations with Last Message ============
 
 export async function getConversationsWithLastMessage(userId: string): Promise<
-  (Conversation & { lastMessage?: string; lastMessageAt?: Date; girlfriendName?: string; girlfriendImage?: string })[]
+  (Conversation & {
+    lastMessage?: string;
+    lastMessageAt?: Date;
+    girlfriendName?: string;
+    girlfriendImage?: string;
+  })[]
 > {
   const db = await getDb();
   if (!db) return [];
@@ -460,7 +576,7 @@ export async function getConversationsWithLastMessage(userId: string): Promise<
 
   // 为每个对话获取最后一条消息和女友信息
   const result = await Promise.all(
-    convos.map(async (convo) => {
+    convos.map(async convo => {
       // 获取最后一条消息
       const lastMsgs = await db
         .select()
@@ -471,7 +587,10 @@ export async function getConversationsWithLastMessage(userId: string): Promise<
 
       // 获取女友信息
       const gfs = await db
-        .select({ name: girlfriends.name, referenceImageUrl: girlfriends.referenceImageUrl })
+        .select({
+          name: girlfriends.name,
+          referenceImageUrl: girlfriends.referenceImageUrl,
+        })
         .from(girlfriends)
         .where(eq(girlfriends.id, convo.girlfriendId))
         .limit(1);
@@ -498,7 +617,13 @@ export async function searchConversations(
   userId: string,
   keyword: string
 ): Promise<
-  (Conversation & { lastMessage?: string; lastMessageAt?: Date; girlfriendName?: string; girlfriendImage?: string; matchedMessage?: string })[] 
+  (Conversation & {
+    lastMessage?: string;
+    lastMessageAt?: Date;
+    girlfriendName?: string;
+    girlfriendImage?: string;
+    matchedMessage?: string;
+  })[]
 > {
   const db = await getDb();
   if (!db) return [];
@@ -516,13 +641,17 @@ export async function searchConversations(
 
   // 获取去重的对话 ID 列表（保持匹配顺序）
   const seenConvoIds = new Set<number>();
-  const matchedConvoData: { conversationId: number; matchedMessage: string }[] = [];
+  const matchedConvoData: { conversationId: number; matchedMessage: string }[] =
+    [];
   for (const msg of matchedMsgs) {
     if (!seenConvoIds.has(msg.conversationId)) {
       seenConvoIds.add(msg.conversationId);
       matchedConvoData.push({
         conversationId: msg.conversationId,
-        matchedMessage: msg.content.length > 60 ? msg.content.substring(0, 60) + "..." : msg.content,
+        matchedMessage:
+          msg.content.length > 60
+            ? msg.content.substring(0, 60) + "..."
+            : msg.content,
       });
     }
   }
@@ -535,7 +664,12 @@ export async function searchConversations(
       const convoArr = await db
         .select()
         .from(conversations)
-        .where(and(eq(conversations.id, conversationId), eq(conversations.userId, userId)))
+        .where(
+          and(
+            eq(conversations.id, conversationId),
+            eq(conversations.userId, userId)
+          )
+        )
         .limit(1);
 
       if (convoArr.length === 0) return null;
@@ -551,7 +685,10 @@ export async function searchConversations(
 
       // 获取女友信息
       const gfs = await db
-        .select({ name: girlfriends.name, referenceImageUrl: girlfriends.referenceImageUrl })
+        .select({
+          name: girlfriends.name,
+          referenceImageUrl: girlfriends.referenceImageUrl,
+        })
         .from(girlfriends)
         .where(eq(girlfriends.id, convo.girlfriendId))
         .limit(1);
@@ -585,7 +722,12 @@ export async function getGirlfriendMood(
   const result = await db
     .select()
     .from(girlfriendMoods)
-    .where(and(eq(girlfriendMoods.userId, userId), eq(girlfriendMoods.girlfriendId, girlfriendId)))
+    .where(
+      and(
+        eq(girlfriendMoods.userId, userId),
+        eq(girlfriendMoods.girlfriendId, girlfriendId)
+      )
+    )
     .limit(1);
 
   return result[0];
@@ -653,7 +795,10 @@ export async function getAllGirlfriendMoods(
 
 // ============ Create Default Girlfriend ============
 
-export async function createDefaultGirlfriend(userId: string, data: InsertGirlfriend): Promise<Girlfriend> {
+export async function createDefaultGirlfriend(
+  userId: string,
+  data: InsertGirlfriend
+): Promise<Girlfriend> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -683,7 +828,9 @@ export async function createDefaultGirlfriend(userId: string, data: InsertGirlfr
 
 // ============ Notifications ============
 
-export async function createNotification(data: InsertNotification): Promise<Notification> {
+export async function createNotification(
+  data: InsertNotification
+): Promise<Notification> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -699,7 +846,10 @@ export async function createNotification(data: InsertNotification): Promise<Noti
   return inserted[0]!;
 }
 
-export async function getUserNotifications(userId: string, limit = 20): Promise<Notification[]> {
+export async function getUserNotifications(
+  userId: string,
+  limit = 20
+): Promise<Notification[]> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -711,19 +861,26 @@ export async function getUserNotifications(userId: string, limit = 20): Promise<
     .limit(limit);
 }
 
-export async function getUnreadNotificationCount(userId: string): Promise<number> {
+export async function getUnreadNotificationCount(
+  userId: string
+): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   const result = await db
     .select({ count: sql<number>`count(*)` })
     .from(notifications)
-    .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+    .where(
+      and(eq(notifications.userId, userId), eq(notifications.isRead, false))
+    );
 
   return result[0]?.count ?? 0;
 }
 
-export async function markNotificationRead(id: number, userId: string): Promise<void> {
+export async function markNotificationRead(
+  id: number,
+  userId: string
+): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -740,7 +897,9 @@ export async function markAllNotificationsRead(userId: string): Promise<void> {
   await db
     .update(notifications)
     .set({ isRead: true })
-    .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+    .where(
+      and(eq(notifications.userId, userId), eq(notifications.isRead, false))
+    );
 }
 
 // 女友主动发消息的模板
@@ -774,7 +933,9 @@ const PROACTIVE_MESSAGES = {
   ],
 };
 
-export function getRandomProactiveMessage(type: keyof typeof PROACTIVE_MESSAGES): { title: string; content: string } {
+export function getRandomProactiveMessage(
+  type: keyof typeof PROACTIVE_MESSAGES
+): { title: string; content: string } {
   const messages = PROACTIVE_MESSAGES[type];
   const content = messages[Math.floor(Math.random() * messages.length)];
   const titles: Record<string, string> = {
@@ -791,7 +952,9 @@ export function getRandomProactiveMessage(type: keyof typeof PROACTIVE_MESSAGES)
 // M2-4：优先引用最近的 event 类记忆（"你上次说的面试怎么样了？"），
 // 并把频率收紧为每用户每天最多 1 条 —— 主动消息的价值在于"她记得"，
 // 不在于数量；高频模板消息是同类产品差评的高发区。
-export async function checkAndCreateProactiveNotification(userId: string): Promise<Notification | null> {
+export async function checkAndCreateProactiveNotification(
+  userId: string
+): Promise<Notification | null> {
   const db = await getDb();
   if (!db) return null;
 
@@ -804,7 +967,8 @@ export async function checkAndCreateProactiveNotification(userId: string): Promi
   if (activeGirlfriends.length === 0) return null;
 
   // 随机选择一个女友
-  const gf = activeGirlfriends[Math.floor(Math.random() * activeGirlfriends.length)];
+  const gf =
+    activeGirlfriends[Math.floor(Math.random() * activeGirlfriends.length)];
 
   // 频控：每用户每天（UTC）最多 1 条主动通知
   const startOfDay = new Date();
@@ -812,7 +976,12 @@ export async function checkAndCreateProactiveNotification(userId: string): Promi
   const todayCount = await db
     .select({ count: sql<number>`COUNT(*)` })
     .from(notifications)
-    .where(and(eq(notifications.userId, userId), sql`${notifications.createdAt} >= ${startOfDay}`));
+    .where(
+      and(
+        eq(notifications.userId, userId),
+        sql`${notifications.createdAt} >= ${startOfDay}`
+      )
+    );
   if ((todayCount[0]?.count ?? 0) >= 1) return null;
 
   // M2-4：有新鲜的 event 记忆时，主动消息引用它
@@ -835,7 +1004,12 @@ export async function checkAndCreateProactiveNotification(userId: string): Promi
   const mood = await db
     .select()
     .from(girlfriendMoods)
-    .where(and(eq(girlfriendMoods.userId, userId), eq(girlfriendMoods.girlfriendId, gf.id)))
+    .where(
+      and(
+        eq(girlfriendMoods.userId, userId),
+        eq(girlfriendMoods.girlfriendId, gf.id)
+      )
+    )
     .limit(1);
 
   // 根据心情和时间选择消息类型
@@ -867,7 +1041,6 @@ export async function checkAndCreateProactiveNotification(userId: string): Promi
   return notification;
 }
 
-
 // ============ Intimacy Functions ============
 
 import {
@@ -887,7 +1060,9 @@ export async function getIntimacyInfo(girlfriendId: number, userId: string) {
   const result = await db
     .select()
     .from(girlfriends)
-    .where(and(eq(girlfriends.id, girlfriendId), eq(girlfriends.userId, userId)))
+    .where(
+      and(eq(girlfriends.id, girlfriendId), eq(girlfriends.userId, userId))
+    )
     .limit(1);
 
   if (!result[0]) throw new Error("Girlfriend not found");
@@ -933,7 +1108,10 @@ export async function getIntimacyInfo(girlfriendId: number, userId: string) {
 /**
  * 获取今日已获得的经验值总量
  */
-export async function getTodayPoints(girlfriendId: number, userId: string): Promise<number> {
+export async function getTodayPoints(
+  girlfriendId: number,
+  userId: string
+): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
 
@@ -965,7 +1143,9 @@ export async function addIntimacyPoints(
   const result = await db
     .select()
     .from(girlfriends)
-    .where(and(eq(girlfriends.id, girlfriendId), eq(girlfriends.userId, userId)))
+    .where(
+      and(eq(girlfriends.id, girlfriendId), eq(girlfriends.userId, userId))
+    )
     .limit(1);
 
   if (!result[0]) throw new Error("Girlfriend not found");

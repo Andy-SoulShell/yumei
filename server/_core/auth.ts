@@ -74,7 +74,10 @@ export const auth = authDb
       // Local Docker stdout mode accepts loopback aliases on the public port.
       // Hosted deployments continue to trust only the configured public origin.
       trustedOrigins: ENV.isProduction
-        ? getTrustedAuthOrigins(BASE_URL, process.env.EMAIL_PROVIDER === "stdout")
+        ? getTrustedAuthOrigins(
+            BASE_URL,
+            process.env.EMAIL_PROVIDER === "stdout"
+          )
         : [BASE_URL, `http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`],
       plugins: [
         magicLink({

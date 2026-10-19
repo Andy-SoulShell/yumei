@@ -45,27 +45,27 @@ library. ADR 0003 is superseded.
   providers (GitHub / Google / Apple / Discord), passkey/WebAuthn,
   email-and-password (which we don't use), 2FA — all first-party
   plugins. No more "stitch together Lucia + arctic + custom magic-link
-  + custom session storage."
+  - custom session storage."
 - **Drizzle adapter built-in.** Configures via
   `drizzleAdapter(db, { provider: "mysql" })`. No separate package.
 - **Framework agnostic.** Mounts as an Express handler at a single
   route prefix (`/api/auth/*`). Plays well with our existing Express
-  + tRPC setup.
+  - tRPC setup.
 - **Type-safe client SDK.** `createAuthClient()` gives the frontend
   end-to-end types just like tRPC.
 
 ### Sign-in shape we're shipping
 
 Phase 1b-ii.1 (this branch):
+
 1. **Email magic-link** as the primary self-hostable path.
    Better-Auth's `magicLink()` plugin handles token generation,
    storage, and consumption. We supply the email-sender callback
    (Resend default; SMTP fallback configured via env).
 
-Phase 1b-ii.2 (next branch):
-2. **GitHub OAuth** via Better-Auth's `socialProviders` config.
-   ~10 lines once the `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`
-   env vars are in place.
+Phase 1b-ii.2 (next branch): 2. **GitHub OAuth** via Better-Auth's `socialProviders` config.
+~10 lines once the `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`
+env vars are in place.
 
 ### State integrity (closes issue #7)
 
@@ -89,13 +89,13 @@ Same shape as ADR 0003: one-shot, not gradual. The repo is in
 
 ## Why Better-Auth over the remaining alternatives
 
-| Option | Why we picked / didn't pick |
-| --- | --- |
-| **Better-Auth v1.6** ✅ | Post-v1, mature, actively maintained, batteries-included for everything we need (magic-link + OAuth + future passkey). Drizzle MySQL adapter built in. Type-safe client. |
-| Lucia v3 (the old pick) | **Deprecated** as of 2026-04. Same-day supersede. |
-| DIY with `@oslojs/*` + arctic | Lucia author's recommended path. Maximum freedom, minimum dependencies. But: ~300 lines of token / session / consumption logic we'd own + test. For a launchable product, the buy-vs-build math now favors buy. Reconsider if we ever outgrow Better-Auth. |
-| Hosted (Auth0 / Clerk / Supabase Auth) | Solve the wrong problem — we want self-hostable. Same as ADR 0003. |
-| Roll back to Manus OAuth + add HMAC | Doesn't address the dependency on Manus, which is the original blocker. |
+| Option                                 | Why we picked / didn't pick                                                                                                                                                                                                                                |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Better-Auth v1.6** ✅                | Post-v1, mature, actively maintained, batteries-included for everything we need (magic-link + OAuth + future passkey). Drizzle MySQL adapter built in. Type-safe client.                                                                                   |
+| Lucia v3 (the old pick)                | **Deprecated** as of 2026-04. Same-day supersede.                                                                                                                                                                                                          |
+| DIY with `@oslojs/*` + arctic          | Lucia author's recommended path. Maximum freedom, minimum dependencies. But: ~300 lines of token / session / consumption logic we'd own + test. For a launchable product, the buy-vs-build math now favors buy. Reconsider if we ever outgrow Better-Auth. |
+| Hosted (Auth0 / Clerk / Supabase Auth) | Solve the wrong problem — we want self-hostable. Same as ADR 0003.                                                                                                                                                                                         |
+| Roll back to Manus OAuth + add HMAC    | Doesn't address the dependency on Manus, which is the original blocker.                                                                                                                                                                                    |
 
 ## Consequences
 

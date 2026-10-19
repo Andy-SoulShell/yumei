@@ -60,7 +60,7 @@ platform.**
 
 - New `subscriptions` table:
   `(userId, lemonSubscriptionId, status, plan, periodStart, periodEnd,
-   cancelAt, createdAt, updatedAt)`.
+cancelAt, createdAt, updatedAt)`.
 - New `usage_meters` table with composite PK `(userId, month, meter)`
   where `meter ∈ {chat, image, tts, stt}`.
 - A single webhook endpoint `/api/billing/lemon-webhook` validates
@@ -87,15 +87,15 @@ touching billing code paths.
 
 ## Why Lemon Squeezy over the alternatives
 
-| Option | Why we picked / didn't pick |
-| --- | --- |
-| **Lemon Squeezy** ✅ | MoR (zero tax-compliance work), better CN card acceptance than Stripe, mature subscription primitives, clean webhooks, no developer-hostile pricing tiers. |
-| Stripe | Industry default but **not MoR by default** (Stripe Tax helps but is a separate product); CN card acceptance lags badly. We'd absorb tax compliance ourselves which is a multi-week tax-and-legal sidetrack. |
-| Stripe + Tax + custom rules | Solves taxes but doesn't solve CN cards. Cumulative complexity is high. |
-| Paddle | Also MoR, comparable shape to Lemon Squeezy. Lemon Squeezy DX (docs, dashboard, webhook semantics) is materially better in our team's experience. Reconsider if Lemon Squeezy ever raises fees beyond ~5%. |
-| Gumroad | MoR but built around one-shot products; subscriptions are a second-class feature with weaker primitives. Not the right shape. |
-| Self-host (e.g., billingbot, Polar) | Returns us to tax-compliance-as-our-problem. Lemon Squeezy's headline fee (~5% + 50¢) is cheap relative to a tax accountant. |
-| Multiple providers (Stripe + Alipay) | The matrix of "which provider sees which user" makes the codebase non-trivial without product-led signal. Defer until we have signups by region. |
+| Option                               | Why we picked / didn't pick                                                                                                                                                                                  |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Lemon Squeezy** ✅                 | MoR (zero tax-compliance work), better CN card acceptance than Stripe, mature subscription primitives, clean webhooks, no developer-hostile pricing tiers.                                                   |
+| Stripe                               | Industry default but **not MoR by default** (Stripe Tax helps but is a separate product); CN card acceptance lags badly. We'd absorb tax compliance ourselves which is a multi-week tax-and-legal sidetrack. |
+| Stripe + Tax + custom rules          | Solves taxes but doesn't solve CN cards. Cumulative complexity is high.                                                                                                                                      |
+| Paddle                               | Also MoR, comparable shape to Lemon Squeezy. Lemon Squeezy DX (docs, dashboard, webhook semantics) is materially better in our team's experience. Reconsider if Lemon Squeezy ever raises fees beyond ~5%.   |
+| Gumroad                              | MoR but built around one-shot products; subscriptions are a second-class feature with weaker primitives. Not the right shape.                                                                                |
+| Self-host (e.g., billingbot, Polar)  | Returns us to tax-compliance-as-our-problem. Lemon Squeezy's headline fee (~5% + 50¢) is cheap relative to a tax accountant.                                                                                 |
+| Multiple providers (Stripe + Alipay) | The matrix of "which provider sees which user" makes the codebase non-trivial without product-led signal. Defer until we have signups by region.                                                             |
 
 ## Consequences
 

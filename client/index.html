@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="zh-CN">
-
   <head>
     <meta charset="UTF-8" />
     <!-- Viewport: 禁止缩放，适配 iPhone 刘海屏 -->
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <title>YUMEI</title>
 
     <!-- PWA Manifest -->
@@ -18,15 +18,26 @@
 
     <!-- iOS Safari 适配 -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
     <meta name="apple-mobile-web-app-title" content="YUMEI" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <!-- iOS 启动画面 - 防止白屏闪烁 -->
     <meta name="apple-touch-fullscreen" content="yes" />
 
     <!-- Android Chrome 适配 -->
-    <meta name="theme-color" content="#ec4899" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0f0a14" media="(prefers-color-scheme: dark)" />
+    <meta
+      name="theme-color"
+      content="#ec4899"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#0f0a14"
+      media="(prefers-color-scheme: dark)"
+    />
     <meta name="mobile-web-app-capable" content="yes" />
 
     <!-- 通用移动端 meta -->
@@ -47,7 +58,8 @@
         padding-right: env(safe-area-inset-right);
       }
       /* 防止 iOS 橡皮筋效果导致的布局问题 */
-      html, body {
+      html,
+      body {
         overscroll-behavior: none;
         -webkit-overflow-scrolling: touch;
       }
@@ -56,7 +68,9 @@
         -webkit-touch-callout: none;
       }
       /* 允许输入框和文本区域的长按 */
-      input, textarea, [contenteditable] {
+      input,
+      textarea,
+      [contenteditable] {
         -webkit-touch-callout: default;
         -webkit-user-select: text;
         user-select: text;
@@ -66,7 +80,10 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
 
   <body>
@@ -75,22 +92,23 @@
     <script
       defer
       src="%VITE_ANALYTICS_ENDPOINT%/umami"
-      data-website-id="%VITE_ANALYTICS_WEBSITE_ID%"></script>
+      data-website-id="%VITE_ANALYTICS_WEBSITE_ID%"
+    ></script>
 
     <!-- 注册 Service Worker -->
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((reg) => {
-              console.log('[SW] Registered:', reg.scope);
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then(reg => {
+              console.log("[SW] Registered:", reg.scope);
             })
-            .catch((err) => {
-              console.log('[SW] Registration failed:', err);
+            .catch(err => {
+              console.log("[SW] Registration failed:", err);
             });
         });
       }
     </script>
   </body>
-
 </html>

@@ -72,9 +72,12 @@ describe("API Usage Queries", () => {
         },
       });
 
-      const response = await axios.get("https://api.elevenlabs.io/v1/user/subscription", {
-        headers: { "xi-api-key": "test-key" },
-      });
+      const response = await axios.get(
+        "https://api.elevenlabs.io/v1/user/subscription",
+        {
+          headers: { "xi-api-key": "test-key" },
+        }
+      );
 
       const data = response.data;
       expect(data.tier).toBe("starter");
@@ -118,9 +121,12 @@ describe("API Usage Queries", () => {
         },
       });
 
-      const response = await axios.get("https://api.fish.audio/wallet/self/api-credit", {
-        headers: { Authorization: "Bearer test-key" },
-      });
+      const response = await axios.get(
+        "https://api.fish.audio/wallet/self/api-credit",
+        {
+          headers: { Authorization: "Bearer test-key" },
+        }
+      );
 
       const data = response.data;
       const credit = parseFloat(data.credit);
@@ -136,9 +142,12 @@ describe("API Usage Queries", () => {
         },
       });
 
-      const response = await axios.get("https://api.fish.audio/wallet/self/api-credit", {
-        headers: { Authorization: "Bearer test-key" },
-      });
+      const response = await axios.get(
+        "https://api.fish.audio/wallet/self/api-credit",
+        {
+          headers: { Authorization: "Bearer test-key" },
+        }
+      );
 
       const credit = parseFloat(response.data.credit);
       expect(credit).toBe(0);

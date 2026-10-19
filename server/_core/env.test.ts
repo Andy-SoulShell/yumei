@@ -27,12 +27,15 @@ afterEach(() => {
 });
 
 describe("env validation (issue #6)", () => {
-  it.each(["invalid", "ftp://comfy:8188", "http://user:password@comfy:8188"])("rejects invalid ComfyUI addresses: %s", async url => {
-    process.env.JWT_SECRET = "a".repeat(32);
-    process.env.IMAGE_PROVIDER = "comfyui";
-    process.env.COMFYUI_BASE_URL = url;
-    await expect(import("./env")).rejects.toThrow(/COMFYUI_BASE_URL/);
-  });
+  it.each(["invalid", "ftp://comfy:8188", "http://user:password@comfy:8188"])(
+    "rejects invalid ComfyUI addresses: %s",
+    async url => {
+      process.env.JWT_SECRET = "a".repeat(32);
+      process.env.IMAGE_PROVIDER = "comfyui";
+      process.env.COMFYUI_BASE_URL = url;
+      await expect(import("./env")).rejects.toThrow(/COMFYUI_BASE_URL/);
+    }
+  );
 
   it("rejects unsupported image providers", async () => {
     process.env.JWT_SECRET = "a".repeat(32);
@@ -108,9 +111,7 @@ describe("env validation (issue #6)", () => {
     const { ENV } = await import("./env");
     expect(ENV.cookieSecret).toBe("x".repeat(64));
     expect(ENV.keyEncryptionKey).toBe("y".repeat(64));
-    expect(ENV.databaseUrl).toBe(
-      "mysql://root:devpass@127.0.0.1:3306/yumei"
-    );
+    expect(ENV.databaseUrl).toBe("mysql://root:devpass@127.0.0.1:3306/yumei");
     expect(ENV.isProduction).toBe(false);
     expect(ENV.isTest).toBe(false);
   });

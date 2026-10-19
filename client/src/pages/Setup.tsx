@@ -1,15 +1,35 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Upload, ArrowLeft, Trash2, ChevronDown, ChevronUp, Eye, Brain, Camera, X } from "lucide-react";
+import {
+  Loader2,
+  Upload,
+  ArrowLeft,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  Brain,
+  Camera,
+  X,
+} from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import { CharacterPresetPicker } from "@/components/CharacterPresetPicker";
-import { getCharacterPreset, type CharacterPreset } from "@shared/characterPresets";
+import {
+  getCharacterPreset,
+  type CharacterPreset,
+} from "@shared/characterPresets";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +42,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+const ALLOWED_AVATAR_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+];
 const MAX_AVATAR_SIZE = 10 * 1024 * 1024; // 10MB
 
 export default function Setup() {
@@ -46,7 +71,9 @@ export default function Setup() {
   // 头像相关状态
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [existingAvatarUrl, setExistingAvatarUrl] = useState<string | null>(null);
+  const [existingAvatarUrl, setExistingAvatarUrl] = useState<string | null>(
+    null
+  );
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -61,7 +88,7 @@ export default function Setup() {
   // 编辑模式：加载已有数据
   useEffect(() => {
     if (editId && girlfriends) {
-      const gf = girlfriends.find((g) => g.id === editId);
+      const gf = girlfriends.find(g => g.id === editId);
       if (gf) {
         setName(gf.name);
         setPersonality(gf.personality);
@@ -82,7 +109,7 @@ export default function Setup() {
       toast.success("女友配置创建成功！");
       setLocation("/");
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`创建失败：${error.message}`);
     },
   });
@@ -99,13 +126,13 @@ export default function Setup() {
       }
       setLocation("/");
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`更新失败：${error.message}`);
     },
   });
 
   const uploadAvatar = trpc.girlfriend.uploadAvatar.useMutation({
-    onSuccess: (data) => {
+    onSuccess: data => {
       setExistingAvatarUrl(data.avatarUrl);
       setAvatarFile(null);
       setAvatarPreview(null);
@@ -116,7 +143,7 @@ export default function Setup() {
         addPoints.mutate({ girlfriendId: editId, reason: "edit_profile" });
       }
     },
-    onError: (error) => {
+    onError: error => {
       setIsUploadingAvatar(false);
       toast.error(`头像上传失败：${error.message}`);
     },
@@ -127,7 +154,7 @@ export default function Setup() {
       toast.success("已移入回收站，7天内可恢复");
       setLocation("/");
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`删除失败：${error.message}`);
     },
   });
@@ -141,7 +168,10 @@ export default function Setup() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!ALLOWED_AVATAR_TYPES.includes(file.type) || file.size > MAX_AVATAR_SIZE) {
+      if (
+        !ALLOWED_AVATAR_TYPES.includes(file.type) ||
+        file.size > MAX_AVATAR_SIZE
+      ) {
         toast.error("请选择 10MB 以内的 JPG、PNG、GIF 或 WebP 图片");
         e.target.value = "";
         return;
@@ -180,7 +210,9 @@ export default function Setup() {
 
     // 大小校验
     if (file.size > MAX_AVATAR_SIZE) {
-      toast.error(`图片文件过大（${(file.size / 1024 / 1024).toFixed(1)}MB），请选择 10MB 以内的图片`);
+      toast.error(
+        `图片文件过大（${(file.size / 1024 / 1024).toFixed(1)}MB），请选择 10MB 以内的图片`
+      );
       return;
     }
 
@@ -203,7 +235,11 @@ export default function Setup() {
       uploadAvatar.mutate({
         girlfriendId: editId,
         imageBase64: base64,
-        mimeType: avatarFile.type as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+        mimeType: avatarFile.type as
+          | "image/jpeg"
+          | "image/png"
+          | "image/gif"
+          | "image/webp",
       });
     };
     reader.readAsDataURL(avatarFile);
@@ -249,8 +285,14 @@ export default function Setup() {
       }
 
       if (!imageFile) {
-        createGirlfriend.mutate({ name, personality, appearance, interests: interests || undefined,
-          customPrompt: customPrompt || undefined, presetId: presetId! });
+        createGirlfriend.mutate({
+          name,
+          personality,
+          appearance,
+          interests: interests || undefined,
+          customPrompt: customPrompt || undefined,
+          presetId: presetId!,
+        });
         return;
       }
 
@@ -264,7 +306,11 @@ export default function Setup() {
           interests: interests || undefined,
           customPrompt: customPrompt || undefined,
           referenceImageBase64: base64,
-          referenceImageMimeType: imageFile.type as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+          referenceImageMimeType: imageFile.type as
+            | "image/jpeg"
+            | "image/png"
+            | "image/gif"
+            | "image/webp",
         });
       };
       reader.readAsDataURL(imageFile);
@@ -273,13 +319,23 @@ export default function Setup() {
 
   const isEditing = !!editId;
   const isPending = createGirlfriend.isPending || updateGirlfriend.isPending;
-  const displayImage = imagePreview || existingImageUrl || (presetId ? getCharacterPreset(presetId)?.imageUrl : null);
+  const displayImage =
+    imagePreview ||
+    existingImageUrl ||
+    (presetId ? getCharacterPreset(presetId)?.imageUrl : null);
   const displayAvatar = avatarPreview || existingAvatarUrl;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 dark:from-[oklch(0.16_0.02_330)] dark:via-[oklch(0.14_0.015_320)] dark:to-[oklch(0.16_0.02_300)] p-3 sm:p-4" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
+    <div
+      className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 dark:from-[oklch(0.16_0.02_330)] dark:via-[oklch(0.14_0.015_320)] dark:to-[oklch(0.16_0.02_300)] p-3 sm:p-4"
+      style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
+    >
       <div className="max-w-2xl mx-auto py-4 sm:py-8">
-        <Button variant="ghost" className="mb-4" onClick={() => setLocation("/")}>
+        <Button
+          variant="ghost"
+          className="mb-4"
+          onClick={() => setLocation("/")}
+        >
           <ArrowLeft className="w-4 h-4 mr-2" />
           返回
         </Button>
@@ -297,13 +353,19 @@ export default function Setup() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {!isEditing && <CharacterPresetPicker selectedId={presetId} onSelect={handleSelectPreset} />}
+              {!isEditing && (
+                <CharacterPresetPicker
+                  selectedId={presetId}
+                  onSelect={handleSelectPreset}
+                />
+              )}
               {/* 头像上传区域 - 编辑模式显示 */}
               {isEditing && (
                 <div className="space-y-2">
                   <Label>头像照片</Label>
                   <p className="text-xs text-muted-foreground">
-                    上传一张头像照片，将在首页卡片和聊天页展示（支持 JPG/PNG/GIF/WebP，最大 10MB）
+                    上传一张头像照片，将在首页卡片和聊天页展示（支持
+                    JPG/PNG/GIF/WebP，最大 10MB）
                   </p>
                   <div className="flex items-center gap-4">
                     {/* 头像预览 */}
@@ -325,7 +387,9 @@ export default function Setup() {
                       ) : (
                         <div className="w-full h-full bg-muted flex flex-col items-center justify-center gap-0.5">
                           <Camera className="w-5 h-5 text-muted-foreground" />
-                          <span className="text-[10px] text-muted-foreground">上传</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            上传
+                          </span>
                         </div>
                       )}
                     </div>
@@ -401,9 +465,7 @@ export default function Setup() {
 
               {/* 参考照片上传 */}
               <div className="space-y-2">
-                <Label htmlFor="image">
-                  参考照片 {!isEditing && "*"}
-                </Label>
+                <Label htmlFor="image">参考照片 {!isEditing && "*"}</Label>
                 <div className="flex flex-col items-center gap-3 sm:gap-4">
                   {displayImage ? (
                     <div className="relative w-36 h-36 sm:w-48 sm:h-48 rounded-lg overflow-hidden border-2 border-border">
@@ -432,7 +494,9 @@ export default function Setup() {
                       className="w-48 h-48 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary transition-colors"
                     >
                       <Upload className="w-12 h-12 text-muted-foreground mb-2" />
-                      <span className="text-sm text-muted-foreground">点击上传照片</span>
+                      <span className="text-sm text-muted-foreground">
+                        点击上传照片
+                      </span>
                       <span className="text-xs text-muted-foreground mt-1">
                         支持 JPG、PNG、GIF、WebP，最大 10MB
                       </span>
@@ -450,10 +514,19 @@ export default function Setup() {
                   )}
                 </div>
                 {!isEditing && imageFile && presetId && (
-                  <Button type="button" variant="ghost" size="sm" onClick={() => {
-                    setImageFile(null); setImagePreview(null);
-                    if (imageInputRef.current) imageInputRef.current.value = "";
-                  }}>恢复预设参考图</Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setImageFile(null);
+                      setImagePreview(null);
+                      if (imageInputRef.current)
+                        imageInputRef.current.value = "";
+                    }}
+                  >
+                    恢复预设参考图
+                  </Button>
                 )}
                 {isEditing && (
                   <p className="text-xs text-muted-foreground text-center">
@@ -469,7 +542,7 @@ export default function Setup() {
                   id="name"
                   placeholder="例如：小雨"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={e => setName(e.target.value)}
                   required
                 />
               </div>
@@ -481,7 +554,7 @@ export default function Setup() {
                   id="personality"
                   placeholder="例如：温柔体贴，善解人意，喜欢撒娇，偶尔会有点小任性..."
                   value={personality}
-                  onChange={(e) => setPersonality(e.target.value)}
+                  onChange={e => setPersonality(e.target.value)}
                   rows={4}
                   required
                 />
@@ -497,7 +570,7 @@ export default function Setup() {
                   id="appearance"
                   placeholder="例如：长发飘逸，皮肤白皙，身材苗条，喜欢穿裙子..."
                   value={appearance}
-                  onChange={(e) => setAppearance(e.target.value)}
+                  onChange={e => setAppearance(e.target.value)}
                   rows={3}
                   required
                 />
@@ -513,7 +586,7 @@ export default function Setup() {
                   id="interests"
                   placeholder="例如：喜欢看电影、听音乐、旅行、美食..."
                   value={interests}
-                  onChange={(e) => setInterests(e.target.value)}
+                  onChange={e => setInterests(e.target.value)}
                   rows={2}
                 />
               </div>
@@ -525,10 +598,16 @@ export default function Setup() {
                   onClick={() => setShowCustomPrompt(!showCustomPrompt)}
                   className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full"
                 >
-                  {showCustomPrompt ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  {showCustomPrompt ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
                   <Brain className="w-4 h-4" />
                   高级提示词定制
-                  <span className="text-xs px-1.5 py-0.5 rounded bg-muted">可选</span>
+                  <span className="text-xs px-1.5 py-0.5 rounded bg-muted">
+                    可选
+                  </span>
                 </button>
 
                 {showCustomPrompt && (
@@ -539,7 +618,7 @@ export default function Setup() {
                         id="customPrompt"
                         placeholder="例如：说话带点傲娇，偶尔用日语词汇，喜欢用哼开头..."
                         value={customPrompt}
-                        onChange={(e) => setCustomPrompt(e.target.value)}
+                        onChange={e => setCustomPrompt(e.target.value)}
                         rows={3}
                         maxLength={300}
                         className="resize-none"
@@ -548,7 +627,9 @@ export default function Setup() {
                         <p className="text-xs text-muted-foreground">
                           仅对这个女友生效，会追加到全局提示词之后
                         </p>
-                        <span className="text-xs text-muted-foreground">{customPrompt.length}/300</span>
+                        <span className="text-xs text-muted-foreground">
+                          {customPrompt.length}/300
+                        </span>
                       </div>
                     </div>
 
@@ -560,44 +641,67 @@ export default function Setup() {
                         className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
                       >
                         <Eye className="w-3.5 h-3.5" />
-                        {showPromptPreview ? "收起预览" : "查看最终生效的提示词"}
+                        {showPromptPreview
+                          ? "收起预览"
+                          : "查看最终生效的提示词"}
                       </button>
 
                       {showPromptPreview && (
                         <div className="rounded-lg border bg-muted/30 p-3 space-y-2 text-sm">
-                          <p className="text-xs font-medium text-muted-foreground mb-2">最终发送给 AI 的提示词预览：</p>
-                          
+                          <p className="text-xs font-medium text-muted-foreground mb-2">
+                            最终发送给 AI 的提示词预览：
+                          </p>
+
                           {/* 全局提示词 */}
                           {apiConfig?.preferences?.globalPrompt ? (
                             <div className="rounded p-2 bg-blue-500/10 border border-blue-500/20">
-                              <span className="text-[10px] font-semibold text-blue-500 uppercase">全局提示词</span>
-                              <p className="mt-1 text-foreground/80">{apiConfig.preferences?.globalPrompt}</p>
+                              <span className="text-[10px] font-semibold text-blue-500 uppercase">
+                                全局提示词
+                              </span>
+                              <p className="mt-1 text-foreground/80">
+                                {apiConfig.preferences?.globalPrompt}
+                              </p>
                             </div>
                           ) : (
                             <div className="rounded p-2 bg-muted/50 border border-dashed">
-                              <span className="text-[10px] font-semibold text-muted-foreground uppercase">全局提示词</span>
-                              <p className="mt-1 text-muted-foreground italic">未设置，可在设置页配置</p>
+                              <span className="text-[10px] font-semibold text-muted-foreground uppercase">
+                                全局提示词
+                              </span>
+                              <p className="mt-1 text-muted-foreground italic">
+                                未设置，可在设置页配置
+                              </p>
                             </div>
                           )}
 
                           {/* 个体提示词 */}
                           {customPrompt ? (
                             <div className="rounded p-2 bg-pink-500/10 border border-pink-500/20">
-                              <span className="text-[10px] font-semibold text-pink-500 uppercase">个体提示词</span>
-                              <p className="mt-1 text-foreground/80">{customPrompt}</p>
+                              <span className="text-[10px] font-semibold text-pink-500 uppercase">
+                                个体提示词
+                              </span>
+                              <p className="mt-1 text-foreground/80">
+                                {customPrompt}
+                              </p>
                             </div>
                           ) : (
                             <div className="rounded p-2 bg-muted/50 border border-dashed">
-                              <span className="text-[10px] font-semibold text-muted-foreground uppercase">个体提示词</span>
-                              <p className="mt-1 text-muted-foreground italic">未设置</p>
+                              <span className="text-[10px] font-semibold text-muted-foreground uppercase">
+                                个体提示词
+                              </span>
+                              <p className="mt-1 text-muted-foreground italic">
+                                未设置
+                              </p>
                             </div>
                           )}
 
                           {/* 性格 + 外貌结构化字段 */}
                           <div className="rounded p-2 bg-purple-500/10 border border-purple-500/20">
-                            <span className="text-[10px] font-semibold text-purple-500 uppercase">角色设定</span>
+                            <span className="text-[10px] font-semibold text-purple-500 uppercase">
+                              角色设定
+                            </span>
                             <p className="mt-1 text-foreground/80">
-                              性格：{personality || "未填写"} | 外貌：{appearance || "未填写"}
+                              性格：{personality || "未填写"} | 外貌：
+                              {appearance || "未填写"}
                               {interests && ` | 兴趣：${interests}`}
                             </p>
                           </div>
@@ -649,7 +753,8 @@ export default function Setup() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>确认删除</AlertDialogTitle>
                         <AlertDialogDescription>
-                          确定要删除 <strong>{name}</strong> 吗？她将被移入回收站，7 天内可以在首页回收站中恢复。
+                          确定要删除 <strong>{name}</strong>{" "}
+                          吗？她将被移入回收站，7 天内可以在首页回收站中恢复。
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

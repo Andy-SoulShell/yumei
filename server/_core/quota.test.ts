@@ -99,7 +99,12 @@ describe("daily meters (free-tier caps, ADR 0005)", () => {
     const userId = `meter-user-${nanoid(8)}`;
     const big = await tryConsumeDailyMeter(userId, "intimacy:points", 200, 150);
     expect(big.allowed).toBe(true);
-    const over = await tryConsumeDailyMeter(userId, "intimacy:points", 200, 100);
+    const over = await tryConsumeDailyMeter(
+      userId,
+      "intimacy:points",
+      200,
+      100
+    );
     expect(over.allowed).toBe(false);
     const fit = await tryConsumeDailyMeter(userId, "intimacy:points", 200, 50);
     expect(fit.allowed).toBe(true);

@@ -41,7 +41,9 @@ const ACTIVE_STATUSES: ReadonlyArray<Subscription["status"]> = [
   "past_due",
 ];
 
-export async function getSubscription(userId: string): Promise<Subscription | null> {
+export async function getSubscription(
+  userId: string
+): Promise<Subscription | null> {
   const db = await getDb();
   if (!db) return null;
   const rows = await db
@@ -68,7 +70,9 @@ export async function getUserTier(userId: string): Promise<Tier> {
   return "free";
 }
 
-export async function getTierLimits(userId: string): Promise<{ tier: Tier; limits: TierLimits }> {
+export async function getTierLimits(
+  userId: string
+): Promise<{ tier: Tier; limits: TierLimits }> {
   const tier = await getUserTier(userId);
   return { tier, limits: TIER_LIMITS[tier] };
 }
@@ -85,7 +89,11 @@ export function upsellHint(tier: Tier): string {
 // ---------------------------------------------------------------------------
 
 /** Exported for tests. Constant-time HMAC-SHA256 check of X-Signature. */
-export function verifyLemonSignature(rawBody: Buffer, signature: string, secret: string): boolean {
+export function verifyLemonSignature(
+  rawBody: Buffer,
+  signature: string,
+  secret: string
+): boolean {
   if (!signature || !secret) return false;
   const digest = createHmac("sha256", secret).update(rawBody).digest("hex");
   const a = Buffer.from(digest);
@@ -143,11 +151,13 @@ export function resolvePlan(attributes: {
 }): "plus" | "pro" | null {
   const plusId = process.env.LEMONSQUEEZY_VARIANT_PLUS;
   const proId = process.env.LEMONSQUEEZY_VARIANT_PRO;
-  const variantId = attributes.variant_id != null ? String(attributes.variant_id) : null;
+  const variantId =
+    attributes.variant_id != null ? String(attributes.variant_id) : null;
   if (variantId && plusId && variantId === plusId) return "plus";
   if (variantId && proId && variantId === proId) return "pro";
 
-  const name = `${attributes.variant_name ?? ""} ${attributes.product_name ?? ""}`.toLowerCase();
+  const name =
+    `${attributes.variant_name ?? ""} ${attributes.product_name ?? ""}`.toLowerCase();
   if (name.includes("pro")) return "pro";
   if (name.includes("plus")) return "plus";
   return null;
@@ -164,9 +174,9 @@ const LS_STATUSES = new Set([
 ]);
 
 /** Exported for tests: process one verified webhook payload. */
-export async function handleLemonEvent(payload: LemonPayload): Promise<
-  { ok: true; ignored?: string } | { ok: false; error: string }
-> {
+export async function handleLemonEvent(
+  payload: LemonPayload
+): Promise<{ ok: true; ignored?: string } | { ok: false; error: string }> {
   const eventName = payload.meta?.event_name ?? "";
   if (!SUBSCRIPTION_EVENTS.has(eventName)) {
     return { ok: true, ignored: `event ${eventName || "(missing)"}` };
@@ -210,10 +220,16 @@ export async function handleLemonEvent(payload: LemonPayload): Promise<
   }
 
   const plan = resolvePlan(attributes);
-  if (!plan) return { ok: false, error: "unresolvable plan (set LEMONSQUEEZY_VARIANT_PLUS/_PRO)" };
+  if (!plan)
+    return {
+      ok: false,
+      error: "unresolvable plan (set LEMONSQUEEZY_VARIANT_PLUS/_PRO)",
+    };
 
   const rawStatus = attributes.status ?? "active";
-  const status = (LS_STATUSES.has(rawStatus) ? rawStatus : "active") as Subscription["status"];
+  const status = (
+    LS_STATUSES.has(rawStatus) ? rawStatus : "active"
+  ) as Subscription["status"];
   const renewsAt = attributes.renews_at ? new Date(attributes.renews_at) : null;
   const endsAt = attributes.ends_at ? new Date(attributes.ends_at) : null;
 
@@ -222,7 +238,8 @@ export async function handleLemonEvent(payload: LemonPayload): Promise<
     .values({
       userId,
       lsSubscriptionId,
-      lsCustomerId: attributes.customer_id != null ? String(attributes.customer_id) : null,
+      lsCustomerId:
+        attributes.customer_id != null ? String(attributes.customer_id) : null,
       plan,
       status,
       renewsAt,

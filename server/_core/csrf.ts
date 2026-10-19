@@ -89,7 +89,11 @@ export function csrfVerifyMiddleware(
   res: Response,
   next: NextFunction
 ): void {
-  if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") {
+  if (
+    req.method === "GET" ||
+    req.method === "HEAD" ||
+    req.method === "OPTIONS"
+  ) {
     next();
     return;
   }

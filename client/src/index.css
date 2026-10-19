@@ -49,7 +49,7 @@
   --sidebar-primary-foreground: oklch(100% 0 0);
   --chart-1: oklch(65% 0.22 350);
   --chart-2: oklch(72% 0.18 340);
-  --chart-3: oklch(58% 0.20 320);
+  --chart-3: oklch(58% 0.2 320);
   --chart-4: oklch(75% 0.12 30);
   --chart-5: oklch(68% 0.15 300);
   --radius: 0.65rem;
@@ -97,19 +97,19 @@
   --accent-foreground: oklch(0.95 0.01 350);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.30 0.02 320);
+  --border: oklch(0.3 0.02 320);
   --input: oklch(0.28 0.02 320);
   --ring: oklch(72% 0.22 340);
   --chart-1: oklch(72% 0.22 340);
   --chart-2: oklch(65% 0.18 330);
-  --chart-3: oklch(58% 0.20 310);
+  --chart-3: oklch(58% 0.2 310);
   --chart-4: oklch(75% 0.12 20);
   --chart-5: oklch(68% 0.15 290);
   --sidebar: oklch(0.17 0.018 320);
   --sidebar-foreground: oklch(0.92 0.01 350);
   --sidebar-accent: oklch(0.28 0.03 330);
   --sidebar-accent-foreground: oklch(0.95 0.01 350);
-  --sidebar-border: oklch(0.30 0.02 320);
+  --sidebar-border: oklch(0.3 0.02 320);
   --sidebar-ring: oklch(72% 0.22 340);
 }
 
@@ -126,7 +126,14 @@
     @apply bg-background text-foreground;
     height: 100%;
     overflow: hidden;
-    font-family: 'Noto Sans SC', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family:
+      "Noto Sans SC",
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
     /* 防止 iOS 点击高亮 */
     -webkit-tap-highlight-color: transparent;
   }
@@ -148,12 +155,15 @@
   }
   /* 移动端触摸优化：最小点击区域 44px */
   @media (max-width: 768px) {
-    button, [role="button"], a {
+    button,
+    [role="button"],
+    a {
       min-height: 44px;
       min-width: 44px;
     }
     /* 紧凑按钮例外 */
-    button[data-compact], .compact-btn {
+    button[data-compact],
+    .compact-btn {
       min-height: auto;
       min-width: auto;
     }

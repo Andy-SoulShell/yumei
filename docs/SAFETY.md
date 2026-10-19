@@ -34,7 +34,7 @@ just in the UI. We store the date of birth solely to establish majority.
    model to respond with care, encourage professional help, and never
    produce methods, tools, or encouragement of self-harm — including
    under a role-play framing. User-supplied prompt layers are inserted
-   *before* this clause so they cannot displace it.
+   _before_ this clause so they cannot displace it.
 4. **No dark patterns.** The companion never discourages a user from
    seeking human or professional help.
 

@@ -1,4 +1,14 @@
-import { date, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar, boolean } from "drizzle-orm/mysql-core";
+import {
+  date,
+  int,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  varchar,
+  boolean,
+} from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -186,17 +196,23 @@ export const apiConfigs = mysqlTable("apiConfigs", {
   llmApiUrl: varchar("llmApiUrl", { length: 500 }), // LLM API URL (defaults to OpenRouter)
   llmModel: varchar("llmModel", { length: 200 }), // 用户选择的模型 ID（如 openai/gpt-4o）
   // TTS 语音配置
-  ttsProvider: mysqlEnum("ttsProvider", ["browser", "elevenlabs", "fishaudio"]).default("browser").notNull(),
+  ttsProvider: mysqlEnum("ttsProvider", ["browser", "elevenlabs", "fishaudio"])
+    .default("browser")
+    .notNull(),
   elevenlabsVoiceId: varchar("elevenlabsVoiceId", { length: 200 }),
   elevenlabsVoiceName: varchar("elevenlabsVoiceName", { length: 200 }),
   fishAudioModelId: varchar("fishAudioModelId", { length: 200 }),
   fishAudioModelName: varchar("fishAudioModelName", { length: 200 }),
   // 语音转写配置
-  whisperProvider: mysqlEnum("whisperProvider", ["manus", "openai"]).default("manus").notNull(),
+  whisperProvider: mysqlEnum("whisperProvider", ["manus", "openai"])
+    .default("manus")
+    .notNull(),
   // 全局提示词配置
   globalPrompt: text("globalPrompt"),
   replyLanguage: varchar("replyLanguage", { length: 50 }).default("中文"),
-  replyLengthLimit: varchar("replyLengthLimit", { length: 50 }).default("50-100字"),
+  replyLengthLimit: varchar("replyLengthLimit", { length: 50 }).default(
+    "50-100字"
+  ),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -226,7 +242,10 @@ export const userKeys = mysqlTable(
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
   table => ({
-    uniqUserName: uniqueIndex("uniq_user_key_name").on(table.userId, table.name),
+    uniqUserName: uniqueIndex("uniq_user_key_name").on(
+      table.userId,
+      table.name
+    ),
   })
 );
 
@@ -241,7 +260,16 @@ export const girlfriendMoods = mysqlTable("girlfriendMoods", {
   id: int("id").autoincrement().primaryKey(),
   userId: varchar("userId", { length: 255 }).notNull(),
   girlfriendId: int("girlfriendId").notNull(),
-  mood: mysqlEnum("mood", ["excited", "happy", "content", "neutral", "lonely", "sad"]).default("happy").notNull(),
+  mood: mysqlEnum("mood", [
+    "excited",
+    "happy",
+    "content",
+    "neutral",
+    "lonely",
+    "sad",
+  ])
+    .default("happy")
+    .notNull(),
   moodScore: int("moodScore").default(70).notNull(), // 0-100, higher = happier
   lastChatAt: timestamp("lastChatAt"),
   totalMessages: int("totalMessages").default(0).notNull(),
@@ -264,7 +292,15 @@ export const notifications = mysqlTable("notifications", {
   girlfriendId: int("girlfriendId").notNull(),
   title: varchar("title", { length: 200 }).notNull(),
   content: text("content").notNull(),
-  type: mysqlEnum("type", ["miss_you", "good_morning", "good_night", "random", "mood"]).default("random").notNull(),
+  type: mysqlEnum("type", [
+    "miss_you",
+    "good_morning",
+    "good_night",
+    "random",
+    "mood",
+  ])
+    .default("random")
+    .notNull(),
   isRead: boolean("isRead").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -315,7 +351,12 @@ export const memories = mysqlTable(
     id: int("id").autoincrement().primaryKey(),
     userId: varchar("userId", { length: 255 }).notNull(),
     girlfriendId: int("girlfriendId").notNull(),
-    category: mysqlEnum("category", ["fact", "preference", "event", "relationship"])
+    category: mysqlEnum("category", [
+      "fact",
+      "preference",
+      "event",
+      "relationship",
+    ])
       .default("fact")
       .notNull(),
     content: varchar("content", { length: 300 }).notNull(),
@@ -347,8 +388,12 @@ export type InsertMemory = typeof memories.$inferInsert;
 export const subscriptions = mysqlTable("subscriptions", {
   id: int("id").autoincrement().primaryKey(),
   userId: varchar("userId", { length: 255 }).notNull().unique(),
-  provider: varchar("provider", { length: 32 }).default("lemonsqueezy").notNull(),
-  lsSubscriptionId: varchar("lsSubscriptionId", { length: 64 }).notNull().unique(),
+  provider: varchar("provider", { length: 32 })
+    .default("lemonsqueezy")
+    .notNull(),
+  lsSubscriptionId: varchar("lsSubscriptionId", { length: 64 })
+    .notNull()
+    .unique(),
   lsCustomerId: varchar("lsCustomerId", { length: 64 }),
   plan: mysqlEnum("plan", ["plus", "pro"]).notNull(),
   status: mysqlEnum("status", [

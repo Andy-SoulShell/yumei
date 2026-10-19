@@ -29,11 +29,11 @@ research has too thin a base. Use a **competitor-median placeholder
 triple** for Phase 1c implementation; revisit ~1 week before launch
 with the (by then) real spend data.
 
-| Tier | Price | Anchor |
-| --- | --- | --- |
-| **Free** | $0 | onboarding / proof-of-value |
-| **Plus** | **$9.99 / month** | Character.ai+ ($9.99), Crushon.ai Plus ($9.99) |
-| **Pro** | **$19.99 / month** | Replika Pro ($19.99), Crushon.ai Pro ($19.99) |
+| Tier     | Price              | Anchor                                         |
+| -------- | ------------------ | ---------------------------------------------- |
+| **Free** | $0                 | onboarding / proof-of-value                    |
+| **Plus** | **$9.99 / month**  | Character.ai+ ($9.99), Crushon.ai Plus ($9.99) |
+| **Pro**  | **$19.99 / month** | Replika Pro ($19.99), Crushon.ai Pro ($19.99)  |
 
 These are **placeholder values** — they go into Stripe/Lemon Squeezy
 products but the final numbers are confirmed in Phase 1c kickoff after
@@ -49,17 +49,17 @@ they'd churn before the value showed. Replaced with a **broader free
 tier** that lets users feel the full experience while keeping per-user
 cost trivial.
 
-| Capability | Free | Plus | Pro |
-| --- | --- | --- | --- |
-| LLM model | gpt-4o-mini (locked) | mainstream models, user-selectable | full catalog incl. Claude Opus |
-| Daily chat messages (total) | **30** | 500 | unlimited |
-| Selfie image generation | **1 / day** | 30 / month | 100 / month |
-| TTS / voice playback | ❌ | ElevenLabs ✅ | ElevenLabs + Fish Audio ✅ |
-| Voice transcription (Whisper) | ❌ | ✅ | ✅ |
-| Number of girlfriends | **1** | 3 | unlimited |
-| BYOK (own provider keys) | ✅ — bypasses all quotas | ✅ | ✅ |
-| Soft-delete trash window | 7 days | 7 days | 30 days |
-| Customer support | community / docs | email | priority email |
+| Capability                    | Free                     | Plus                               | Pro                            |
+| ----------------------------- | ------------------------ | ---------------------------------- | ------------------------------ |
+| LLM model                     | gpt-4o-mini (locked)     | mainstream models, user-selectable | full catalog incl. Claude Opus |
+| Daily chat messages (total)   | **30**                   | 500                                | unlimited                      |
+| Selfie image generation       | **1 / day**              | 30 / month                         | 100 / month                    |
+| TTS / voice playback          | ❌                       | ElevenLabs ✅                      | ElevenLabs + Fish Audio ✅     |
+| Voice transcription (Whisper) | ❌                       | ✅                                 | ✅                             |
+| Number of girlfriends         | **1**                    | 3                                  | unlimited                      |
+| BYOK (own provider keys)      | ✅ — bypasses all quotas | ✅                                 | ✅                             |
+| Soft-delete trash window      | 7 days                   | 7 days                             | 30 days                        |
+| Customer support              | community / docs         | email                              | priority email                 |
 
 **Cost reasoning for the free tier**
 
@@ -85,16 +85,16 @@ cost trivial.
 Adopt **industry-standard practices verbatim** rather than invent.
 All of the below are natively supported by Lemon Squeezy:
 
-| Policy | Setting |
-| --- | --- |
-| Unused quota | **Does NOT roll over** — resets at each billing cycle (industry standard for SaaS subscriptions) |
-| Full-refund window | **7 days from purchase**, no questions asked |
-| Refund after 7 days | Pro-rated for the unused portion of the current billing cycle |
-| Mid-cycle upgrade | Effective immediately; charged the pro-rated difference |
-| Mid-cycle downgrade | Takes effect at the end of the current billing cycle; user retains higher tier until then |
-| Cancellation | Subscription ends at the conclusion of the current billing cycle; service continues until then |
-| Quota exhaustion (free + paid) | HTTP 402; UI shows upsell + "next reset in N days" |
-| Soft-quota warning threshold | At 80% of the monthly limit |
+| Policy                         | Setting                                                                                          |
+| ------------------------------ | ------------------------------------------------------------------------------------------------ |
+| Unused quota                   | **Does NOT roll over** — resets at each billing cycle (industry standard for SaaS subscriptions) |
+| Full-refund window             | **7 days from purchase**, no questions asked                                                     |
+| Refund after 7 days            | Pro-rated for the unused portion of the current billing cycle                                    |
+| Mid-cycle upgrade              | Effective immediately; charged the pro-rated difference                                          |
+| Mid-cycle downgrade            | Takes effect at the end of the current billing cycle; user retains higher tier until then        |
+| Cancellation                   | Subscription ends at the conclusion of the current billing cycle; service continues until then   |
+| Quota exhaustion (free + paid) | HTTP 402; UI shows upsell + "next reset in N days"                                               |
+| Soft-quota warning threshold   | At 80% of the monthly limit                                                                      |
 
 These get codified in the Terms of Service draft when we launch the
 subscription portal in Phase 1c.

@@ -70,7 +70,9 @@ describe("EnvKeyProvider — user-scoped fallback to operator", () => {
     // Force getDb to return null (the test-mode silent path).
     vi.spyOn(dbModule, "getDb").mockResolvedValue(null as any);
     const kp = new EnvKeyProvider();
-    expect(await kp.get({ userId: "test-user-42" }, "fal")).toBe("fal-operator-fallback");
+    expect(await kp.get({ userId: "test-user-42" }, "fal")).toBe(
+      "fal-operator-fallback"
+    );
   });
 
   it("returns null when neither user key nor operator key is set", async () => {

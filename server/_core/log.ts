@@ -94,7 +94,9 @@ export function redact(input: unknown, depth = MAX_DEPTH): unknown {
     return input
       .slice(0, MAX_ARRAY)
       .map(v => redact(v, depth - 1))
-      .concat(input.length > MAX_ARRAY ? [`...[+${input.length - MAX_ARRAY}]`] : []);
+      .concat(
+        input.length > MAX_ARRAY ? [`...[+${input.length - MAX_ARRAY}]`] : []
+      );
   }
 
   // Plain objects.

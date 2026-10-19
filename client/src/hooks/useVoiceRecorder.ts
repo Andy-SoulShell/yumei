@@ -38,7 +38,7 @@ export function useVoiceRecorder() {
       maxDurationRef.current = null;
     }
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
     }
     mediaRecorderRef.current = null;
@@ -63,10 +63,10 @@ export function useVoiceRecorder() {
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
         : MediaRecorder.isTypeSupported("audio/webm")
-        ? "audio/webm"
-        : MediaRecorder.isTypeSupported("audio/mp4")
-        ? "audio/mp4"
-        : "";
+          ? "audio/webm"
+          : MediaRecorder.isTypeSupported("audio/mp4")
+            ? "audio/mp4"
+            : "";
 
       if (!mimeType) {
         toast.error("当前浏览器不支持音频录制");
@@ -78,7 +78,7 @@ export function useVoiceRecorder() {
       mediaRecorderRef.current = recorder;
       chunksRef.current = [];
 
-      recorder.ondataavailable = (e) => {
+      recorder.ondataavailable = e => {
         if (e.data.size > 0) {
           chunksRef.current.push(e.data);
         }
@@ -90,7 +90,7 @@ export function useVoiceRecorder() {
 
       // 启动计时器
       timerRef.current = setInterval(() => {
-        setDuration((d) => d + 1);
+        setDuration(d => d + 1);
       }, 1000);
 
       // 最大录音时长 60 秒
@@ -119,7 +119,7 @@ export function useVoiceRecorder() {
 
   // 停止录音并返回音频数据
   const stopRecording = useCallback((): Promise<VoiceRecorderResult | null> => {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const recorder = mediaRecorderRef.current;
       if (!recorder || recorder.state === "inactive") {
         cleanup();
@@ -157,7 +157,10 @@ export function useVoiceRecorder() {
   // 组件卸载时清理
   useEffect(() => {
     return () => {
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== "inactive"
+      ) {
         mediaRecorderRef.current.stop();
       }
       cleanup();

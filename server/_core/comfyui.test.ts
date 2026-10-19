@@ -8,9 +8,7 @@ const output = {
     status: { completed: true },
     outputs: {
       "461": {
-        images: [
-          { filename: "photo.png", subfolder: "yumei", type: "output" },
-        ],
+        images: [{ filename: "photo.png", subfolder: "yumei", type: "output" }],
       },
     },
   },
@@ -153,11 +151,9 @@ describe("ComfyUI API generation", () => {
 
   it("rejects a completed task without an image and never downloads HTML as PNG", async () => {
     vi.spyOn(axios, "post").mockResolvedValue({ data: { prompt_id: "job" } });
-    const get = vi
-      .spyOn(axios, "get")
-      .mockResolvedValueOnce({
-        data: { job: { status: { completed: true }, outputs: {} } },
-      });
+    const get = vi.spyOn(axios, "get").mockResolvedValueOnce({
+      data: { job: { status: { completed: true }, outputs: {} } },
+    });
     const client = new ComfyUIClient({ baseUrl: "http://comfy:8188" });
     await expect(
       client.generate({ mode: "text", prompt: "test" })

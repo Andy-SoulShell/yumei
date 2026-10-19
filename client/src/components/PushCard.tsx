@@ -51,7 +51,9 @@ export function PushCard() {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(keyData.key!) as BufferSource,
+        applicationServerKey: urlBase64ToUint8Array(
+          keyData.key!
+        ) as BufferSource,
       });
       const json = subscription.toJSON();
       await subscribeMutation.mutateAsync({
@@ -73,7 +75,9 @@ export function PushCard() {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
       if (subscription) {
-        await unsubscribeMutation.mutateAsync({ endpoint: subscription.endpoint });
+        await unsubscribeMutation.mutateAsync({
+          endpoint: subscription.endpoint,
+        });
         await subscription.unsubscribe();
       }
       await utils.push.status.invalidate();
@@ -93,18 +97,27 @@ export function PushCard() {
           推送通知
         </CardTitle>
         <CardDescription>
-          开启后，她的主动消息（早安、惦记着你说过的事）会推送到这台设备。每天最多 1 条。
+          开启后，她的主动消息（早安、惦记着你说过的事）会推送到这台设备。每天最多
+          1 条。
         </CardDescription>
       </CardHeader>
       <CardContent>
         {status?.subscribed ? (
           <Button variant="outline" onClick={disable} disabled={busy}>
-            {busy ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <BellOff className="w-4 h-4 mr-1.5" />}
+            {busy ? (
+              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+            ) : (
+              <BellOff className="w-4 h-4 mr-1.5" />
+            )}
             关闭本设备推送
           </Button>
         ) : (
           <Button onClick={enable} disabled={busy}>
-            {busy ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Bell className="w-4 h-4 mr-1.5" />}
+            {busy ? (
+              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+            ) : (
+              <Bell className="w-4 h-4 mr-1.5" />
+            )}
             开启推送
           </Button>
         )}

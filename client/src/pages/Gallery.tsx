@@ -1,11 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { SelfieGalleryGrid } from "@/components/SelfieGalleryGrid";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, Loader2, Image as ImageIcon, Sun, Moon } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  Image as ImageIcon,
+  Sun,
+  Moon,
+} from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
-
 
 export default function Gallery() {
   const [, setLocation] = useLocation();
@@ -16,7 +21,7 @@ export default function Gallery() {
       toast.success("删除成功");
       refetch();
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`删除失败：${error.message}`);
     },
   });
@@ -42,13 +47,20 @@ export default function Gallery() {
   return (
     <div className="min-h-screen bg-background">
       {/* 顶部导航栏 */}
-      <header className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 border-b bg-card sticky top-0 z-10" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
+      <header
+        className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 border-b bg-card sticky top-0 z-10"
+        style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}
+      >
         <Button variant="ghost" size="icon" onClick={() => setLocation("/")}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <h1 className="text-lg font-semibold flex-1">自拍画廊</h1>
         <Button variant="ghost" size="icon" onClick={toggleTheme}>
-          {theme === "light" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+          {theme === "light" ? (
+            <Moon className="w-5 h-5" />
+          ) : (
+            <Sun className="w-5 h-5" />
+          )}
         </Button>
       </header>
 

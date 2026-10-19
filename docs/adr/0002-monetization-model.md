@@ -54,13 +54,15 @@ A **secondary "BYOK" mode** is preserved for power users:
 
    ```ts
    interface KeyProvider {
-     get(scope: "operator" | { userId: number }, name: KeyName): Promise<string | null>;
+     get(
+       scope: "operator" | { userId: number },
+       name: KeyName
+     ): Promise<string | null>;
      setUserKey(userId: number, name: KeyName, value: string): Promise<void>;
    }
    ```
 
    Two drivers ship in Phase 1:
-
    - `EnvKeyProvider` — reads operator keys from environment variables
      (suitable for self-hosters and dev). Per-user keys are stored
      **encrypted at rest** with libsodium `secretbox`, keyed by an env-
@@ -82,7 +84,7 @@ A **secondary "BYOK" mode** is preserved for power users:
      consumed by `chat.sendMessage` (LLM tokens), `selfie.generate` (image
      credits), `tts` (audio seconds), `voice.transcribe` (audio seconds).
    - Quota state lives in a `usage_meters` table (composite PK `(userId,
-     month, meter)`); we reuse it later for per-user usage receipts and
+month, meter)`); we reuse it later for per-user usage receipts and
      cost dashboards.
    - Hard quota = HTTP 402 + UI upsell. Soft quota (≥ 80%) triggers a
      banner.

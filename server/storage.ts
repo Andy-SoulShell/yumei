@@ -82,12 +82,17 @@ type S3Module = typeof import("@aws-sdk/client-s3");
 let s3Client: import("@aws-sdk/client-s3").S3Client | null = null;
 let s3Module: S3Module | null = null;
 
-async function getS3(): Promise<{ client: NonNullable<typeof s3Client>; mod: S3Module }> {
+async function getS3(): Promise<{
+  client: NonNullable<typeof s3Client>;
+  mod: S3Module;
+}> {
   if (!s3Client || !s3Module) {
     s3Module = await import("@aws-sdk/client-s3");
     s3Client = new s3Module.S3Client({
       region: ENV.s3Region,
-      ...(ENV.s3Endpoint ? { endpoint: ENV.s3Endpoint, forcePathStyle: true } : {}),
+      ...(ENV.s3Endpoint
+        ? { endpoint: ENV.s3Endpoint, forcePathStyle: true }
+        : {}),
       ...(ENV.s3AccessKeyId
         ? {
             credentials: {
@@ -147,7 +152,9 @@ export async function storagePut(
   return localPut(key, data, contentType);
 }
 
-export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
+export async function storageGet(
+  relKey: string
+): Promise<{ key: string; url: string }> {
   const key = normalizeKey(relKey);
   if (ENV.storageDriver === "s3") {
     return { key, url: await s3PresignedGetUrl(key) };
@@ -160,7 +167,9 @@ export async function storageRead(relKey: string): Promise<Buffer> {
   const key = normalizeKey(relKey);
   if (ENV.storageDriver !== "s3") return localFileRead(key);
   const { client, mod } = await getS3();
-  const result = await client.send(new mod.GetObjectCommand({ Bucket: ENV.s3Bucket, Key: key }));
+  const result = await client.send(
+    new mod.GetObjectCommand({ Bucket: ENV.s3Bucket, Key: key })
+  );
   if (!result.Body) throw new Error("Stored reference image is empty");
   return Buffer.from(await result.Body.transformToByteArray());
 }

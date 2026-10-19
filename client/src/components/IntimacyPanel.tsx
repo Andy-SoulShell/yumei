@@ -6,7 +6,13 @@ import {
   getPointsToNextLevel,
   POINTS_RULES,
 } from "../../../shared/intimacy";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 
@@ -40,9 +46,7 @@ export function IntimacyPanel({
             <span className="text-2xl">{levelInfo.emoji}</span>
             亲密度详情
           </SheetTitle>
-          <SheetDescription>
-            你与 {girlfriendName} 的关系
-          </SheetDescription>
+          <SheetDescription>你与 {girlfriendName} 的关系</SheetDescription>
         </SheetHeader>
 
         <ScrollArea className="h-[calc(100vh-120px)]">
@@ -54,7 +58,9 @@ export function IntimacyPanel({
                 <h3 className={`text-2xl font-bold ${levelInfo.color}`}>
                   Lv.{levelInfo.level} {levelInfo.name}
                 </h3>
-                <p className="text-sm text-muted-foreground mt-1">{levelInfo.description}</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {levelInfo.description}
+                </p>
               </div>
 
               {/* 进度条 */}
@@ -62,7 +68,9 @@ export function IntimacyPanel({
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>{intimacyPoints} 经验值</span>
                   <span>
-                    {pointsToNext !== null ? `还需 ${pointsToNext} 升级` : "已满级 ✨"}
+                    {pointsToNext !== null
+                      ? `还需 ${pointsToNext} 升级`
+                      : "已满级 ✨"}
                   </span>
                 </div>
                 <div className="h-2.5 bg-muted rounded-full overflow-hidden">
@@ -76,11 +84,15 @@ export function IntimacyPanel({
               {/* 统计数据 */}
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <div className="bg-background rounded-lg p-3">
-                  <p className="text-2xl font-bold text-primary">{consecutiveDays}</p>
+                  <p className="text-2xl font-bold text-primary">
+                    {consecutiveDays}
+                  </p>
                   <p className="text-xs text-muted-foreground">连续互动天数</p>
                 </div>
                 <div className="bg-background rounded-lg p-3">
-                  <p className="text-2xl font-bold text-primary">{intimacyPoints}</p>
+                  <p className="text-2xl font-bold text-primary">
+                    {intimacyPoints}
+                  </p>
                   <p className="text-xs text-muted-foreground">总经验值</p>
                 </div>
               </div>
@@ -90,7 +102,10 @@ export function IntimacyPanel({
             {levelInfo.petName !== "你" && (
               <div className="bg-pink-500/5 border border-pink-500/20 rounded-lg p-3 text-center">
                 <p className="text-sm">
-                  她现在叫你 <span className="font-bold text-pink-500">「{levelInfo.petName}」</span>
+                  她现在叫你{" "}
+                  <span className="font-bold text-pink-500">
+                    「{levelInfo.petName}」
+                  </span>
                 </p>
               </div>
             )}
@@ -99,39 +114,59 @@ export function IntimacyPanel({
             <div>
               <h4 className="font-semibold text-sm mb-3">已解锁内容</h4>
               <div className="space-y-2">
-                {INTIMACY_LEVELS.filter((l) => l.level <= intimacyLevel).map((l) => (
-                  <div key={l.level} className="flex items-start gap-2">
-                    <span className="text-sm flex-shrink-0">{l.emoji}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium">Lv.{l.level} {l.name}</p>
-                      {l.unlocks.map((u, i) => (
-                        <p key={i} className="text-xs text-muted-foreground">{u}</p>
-                      ))}
+                {INTIMACY_LEVELS.filter(l => l.level <= intimacyLevel).map(
+                  l => (
+                    <div key={l.level} className="flex items-start gap-2">
+                      <span className="text-sm flex-shrink-0">{l.emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium">
+                          Lv.{l.level} {l.name}
+                        </p>
+                        {l.unlocks.map((u, i) => (
+                          <p key={i} className="text-xs text-muted-foreground">
+                            {u}
+                          </p>
+                        ))}
+                      </div>
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] flex-shrink-0"
+                      >
+                        已解锁
+                      </Badge>
                     </div>
-                    <Badge variant="secondary" className="text-[10px] flex-shrink-0">
-                      已解锁
-                    </Badge>
-                  </div>
-                ))}
+                  )
+                )}
               </div>
             </div>
 
             {/* 未解锁内容 */}
             {intimacyLevel < 10 && (
               <div>
-                <h4 className="font-semibold text-sm mb-3 text-muted-foreground">待解锁</h4>
+                <h4 className="font-semibold text-sm mb-3 text-muted-foreground">
+                  待解锁
+                </h4>
                 <div className="space-y-2 opacity-60">
-                  {INTIMACY_LEVELS.filter((l) => l.level > intimacyLevel).map((l) => (
-                    <div key={l.level} className="flex items-start gap-2">
-                      <span className="text-sm flex-shrink-0">🔒</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium">Lv.{l.level} {l.name} ({l.requiredPoints} 经验)</p>
-                        {l.unlocks.map((u, i) => (
-                          <p key={i} className="text-xs text-muted-foreground">{u}</p>
-                        ))}
+                  {INTIMACY_LEVELS.filter(l => l.level > intimacyLevel).map(
+                    l => (
+                      <div key={l.level} className="flex items-start gap-2">
+                        <span className="text-sm flex-shrink-0">🔒</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium">
+                            Lv.{l.level} {l.name} ({l.requiredPoints} 经验)
+                          </p>
+                          {l.unlocks.map((u, i) => (
+                            <p
+                              key={i}
+                              className="text-xs text-muted-foreground"
+                            >
+                              {u}
+                            </p>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  )}
                 </div>
               </div>
             )}
@@ -140,7 +175,7 @@ export function IntimacyPanel({
             <div>
               <h4 className="font-semibold text-sm mb-3">经验值获取方式</h4>
               <div className="space-y-1.5">
-                {Object.values(POINTS_RULES).map((rule) => (
+                {Object.values(POINTS_RULES).map(rule => (
                   <div
                     key={rule.type}
                     className="flex items-center justify-between text-xs bg-muted/30 rounded-lg px-3 py-2"
@@ -156,7 +191,9 @@ export function IntimacyPanel({
                     </span>
                     <span className="font-medium text-primary">
                       +{rule.basePoints}
-                      {rule.bonusPoints ? ` ~ +${rule.basePoints + rule.bonusPoints}` : ""}
+                      {rule.bonusPoints
+                        ? ` ~ +${rule.basePoints + rule.bonusPoints}`
+                        : ""}
                     </span>
                   </div>
                 ))}

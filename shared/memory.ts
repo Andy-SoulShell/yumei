@@ -89,8 +89,14 @@ export const DUPLICATE_THRESHOLD = 0.6;
  * half-life toward the 0.5 floor. Recalling a memory refreshes it,
  * so frequently-relevant memories stay hot.
  */
-export function timeDecayFactor(lastTouchedAt: Date, now: Date = new Date()): number {
-  const days = Math.max(0, (now.getTime() - lastTouchedAt.getTime()) / 86_400_000);
+export function timeDecayFactor(
+  lastTouchedAt: Date,
+  now: Date = new Date()
+): number {
+  const days = Math.max(
+    0,
+    (now.getTime() - lastTouchedAt.getTime()) / 86_400_000
+  );
   return 0.5 + 0.5 * Math.exp(-days / 14);
 }
 
@@ -117,7 +123,10 @@ export function scoreMemory(
   userMessage: string,
   now: Date = new Date()
 ): number {
-  const freshness = timeDecayFactor(memory.lastRecalledAt ?? memory.createdAt, now);
+  const freshness = timeDecayFactor(
+    memory.lastRecalledAt ?? memory.createdAt,
+    now
+  );
   const base = (memory.weight / 100) * freshness;
   const overlap = Math.max(
     bigramOverlap(memory.content, userMessage),

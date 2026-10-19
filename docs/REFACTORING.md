@@ -19,7 +19,7 @@ issue list seeded from `docs/issues-to-file.md`) surfaced production blockers
 in five areas:
 
 1. **Security** — user API keys stored in plaintext; tRPC routes acting as
-   open proxies; ownership checks happen *after* writes; no rate limiting.
+   open proxies; ownership checks happen _after_ writes; no rate limiting.
 2. **Data layer** — zero foreign keys, zero indexes, hand-rolled cascade
    deletes, N+1 patterns in search, silent fallback when DB is unconfigured.
 3. **Architecture** — two ~1000-line god files (`server/routers.ts`,
@@ -44,16 +44,16 @@ optional BYOK as a power-user mode).
 
 The following choices are confirmed and will not change during the refactor:
 
-| Layer        | Choice                                  |
-| ------------ | --------------------------------------- |
-| Runtime      | Node 22 LTS (pinned via `.tool-versions`) |
-| Frontend     | React 19 + TypeScript + Tailwind 4      |
-| API          | tRPC 11 + zod                           |
-| Server       | Express 4                               |
-| ORM          | Drizzle                                 |
-| DB           | MySQL 8                                 |
-| Bundling     | Vite (dev) + esbuild (prod)             |
-| UI primitives| shadcn/ui + Radix                       |
+| Layer         | Choice                                    |
+| ------------- | ----------------------------------------- |
+| Runtime       | Node 22 LTS (pinned via `.tool-versions`) |
+| Frontend      | React 19 + TypeScript + Tailwind 4        |
+| API           | tRPC 11 + zod                             |
+| Server        | Express 4                                 |
+| ORM           | Drizzle                                   |
+| DB            | MySQL 8                                   |
+| Bundling      | Vite (dev) + esbuild (prod)               |
+| UI primitives | shadcn/ui + Radix                         |
 
 See **ADR 0001** for the supporting toolchain (Homebrew / mise / pnpm /
 OrbStack / docker MySQL).
@@ -65,7 +65,7 @@ OrbStack / docker MySQL).
 Each phase has a clear **Definition of Done** (DoD). We do **not** start
 phase N+1 until phase N's DoD is met.
 
-### 📍 Phase 0 — Local-dev bootstrap & planning *(this PR)*
+### 📍 Phase 0 — Local-dev bootstrap & planning _(this PR)_
 
 - Toolchain pinned (`.tool-versions`)
 - `.env.example` describing the current shape
@@ -74,6 +74,7 @@ phase N+1 until phase N's DoD is met.
 - Local dev verified end-to-end (Mac → docker MySQL → `pnpm dev` → 200)
 
 **DoD:**
+
 - [x] `pnpm install` and `pnpm dev` work on a fresh Mac after running the
       install steps in `README.md`.
 - [x] Diagnosis is captured in version-controlled docs (no Notion-only artifacts).
@@ -176,14 +177,14 @@ account-deletion request can be self-served end-to-end.
 
 ## ADR index
 
-| ID    | Title                                       | Status   |
-| ----- | ------------------------------------------- | -------- |
-| 0001  | Toolchain choices for local dev             | Accepted |
-| 0002  | Monetization: subscription + BYOK           | Accepted |
-| 0003  | Auth replacement: Lucia v3                  | ⛔ Superseded by 0006 |
-| 0004  | Billing platform: Lemon Squeezy             | Accepted |
-| 0005  | Pricing tiers, free-tier limits, refunds    | Accepted |
-| 0006  | Auth library: Better-Auth (supersedes 0003) | Accepted |
+| ID   | Title                                       | Status                |
+| ---- | ------------------------------------------- | --------------------- |
+| 0001 | Toolchain choices for local dev             | Accepted              |
+| 0002 | Monetization: subscription + BYOK           | Accepted              |
+| 0003 | Auth replacement: Lucia v3                  | ⛔ Superseded by 0006 |
+| 0004 | Billing platform: Lemon Squeezy             | Accepted              |
+| 0005 | Pricing tiers, free-tier limits, refunds    | Accepted              |
+| 0006 | Auth library: Better-Auth (supersedes 0003) | Accepted              |
 
 ---
 

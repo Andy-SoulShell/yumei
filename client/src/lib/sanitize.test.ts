@@ -18,9 +18,9 @@ describe("sanitizeForMarkdown (issue #9)", () => {
     expect(sanitizeForMarkdown("[link](https://example.com)")).toBe(
       "[link](https://example.com)"
     );
-    expect(
-      sanitizeForMarkdown("inline `code` and ```\ncode block\n```")
-    ).toBe("inline `code` and ```\ncode block\n```");
+    expect(sanitizeForMarkdown("inline `code` and ```\ncode block\n```")).toBe(
+      "inline `code` and ```\ncode block\n```"
+    );
   });
 
   it("strips raw <script> tags entirely", () => {
@@ -49,9 +49,7 @@ describe("sanitizeForMarkdown (issue #9)", () => {
   });
 
   it("strips <a href='javascript:...'> tags", () => {
-    const out = sanitizeForMarkdown(
-      `<a href="javascript:alert(1)">click</a>`
-    );
+    const out = sanitizeForMarkdown(`<a href="javascript:alert(1)">click</a>`);
     expect(out).not.toContain("<a ");
     expect(out).not.toContain("javascript:");
     // KEEP_CONTENT=true preserves the visible text "click"

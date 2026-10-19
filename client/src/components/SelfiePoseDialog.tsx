@@ -33,7 +33,9 @@ export function SelfiePoseDialog({
   onCouplePhoto: (file: File) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [generationMode, setGenerationMode] = useState<"reference" | "text">("reference");
+  const [generationMode, setGenerationMode] = useState<"reference" | "text">(
+    "reference"
+  );
   const selectedMode = supportsTextToImage ? generationMode : "reference";
 
   return (
@@ -48,18 +50,31 @@ export function SelfiePoseDialog({
 
         {supportsTextToImage && (
           <div className="space-y-2">
-            <div className="grid grid-cols-2 gap-2" role="group" aria-label="生图方式">
-              <Button type="button" variant={selectedMode === "reference" ? "default" : "outline"}
-                aria-pressed={selectedMode === "reference"} onClick={() => setGenerationMode("reference")}>
+            <div
+              className="grid grid-cols-2 gap-2"
+              role="group"
+              aria-label="生图方式"
+            >
+              <Button
+                type="button"
+                variant={selectedMode === "reference" ? "default" : "outline"}
+                aria-pressed={selectedMode === "reference"}
+                onClick={() => setGenerationMode("reference")}
+              >
                 参考图生图
               </Button>
-              <Button type="button" variant={selectedMode === "text" ? "default" : "outline"}
-                aria-pressed={selectedMode === "text"} onClick={() => setGenerationMode("text")}>
+              <Button
+                type="button"
+                variant={selectedMode === "text" ? "default" : "outline"}
+                aria-pressed={selectedMode === "text"}
+                onClick={() => setGenerationMode("text")}
+              >
                 文生图
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              默认生成 9:16 竖屏照片。{selectedMode === "reference"
+              默认生成 9:16 竖屏照片。
+              {selectedMode === "reference"
                 ? "使用角色参考图，尽量保持人物外貌一致。"
                 : "根据角色外貌与输入框中的场景描述生成，不使用参考图。"}
             </p>
@@ -86,14 +101,21 @@ export function SelfiePoseDialog({
                 }}
               >
                 <span className="text-2xl leading-none">{pose.emoji}</span>
-                <span className="truncate w-full text-center">{pose.label}</span>
+                <span className="truncate w-full text-center">
+                  {pose.label}
+                </span>
                 {locked ? (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5">
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] px-1.5 py-0 gap-0.5"
+                  >
                     <Lock className="w-2.5 h-2.5" />
                     Lv.{pose.minLevel}
                   </Badge>
                 ) : (
-                  <span className="text-[10px] text-transparent select-none">·</span>
+                  <span className="text-[10px] text-transparent select-none">
+                    ·
+                  </span>
                 )}
               </button>
             );
@@ -120,12 +142,19 @@ export function SelfiePoseDialog({
             className="w-full"
             onClick={() => fileInputRef.current?.click()}
             disabled={!canCouplePhoto}
-            title={canCouplePhoto ? "上传你的照片，和她同框" : "合照是 Pro 功能（或配置自己的 fal.ai Key）"}
+            title={
+              canCouplePhoto
+                ? "上传你的照片，和她同框"
+                : "合照是 Pro 功能（或配置自己的 fal.ai Key）"
+            }
           >
             <Users className="w-4 h-4 mr-1.5" />
             合照：上传你的照片，和她同框
             {!canCouplePhoto && (
-              <Badge variant="secondary" className="ml-2 text-[10px] px-1.5 py-0">
+              <Badge
+                variant="secondary"
+                className="ml-2 text-[10px] px-1.5 py-0"
+              >
                 Pro
               </Badge>
             )}

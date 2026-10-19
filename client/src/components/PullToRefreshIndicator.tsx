@@ -38,9 +38,7 @@ export function PullToRefreshIndicator({
               isReady ? "rotate-180 text-pink-500" : ""
             }`}
           />
-          <span className="text-xs">
-            {isReady ? "松手刷新" : "下拉刷新"}
-          </span>
+          <span className="text-xs">{isReady ? "松手刷新" : "下拉刷新"}</span>
         </div>
       )}
     </div>

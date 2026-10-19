@@ -1,6 +1,6 @@
 /**
  * OpenAI Whisper API transcription helper
- * 
+ *
  * This module provides direct integration with OpenAI's Whisper API
  * for users who prefer to use their own OpenAI API keys.
  */
@@ -38,13 +38,18 @@ export type TranscriptionResponse = WhisperResponse;
 
 export type TranscriptionError = {
   error: string;
-  code: "FILE_TOO_LARGE" | "INVALID_FORMAT" | "TRANSCRIPTION_FAILED" | "UPLOAD_FAILED" | "SERVICE_ERROR";
+  code:
+    | "FILE_TOO_LARGE"
+    | "INVALID_FORMAT"
+    | "TRANSCRIPTION_FAILED"
+    | "UPLOAD_FAILED"
+    | "SERVICE_ERROR";
   details?: string;
 };
 
 /**
  * Transcribe audio using OpenAI Whisper API
- * 
+ *
  * @param options - Audio data and metadata
  * @param apiKey - OpenAI API Key
  * @returns Transcription result or error
@@ -59,7 +64,7 @@ export async function transcribeWithOpenAI(
       return {
         error: "Invalid OpenAI API key",
         code: "SERVICE_ERROR",
-        details: "API key must start with 'sk-'"
+        details: "API key must start with 'sk-'",
       };
     }
 
@@ -72,41 +77,43 @@ export async function transcribeWithOpenAI(
         return {
           error: "Failed to download audio file",
           code: "INVALID_FORMAT",
-          details: `HTTP ${response.status}: ${response.statusText}`
+          details: `HTTP ${response.status}: ${response.statusText}`,
         };
       }
-      
+
       audioBuffer = Buffer.from(await response.arrayBuffer());
-      mimeType = response.headers.get('content-type') || 'audio/mpeg';
-      
+      mimeType = response.headers.get("content-type") || "audio/mpeg";
+
       // Check file size (25MB limit for OpenAI)
       const sizeMB = audioBuffer.length / (1024 * 1024);
       if (sizeMB > 25) {
         return {
           error: "Audio file exceeds OpenAI's maximum size limit",
           code: "FILE_TOO_LARGE",
-          details: `File size is ${sizeMB.toFixed(2)}MB, maximum allowed is 25MB`
+          details: `File size is ${sizeMB.toFixed(2)}MB, maximum allowed is 25MB`,
         };
       }
     } catch (error) {
       return {
         error: "Failed to fetch audio file",
         code: "SERVICE_ERROR",
-        details: error instanceof Error ? error.message : "Unknown error"
+        details: error instanceof Error ? error.message : "Unknown error",
       };
     }
 
     // Step 3: Create FormData for multipart upload to OpenAI Whisper API
     const formData = new FormData();
-    
+
     // Create a Blob from the buffer and append to form
     const filename = `audio.${getFileExtension(mimeType)}`;
-    const audioBlob = new Blob([new Uint8Array(audioBuffer)], { type: mimeType });
+    const audioBlob = new Blob([new Uint8Array(audioBuffer)], {
+      type: mimeType,
+    });
     formData.append("file", audioBlob, filename);
-    
+
     formData.append("model", "whisper-1");
     formData.append("response_format", "verbose_json");
-    
+
     // Add optional parameters
     if (options.language) {
       formData.append("language", options.language);
@@ -116,18 +123,21 @@ export async function transcribeWithOpenAI(
     }
 
     // Step 4: Call OpenAI Whisper API
-    const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-      },
-      body: formData,
-    });
+    const response = await fetch(
+      "https://api.openai.com/v1/audio/transcriptions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: formData,
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => "");
       let errorMessage = "OpenAI Whisper API request failed";
-      
+
       // Parse OpenAI error response
       try {
         const errorJson = JSON.parse(errorText);
@@ -137,34 +147,34 @@ export async function transcribeWithOpenAI(
       } catch {
         // Keep default message if parsing fails
       }
-      
+
       return {
         error: errorMessage,
         code: "TRANSCRIPTION_FAILED",
-        details: `${response.status} ${response.statusText}${errorText ? `: ${errorText}` : ""}`
+        details: `${response.status} ${response.statusText}${errorText ? `: ${errorText}` : ""}`,
       };
     }
 
     // Step 5: Parse and return the transcription result
-    const whisperResponse = await response.json() as WhisperResponse;
-    
+    const whisperResponse = (await response.json()) as WhisperResponse;
+
     // Validate response structure
-    if (!whisperResponse.text || typeof whisperResponse.text !== 'string') {
+    if (!whisperResponse.text || typeof whisperResponse.text !== "string") {
       return {
         error: "Invalid transcription response from OpenAI",
         code: "SERVICE_ERROR",
-        details: "OpenAI returned an invalid response format"
+        details: "OpenAI returned an invalid response format",
       };
     }
 
     return whisperResponse; // Return native Whisper API response
-
   } catch (error) {
     // Handle unexpected errors
     return {
       error: "OpenAI Whisper transcription failed",
       code: "SERVICE_ERROR",
-      details: error instanceof Error ? error.message : "An unexpected error occurred"
+      details:
+        error instanceof Error ? error.message : "An unexpected error occurred",
     };
   }
 }
@@ -174,15 +184,15 @@ export async function transcribeWithOpenAI(
  */
 function getFileExtension(mimeType: string): string {
   const mimeToExt: Record<string, string> = {
-    'audio/webm': 'webm',
-    'audio/mp3': 'mp3',
-    'audio/mpeg': 'mp3',
-    'audio/wav': 'wav',
-    'audio/wave': 'wav',
-    'audio/ogg': 'ogg',
-    'audio/m4a': 'm4a',
-    'audio/mp4': 'm4a',
+    "audio/webm": "webm",
+    "audio/mp3": "mp3",
+    "audio/mpeg": "mp3",
+    "audio/wav": "wav",
+    "audio/wave": "wav",
+    "audio/ogg": "ogg",
+    "audio/m4a": "m4a",
+    "audio/mp4": "m4a",
   };
-  
-  return mimeToExt[mimeType] || 'audio';
+
+  return mimeToExt[mimeType] || "audio";
 }

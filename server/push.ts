@@ -53,7 +53,10 @@ export async function savePushSubscription(
     });
 }
 
-export async function removePushSubscription(userId: string, endpoint: string): Promise<void> {
+export async function removePushSubscription(
+  userId: string,
+  endpoint: string
+): Promise<void> {
   const db = await getDb();
   if (!db) return;
   const rows = await db
@@ -62,7 +65,9 @@ export async function removePushSubscription(userId: string, endpoint: string): 
     .where(eq(pushSubscriptions.endpoint, endpoint))
     .limit(1);
   if (rows[0] && rows[0].userId === userId) {
-    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, rows[0].id));
+    await db
+      .delete(pushSubscriptions)
+      .where(eq(pushSubscriptions.id, rows[0].id));
   }
 }
 
@@ -122,7 +127,9 @@ export async function sendPushToUser(
     } catch (error: any) {
       const status = error?.statusCode;
       if (status === 404 || status === 410) {
-        await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, row.id));
+        await db
+          .delete(pushSubscriptions)
+          .where(eq(pushSubscriptions.id, row.id));
       } else {
         log.error("[push] delivery failed (non-blocking)", error);
       }
@@ -156,7 +163,8 @@ export function startProactivePushScheduler(): void {
       const userIds = await listPushUserIds();
       for (const userId of userIds) {
         try {
-          const notification = await checkAndCreateProactiveNotification(userId);
+          const notification =
+            await checkAndCreateProactiveNotification(userId);
           if (notification) {
             await sendPushToUser(userId, {
               title: notification.title,
@@ -165,7 +173,10 @@ export function startProactivePushScheduler(): void {
             });
           }
         } catch (error) {
-          log.error("[push] proactive tick failed for user (non-blocking)", error);
+          log.error(
+            "[push] proactive tick failed for user (non-blocking)",
+            error
+          );
         }
       }
     } catch (error) {

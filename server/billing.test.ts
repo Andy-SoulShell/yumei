@@ -80,8 +80,12 @@ describe("verifyLemonSignature", () => {
     const body = '{"hello":"world"}';
     const good = sign(body);
     expect(verifyLemonSignature(Buffer.from(body), good, SECRET)).toBe(true);
-    expect(verifyLemonSignature(Buffer.from(body), good, "other-secret")).toBe(false);
-    expect(verifyLemonSignature(Buffer.from(body + " "), good, SECRET)).toBe(false);
+    expect(verifyLemonSignature(Buffer.from(body), good, "other-secret")).toBe(
+      false
+    );
+    expect(verifyLemonSignature(Buffer.from(body + " "), good, SECRET)).toBe(
+      false
+    );
     expect(verifyLemonSignature(Buffer.from(body), "", SECRET)).toBe(false);
     expect(verifyLemonSignature(Buffer.from(body), good, "")).toBe(false);
   });

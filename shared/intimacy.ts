@@ -213,7 +213,9 @@ export function getLevelByPoints(points: number): IntimacyLevel {
  * 获取指定等级的信息
  */
 export function getLevelInfo(level: number): IntimacyLevel {
-  return INTIMACY_LEVELS[Math.min(Math.max(level - 1, 0), INTIMACY_LEVELS.length - 1)];
+  return INTIMACY_LEVELS[
+    Math.min(Math.max(level - 1, 0), INTIMACY_LEVELS.length - 1)
+  ];
 }
 
 /**
@@ -243,7 +245,8 @@ export function getLevelProgress(currentPoints: number): number {
 
   const levelStart = currentLevel.requiredPoints;
   const levelEnd = nextLevel.requiredPoints;
-  const progress = ((currentPoints - levelStart) / (levelEnd - levelStart)) * 100;
+  const progress =
+    ((currentPoints - levelStart) / (levelEnd - levelStart)) * 100;
   return Math.min(Math.max(Math.round(progress), 0), 100);
 }
 

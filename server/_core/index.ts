@@ -47,7 +47,9 @@ async function runBootChecks() {
   //    automatically so `docker compose up` works on a fresh volume).
   const db = await getDb();
   if (!db) {
-    throw new Error("DATABASE_URL is not configured or the database is unreachable.");
+    throw new Error(
+      "DATABASE_URL is not configured or the database is unreachable."
+    );
   }
   if (ENV.isProduction || process.env.MIGRATE_ON_BOOT === "1") {
     const { migrate } = await import("drizzle-orm/mysql2/migrator");
@@ -73,7 +75,10 @@ async function runBootChecks() {
       `[boot] WARNING: ${chatProvider.name === "deepseek" ? "OPERATOR_DEEPSEEK_KEY" : "OPERATOR_OPENROUTER_KEY"} is not set — chat only works for users who bring their own OpenRouter key in Settings.`
     );
   }
-  if (process.env.IMAGE_PROVIDER !== "comfyui" && !process.env.OPERATOR_FAL_KEY) {
+  if (
+    process.env.IMAGE_PROVIDER !== "comfyui" &&
+    !process.env.OPERATOR_FAL_KEY
+  ) {
     console.warn(
       "[boot] WARNING: OPERATOR_FAL_KEY is not set — selfie generation only works for BYOK users."
     );

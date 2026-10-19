@@ -159,7 +159,10 @@ describe("chat-triggered selfies", () => {
   });
   it("reports a storage failure without creating a fake image message", async () => {
     vi.mocked(storage.storagePut).mockRejectedValue(new Error("disk full"));
-    const result = await caller().chat.sendMessage({ conversationId: 42, content: "发张自拍" });
+    const result = await caller().chat.sendMessage({
+      conversationId: 42,
+      content: "发张自拍",
+    });
     expect(result.imageGeneration).toBe("failed");
     expect(result.assistantMessage.imageUrl).toBeUndefined();
     expect(db.createSelfie).not.toHaveBeenCalled();

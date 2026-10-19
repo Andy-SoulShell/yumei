@@ -1,6 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
-import { Bell, Check, CheckCheck, MessageCircleHeart, Sun, Moon, Sparkles } from "lucide-react";
+import {
+  Bell,
+  Check,
+  CheckCheck,
+  MessageCircleHeart,
+  Sun,
+  Moon,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -38,7 +46,7 @@ export function NotificationBell() {
 
   // 定时检查主动通知（每 5 分钟）
   const checkProactive = trpc.notification.checkProactive.useMutation({
-    onSuccess: (data) => {
+    onSuccess: data => {
       if (data) {
         refetchCount();
         if (open) refetchList();
@@ -161,7 +169,9 @@ export function NotificationBell() {
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
               <Bell className="w-12 h-12 mb-3 opacity-30" />
               <p className="text-sm">暂无通知</p>
-              <p className="text-xs mt-1 opacity-60">女友们会主动来找你聊天哦~</p>
+              <p className="text-xs mt-1 opacity-60">
+                女友们会主动来找你聊天哦~
+              </p>
             </div>
           ) : (
             <div className="divide-y divide-border">
@@ -175,13 +185,16 @@ export function NotificationBell() {
                 >
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5 shrink-0">
-                      {NOTIFICATION_ICONS[notif.type] || NOTIFICATION_ICONS.random}
+                      {NOTIFICATION_ICONS[notif.type] ||
+                        NOTIFICATION_ICONS.random}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span
                           className={`text-sm font-medium truncate ${
-                            !notif.isRead ? "text-foreground" : "text-muted-foreground"
+                            !notif.isRead
+                              ? "text-foreground"
+                              : "text-muted-foreground"
                           }`}
                         >
                           {notif.title}
@@ -202,7 +215,7 @@ export function NotificationBell() {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100"
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation();
                           markRead.mutate({ id: notif.id });
                         }}

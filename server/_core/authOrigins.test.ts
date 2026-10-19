@@ -5,12 +5,15 @@ describe("local Docker authentication origins", () => {
   it.each(["localhost", "127.0.0.1", "[::1]"])(
     "allows loopback aliases for a configured %s origin",
     hostname => {
-      expect(getTrustedAuthOrigins(`http://${hostname}:3000`, true).sort())
-        .toEqual([
+      expect(
+        getTrustedAuthOrigins(`http://${hostname}:3000`, true).sort()
+      ).toEqual(
+        [
           "http://localhost:3000",
           "http://127.0.0.1:3000",
           "http://[::1]:3000",
-        ].sort());
+        ].sort()
+      );
     }
   );
 
@@ -22,8 +25,9 @@ describe("local Docker authentication origins", () => {
   });
 
   it("keeps local aliases disabled unless explicitly requested", () => {
-    expect(getTrustedAuthOrigins("http://localhost:3000"))
-      .toEqual(["http://localhost:3000"]);
+    expect(getTrustedAuthOrigins("http://localhost:3000")).toEqual([
+      "http://localhost:3000",
+    ]);
   });
 
   it.each(["https://yumei.example.com", "http://localhost.example.com:3000"])(

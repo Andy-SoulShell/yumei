@@ -52,15 +52,15 @@ pnpm test
 
 请遵循 [Conventional Commits](https://www.conventionalcommits.org/) 规范：
 
-| 前缀 | 用途 |
-|------|------|
-| `feat:` | 新功能 |
-| `fix:` | Bug 修复 |
-| `docs:` | 文档更新 |
-| `style:` | 代码格式调整（不影响逻辑） |
-| `refactor:` | 代码重构 |
-| `test:` | 测试相关 |
-| `chore:` | 构建/工具相关 |
+| 前缀        | 用途                       |
+| ----------- | -------------------------- |
+| `feat:`     | 新功能                     |
+| `fix:`      | Bug 修复                   |
+| `docs:`     | 文档更新                   |
+| `style:`    | 代码格式调整（不影响逻辑） |
+| `refactor:` | 代码重构                   |
+| `test:`     | 测试相关                   |
+| `chore:`    | 构建/工具相关              |
 
 ### 代码风格
 

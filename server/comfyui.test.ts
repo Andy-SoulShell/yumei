@@ -129,11 +129,9 @@ describe("ComfyUI selfie integration", () => {
       isByok: true,
       apiKey: "user-fal-key",
     });
-    const post = vi
-      .spyOn(axios, "post")
-      .mockResolvedValue({
-        data: { images: [{ url: "https://fal.example/result.png" }] },
-      });
+    const post = vi.spyOn(axios, "post").mockResolvedValue({
+      data: { images: [{ url: "https://fal.example/result.png" }] },
+    });
     vi.spyOn(axios, "get").mockResolvedValue({ data: png });
     await providers.generateProviderImage(provider, {
       mode: "reference",

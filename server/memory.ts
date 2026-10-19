@@ -35,14 +35,19 @@ const extractionResultSchema = z.object({
     .array(
       z.object({
         category: z.enum(MEMORY_CATEGORIES),
-        content: z.string().min(2).max(MEMORY_MAX_LENGTH * 2),
+        content: z
+          .string()
+          .min(2)
+          .max(MEMORY_MAX_LENGTH * 2),
         importance: z.number().min(1).max(10),
       })
     )
     .max(10),
 });
 
-export type ExtractedMemory = z.infer<typeof extractionResultSchema>["memories"][number];
+export type ExtractedMemory = z.infer<
+  typeof extractionResultSchema
+>["memories"][number];
 
 const EXTRACTION_PROMPT = `你是一个记忆提取器。阅读下面这段用户和 AI 伴侣的对话，提取值得长期记住的关于**用户**的信息。
 
@@ -120,7 +125,9 @@ export async function storeExtractedMemories(
   const existing = await db
     .select()
     .from(memories)
-    .where(and(eq(memories.userId, userId), eq(memories.girlfriendId, girlfriendId)));
+    .where(
+      and(eq(memories.userId, userId), eq(memories.girlfriendId, girlfriendId))
+    );
 
   let inserted = 0;
   let reinforced = 0;
@@ -201,7 +208,9 @@ export async function enforceMemoryCapacity(
   const total = await db
     .select({ count: sql<number>`COUNT(*)` })
     .from(memories)
-    .where(and(eq(memories.userId, userId), eq(memories.girlfriendId, girlfriendId)));
+    .where(
+      and(eq(memories.userId, userId), eq(memories.girlfriendId, girlfriendId))
+    );
 
   const excess = (total[0]?.count ?? 0) - capacity;
   if (excess <= 0) return 0;
@@ -233,7 +242,10 @@ export function maybeExtractMemories(params: {
         .from(messages)
         .where(eq(messages.conversationId, params.conversationId));
       const messageCount = countRows[0]?.count ?? 0;
-      if (messageCount === 0 || messageCount % EXTRACTION_EVERY_N_MESSAGES !== 0) {
+      if (
+        messageCount === 0 ||
+        messageCount % EXTRACTION_EVERY_N_MESSAGES !== 0
+      ) {
         return;
       }
 
@@ -252,8 +264,16 @@ export function maybeExtractMemories(params: {
       const candidates = await callExtractionModel(params.provider, transcript);
       if (candidates.length === 0) return;
 
-      await storeExtractedMemories(params.userId, params.girlfriendId, candidates);
-      await enforceMemoryCapacity(params.userId, params.girlfriendId, params.intimacyLevel);
+      await storeExtractedMemories(
+        params.userId,
+        params.girlfriendId,
+        candidates
+      );
+      await enforceMemoryCapacity(
+        params.userId,
+        params.girlfriendId,
+        params.intimacyLevel
+      );
     } catch (error) {
       log.error("[memory] extraction failed (non-blocking)", error);
     }
@@ -281,7 +301,9 @@ export async function buildMemoryPromptBlock(
   const rows = await db
     .select()
     .from(memories)
-    .where(and(eq(memories.userId, userId), eq(memories.girlfriendId, girlfriendId)));
+    .where(
+      and(eq(memories.userId, userId), eq(memories.girlfriendId, girlfriendId))
+    );
   if (rows.length === 0) return "";
 
   const k = memoryInjectionK(intimacyLevel);
@@ -298,7 +320,12 @@ export async function buildMemoryPromptBlock(
   void db
     .update(memories)
     .set({ lastRecalledAt: now })
-    .where(inArray(memories.id, top.map(m => m.id)))
+    .where(
+      inArray(
+        memories.id,
+        top.map(m => m.id)
+      )
+    )
     .catch(() => {});
 
   const lines = top.map(m => `- ${m.content}`);
@@ -309,20 +336,31 @@ export async function buildMemoryPromptBlock(
 // CRUD for the memories page (M2-3)
 // ---------------------------------------------------------------------------
 
-export async function listMemories(userId: string, girlfriendId: number): Promise<Memory[]> {
+export async function listMemories(
+  userId: string,
+  girlfriendId: number
+): Promise<Memory[]> {
   const db = await getDb();
   if (!db) return [];
   return db
     .select()
     .from(memories)
-    .where(and(eq(memories.userId, userId), eq(memories.girlfriendId, girlfriendId)))
-    .orderBy(desc(memories.pinned), desc(memories.weight), desc(memories.createdAt));
+    .where(
+      and(eq(memories.userId, userId), eq(memories.girlfriendId, girlfriendId))
+    )
+    .orderBy(
+      desc(memories.pinned),
+      desc(memories.weight),
+      desc(memories.createdAt)
+    );
 }
 
 export async function deleteMemory(userId: string, id: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.delete(memories).where(and(eq(memories.id, id), eq(memories.userId, userId)));
+  await db
+    .delete(memories)
+    .where(and(eq(memories.id, id), eq(memories.userId, userId)));
 }
 
 export async function setMemoryPinned(
@@ -360,6 +398,7 @@ export async function getFreshEventMemory(
   const memory = rows[0];
   if (!memory) return null;
   // Only reference events from the last two weeks — older ones feel off.
-  const ageDays = (Date.now() - new Date(memory.createdAt).getTime()) / 86_400_000;
+  const ageDays =
+    (Date.now() - new Date(memory.createdAt).getTime()) / 86_400_000;
   return ageDays <= 14 ? memory : null;
 }

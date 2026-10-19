@@ -5,14 +5,16 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
 import { BusinessRuleError } from "./businessError";
+import { log, providerErrorSummary } from "./log";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
-  errorFormatter({ shape, error }) {
+  errorFormatter({ shape, error, ctx }) {
     return {
       ...shape,
       data: {
         ...shape.data,
+        requestId: ctx?.requestId ?? null,
         business:
           error.cause instanceof BusinessRuleError ? error.cause.details : null,
       },
@@ -23,7 +25,21 @@ const t = initTRPC.context<TrpcContext>().create({
 /** 创建业务路由树的 tRPC 工厂。 */
 export const router = t.router;
 /** 不要求用户会话的过程基类，输入与业务安全检查由具体过程负责。 */
-export const publicProcedure = t.procedure;
+const observed = t.middleware(async opts => {
+  const started = Date.now();
+  const result = await opts.next();
+  if (!result.ok)
+    log.warn("[request] procedure failed", {
+      requestId: opts.ctx?.requestId ?? null,
+      path: opts.path,
+      type: opts.type,
+      durationMs: Date.now() - started,
+      trpcCode: result.error.code,
+      ...providerErrorSummary(result.error.cause),
+    });
+  return result;
+});
+export const publicProcedure = t.procedure.use(observed);
 
 const requireUser = t.middleware(async opts => {
   const { ctx, next } = opts;
@@ -41,10 +57,10 @@ const requireUser = t.middleware(async opts => {
 });
 
 /** 要求上下文存在认证用户的过程基类，不自动验证具体资源归属。 */
-export const protectedProcedure = t.procedure.use(requireUser);
+export const protectedProcedure = publicProcedure.use(requireUser);
 
 /** 要求当前用户具有 admin 角色的过程基类。 */
-export const adminProcedure = t.procedure.use(
+export const adminProcedure = publicProcedure.use(
   t.middleware(async opts => {
     const { ctx, next } = opts;
 

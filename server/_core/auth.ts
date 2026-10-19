@@ -89,15 +89,11 @@ export const auth = authDb
  */
 export async function getSessionUser(req: { headers: any }) {
   if (!auth) return null;
-  try {
-    const session = await auth.api.getSession({
-      headers: req.headers,
-      query: { disableCookieCache: true },
-    });
-    return session?.user ?? null;
-  } catch {
-    return null;
-  }
+  const session = await auth.api.getSession({
+    headers: req.headers,
+    query: { disableCookieCache: true },
+  });
+  return session?.user ?? null;
 }
 
 /** 认证会话成功解析后返回的用户类型。 */

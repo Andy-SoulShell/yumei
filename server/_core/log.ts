@@ -111,20 +111,25 @@ export function redact(input: unknown, depth = MAX_DEPTH): unknown {
 }
 
 /** 为脱敏日志添加级别前缀并处理参数对象。 */
-function format(label: string, args: unknown[]): unknown[] {
-  return [label, ...args.map(a => redact(a))];
+function format(level: string, label: string, args: unknown[]): string {
+  return JSON.stringify({
+    time: new Date().toISOString(),
+    level,
+    message: label,
+    details: args.map(a => redact(a)),
+  });
 }
 
 /** 提供 info、warn、error 三种脱敏控制台入口。 */
 export const log = {
   error: (label: string, ...args: unknown[]): void => {
-    console.error(...format(label, args));
+    console.error(format("error", label, args));
   },
   warn: (label: string, ...args: unknown[]): void => {
-    console.warn(...format(label, args));
+    console.warn(format("warn", label, args));
   },
   info: (label: string, ...args: unknown[]): void => {
-    console.log(...format(label, args));
+    console.log(format("info", label, args));
   },
 };
 

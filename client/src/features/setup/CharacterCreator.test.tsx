@@ -62,12 +62,16 @@ async function click(text: string) {
   expect(button, `Missing button: ${text}`).toBeDefined();
   await settle(() => button!.click());
 }
-async function choose(group: string, label: string) {
+async function choose(group: string, label: string, waitForAdvance = true) {
   const control = container.querySelector<HTMLButtonElement>(
     `[role="radiogroup"][aria-label="${group}"] [role="radio"][aria-label="${label}"]`
   );
   expect(control, `Missing choice: ${group}/${label}`).not.toBeNull();
   await settle(() => control!.click());
+  if (waitForAdvance)
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 250));
+    });
 }
 async function fill(selector: string, value: string) {
   const element = container.querySelector<
@@ -115,24 +119,23 @@ afterEach(async () => {
 });
 
 describe("companion creation", () => {
-  it("walks through one attribute at a time and submits text without option image bytes", async () => {
+  it("automatically follows the original attribute order without extra Continue clicks and submits only text", async () => {
     await settle(() => root.render(<Setup />));
     expect(mock.create).not.toHaveBeenCalled();
-    await click("下一步");
+    await choose("风格", "写实");
     await choose("模板", "邻家女孩");
     await choose("气质", "甜美治愈系");
     expect(
-      container.querySelector('[aria-label="发型"][role="radiogroup"]')
-    ).toBeNull();
-    await click("下一步");
-    await choose("发型", "马尾");
-    await click("肤色");
+      container.querySelector('[aria-label="肤色"][role="radiogroup"]')
+    ).not.toBeNull();
+    expect(document.activeElement?.textContent).toBe("肤色");
     await choose("肤色", "白皙");
-    await click("发色");
-    await click("下一步");
+    await choose("瞳色", "棕色");
+    await choose("发色", "黑色");
+    await choose("发型", "马尾");
     await choose("体型", "运动型");
-    await click("臀部大小");
-    await click("下一步");
+    await choose("胸部大小", "中等");
+    await choose("臀部大小", "中等");
     expect(
       container.querySelector<HTMLTextAreaElement>("#appearance")!.value
     ).toContain("马尾");
@@ -172,7 +175,6 @@ describe("companion creation", () => {
     await settle(() => root.render(<Setup />));
     await click("下一步");
     await click("从头自定义");
-    await click("发色");
     await click("下一步");
     await click("胸部大小");
     await choose("胸部大小", "大");
@@ -185,7 +187,6 @@ describe("companion creation", () => {
     )!;
     await settle(() => male.click());
     await choose("风格", "动漫");
-    await click("下一步");
     expect(container.textContent).toContain("从下一步开始");
     await click("从头自定义");
     expect(
@@ -193,7 +194,6 @@ describe("companion creation", () => {
         '[role="radiogroup"][aria-label="气质"] [role="radio"]'
       )
     ).toHaveLength(7);
-    await click("发色");
     await click("下一步");
     expect(container.textContent).not.toContain("胸部大小");
     expect(container.textContent).not.toContain("臀部大小");
@@ -233,16 +233,54 @@ describe("companion creation", () => {
     ).find(button => button.textContent?.includes("风格"))!;
     await settle(() => first.click());
     await choose("风格", "动漫");
-    await click("下一步");
     await click("从头自定义");
-    await click("发色");
     await click("下一步");
-    await click("臀部大小");
     await click("下一步");
     await click("下一步");
     expect(mock.create).not.toHaveBeenCalled();
     expect(container.querySelectorAll(".creator-review img")).toHaveLength(0);
     expect(container.textContent).toContain("生成并创建");
+  });
+
+  it("keeps Continue and Previous at the six original main steps", async () => {
+    await settle(() => root.render(<Setup />));
+    await click("下一步");
+    await click("从头自定义");
+    await click("下一步");
+    expect(
+      container.querySelector('nav [aria-current="step"]')?.textContent
+    ).toContain("身材");
+    await click("下一步");
+    expect(
+      container.querySelector('nav [aria-current="step"]')?.textContent
+    ).toContain("设定");
+    await click("上一步");
+    expect(
+      container.querySelector('nav [aria-current="step"]')?.textContent
+    ).toContain("身材");
+  });
+
+  it("cancels automatic advancement when the user manually changes attributes or main steps", async () => {
+    await settle(() => root.render(<Setup />));
+    await click("下一步");
+    await click("从头自定义");
+    await choose("气质", "甜美治愈系", false);
+    await click("发型");
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 250));
+    });
+    expect(
+      container.querySelector('[role="tab"][aria-selected="true"]')?.textContent
+    ).toContain("发型");
+    await choose("发型", "马尾", false);
+    await click("风格");
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 250));
+    });
+    expect(
+      container.querySelector('nav [aria-current="step"]')?.textContent
+    ).toContain("风格");
+    expect(mock.create).not.toHaveBeenCalled();
   });
 
   it("localizes every registered picture option", () => {

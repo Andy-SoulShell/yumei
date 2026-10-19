@@ -7,11 +7,13 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Loader2,
   Sparkles,
   UserRound,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CharacterDetails } from "./CharacterDetails";
 import {
@@ -39,7 +41,7 @@ const STEPS = [
   "detailsStep",
   "imageStep",
 ] as const;
-const LOOK = ["ethnicity", "hairstyle", "skin", "eyes", "hair"] as const;
+const LOOK = ["ethnicity", "skin", "eyes", "hair", "hairstyle"] as const;
 type Attribute = (typeof LOOK)[number] | "bodytype" | "breast" | "butt";
 
 function ImageChoices({
@@ -57,48 +59,124 @@ function ImageChoices({
   t: Translator;
   wide?: boolean;
 }) {
+  const listRef = useRef<HTMLDivElement>(null);
+  const [range, setRange] = useState({ start: 0, visible: options.length });
+  const measure = useCallback(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const visible = Math.min(
+      options.length,
+      Number(getComputedStyle(list).getPropertyValue("--creator-visible")) || 2
+    );
+    const card = list.querySelector<HTMLElement>('[role="radio"]');
+    const gap = parseFloat(getComputedStyle(list).columnGap) || 12;
+    const start = card?.offsetWidth
+      ? Math.round(list.scrollLeft / (card.offsetWidth + gap))
+      : 0;
+    setRange(current =>
+      current.start === start && current.visible === visible
+        ? current
+        : { start, visible }
+    );
+  }, [options.length]);
+  useEffect(() => {
+    measure();
+    const observer = new ResizeObserver(measure);
+    if (listRef.current) observer.observe(listRef.current);
+    return () => observer.disconnect();
+  }, [measure]);
+  const browse = (direction: number) => {
+    const list = listRef.current;
+    const cards = list?.querySelectorAll<HTMLElement>('[role="radio"]');
+    if (!list || !cards?.length) return;
+    const target = Math.max(
+      0,
+      Math.min(
+        options.length - range.visible,
+        range.start + direction * range.visible
+      )
+    );
+    list.scrollTo({
+      left: cards[target].offsetLeft - cards[0].offsetLeft,
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+    });
+  };
+  if (!options.length) return null;
   return (
-    <RadioGroup
-      aria-label={label}
-      value={value ?? ""}
-      onValueChange={id => {
-        const option = options.find(item => item.id === id);
-        if (option) onChange(option);
-      }}
-      className={cn("creator-choices", wide && "is-wide")}
-      data-count={options.length}
-      data-framing={
-        options.some(option =>
-          /\/(bodytype|breast|butt)\//.test(option.imageUrl)
-        )
-          ? "figure"
-          : "face"
-      }
-    >
-      {options.map(option => (
-        <RadioGroupChoice
-          key={option.id}
-          value={option.id}
-          aria-label={creatorLabel(option.id, t)}
-          className="creator-choice"
-        >
-          <img
-            src={option.imageUrl}
-            alt={creatorLabel(option.id, t)}
-            width={512}
-            height={800}
-          />
-          <span className="creator-choice-label">
-            {creatorLabel(option.id, t)}
-          </span>
-          {value === option.id && (
-            <span className="creator-check" aria-hidden="true">
-              <Check size={13} />
+    <div className="creator-option-browser">
+      <RadioGroup
+        ref={listRef}
+        aria-label={label}
+        value={value ?? ""}
+        onValueChange={id => {
+          const option = options.find(item => item.id === id);
+          if (option) onChange(option);
+        }}
+        className={cn("creator-choices", wide && "is-wide")}
+        onScroll={measure}
+      >
+        {options.map(option => (
+          <RadioGroupChoice
+            key={option.id}
+            value={option.id}
+            aria-label={creatorLabel(option.id, t)}
+            className="creator-choice"
+            onClick={() => {
+              if (value === option.id) onChange(option);
+            }}
+          >
+            <img
+              src={option.imageUrl}
+              alt={creatorLabel(option.id, t)}
+              width={512}
+              height={800}
+            />
+            <span className="creator-choice-label">
+              {creatorLabel(option.id, t)}
             </span>
-          )}
-        </RadioGroupChoice>
-      ))}
-    </RadioGroup>
+            {value === option.id && (
+              <span className="creator-check" aria-hidden="true">
+                <Check size={13} />
+              </span>
+            )}
+          </RadioGroupChoice>
+        ))}
+      </RadioGroup>
+      {options.length > range.visible && (
+        <div className="creator-browse-controls">
+          <span>{t("creator:browseOptions")}</span>
+          <div>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label={t("creator:previousOptions")}
+              disabled={range.start === 0}
+              onClick={() => browse(-1)}
+            >
+              <ChevronLeft size={16} />
+            </Button>
+            <span aria-live="polite">
+              {range.start + 1}–
+              {Math.min(range.start + range.visible, options.length)} /{" "}
+              {options.length}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label={t("creator:nextOptions")}
+              disabled={range.start + range.visible >= options.length}
+              onClick={() => browse(1)}
+            >
+              <ChevronRight size={16} />
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -118,6 +196,19 @@ export function CharacterCreator({ state }: { state: SetupController }) {
   const [furthest, setFurthest] = useState(preset ? 4 : 0);
   const [attribute, setAttribute] = useState<Attribute>("ethnicity");
   const contentRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const focusAfterAdvance = useRef(false);
+  const autoAdvanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelAutoAdvance = () => {
+    if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+    autoAdvanceRef.current = null;
+  };
+  useEffect(
+    () => () => {
+      if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+    },
+    []
+  );
   const attributes: readonly Attribute[] =
     step === 2
       ? LOOK
@@ -131,6 +222,10 @@ export function CharacterCreator({ state }: { state: SetupController }) {
     : attributes[0];
   useEffect(() => {
     contentRef.current?.scrollTo?.({ top: 0 });
+    if (focusAfterAdvance.current) {
+      titleRef.current?.focus({ preventScroll: true });
+      focusAfterAdvance.current = false;
+    }
   }, [step, currentAttribute]);
   const updateSelection = (next: CreatorSelection) => {
     setSelection(next);
@@ -140,19 +235,15 @@ export function CharacterCreator({ state }: { state: SetupController }) {
     updateSelection(changeCreatorBranch(selection, gender, style));
   };
   const goTo = (next: number) => {
+    cancelAutoAdvance();
     setStep(next);
     setFurthest(current => Math.max(current, next));
     setAttribute(next === 3 ? "bodytype" : "ethnicity");
   };
-  const nextStep = () => {
-    const index = attributes.indexOf(currentAttribute);
-    if (index >= 0 && index < attributes.length - 1) {
-      setAttribute(attributes[index + 1]);
-      return;
-    }
+  const nextStep = (nextSelection = selection) => {
     if (step === 3) {
       if (!state.appearance.trim())
-        state.setAppearance(describeCreator(selection, t));
+        state.setAppearance(describeCreator(nextSelection, t));
       if (!state.personality.trim())
         state.setPersonality(t("creator:defaultPersonality"));
     }
@@ -168,26 +259,46 @@ export function CharacterCreator({ state }: { state: SetupController }) {
     goTo(Math.min(step + 1, 5));
   };
   const previous = () => {
-    const index = attributes.indexOf(currentAttribute);
-    if (index > 0) setAttribute(attributes[index - 1]);
-    else {
-      goTo(step - 1);
-      if (step === 3) setAttribute("hair");
-      if (step === 4)
-        setAttribute(selection.gender === "female" ? "butt" : "bodytype");
-    }
+    goTo(step - 1);
+  };
+  const advanceAfterChoice = (nextSelection: CreatorSelection) => {
+    cancelAutoAdvance();
+    autoAdvanceRef.current = setTimeout(() => {
+      autoAdvanceRef.current = null;
+      focusAfterAdvance.current = true;
+      const index = attributes.indexOf(currentAttribute);
+      if (index >= 0 && index < attributes.length - 1)
+        setAttribute(attributes[index + 1]);
+      else nextStep(nextSelection);
+    }, 220);
+  };
+  const pickColor = (category: keyof typeof CREATOR_COLORS, value: string) => {
+    const next = {
+      ...selection,
+      options: { ...selection.options, [category]: value },
+    };
+    updateSelection(next);
+    advanceAfterChoice(next);
   };
   const pickOption = (category: CreatorCategory, option: CreatorOption) => {
-    updateSelection({
+    const next = {
       ...selection,
       options: { ...selection.options, [category]: option.id },
-    });
+    };
+    updateSelection(next);
     if (category === "templates") {
       const old = selection.options.templates;
       if (!state.name || (old && state.name === creatorLabel(old, t)))
         state.setName(creatorLabel(option.id, t));
       goTo(2);
-    }
+      focusAfterAdvance.current = true;
+    } else advanceAfterChoice(next);
+  };
+  const startFromScratch = () => {
+    const options = { ...selection.options };
+    delete options.templates;
+    updateSelection({ ...selection, options });
+    goTo(2);
   };
   const tags = [
     t(`creator:${selection.gender}`),
@@ -254,12 +365,33 @@ export function CharacterCreator({ state }: { state: SetupController }) {
         </nav>
         <section className="creator-stage" aria-label={title}>
           <div className="creator-stage-header">
-            <h2>{title}</h2>
-            <p>
-              {step === 5
-                ? t("creator:generationHint")
-                : t("creator:choiceHint")}
-            </p>
+            <h2 ref={titleRef} tabIndex={-1} aria-live="polite">
+              {title}
+            </h2>
+            {step === 1 ? (
+              <div className="creator-template-start">
+                <p>
+                  {templates.length
+                    ? t("creator:templatesHint")
+                    : t("creator:noTemplates")}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={state.isPending}
+                  onClick={startFromScratch}
+                >
+                  {t("creator:custom")}
+                  <ArrowRight size={15} />
+                </Button>
+              </div>
+            ) : (
+              <p>
+                {step === 5
+                  ? t("creator:generationHint")
+                  : t("creator:choiceHint")}
+              </p>
+            )}
           </div>
           {attributes.length > 0 && (
             <div
@@ -276,7 +408,10 @@ export function CharacterCreator({ state }: { state: SetupController }) {
                   aria-controls="creator-options"
                   aria-selected={category === currentAttribute}
                   disabled={state.isPending}
-                  onClick={() => setAttribute(category)}
+                  onClick={() => {
+                    cancelAutoAdvance();
+                    setAttribute(category);
+                  }}
                 >
                   {t(`creator:${category}`)}
                   {selection.options[category] && (
@@ -310,50 +445,33 @@ export function CharacterCreator({ state }: { state: SetupController }) {
                     ))}
                   </RadioGroup>
                   <ImageChoices
+                    key={`style-${selection.gender}`}
                     label={t("creator:styleStep")}
                     options={(["realistic", "anime"] as const).flatMap(style =>
                       creatorOptions(selection.gender, style, "style")
                     )}
                     value={`${selection.style}-${selection.gender}`}
-                    onChange={option =>
+                    onChange={option => {
                       changeBranch(
                         selection.gender,
                         option.id.startsWith("anime") ? "anime" : "realistic"
-                      )
-                    }
+                      );
+                      goTo(1);
+                      focusAfterAdvance.current = true;
+                    }}
                     t={t}
                     wide
                   />
                 </div>
               )}
               {step === 1 && (
-                <div className="space-y-5">
-                  <p className="text-sm text-muted-foreground">
-                    {templates.length
-                      ? t("creator:templatesHint")
-                      : t("creator:noTemplates")}
-                  </p>
-                  <ImageChoices
-                    label={t("creator:templateStep")}
-                    options={templates}
-                    value={selection.options.templates}
-                    onChange={option => pickOption("templates", option)}
-                    t={t}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      const options = { ...selection.options };
-                      delete options.templates;
-                      updateSelection({ ...selection, options });
-                      goTo(2);
-                    }}
-                  >
-                    {t("creator:custom")}
-                    <ArrowRight size={15} />
-                  </Button>
-                </div>
+                <ImageChoices
+                  label={t("creator:templateStep")}
+                  options={templates}
+                  value={selection.options.templates}
+                  onChange={option => pickOption("templates", option)}
+                  t={t}
+                />
               )}
               {(step === 2 || step === 3) && (
                 <div
@@ -365,15 +483,7 @@ export function CharacterCreator({ state }: { state: SetupController }) {
                     <RadioGroup
                       aria-label={title}
                       value={selection.options[colorCategory] ?? ""}
-                      onValueChange={value =>
-                        updateSelection({
-                          ...selection,
-                          options: {
-                            ...selection.options,
-                            [colorCategory]: value,
-                          },
-                        })
-                      }
+                      onValueChange={value => pickColor(colorCategory, value)}
                       className="creator-colors"
                     >
                       {CREATOR_COLORS[colorCategory].map(color => (
@@ -382,6 +492,10 @@ export function CharacterCreator({ state }: { state: SetupController }) {
                           value={color.id}
                           aria-label={creatorLabel(color.id, t)}
                           className="creator-color"
+                          onClick={() => {
+                            if (selection.options[colorCategory] === color.id)
+                              pickColor(colorCategory, color.id);
+                          }}
                         >
                           <span
                             style={{ backgroundColor: color.color }}
@@ -396,6 +510,7 @@ export function CharacterCreator({ state }: { state: SetupController }) {
                     </RadioGroup>
                   ) : (
                     <ImageChoices
+                      key={currentAttribute}
                       label={title}
                       options={creatorOptions(
                         selection.gender,
@@ -487,7 +602,9 @@ export function CharacterCreator({ state }: { state: SetupController }) {
             {t("creator:previous")}
           </Button>
           <span className="creator-footer-hint">
-            {t("creator:autoSaveHint")}
+            {step === 2 || step === 3
+              ? t("creator:autoAdvanceHint")
+              : t("creator:autoSaveHint")}
           </span>
           {step < 5 ? (
             <Button

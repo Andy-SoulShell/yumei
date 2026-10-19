@@ -312,7 +312,9 @@ export default function Chat() {
           if (girlfriend)
             addPoints.mutate({ girlfriendId: girlfriend.id, reason: "selfie" });
         } else {
-          toast.error("自拍生成失败，详情已显示在对话中");
+          toast.error("自拍生成失败，本次未扣额度，详情已显示在对话中");
+          scrollToBottom();
+          return;
         }
       }
 

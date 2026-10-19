@@ -29,6 +29,13 @@
       "when": 1792403291376,
       "tag": "0003_media_cleanup_outbox",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1792403638590,
+      "tag": "0004_generation_settlement",
+      "breakpoints": true
     }
   ]
 }

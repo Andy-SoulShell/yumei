@@ -127,6 +127,9 @@ export const messages = mysqlTable("messages", {
   content: text("content").notNull(), // 文本消息内容
   imageUrl: text("imageUrl"), // 如果是图片消息，存储图片 URL
   imageKey: varchar("imageKey", { length: 500 }), // 存储文件 key
+  /** 生成请求及结果状态，null 表示历史或非生成消息。 */
+  generationRequestId: varchar("generationRequestId", { length: 36 }),
+  generationStatus: mysqlEnum("generationStatus", ["succeeded", "failed"]),
   selfieMode: mysqlEnum("selfieMode", ["mirror", "direct"]), // 自拍模式（如果是自拍）
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -391,6 +394,25 @@ export const mediaDeletions = mysqlTable("mediaDeletions", {
   key: varchar("key", { length: 500 }).primaryKey(),
   userId: varchar("userId", { length: 255 }).notNull(),
   attempts: int("attempts").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+/** 外部生成请求的额度预留与最终状态，失败或过期时按原周期补偿。 */
+export const generationRequests = mysqlTable("generationRequests", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  userId: varchar("userId", { length: 255 }).notNull(),
+  conversationId: int("conversationId").notNull(),
+  kind: mysqlEnum("kind", ["chat", "selfie", "couple"]).notNull(),
+  status: mysqlEnum("status", ["pending", "succeeded", "failed"])
+    .default("pending")
+    .notNull(),
+  meterPeriod: varchar("meterPeriod", { length: 10 }),
+  meterName: varchar("meterName", { length: 64 }),
+  /** 预先记录输出与临时输入位置，进程中断后仍可回收。 */
+  outputKey: varchar("outputKey", { length: 500 }),
+  temporaryKey: varchar("temporaryKey", { length: 500 }),
+  expiresAt: timestamp("expiresAt").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

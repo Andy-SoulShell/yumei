@@ -371,7 +371,7 @@ export async function getConversationMessages(
     .select()
     .from(messages)
     .where(eq(messages.conversationId, conversationId))
-    .orderBy(messages.createdAt);
+    .orderBy(messages.createdAt, messages.id);
 }
 
 /**
@@ -389,8 +389,13 @@ export async function getRecentMessages(
   const allMessages = await db
     .select()
     .from(messages)
-    .where(eq(messages.conversationId, conversationId))
-    .orderBy(desc(messages.createdAt))
+    .where(
+      and(
+        eq(messages.conversationId, conversationId),
+        sql`COALESCE(${messages.generationStatus}, 'succeeded') <> 'failed'`
+      )
+    )
+    .orderBy(desc(messages.createdAt), desc(messages.id))
     .limit(limit);
 
   return allMessages.reverse(); // 返回时按时间正序
@@ -596,6 +601,8 @@ export async function permanentDeleteGirlfriend(
         )
       );
     const ids = convos.map(c => c.id);
+    const { cancelConversationGenerations } = await import("./generations");
+    await cancelConversationGenerations(tx, ids);
     const photos = await tx
       .select({ key: selfies.imageKey })
       .from(selfies)
@@ -735,7 +742,7 @@ export async function getConversationsWithLastMessage(userId: string): Promise<
         .select()
         .from(messages)
         .where(eq(messages.conversationId, convo.id))
-        .orderBy(desc(messages.createdAt))
+        .orderBy(desc(messages.createdAt), desc(messages.id))
         .limit(1);
 
       // 获取女友信息
@@ -795,7 +802,7 @@ export async function searchConversations(
     })
     .from(messages)
     .where(like(messages.content, `%${keyword}%`))
-    .orderBy(desc(messages.createdAt));
+    .orderBy(desc(messages.createdAt), desc(messages.id));
 
   // 获取去重的对话 ID 列表（保持匹配顺序）
   const seenConvoIds = new Set<number>();
@@ -838,7 +845,7 @@ export async function searchConversations(
         .select()
         .from(messages)
         .where(eq(messages.conversationId, convo.id))
-        .orderBy(desc(messages.createdAt))
+        .orderBy(desc(messages.createdAt), desc(messages.id))
         .limit(1);
 
       // 获取女友信息

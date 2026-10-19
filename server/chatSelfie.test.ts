@@ -4,6 +4,8 @@ import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import axios from "axios";
 import { appRouter } from "./routers";
 import * as db from "./db";
+import * as generations from "./generations";
+import * as cleanup from "./mediaCleanup";
 import * as storage from "./storage";
 import * as providers from "./_core/imageProvider";
 import * as chat from "./_core/chatProvider";
@@ -20,6 +22,39 @@ const caller = () =>
   } as any);
 
 beforeEach(() => {
+  vi.spyOn(generations, "reserveGeneration").mockResolvedValue("mock-request");
+  vi.spyOn(generations, "failGeneration").mockResolvedValue(undefined);
+  vi.spyOn(cleanup, "flushMediaDeletions").mockResolvedValue(undefined);
+  vi.spyOn(cleanup, "queueMediaDeletion").mockResolvedValue(undefined);
+  vi.spyOn(generations, "completeTextGeneration").mockImplementation(
+    async (_id, _userId, content, reply) =>
+      ({
+        userMessage: { id: 1, role: "user", content },
+        assistantMessage: { id: 2, role: "assistant", content: reply },
+      }) as any
+  );
+  vi.spyOn(generations, "completeImageGeneration").mockImplementation(
+    async (_id, _userId, image, content) =>
+      ({
+        selfie: { ...image, girlfriendId: 12 },
+        message: { ...image, content: "[自拍照片]" },
+        userMessage: content === undefined ? undefined : { content },
+        imageGeneration: "completed",
+      }) as any
+  );
+  vi.spyOn(generations, "failImageGeneration").mockImplementation(
+    async (_id, _userId, content) =>
+      ({
+        selfie: null,
+        message: {
+          content: "这次自拍没有生成成功，本次未扣额度",
+          generationStatus: "failed",
+        },
+        userMessage: { content },
+        imageGeneration: "failed",
+      }) as any
+  );
+
   vi.stubEnv("BILLING_PROVIDER", "none");
   quota.resetRateLimits();
   vi.spyOn(db, "getConversation").mockResolvedValue({
@@ -77,21 +112,11 @@ describe("chat-triggered selfies", () => {
     expect(result.assistantMessage.imageUrl).toBe(
       "http://app/files/selfie.png"
     );
-    expect(db.createMessage).toHaveBeenNthCalledWith(1, {
-      conversationId: 42,
-      role: "user",
-      content: "发张自拍",
-    });
-    expect(db.createMessage).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        conversationId: 42,
-        role: "assistant",
-        imageUrl: "http://app/files/selfie.png",
-      })
-    );
-    expect(db.createSelfie).toHaveBeenCalledWith(
-      expect.objectContaining({ girlfriendId: 12 })
+    expect(generations.completeImageGeneration).toHaveBeenCalledWith(
+      "mock-request",
+      expect.any(String),
+      expect.objectContaining({ imageUrl: "http://app/files/selfie.png" }),
+      "发张自拍"
     );
     expect(providers.generateProviderImage).toHaveBeenCalledWith(
       expect.objectContaining({ name: "comfyui" }),
@@ -135,7 +160,7 @@ describe("chat-triggered selfies", () => {
       tier: "free",
       limits: { dailySelfies: 5 },
     } as any);
-    vi.spyOn(quota, "consumeDailyMeter").mockRejectedValue(
+    vi.mocked(generations.reserveGeneration).mockRejectedValue(
       new Error("Selfie quota exceeded")
     );
     await expect(
@@ -157,7 +182,7 @@ describe("chat-triggered selfies", () => {
     expect(result.assistantMessage.imageUrl).toBeUndefined();
     expect(JSON.stringify(result)).not.toContain("secret-token");
     expect(db.createSelfie).not.toHaveBeenCalled();
-    expect(db.createMessage).toHaveBeenCalledTimes(2);
+    expect(generations.failImageGeneration).toHaveBeenCalledTimes(1);
   });
   it("reports a storage failure without creating a fake image message", async () => {
     vi.mocked(storage.storagePut).mockRejectedValue(new Error("disk full"));
@@ -168,7 +193,7 @@ describe("chat-triggered selfies", () => {
     expect(result.imageGeneration).toBe("failed");
     expect(result.assistantMessage.imageUrl).toBeUndefined();
     expect(db.createSelfie).not.toHaveBeenCalled();
-    expect(db.createMessage).toHaveBeenCalledTimes(2);
+    expect(generations.failImageGeneration).toHaveBeenCalledTimes(1);
   });
   it("leaves ordinary chat on the normal LLM path", async () => {
     vi.spyOn(chat, "resolveChatProvider").mockResolvedValue({

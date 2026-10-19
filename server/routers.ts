@@ -1,5 +1,13 @@
 /** 业务 tRPC 路由入口，组织认证、角色、聊天、图片、记忆、套餐与语音流程。 */
 
+import {
+  reserveGeneration,
+  completeTextGeneration,
+  completeImageGeneration,
+  failGeneration,
+  type GenerationMeter,
+} from "./generations";
+import { flushMediaDeletions, queueMediaDeletion } from "./mediaCleanup";
 import { log, providerErrorSummary } from "./_core/log";
 import { auth } from "./_core/auth";
 import { fromNodeHeaders } from "better-auth/node";
@@ -29,10 +37,8 @@ import {
   resumeConversation,
   getUserConversations,
   getConversation,
-  createMessage,
   getConversationMessages,
   getRecentMessages,
-  createSelfie,
   getUserSelfies,
   getGirlfriendSelfies,
   deleteSelfie,
@@ -82,13 +88,7 @@ import {
 } from "./billing";
 import { storagePut } from "./storage";
 import { nanoid } from "nanoid";
-import {
-  checkRateLimit,
-  consumeDailyMeter,
-  consumeMonthlyMeter,
-  getDailyMeter,
-  getMonthlyMeter,
-} from "./_core/quota";
+import { checkRateLimit, getDailyMeter, getMonthlyMeter } from "./_core/quota";
 import {
   getVapidPublicKey,
   savePushSubscription,
@@ -636,7 +636,7 @@ export const appRouter = router({
     /**
      * 检查成年状态与归属，按明确意图选择自拍或模型回复，并保存消息。
      *
-     * @remarks 当前先扣额度；模型失败会保存固定兜底回复并返回成功，已扣额度不退，消息写入也未合并为事务。
+     * @remarks 先持久化额度预留，成功后原子保存消息对；失败明确报错并幂等退回原周期额度。
      */
     sendMessage: protectedProcedure
       .input(
@@ -710,28 +710,6 @@ export const appRouter = router({
         // 自托管部署完全不计量。
         const isByokChat = chatProvider.isByok;
         const { tier, limits } = await getTierLimits(ctx.user.id);
-        if (
-          isBillingEnforced() &&
-          !isByokChat &&
-          limits.dailyMessages !== null
-        ) {
-          await consumeDailyMeter(
-            ctx.user.id,
-            METERS.chat,
-            limits.dailyMessages,
-            "messages",
-            upsellHint(tier)
-          );
-        }
-
-        // 2. 保存用户消息（所有权已校验）
-        // TODO: 将用户与助手消息的最终写入组成事务；模型失败目前另存兜底回复。
-        const userMessage = await createMessage({
-          conversationId: input.conversationId,
-          role: "user",
-          content: input.content,
-        });
-
         // 3. 获取最近的消息历史（用于上下文）
         const recentMessages = await getRecentMessages(
           input.conversationId,
@@ -803,10 +781,26 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
             role: msg.role as "user" | "assistant",
             content: msg.content,
           })),
+          { role: "user" as const, content: input.content },
         ];
 
         // 7. 使用已解析的服务地址和对应密钥调用 LLM。
-        let aiResponse: string;
+        const requestId = await reserveGeneration({
+          userId: ctx.user.id,
+          conversationId: input.conversationId,
+          kind: "chat",
+          meter:
+            isBillingEnforced() && !isByokChat && limits.dailyMessages !== null
+              ? {
+                  name: METERS.chat,
+                  period: "day",
+                  limit: limits.dailyMessages,
+                  what: "messages",
+                  hint: upsellHint(tier),
+                }
+              : undefined,
+        });
+        let saved: Awaited<ReturnType<typeof completeTextGeneration>>;
         try {
           const response = await axios.post(
             `${chatProvider.baseUrl}/chat/completions`,
@@ -833,22 +827,35 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
               timeout: 60_000,
             }
           );
-          const messageContent = response.data.choices[0].message.content;
-          aiResponse =
-            typeof messageContent === "string"
-              ? messageContent
-              : JSON.stringify(messageContent);
+          const messageContent = response.data?.choices?.[0]?.message?.content;
+          const aiResponse =
+            typeof messageContent === "string" ? messageContent : "";
+          if (!aiResponse.trim())
+            throw new Error("Provider returned empty content");
+          saved = await completeTextGeneration(
+            requestId,
+            ctx.user.id,
+            input.content,
+            aiResponse
+          );
         } catch (error) {
-          log.error("[Chat] LLM API error", providerErrorSummary(error));
-          aiResponse = "抱歉，我现在有点累了，稍后再聊吧~";
+          log.error("[Chat] generation failed", {
+            requestId,
+            ...providerErrorSummary(error),
+          });
+          try {
+            await failGeneration(requestId, ctx.user.id);
+          } catch (settlementError) {
+            log.error("[Chat] compensation will retry", {
+              requestId,
+              ...providerErrorSummary(settlementError),
+            });
+          }
+          throw new TRPCError({
+            code: "BAD_GATEWAY",
+            message: "聊天生成失败，请稍后重试；失败请求不计入用量。",
+          });
         }
-
-        // 8. 保存 AI 回复
-        const assistantMessage = await createMessage({
-          conversationId: input.conversationId,
-          role: "assistant",
-          content: aiResponse,
-        });
 
         // 9. 异步记忆提取：每 10 条消息触发一次，不阻塞响应。
         maybeExtractMemories({
@@ -860,8 +867,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         });
 
         return {
-          userMessage,
-          assistantMessage,
+          ...saved,
           safetyNotice,
           imageGeneration: null,
         };
@@ -943,27 +949,6 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
           });
         }
 
-        // 额度与普通自拍共用同一计量器。
-        if (isBillingEnforced() && !byokFal) {
-          if (coupleTier.limits.dailySelfies !== null) {
-            await consumeDailyMeter(
-              ctx.user.id,
-              METERS.selfie,
-              coupleTier.limits.dailySelfies,
-              "selfies",
-              upsellHint(coupleTier.tier)
-            );
-          } else if (coupleTier.limits.monthlySelfies !== null) {
-            await consumeMonthlyMeter(
-              ctx.user.id,
-              METERS.selfie,
-              coupleTier.limits.monthlySelfies,
-              "selfies",
-              upsellHint(coupleTier.tier)
-            );
-          }
-        }
-
         // 校验并上传用户照片（10MB 上限，与头像一致）。
         const allowed = ["image/jpeg", "image/png", "image/webp"];
         if (!allowed.includes(input.userPhotoMimeType)) {
@@ -981,11 +966,6 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         }
         const ext = input.userPhotoMimeType.split("/")[1];
         const photoKey = `couple-input-${ctx.user.id}-${nanoid()}.${ext}`;
-        const { url: userPhotoUrl } = await storagePut(
-          photoKey,
-          photoBuffer,
-          input.userPhotoMimeType
-        );
 
         const scene = input.userContext?.trim()
           ? `, ${input.userContext.trim()}`
@@ -995,9 +975,44 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
             ? `Create a natural couple photo of the people from <image1> and <image2> together, standing close and happy, looking at the camera${scene}. Use each image as an identity reference and preserve both faces.`
             : `a natural couple photo of these two people together, standing close and happy, looking at the camera${scene}. keep both faces consistent with the source images`;
 
-        let imageBuffer: Buffer;
+        const fileKey = `couple-${ctx.user.id}-${nanoid()}.png`;
+        const meter: GenerationMeter | undefined =
+          isBillingEnforced() && !byokFal
+            ? coupleTier.limits.dailySelfies !== null
+              ? {
+                  name: METERS.selfie,
+                  period: "day",
+                  limit: coupleTier.limits.dailySelfies,
+                  what: "selfies",
+                  hint: upsellHint(coupleTier.tier),
+                }
+              : coupleTier.limits.monthlySelfies !== null
+                ? {
+                    name: METERS.selfie,
+                    period: "month",
+                    limit: coupleTier.limits.monthlySelfies,
+                    what: "selfies",
+                    hint: upsellHint(coupleTier.tier),
+                  }
+                : undefined
+            : undefined;
+        const requestId = await reserveGeneration({
+          userId: ctx.user.id,
+          conversationId: input.conversationId,
+          kind: "couple",
+          meter,
+          outputKey: fileKey,
+          temporaryKey: photoKey,
+          timeoutMs:
+            Number(process.env.COMFYUI_TIMEOUT_MS || 600_000) + 180_000,
+        });
         try {
-          imageBuffer = await generateProviderImage(imageProvider, {
+          const { url: userPhotoUrl } = await storagePut(
+            photoKey,
+            photoBuffer,
+            input.userPhotoMimeType
+          );
+          const imageBuffer = await generateProviderImage(imageProvider, {
             prompt,
             mode: "reference",
             references: [
@@ -1008,43 +1023,57 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
               { key: photoKey, url: userPhotoUrl },
             ],
           });
+          const { url: storedUrl } = await storagePut(
+            fileKey,
+            imageBuffer,
+            "image/png"
+          );
+          const { selfie, message } = await completeImageGeneration(
+            requestId,
+            ctx.user.id,
+            {
+              imageUrl: storedUrl,
+              imageKey: fileKey,
+              prompt,
+              userContext: input.userContext || "couple photo",
+              mode: "direct",
+            },
+            undefined,
+            "合照"
+          );
+          return { selfie, message };
         } catch (error) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message:
-              imageProvider.name === "comfyui" && error instanceof Error
-                ? error.message
-                : "Failed to generate couple photo",
+          log.error("[couple] generation failed", {
+            requestId,
+            ...providerErrorSummary(error),
           });
+          try {
+            await failGeneration(requestId, ctx.user.id);
+          } catch (settlementError) {
+            log.error(
+              "[couple] compensation will retry",
+              providerErrorSummary(settlementError)
+            );
+          }
+          await queueMediaDeletion(ctx.user.id, [photoKey, fileKey]).catch(
+            cleanupError =>
+              log.error(
+                "[couple] late output cleanup will retry",
+                providerErrorSummary(cleanupError)
+              )
+          );
+          throw new TRPCError({
+            code: "BAD_GATEWAY",
+            message: "合照生成失败，请稍后重试；失败请求不计入用量。",
+          });
+        } finally {
+          await flushMediaDeletions(ctx.user.id).catch(error =>
+            log.error(
+              "[couple] media cleanup will retry",
+              providerErrorSummary(error)
+            )
+          );
         }
-
-        const fileKey = `couple-${ctx.user.id}-${nanoid()}.png`;
-        const { url: storedUrl } = await storagePut(
-          fileKey,
-          imageBuffer,
-          "image/png"
-        );
-
-        const selfie = await createSelfie({
-          userId: ctx.user.id,
-          girlfriendId: girlfriend.id,
-          imageUrl: storedUrl,
-          imageKey: fileKey,
-          prompt,
-          userContext: input.userContext || "couple photo",
-          mode: "direct",
-        });
-
-        const message = await createMessage({
-          conversationId: input.conversationId,
-          role: "assistant",
-          content: `[合照]`,
-          imageUrl: storedUrl,
-          imageKey: fileKey,
-          selfieMode: "direct",
-        });
-
-        return { selfie, message };
       }),
 
     /** 读取当前用户的剩余图片额度与 Provider 能力，供相机入口显示。 */

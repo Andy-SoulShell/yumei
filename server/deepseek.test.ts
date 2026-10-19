@@ -3,6 +3,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import axios from "axios";
 import * as db from "./db";
+import * as generations from "./generations";
+import * as cleanup from "./mediaCleanup";
 import * as memory from "./memory";
 import { keyProvider } from "./_core/keyProvider";
 import { resolveChatProvider } from "./_core/chatProvider";
@@ -16,6 +18,39 @@ const caller = appRouter.createCaller({
 } as any);
 
 beforeEach(() => {
+  vi.spyOn(generations, "reserveGeneration").mockResolvedValue("mock-request");
+  vi.spyOn(generations, "failGeneration").mockResolvedValue(undefined);
+  vi.spyOn(cleanup, "flushMediaDeletions").mockResolvedValue(undefined);
+  vi.spyOn(cleanup, "queueMediaDeletion").mockResolvedValue(undefined);
+  vi.spyOn(generations, "completeTextGeneration").mockImplementation(
+    async (_id, _userId, content, reply) =>
+      ({
+        userMessage: { id: 1, role: "user", content },
+        assistantMessage: { id: 2, role: "assistant", content: reply },
+      }) as any
+  );
+  vi.spyOn(generations, "completeImageGeneration").mockImplementation(
+    async (_id, _userId, image, content) =>
+      ({
+        selfie: { ...image, girlfriendId: 12 },
+        message: { ...image, content: "[自拍照片]" },
+        userMessage: content === undefined ? undefined : { content },
+        imageGeneration: "completed",
+      }) as any
+  );
+  vi.spyOn(generations, "failImageGeneration").mockImplementation(
+    async (_id, _userId, content) =>
+      ({
+        selfie: null,
+        message: {
+          content: "这次自拍没有生成成功，本次未扣额度",
+          generationStatus: "failed",
+        },
+        userMessage: { content },
+        imageGeneration: "failed",
+      }) as any
+  );
+
   vi.stubEnv("LLM_PROVIDER", "deepseek");
   vi.stubEnv("DEEPSEEK_MODEL", "deepseek-flash");
   vi.stubEnv("OPERATOR_DEEPSEEK_KEY", "deepseek-test-secret");

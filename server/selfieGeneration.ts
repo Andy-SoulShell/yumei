@@ -2,22 +2,21 @@
 
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
-import {
-  getConversation,
-  getActiveGirlfriend,
-  createMessage,
-  createSelfie,
-  getRecentMessages,
-} from "./db";
+import { getConversation, getActiveGirlfriend, getRecentMessages } from "./db";
 import {
   resolveImageProvider,
   generateProviderImage,
 } from "./_core/imageProvider";
+import { checkRateLimit } from "./_core/quota";
 import {
-  checkRateLimit,
-  consumeDailyMeter,
-  consumeMonthlyMeter,
-} from "./_core/quota";
+  reserveGeneration,
+  completeImageGeneration,
+  failGeneration,
+  failImageGeneration,
+  type GenerationMeter,
+} from "./generations";
+import { flushMediaDeletions, queueMediaDeletion } from "./mediaCleanup";
+import { log, providerErrorSummary } from "./_core/log";
 import { getTierLimits, isBillingEnforced, upsellHint } from "./billing";
 import { METERS } from "../shared/quotas";
 import { getPose } from "../shared/selfiePoses";
@@ -36,7 +35,7 @@ type SelfieInput = {
  * 校验用户、角色和额度后生成图片，并保存聊天消息与相册记录。
  *
  * @param chatContent - 由聊天文字触发时保存的原始用户消息；相机入口不传
- * @remarks 先计量再调用外部服务，当前生成失败不返还额度，消息与相册写入也未组成事务。
+ * @remarks 持久预留额度；成功时原子保存消息与相册，失败按原计量周期退款并记录明确状态。
  */
 export async function generateConversationSelfie(
   user: { id: string; birthDate: unknown },
@@ -107,29 +106,7 @@ export async function generateConversationSelfie(
     });
   }
 
-  // 2b. 档位自拍额度：免费档按日、付费档按月。
-  // BYOK fal 用户和自托管（BILLING_PROVIDER=none）跳过。
   const selfieTier = await getTierLimits(user.id);
-  if (isBillingEnforced() && !imageProvider.isByok) {
-    if (selfieTier.limits.dailySelfies !== null) {
-      await consumeDailyMeter(
-        user.id,
-        METERS.selfie,
-        selfieTier.limits.dailySelfies,
-        "selfies",
-        upsellHint(selfieTier.tier)
-      );
-    } else if (selfieTier.limits.monthlySelfies !== null) {
-      await consumeMonthlyMeter(
-        user.id,
-        METERS.selfie,
-        selfieTier.limits.monthlySelfies,
-        "selfies",
-        upsellHint(selfieTier.tier)
-      );
-    }
-  }
-
   let sceneContext = input.userContext;
   if (chatContent !== undefined) {
     // Only recent visual context is supplied; the current request takes precedence.
@@ -140,15 +117,6 @@ export async function generateConversationSelfie(
       .join("\n");
     sceneContext = `保持参考图中的人物身份与画风。角色外貌：${girlfriend.appearance}。近期对话仅供提取地点、服装等画面细节：\n${context}\n当前拍摄要求（优先）：${input.userContext}`;
   }
-  const userMessage =
-    chatContent === undefined
-      ? undefined
-      : await createMessage({
-          conversationId: input.conversationId,
-          role: "user",
-          content: chatContent,
-        });
-
   // 3. 使用 自拍提示词模板生成提示词
   const combinedContext = pose
     ? sceneContext.trim()
@@ -165,7 +133,35 @@ export async function generateConversationSelfie(
       ? `生成一张角色照片。角色外貌：${girlfriend.appearance}。场景与姿势：${combinedContext || "自然微笑，随手自拍"}。自然光线，画面清晰。`
       : promptResult.prompt;
 
-  // 4. 等待当前生图任务完成，再复用聊天和相册的存储流程。
+  const fileKey = `selfie-${user.id}-${nanoid()}.png`;
+  const meter: GenerationMeter | undefined =
+    isBillingEnforced() && !imageProvider.isByok
+      ? selfieTier.limits.dailySelfies !== null
+        ? {
+            name: METERS.selfie,
+            period: "day",
+            limit: selfieTier.limits.dailySelfies,
+            what: "selfies",
+            hint: upsellHint(selfieTier.tier),
+          }
+        : selfieTier.limits.monthlySelfies !== null
+          ? {
+              name: METERS.selfie,
+              period: "month",
+              limit: selfieTier.limits.monthlySelfies,
+              what: "selfies",
+              hint: upsellHint(selfieTier.tier),
+            }
+          : undefined
+      : undefined;
+  const requestId = await reserveGeneration({
+    userId: user.id,
+    conversationId: input.conversationId,
+    kind: "selfie",
+    meter,
+    outputKey: fileKey,
+    timeoutMs: Number(process.env.COMFYUI_TIMEOUT_MS || 600_000) + 180_000,
+  });
   try {
     const imageBuffer = await generateProviderImage(imageProvider, {
       prompt: imagePrompt,
@@ -177,60 +173,58 @@ export async function generateConversationSelfie(
         },
       ],
     });
-
-    // 5. 将结果保存在应用的持久化存储中。
-    const fileKey = `selfie-${user.id}-${nanoid()}.png`;
-    const { url: s3Url } = await storagePut(fileKey, imageBuffer, "image/png");
-
-    // 6. 保存自拍记录
-    const selfie = await createSelfie({
-      userId: user.id,
-      girlfriendId: girlfriend.id,
-      imageUrl: s3Url,
-      imageKey: fileKey,
-      prompt: imagePrompt,
-      userContext: input.userContext,
-      mode: promptResult.mode,
-    });
-
-    // 7. 创建消息记录（图片消息）
-    const message = await createMessage({
-      conversationId: input.conversationId,
-      role: "assistant",
-      content: `[自拍照片]`,
-      imageUrl: s3Url,
-      imageKey: fileKey,
-      selfieMode: promptResult.mode,
-    });
-
-    return {
-      selfie,
-      message,
-      userMessage,
-      imageGeneration: "completed" as const,
-    };
+    const { url } = await storagePut(fileKey, imageBuffer, "image/png");
+    return await completeImageGeneration(
+      requestId,
+      user.id,
+      {
+        imageUrl: url,
+        imageKey: fileKey,
+        prompt: imagePrompt,
+        userContext: input.userContext,
+        mode: promptResult.mode,
+      },
+      chatContent
+    );
   } catch (error) {
-    if (!userMessage) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message:
-          imageProvider.name === "comfyui" && error instanceof Error
-            ? error.message
-            : "Failed to generate selfie",
-      });
-    }
-    // Persist a real failure response instead of claiming that a photo was sent.
-    const message = await createMessage({
-      conversationId: input.conversationId,
-      role: "assistant",
-      content:
-        "这次自拍没有生成成功，可能是生图服务连接失败、排队超时，或生成与保存时出错。请稍后再试，也可以点击相机按钮重新生成。",
+    log.error("[selfie] generation failed", {
+      requestId,
+      ...providerErrorSummary(error),
     });
-    return {
-      selfie: null,
-      message,
-      userMessage,
-      imageGeneration: "failed" as const,
-    };
+    await queueMediaDeletion(user.id, [fileKey]).catch(cleanupError =>
+      log.error(
+        "[selfie] late output cleanup will retry",
+        providerErrorSummary(cleanupError)
+      )
+    );
+    if (chatContent !== undefined) {
+      try {
+        return await failImageGeneration(requestId, user.id, chatContent);
+      } catch (settlementError) {
+        log.error(
+          "[selfie] failed reply unavailable",
+          providerErrorSummary(settlementError)
+        );
+      }
+    }
+    try {
+      await failGeneration(requestId, user.id);
+    } catch (settlementError) {
+      log.error(
+        "[selfie] compensation will retry",
+        providerErrorSummary(settlementError)
+      );
+    }
+    throw new TRPCError({
+      code: "BAD_GATEWAY",
+      message: "自拍生成失败，请稍后重试；失败请求不计入用量。",
+    });
+  } finally {
+    await flushMediaDeletions(user.id).catch(error =>
+      log.error(
+        "[selfie] media cleanup will retry",
+        providerErrorSummary(error)
+      )
+    );
   }
 }

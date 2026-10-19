@@ -113,6 +113,8 @@ export function startMediaCleanupScheduler(): () => void {
     running = true;
     try {
       await flushMediaDeletions();
+      const { expireGenerations } = await import("./generations");
+      await expireGenerations();
     } catch (error) {
       log.error("[media] cleanup unavailable", providerErrorSummary(error));
     } finally {

@@ -3,6 +3,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import axios from "axios";
 import * as db from "./db";
+import * as generations from "./generations";
+import * as cleanup from "./mediaCleanup";
 import * as storage from "./storage";
 import * as providers from "./_core/imageProvider";
 import { ComfyUIClient } from "./_core/comfyui";
@@ -19,6 +21,39 @@ const caller = () =>
   } as any);
 
 beforeEach(() => {
+  vi.spyOn(generations, "reserveGeneration").mockResolvedValue("mock-request");
+  vi.spyOn(generations, "failGeneration").mockResolvedValue(undefined);
+  vi.spyOn(cleanup, "flushMediaDeletions").mockResolvedValue(undefined);
+  vi.spyOn(cleanup, "queueMediaDeletion").mockResolvedValue(undefined);
+  vi.spyOn(generations, "completeTextGeneration").mockImplementation(
+    async (_id, _userId, content, reply) =>
+      ({
+        userMessage: { id: 1, role: "user", content },
+        assistantMessage: { id: 2, role: "assistant", content: reply },
+      }) as any
+  );
+  vi.spyOn(generations, "completeImageGeneration").mockImplementation(
+    async (_id, _userId, image, content) =>
+      ({
+        selfie: { ...image, girlfriendId: 12 },
+        message: { ...image, content: "[自拍照片]" },
+        userMessage: content === undefined ? undefined : { content },
+        imageGeneration: "completed",
+      }) as any
+  );
+  vi.spyOn(generations, "failImageGeneration").mockImplementation(
+    async (_id, _userId, content) =>
+      ({
+        selfie: null,
+        message: {
+          content: "这次自拍没有生成成功，本次未扣额度",
+          generationStatus: "failed",
+        },
+        userMessage: { content },
+        imageGeneration: "failed",
+      }) as any
+  );
+
   vi.stubEnv("IMAGE_PROVIDER", "comfyui");
   vi.stubEnv("COMFYUI_BASE_URL", "http://comfy:8188");
   vi.stubEnv("COMFYUI_API_KEY", "private-comfy-token");
@@ -50,9 +85,7 @@ describe("ComfyUI selfie integration", () => {
       key: "generated.png",
       url: "http://localhost:3000/files/generated.png",
     });
-    const saveSelfie = vi
-      .spyOn(db, "createSelfie")
-      .mockImplementation(async data => data as any);
+    vi.spyOn(db, "createSelfie").mockImplementation(async data => data as any);
     vi.spyOn(db, "createMessage").mockImplementation(async data => data as any);
     const generate = vi
       .spyOn(providers, "generateProviderImage")
@@ -71,8 +104,11 @@ describe("ComfyUI selfie integration", () => {
         prompt: expect.stringContaining("黑色长发"),
       })
     );
-    expect(saveSelfie).toHaveBeenCalledWith(
-      expect.objectContaining({ imageUrl: result.message.imageUrl })
+    expect(generations.completeImageGeneration).toHaveBeenCalledWith(
+      "mock-request",
+      expect.any(String),
+      expect.objectContaining({ imageUrl: result.message.imageUrl }),
+      undefined
     );
     expect(key).not.toHaveBeenCalled();
   });

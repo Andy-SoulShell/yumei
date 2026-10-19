@@ -160,15 +160,13 @@ export async function storeExtractedMemories(
           .where(eq(memories.id, duplicate.id));
         reinforced++;
       } else {
-        const [result] = await tx
-          .insert(memories)
-          .values({
-            userId,
-            girlfriendId,
-            category: candidate.category,
-            content: candidate.content,
-            weight: Math.min(90, Math.max(10, candidate.importance * 10)),
-          });
+        const [result] = await tx.insert(memories).values({
+          userId,
+          girlfriendId,
+          category: candidate.category,
+          content: candidate.content,
+          weight: Math.min(90, Math.max(10, candidate.importance * 10)),
+        });
         const [row] = await tx
           .select()
           .from(memories)
@@ -243,7 +241,12 @@ export function maybeExtractMemories(params: {
       const countRows = await db
         .select({ count: sql<number>`COUNT(*)` })
         .from(messages)
-        .where(eq(messages.conversationId, params.conversationId));
+        .where(
+          and(
+            eq(messages.conversationId, params.conversationId),
+            sql`COALESCE(${messages.generationStatus}, 'succeeded') <> 'failed'`
+          )
+        );
       const messageCount = countRows[0]?.count ?? 0;
       if (
         messageCount === 0 ||
@@ -255,8 +258,13 @@ export function maybeExtractMemories(params: {
       const window = await db
         .select()
         .from(messages)
-        .where(eq(messages.conversationId, params.conversationId))
-        .orderBy(desc(messages.createdAt))
+        .where(
+          and(
+            eq(messages.conversationId, params.conversationId),
+            sql`COALESCE(${messages.generationStatus}, 'succeeded') <> 'failed'`
+          )
+        )
+        .orderBy(desc(messages.createdAt), desc(messages.id))
         .limit(EXTRACTION_EVERY_N_MESSAGES * 2);
 
       const transcript = window

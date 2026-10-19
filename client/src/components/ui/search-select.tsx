@@ -49,7 +49,7 @@ export function SearchSelect({
 }: SearchSelectProps) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(value);
-  const listId = useId();
+  const popupId = useId();
   const selected = options.find(option => option.value === value);
   const activeOption = options.find(option => option.value === active);
   const groups = new Map<string, SearchSelectOption[]>();
@@ -71,8 +71,9 @@ export function SearchSelect({
           type="button"
           variant="outline"
           role="combobox"
+          aria-haspopup="dialog"
           aria-expanded={open}
-          aria-controls={listId}
+          aria-controls={popupId}
           aria-label={label}
           className="w-full min-w-0 justify-between"
         >
@@ -81,18 +82,24 @@ export function SearchSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent
+        id={popupId}
         align="start"
         className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] p-0"
         aria-label={label}
       >
-        <Command shouldFilter={false} value={active} onValueChange={setActive}>
+        <Command
+          label={placeholder}
+          shouldFilter={false}
+          value={active}
+          onValueChange={setActive}
+        >
           <CommandInput
             placeholder={placeholder}
             aria-label={placeholder}
             value={search}
             onValueChange={onSearchChange}
           />
-          <CommandList id={listId} aria-label={label}>
+          <CommandList label={label}>
             <CommandEmpty>{emptyText}</CommandEmpty>
             {Array.from(groups).map(([group, items]) => (
               <CommandGroup key={group} heading={group || undefined}>
@@ -121,7 +128,7 @@ export function SearchSelect({
                       )}
                     </span>
                     {option.detail && (
-                      <span className="shrink-0 text-right text-xs text-muted-foreground">
+                      <span className="max-w-[35%] shrink-0 truncate text-right text-xs text-muted-foreground">
                         {option.detail}
                       </span>
                     )}

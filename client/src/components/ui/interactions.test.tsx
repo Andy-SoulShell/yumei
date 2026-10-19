@@ -92,6 +92,19 @@ describe("搜索选择器", () => {
     const trigger = container.querySelector("button")!;
     await settle(() => trigger.click());
     const input = document.querySelector("[cmdk-input]")!;
+    expect(
+      document
+        .getElementById(trigger.getAttribute("aria-controls")!)
+        ?.getAttribute("role")
+    ).toBe("dialog");
+    expect(
+      document
+        .getElementById(input.getAttribute("aria-controls")!)
+        ?.getAttribute("role")
+    ).toBe("listbox");
+    expect(
+      document.querySelector('[role="listbox"]')?.getAttribute("aria-label")
+    ).toBe("选择模型");
     await key(input, "ArrowDown");
     await key(input, "Enter");
     expect(choose).toHaveBeenCalledWith("b");

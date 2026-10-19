@@ -3,7 +3,7 @@
 import { useI18n } from "@/lib/i18n";
 import { useState } from "react";
 import { Check, Pencil } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupChoice } from "@/components/ui/radio-group";
 import {
   CHARACTER_PRESETS,
   type CharacterPreset,
@@ -31,9 +31,10 @@ export function CharacterPresetPicker({
           )}
         </p>
       </div>
-      <div
+      <RadioGroup
+        value={style}
+        onValueChange={value => setStyle(value as typeof style)}
         className="flex flex-wrap gap-2"
-        role="group"
         aria-label={t("角色画风")}
       >
         {(
@@ -43,66 +44,68 @@ export function CharacterPresetPicker({
             ["anime", t("动漫")],
           ] as const
         ).map(([value, label]) => (
-          <Button
+          <RadioGroupChoice
+            variant="segment"
             key={value}
-            type="button"
-            size="sm"
-            variant={style === value ? "default" : "outline"}
-            aria-pressed={style === value}
-            onClick={() => setStyle(value)}
+            value={value}
+            className="h-8 px-3 text-sm"
           >
             {label}
-          </Button>
+          </RadioGroupChoice>
         ))}
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {CHARACTER_PRESETS.filter(
-          preset => style === "all" || preset.style === style
-        ).map(preset => (
-          <button
-            key={preset.id}
-            type="button"
-            aria-label={t("选择{v0}", { v0: preset.name })}
-            aria-pressed={selectedId === preset.id}
-            onClick={() => onSelect(preset)}
-            className={`relative overflow-hidden rounded-xl border text-left transition-colors focus-visible:outline-2 focus-visible:outline-primary ${selectedId === preset.id ? "border-primary ring-2 ring-primary" : "border-border hover:border-primary/60"}`}
-          >
-            <img
-              src={preset.imageUrl}
-              alt={preset.name}
-              loading="lazy"
-              className="w-full aspect-[3/4] object-cover object-top"
-            />
-            {selectedId === preset.id && (
-              <span className="absolute right-2 top-2 rounded-full bg-primary p-1 text-primary-foreground">
-                <Check className="h-4 w-4" />
-              </span>
-            )}
-            <div className="p-2.5 space-y-1">
-              <p className="font-medium">
-                {preset.name}
-                <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                  {preset.age} {t("岁")}
-                </span>
-              </p>
-              <p className="text-xs text-primary">{t(preset.label)}</p>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                {t(preset.tagline)}
-              </p>
-            </div>
-          </button>
-        ))}
-      </div>
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full border-dashed"
-        aria-pressed={selectedId === null}
-        onClick={() => onSelect(null)}
+      </RadioGroup>
+      <RadioGroup
+        aria-label={t("角色预设")}
+        value={selectedId ?? "custom"}
+        onValueChange={id =>
+          onSelect(CHARACTER_PRESETS.find(preset => preset.id === id) ?? null)
+        }
       >
-        <Pencil className="mr-2 h-4 w-4" />
-        {t("从零自定义")}
-      </Button>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {CHARACTER_PRESETS.filter(
+            preset => style === "all" || preset.style === style
+          ).map(preset => (
+            <RadioGroupChoice
+              key={preset.id}
+              value={preset.id}
+              aria-label={t("选择{v0}", { v0: preset.name })}
+              className={`relative overflow-hidden rounded-xl border text-left transition-colors focus-visible:outline-2 focus-visible:outline-primary ${selectedId === preset.id ? "border-primary ring-2 ring-primary" : "border-border hover:border-primary/60"}`}
+            >
+              <img
+                src={preset.imageUrl}
+                alt={preset.name}
+                loading="lazy"
+                className="w-full aspect-[3/4] object-cover object-top"
+              />
+              {selectedId === preset.id && (
+                <span className="absolute right-2 top-2 rounded-full bg-primary p-1 text-primary-foreground">
+                  <Check className="h-4 w-4" />
+                </span>
+              )}
+              <div className="p-2.5 space-y-1">
+                <p className="font-medium">
+                  {preset.name}
+                  <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                    {preset.age} {t("岁")}
+                  </span>
+                </p>
+                <p className="text-xs text-primary">{t(preset.label)}</p>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {t(preset.tagline)}
+                </p>
+              </div>
+            </RadioGroupChoice>
+          ))}
+        </div>
+        <RadioGroupChoice
+          variant="segment"
+          value="custom"
+          className="w-full border-dashed"
+        >
+          <Pencil className="mr-2 h-4 w-4" />
+          {t("从零自定义")}
+        </RadioGroupChoice>
+      </RadioGroup>
     </section>
   );
 }

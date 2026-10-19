@@ -13,6 +13,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { SearchSelect } from "@/components/ui/search-select";
+import { RadioGroup, RadioGroupChoice } from "@/components/ui/radio-group";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -24,7 +31,6 @@ import {
   Volume2,
   Sun,
   Moon,
-  Search,
   Check,
   ExternalLink,
   Zap,
@@ -99,7 +105,6 @@ export default function Settings() {
   const setOpenRouterKey = (value: string) => setDraft("openrouter", value);
   const [selectedModel, setSelectedModel] = useState("");
   const [modelSearch, setModelSearch] = useState("");
-  const [showModelList, setShowModelList] = useState(false);
 
   // 语音合成偏好。
   const [ttsProvider, setTtsProvider] = useState<TTSProvider>("browser");
@@ -117,7 +122,6 @@ export default function Settings() {
   const setElevenlabsApiKey = (value: string) => setDraft("elevenlabs", value);
   const [elevenlabsVoiceId, setElevenlabsVoiceId] = useState("");
   const [elevenlabsVoiceName, setElevenlabsVoiceName] = useState("");
-  const [showElevenLabsVoices, setShowElevenLabsVoices] = useState(false);
   const [elevenLabsSearch, setElevenLabsSearch] = useState("");
 
   // Fish Audio 配置状态。
@@ -125,7 +129,6 @@ export default function Settings() {
   const setFishAudioApiKey = (value: string) => setDraft("fish-audio", value);
   const [fishAudioModelId, setFishAudioModelId] = useState("");
   const [fishAudioModelName, setFishAudioModelName] = useState("");
-  const [showFishAudioModels, setShowFishAudioModels] = useState(false);
   const [fishAudioSearch, setFishAudioSearch] = useState("");
 
   // LLM 配置变更追踪
@@ -239,7 +242,11 @@ export default function Settings() {
     error: fishAudioError,
   } = trpc.apiConfig.listFishAudioModels.useQuery(
     { search: fishAudioSearch || undefined },
-    { enabled: fishAudioReady, retry: false }
+    {
+      enabled: fishAudioReady,
+      retry: false,
+      placeholderData: previous => previous,
+    }
   );
 
   const updatePreferences = trpc.apiConfig.updatePreferences.useMutation();
@@ -429,7 +436,6 @@ export default function Settings() {
 
   const handleSelectModel = (modelId: string) => {
     setSelectedModel(modelId);
-    setShowModelList(false);
     setHasUnsavedLlmChanges(true);
     toast.info(t('已选择模型：{v0}，请点击"保存生效"确认', { v0: modelId }));
   };
@@ -446,7 +452,6 @@ export default function Settings() {
   const handleSelectElevenLabsVoice = (voice: ElevenLabsVoice) => {
     setElevenlabsVoiceId(voice.id);
     setElevenlabsVoiceName(voice.name);
-    setShowElevenLabsVoices(false);
     setHasUnsavedVoiceChanges(true);
     toast.info(t('已选择声音：{v0}，请点击"保存生效"确认', { v0: voice.name }));
   };
@@ -454,7 +459,6 @@ export default function Settings() {
   const handleSelectFishAudioModel = (model: FishAudioModel) => {
     setFishAudioModelId(model.id);
     setFishAudioModelName(model.name);
-    setShowFishAudioModels(false);
     setHasUnsavedVoiceChanges(true);
     toast.info(t('已选择声音：{v0}，请点击"保存生效"确认', { v0: model.name }));
   };
@@ -604,12 +608,13 @@ export default function Settings() {
                 {/* 自动播放开关 */}
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>{t("自动语音播放")}</Label>
+                    <Label htmlFor="tts-auto-play">{t("自动语音播放")}</Label>
                     <p className="text-xs text-muted-foreground">
                       {t("开启后，AI 女友的每条回复都会自动朗读")}
                     </p>
                   </div>
                   <Switch
+                    id="tts-auto-play"
                     checked={ttsAutoPlay}
                     onCheckedChange={handleTtsToggle}
                   />
@@ -618,14 +623,19 @@ export default function Settings() {
                 {/* 语音引擎选择 */}
                 <div className="space-y-3">
                   <Label>{t("语音引擎")}</Label>
-                  <div className="grid gap-3">
+                  <RadioGroup
+                    aria-label={t("语音引擎")}
+                    value={ttsProvider}
+                    onValueChange={value => {
+                      setTtsProvider(value as TTSProvider);
+                      setHasUnsavedVoiceChanges(true);
+                    }}
+                    className="grid gap-3"
+                  >
                     {ttsProviderOptions.map(option => (
-                      <button
+                      <RadioGroupChoice
                         key={option.value}
-                        onClick={() => {
-                          setTtsProvider(option.value);
-                          setHasUnsavedVoiceChanges(true);
-                        }}
+                        value={option.value}
                         className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all ${
                           ttsProvider === option.value
                             ? "border-primary bg-primary/5 ring-1 ring-primary/20"
@@ -659,9 +669,9 @@ export default function Settings() {
                         {ttsProvider === option.value && (
                           <Check className="w-4 h-4 text-primary shrink-0" />
                         )}
-                      </button>
+                      </RadioGroupChoice>
                     ))}
-                  </div>
+                  </RadioGroup>
                 </div>
 
                 {/* ===== 浏览器内置语音配置 ===== */}
@@ -739,134 +749,57 @@ export default function Settings() {
                       </div>
                     )}
 
-                    {/* 已选择的声音 */}
-                    {elevenlabsVoiceId && (
-                      <div className="p-3 rounded-lg border bg-primary/5 border-primary/20">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <Check className="w-4 h-4 text-primary" />
-                              <span className="font-medium text-sm">
-                                {t("当前声音")}
-                              </span>
-                            </div>
-                            <p className="text-sm mt-1">
-                              {elevenlabsVoiceName || elevenlabsVoiceId}
-                            </p>
-                          </div>
-                          {elevenLabsData && (
+                    {elevenLabsData && !elevenLabsLoading && (
+                      <SearchSelect
+                        value={elevenlabsVoiceId}
+                        label={t("更换声音")}
+                        placeholder={t("搜索声音名称...")}
+                        emptyText={t("没有找到匹配的声音")}
+                        search={elevenLabsSearch}
+                        onSearchChange={setElevenLabsSearch}
+                        options={groupedElevenLabsVoices.flatMap(
+                          ([category, voices]) =>
+                            voices.map(voice => ({
+                              value: voice.id,
+                              label: voice.name,
+                              description: voice.description,
+                              group: category,
+                            }))
+                        )}
+                        onValueChange={id => {
+                          const voice = elevenLabsData.voices.find(
+                            (voice: ElevenLabsVoice) => voice.id === id
+                          );
+                          if (voice) handleSelectElevenLabsVoice(voice);
+                        }}
+                        renderActions={id => {
+                          const voice = elevenLabsData.voices.find(
+                            (voice: ElevenLabsVoice) => voice.id === id
+                          );
+                          return voice?.previewUrl ? (
                             <Button
+                              type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() =>
-                                setShowElevenLabsVoices(!showElevenLabsVoices)
-                              }
+                              onClick={() => {
+                                void new Audio(voice.previewUrl)
+                                  .play()
+                                  .catch(() => toast.error(t("语音播放失败")));
+                              }}
                             >
-                              {t("更换声音")}
+                              <Volume2 className="size-4" />
+                              {t("试听")}
                             </Button>
-                          )}
-                        </div>
-                      </div>
+                          ) : null;
+                        }}
+                      />
                     )}
-
-                    {/* 声音列表 */}
-                    {elevenLabsData &&
-                      !elevenLabsLoading &&
-                      (showElevenLabsVoices || !elevenlabsVoiceId) && (
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <Label>
-                              {t("选择声音（共")}
-                              {elevenLabsData.total} {t("个可用）")}
-                            </Label>
-                            {elevenlabsVoiceId && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setShowElevenLabsVoices(false)}
-                              >
-                                {t("收起")}
-                              </Button>
-                            )}
-                          </div>
-
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
-                              placeholder={t("搜索声音名称...")}
-                              value={elevenLabsSearch}
-                              onChange={e =>
-                                setElevenLabsSearch(e.target.value)
-                              }
-                              className="pl-9"
-                            />
-                          </div>
-
-                          <div className="max-h-72 overflow-y-auto rounded-lg border divide-y">
-                            {groupedElevenLabsVoices.length === 0 ? (
-                              <div className="p-4 text-center text-sm text-muted-foreground">
-                                {t("没有找到匹配的声音")}
-                              </div>
-                            ) : (
-                              groupedElevenLabsVoices.map(
-                                ([category, voices]) => (
-                                  <div key={category}>
-                                    <div className="px-3 py-2 bg-muted/30 text-xs font-semibold text-muted-foreground uppercase sticky top-0">
-                                      {category} ({voices.length})
-                                    </div>
-                                    {voices.map((voice: ElevenLabsVoice) => (
-                                      <button
-                                        key={voice.id}
-                                        className={`w-full text-left px-3 py-2.5 hover:bg-accent/50 transition-colors flex items-center justify-between gap-2 ${
-                                          elevenlabsVoiceId === voice.id
-                                            ? "bg-primary/10 border-l-2 border-primary"
-                                            : ""
-                                        }`}
-                                        onClick={() =>
-                                          handleSelectElevenLabsVoice(voice)
-                                        }
-                                      >
-                                        <div className="min-w-0 flex-1">
-                                          <div className="flex items-center gap-2">
-                                            <span className="text-sm font-medium">
-                                              {voice.name}
-                                            </span>
-                                            {elevenlabsVoiceId === voice.id && (
-                                              <Check className="w-3.5 h-3.5 text-primary shrink-0" />
-                                            )}
-                                          </div>
-                                          {voice.description && (
-                                            <p className="text-xs text-muted-foreground truncate mt-0.5">
-                                              {voice.description}
-                                            </p>
-                                          )}
-                                        </div>
-                                        {voice.previewUrl && (
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="shrink-0 h-7 w-7 p-0"
-                                            onClick={e => {
-                                              e.stopPropagation();
-                                              const audio = new Audio(
-                                                voice.previewUrl
-                                              );
-                                              audio.play();
-                                            }}
-                                            title={t("试听")}
-                                          >
-                                            <Volume2 className="w-3.5 h-3.5" />
-                                          </Button>
-                                        )}
-                                      </button>
-                                    ))}
-                                  </div>
-                                )
-                              )
-                            )}
-                          </div>
-                        </div>
-                      )}
+                    {elevenlabsVoiceId && (
+                      <p className="text-xs text-muted-foreground">
+                        {t("当前声音")} ·{" "}
+                        {elevenlabsVoiceName || elevenlabsVoiceId}
+                      </p>
+                    )}
 
                     {/* 测试按钮 */}
                     {elevenlabsVoiceId && (
@@ -943,122 +876,40 @@ export default function Settings() {
                       </div>
                     )}
 
-                    {/* 已选择的声音模型 */}
-                    {fishAudioModelId && (
-                      <div className="p-3 rounded-lg border bg-primary/5 border-primary/20">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <Check className="w-4 h-4 text-primary" />
-                              <span className="font-medium text-sm">
-                                {t("当前声音模型")}
-                              </span>
-                            </div>
-                            <p className="text-sm mt-1">
-                              {fishAudioModelName || fishAudioModelId}
-                            </p>
-                          </div>
-                          {fishAudioData && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                setShowFishAudioModels(!showFishAudioModels)
-                              }
-                            >
-                              {t("更换模型")}
-                            </Button>
-                          )}
-                        </div>
-                      </div>
+                    {fishAudioData && (
+                      <SearchSelect
+                        value={fishAudioModelId}
+                        label={t("更换模型")}
+                        placeholder={t("搜索声音模型名称...")}
+                        emptyText={
+                          fishAudioLoading
+                            ? t("正在加载声音模型列表...")
+                            : t("没有找到匹配的声音模型")
+                        }
+                        search={fishAudioSearch}
+                        onSearchChange={setFishAudioSearch}
+                        options={filteredFishAudioModels.map(
+                          (model: FishAudioModel) => ({
+                            value: model.id,
+                            label: model.name,
+                            description: model.description,
+                            detail: model.tags.slice(0, 3).join(" · "),
+                          })
+                        )}
+                        onValueChange={id => {
+                          const model = fishAudioData.models.find(
+                            (model: FishAudioModel) => model.id === id
+                          );
+                          if (model) handleSelectFishAudioModel(model);
+                        }}
+                      />
                     )}
-
-                    {/* 声音模型列表 */}
-                    {fishAudioData &&
-                      !fishAudioLoading &&
-                      (showFishAudioModels || !fishAudioModelId) && (
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <Label>
-                              {t("选择声音模型（共")}
-                              {fishAudioData.total} {t("个可用）")}
-                            </Label>
-                            {fishAudioModelId && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setShowFishAudioModels(false)}
-                              >
-                                {t("收起")}
-                              </Button>
-                            )}
-                          </div>
-
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
-                              placeholder={t("搜索声音模型名称...")}
-                              value={fishAudioSearch}
-                              onChange={e => setFishAudioSearch(e.target.value)}
-                              className="pl-9"
-                            />
-                          </div>
-
-                          <div className="max-h-72 overflow-y-auto rounded-lg border divide-y">
-                            {filteredFishAudioModels.length === 0 ? (
-                              <div className="p-4 text-center text-sm text-muted-foreground">
-                                {t("没有找到匹配的声音模型")}
-                              </div>
-                            ) : (
-                              filteredFishAudioModels.map(
-                                (model: FishAudioModel) => (
-                                  <button
-                                    key={model.id}
-                                    className={`w-full text-left px-3 py-2.5 hover:bg-accent/50 transition-colors ${
-                                      fishAudioModelId === model.id
-                                        ? "bg-primary/10 border-l-2 border-primary"
-                                        : ""
-                                    }`}
-                                    onClick={() =>
-                                      handleSelectFishAudioModel(model)
-                                    }
-                                  >
-                                    <div className="flex items-center justify-between gap-2">
-                                      <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-sm font-medium">
-                                            {model.name}
-                                          </span>
-                                          {fishAudioModelId === model.id && (
-                                            <Check className="w-3.5 h-3.5 text-primary shrink-0" />
-                                          )}
-                                        </div>
-                                        {model.description && (
-                                          <p className="text-xs text-muted-foreground truncate mt-0.5">
-                                            {model.description}
-                                          </p>
-                                        )}
-                                        {model.tags.length > 0 && (
-                                          <div className="flex gap-1 mt-1 flex-wrap">
-                                            {model.tags.slice(0, 3).map(tag => (
-                                              <span
-                                                key={tag}
-                                                className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground"
-                                              >
-                                                {tag}
-                                              </span>
-                                            ))}
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </button>
-                                )
-                              )
-                            )}
-                          </div>
-                        </div>
-                      )}
+                    {fishAudioModelId && (
+                      <p className="text-xs text-muted-foreground">
+                        {t("当前声音模型")} ·{" "}
+                        {fishAudioModelName || fishAudioModelId}
+                      </p>
+                    )}
 
                     {/* 测试按钮 */}
                     {fishAudioModelId && (
@@ -1405,165 +1256,64 @@ export default function Settings() {
                           </p>
                         )}
                       </div>
-                      {modelsData && !usesDeepSeek && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setShowModelList(!showModelList)}
-                        >
-                          {t("更换模型")}
-                        </Button>
-                      )}
                     </div>
                   </div>
                 )}
 
-                {modelsData &&
-                  !usesDeepSeek &&
-                  !modelsLoading &&
-                  (showModelList || !selectedModel) && (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label>
-                          {t("选择模型（共")}
-                          {modelsData.total} {t("个可用）")}
-                        </Label>
-                        {selectedModel && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setShowModelList(false)}
-                          >
-                            {t("收起")}
-                          </Button>
-                        )}
-                      </div>
-
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          placeholder={t("搜索模型名称、ID 或提供商...")}
-                          value={modelSearch}
-                          onChange={e => setModelSearch(e.target.value)}
-                          className="pl-9"
+                {modelsData && !usesDeepSeek && !modelsLoading && (
+                  <SearchSelect
+                    value={selectedModel}
+                    label={t("更换模型")}
+                    placeholder={t("搜索模型名称、ID 或提供商...")}
+                    emptyText={t("没有找到匹配的模型")}
+                    search={modelSearch}
+                    onSearchChange={setModelSearch}
+                    options={[
+                      ...filteredModels.filter((model: ModelInfo) =>
+                        favoriteModels.includes(model.id)
+                      ),
+                      ...filteredModels.filter(
+                        (model: ModelInfo) => !favoriteModels.includes(model.id)
+                      ),
+                    ].map((model: ModelInfo) => ({
+                      value: model.id,
+                      label: model.name,
+                      description: model.id,
+                      group: favoriteModels.includes(model.id)
+                        ? t("已收藏")
+                        : model.provider,
+                      detail: (
+                        <>
+                          <span className="block">
+                            {(model.contextLength / 1000).toFixed(0)}K
+                          </span>
+                          {formatPrice(model.pricing.prompt)}
+                        </>
+                      ),
+                    }))}
+                    onValueChange={handleSelectModel}
+                    renderActions={id => (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        aria-pressed={favoriteModels.includes(id)}
+                        onClick={() => toggleFavoriteModel(id)}
+                      >
+                        <Star
+                          className={
+                            favoriteModels.includes(id)
+                              ? "size-4 fill-amber-400 text-amber-400"
+                              : "size-4"
+                          }
                         />
-                      </div>
-
-                      <div className="max-h-80 overflow-y-auto rounded-lg border divide-y">
-                        {/* 收藏模型置顶显示 */}
-                        {(() => {
-                          const favModels = filteredModels.filter(
-                            (m: ModelInfo) => favoriteModels.includes(m.id)
-                          );
-                          const nonFavModels = filteredModels.filter(
-                            (m: ModelInfo) => !favoriteModels.includes(m.id)
-                          );
-                          const nonFavGrouped: Record<string, ModelInfo[]> = {};
-                          for (const model of nonFavModels) {
-                            if (!nonFavGrouped[model.provider])
-                              nonFavGrouped[model.provider] = [];
-                            nonFavGrouped[model.provider].push(model);
-                          }
-                          const nonFavEntries = Object.entries(
-                            nonFavGrouped
-                          ).sort(([a], [b]) => a.localeCompare(b));
-
-                          if (
-                            favModels.length === 0 &&
-                            nonFavEntries.length === 0
-                          ) {
-                            return (
-                              <div className="p-4 text-center text-sm text-muted-foreground">
-                                {t("没有找到匹配的模型")}
-                              </div>
-                            );
-                          }
-
-                          const renderModelItem = (model: ModelInfo) => (
-                            <div
-                              key={model.id}
-                              className={`w-full text-left px-3 py-2.5 hover:bg-accent/50 transition-colors flex items-center justify-between gap-2 ${
-                                selectedModel === model.id
-                                  ? "bg-primary/10 border-l-2 border-primary"
-                                  : ""
-                              }`}
-                            >
-                              <button
-                                className="min-w-0 flex-1 text-left"
-                                onClick={() => handleSelectModel(model.id)}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-medium truncate">
-                                    {model.name}
-                                  </span>
-                                  {selectedModel === model.id && (
-                                    <Check className="w-3.5 h-3.5 text-primary shrink-0" />
-                                  )}
-                                </div>
-                                <p className="text-xs text-muted-foreground font-mono truncate">
-                                  {model.id}
-                                </p>
-                              </button>
-                              <div className="flex items-center gap-2 shrink-0">
-                                <div className="text-right">
-                                  <p className="text-xs text-muted-foreground">
-                                    {(model.contextLength / 1000).toFixed(0)}
-                                    {t("K")}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {formatPrice(model.pricing.prompt)}
-                                  </p>
-                                </div>
-                                <button
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                    toggleFavoriteModel(model.id);
-                                  }}
-                                  className="p-1 rounded hover:bg-accent transition-colors"
-                                  title={
-                                    favoriteModels.includes(model.id)
-                                      ? t("取消收藏")
-                                      : t("收藏模型")
-                                  }
-                                >
-                                  <Star
-                                    className={`w-3.5 h-3.5 ${
-                                      favoriteModels.includes(model.id)
-                                        ? "fill-amber-400 text-amber-400"
-                                        : "text-muted-foreground"
-                                    }`}
-                                  />
-                                </button>
-                              </div>
-                            </div>
-                          );
-
-                          return (
-                            <>
-                              {favModels.length > 0 && (
-                                <div>
-                                  <div className="px-3 py-2 bg-amber-500/10 text-xs font-semibold text-amber-600 uppercase sticky top-0 flex items-center gap-1.5">
-                                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                                    {t("收藏模型 (")}
-                                    {favModels.length})
-                                  </div>
-                                  {favModels.map(renderModelItem)}
-                                </div>
-                              )}
-                              {nonFavEntries.map(([provider, models]) => (
-                                <div key={provider}>
-                                  <div className="px-3 py-2 bg-muted/30 text-xs font-semibold text-muted-foreground uppercase sticky top-0">
-                                    {provider} ({models.length})
-                                  </div>
-                                  {models.map(renderModelItem)}
-                                </div>
-                              ))}
-                            </>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  )}
+                        {favoriteModels.includes(id)
+                          ? t("取消收藏")
+                          : t("收藏模型")}
+                      </Button>
+                    )}
+                  />
+                )}
                 {/* LLM 配置保存生效按钮 */}
                 {(openRouterKey.length > 0 || selectedModel) && (
                   <div className="pt-3 border-t">
@@ -1650,7 +1400,10 @@ export default function Settings() {
                   </p>
                   <div className="grid grid-cols-2 gap-2">
                     {promptTemplates.map(tpl => (
-                      <button
+                      <Button
+                        variant="plain"
+                        size="none"
+                        type="button"
                         key={tpl.label}
                         onClick={() => {
                           setGlobalPrompt(tpl.text);
@@ -1666,58 +1419,63 @@ export default function Settings() {
                         }`}
                       >
                         <span className="font-medium">{tpl.label}</span>
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
 
                 {/* 高级选项 */}
-                <div className="border-t pt-4">
-                  <button
-                    onClick={() => setShowAdvancedPrompt(!showAdvancedPrompt)}
-                    className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full"
-                  >
-                    {showAdvancedPrompt ? (
-                      <ChevronUp className="w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" />
-                    )}
-                    {t("高级选项")}
-                  </button>
-
-                  {showAdvancedPrompt && (
-                    <div className="mt-3 space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="replyLanguage">{t("回复语言")}</Label>
-                        <Input
-                          id="replyLanguage"
-                          placeholder={t("默认中文，可设置为英文、日文等")}
-                          value={replyLanguage}
-                          onChange={e => {
-                            setReplyLanguage(e.target.value);
-                            setHasUnsavedAiChanges(true);
-                          }}
-                          maxLength={50}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="replyLengthLimit">
-                          {t("回复长度限制")}
-                        </Label>
-                        <Input
-                          id="replyLengthLimit"
-                          placeholder={t("例如：50字以内、2-3句话、不限制")}
-                          value={replyLengthLimit}
-                          onChange={e => {
-                            setReplyLengthLimit(e.target.value);
-                            setHasUnsavedAiChanges(true);
-                          }}
-                          maxLength={50}
-                        />
-                      </div>
+                <Collapsible
+                  open={showAdvancedPrompt}
+                  onOpenChange={setShowAdvancedPrompt}
+                  className="border-t pt-4"
+                >
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="plain"
+                      size="none"
+                      type="button"
+                      className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full"
+                    >
+                      {showAdvancedPrompt ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                      {t("高级选项")}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-3 space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="replyLanguage">{t("回复语言")}</Label>
+                      <Input
+                        id="replyLanguage"
+                        placeholder={t("默认中文，可设置为英文、日文等")}
+                        value={replyLanguage}
+                        onChange={e => {
+                          setReplyLanguage(e.target.value);
+                          setHasUnsavedAiChanges(true);
+                        }}
+                        maxLength={50}
+                      />
                     </div>
-                  )}
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="replyLengthLimit">
+                        {t("回复长度限制")}
+                      </Label>
+                      <Input
+                        id="replyLengthLimit"
+                        placeholder={t("例如：50字以内、2-3句话、不限制")}
+                        value={replyLengthLimit}
+                        onChange={e => {
+                          setReplyLengthLimit(e.target.value);
+                          setHasUnsavedAiChanges(true);
+                        }}
+                        maxLength={50}
+                      />
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
 
                 {/* AI 行为设定保存生效按钮 */}
                 <div className="pt-3 border-t">

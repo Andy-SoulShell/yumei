@@ -9,6 +9,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -377,7 +382,11 @@ export default function Setup() {
                   </p>
                   <div className="flex items-center gap-4">
                     {/* 头像预览 */}
-                    <div
+                    <Button
+                      variant="plain"
+                      size="none"
+                      type="button"
+                      aria-label={t("上传")}
                       className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-border flex-shrink-0 cursor-pointer group"
                       onClick={() => avatarInputRef.current?.click()}
                     >
@@ -400,11 +409,11 @@ export default function Setup() {
                           </span>
                         </div>
                       )}
-                    </div>
+                    </Button>
 
                     {/* 操作按钮 */}
                     <div className="flex flex-col gap-2">
-                      <input
+                      <Input
                         ref={avatarInputRef}
                         type="file"
                         accept="image/jpeg,image/png,image/gif,image/webp"
@@ -607,129 +616,138 @@ export default function Setup() {
               </div>
 
               {/* 高级提示词定制 */}
-              <div className="border-t pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowCustomPrompt(!showCustomPrompt)}
-                  className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full"
-                >
-                  {showCustomPrompt ? (
-                    <ChevronUp className="w-4 h-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4" />
-                  )}
-                  <Brain className="w-4 h-4" />
-                  {t("高级提示词定制")}
-                  <span className="text-xs px-1.5 py-0.5 rounded bg-muted">
-                    {t("可选")}
-                  </span>
-                </button>
+              <Collapsible
+                open={showCustomPrompt}
+                onOpenChange={setShowCustomPrompt}
+                className="border-t pt-4"
+              >
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="plain"
+                    size="none"
+                    type="button"
+                    className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full"
+                  >
+                    {showCustomPrompt ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
+                    <Brain className="w-4 h-4" />
+                    {t("高级提示词定制")}
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-muted">
+                      {t("可选")}
+                    </span>
+                  </Button>
+                </CollapsibleTrigger>
 
-                {showCustomPrompt && (
-                  <div className="mt-3 space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="customPrompt">{t("专属提示词")}</Label>
-                      <Textarea
-                        id="customPrompt"
-                        placeholder={t(
-                          "例如：说话带点傲娇，偶尔用日语词汇，喜欢用哼开头..."
-                        )}
-                        value={customPrompt}
-                        onChange={e => setCustomPrompt(e.target.value)}
-                        rows={3}
-                        maxLength={300}
-                        className="resize-none"
-                      />
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs text-muted-foreground">
-                          {t("仅对这个女友生效，会追加到全局提示词之后")}
-                        </p>
-                        <span className="text-xs text-muted-foreground">
-                          {customPrompt.length}/300
-                        </span>
-                      </div>
+                <CollapsibleContent className="mt-3 space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="customPrompt">{t("专属提示词")}</Label>
+                    <Textarea
+                      id="customPrompt"
+                      placeholder={t(
+                        "例如：说话带点傲娇，偶尔用日语词汇，喜欢用哼开头..."
+                      )}
+                      value={customPrompt}
+                      onChange={e => setCustomPrompt(e.target.value)}
+                      rows={3}
+                      maxLength={300}
+                      className="resize-none"
+                    />
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">
+                        {t("仅对这个女友生效，会追加到全局提示词之后")}
+                      </p>
+                      <span className="text-xs text-muted-foreground">
+                        {customPrompt.length}/300
+                      </span>
                     </div>
+                  </div>
 
-                    {/* 提示词预览 */}
-                    <div className="space-y-2">
-                      <button
+                  {/* 提示词预览 */}
+                  <Collapsible
+                    open={showPromptPreview}
+                    onOpenChange={setShowPromptPreview}
+                    className="space-y-2"
+                  >
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="plain"
+                        size="none"
                         type="button"
-                        onClick={() => setShowPromptPreview(!showPromptPreview)}
                         className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
                       >
                         <Eye className="w-3.5 h-3.5" />
                         {showPromptPreview
                           ? t("收起预览")
                           : t("查看最终生效的提示词")}
-                      </button>
+                      </Button>
+                    </CollapsibleTrigger>
 
-                      {showPromptPreview && (
-                        <div className="rounded-lg border bg-muted/30 p-3 space-y-2 text-sm">
-                          <p className="text-xs font-medium text-muted-foreground mb-2">
-                            {t("最终发送给 AI 的提示词预览：")}
+                    <CollapsibleContent className="rounded-lg border bg-muted/30 p-3 space-y-2 text-sm">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">
+                        {t("最终发送给 AI 的提示词预览：")}
+                      </p>
+
+                      {/* 全局提示词 */}
+                      {apiConfig?.preferences?.globalPrompt ? (
+                        <div className="rounded p-2 bg-blue-500/10 border border-blue-500/20">
+                          <span className="text-[10px] font-semibold text-blue-500 uppercase">
+                            {t("全局提示词")}
+                          </span>
+                          <p className="mt-1 text-foreground/80">
+                            {apiConfig.preferences?.globalPrompt}
                           </p>
-
-                          {/* 全局提示词 */}
-                          {apiConfig?.preferences?.globalPrompt ? (
-                            <div className="rounded p-2 bg-blue-500/10 border border-blue-500/20">
-                              <span className="text-[10px] font-semibold text-blue-500 uppercase">
-                                {t("全局提示词")}
-                              </span>
-                              <p className="mt-1 text-foreground/80">
-                                {apiConfig.preferences?.globalPrompt}
-                              </p>
-                            </div>
-                          ) : (
-                            <div className="rounded p-2 bg-muted/50 border border-dashed">
-                              <span className="text-[10px] font-semibold text-muted-foreground uppercase">
-                                {t("全局提示词")}
-                              </span>
-                              <p className="mt-1 text-muted-foreground italic">
-                                {t("未设置，可在设置页配置")}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* 个体提示词 */}
-                          {customPrompt ? (
-                            <div className="rounded p-2 bg-primary/10 border border-primary/20">
-                              <span className="text-[10px] font-semibold text-primary uppercase">
-                                {t("个体提示词")}
-                              </span>
-                              <p className="mt-1 text-foreground/80">
-                                {customPrompt}
-                              </p>
-                            </div>
-                          ) : (
-                            <div className="rounded p-2 bg-muted/50 border border-dashed">
-                              <span className="text-[10px] font-semibold text-muted-foreground uppercase">
-                                {t("个体提示词")}
-                              </span>
-                              <p className="mt-1 text-muted-foreground italic">
-                                {t("未设置")}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* 性格 + 外貌结构化字段 */}
-                          <div className="rounded p-2 bg-purple-500/10 border border-purple-500/20">
-                            <span className="text-[10px] font-semibold text-purple-500 uppercase">
-                              {t("角色设定")}
-                            </span>
-                            <p className="mt-1 text-foreground/80">
-                              {t("性格：")}
-                              {personality || t("未填写")} {t("| 外貌：")}
-                              {appearance || t("未填写")}
-                              {interests &&
-                                t(" | 兴趣：{v0}", { v0: interests })}
-                            </p>
-                          </div>
+                        </div>
+                      ) : (
+                        <div className="rounded p-2 bg-muted/50 border border-dashed">
+                          <span className="text-[10px] font-semibold text-muted-foreground uppercase">
+                            {t("全局提示词")}
+                          </span>
+                          <p className="mt-1 text-muted-foreground italic">
+                            {t("未设置，可在设置页配置")}
+                          </p>
                         </div>
                       )}
-                    </div>
-                  </div>
-                )}
-              </div>
+
+                      {/* 个体提示词 */}
+                      {customPrompt ? (
+                        <div className="rounded p-2 bg-primary/10 border border-primary/20">
+                          <span className="text-[10px] font-semibold text-primary uppercase">
+                            {t("个体提示词")}
+                          </span>
+                          <p className="mt-1 text-foreground/80">
+                            {customPrompt}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="rounded p-2 bg-muted/50 border border-dashed">
+                          <span className="text-[10px] font-semibold text-muted-foreground uppercase">
+                            {t("个体提示词")}
+                          </span>
+                          <p className="mt-1 text-muted-foreground italic">
+                            {t("未设置")}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* 性格 + 外貌结构化字段 */}
+                      <div className="rounded p-2 bg-purple-500/10 border border-purple-500/20">
+                        <span className="text-[10px] font-semibold text-purple-500 uppercase">
+                          {t("角色设定")}
+                        </span>
+                        <p className="mt-1 text-foreground/80">
+                          {t("性格：")}
+                          {personality || t("未填写")} {t("| 外貌：")}
+                          {appearance || t("未填写")}
+                          {interests && t(" | 兴趣：{v0}", { v0: interests })}
+                        </p>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </CollapsibleContent>
+              </Collapsible>
 
               <Button type="submit" className="w-full" disabled={isPending}>
                 {isPending ? (

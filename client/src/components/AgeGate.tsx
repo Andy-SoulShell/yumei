@@ -5,7 +5,8 @@ import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -91,12 +92,12 @@ export function AgeGate() {
                 confirmAge.mutate({ birthDate });
               }}
             >
-              <Input
-                type="date"
-                required
+              <Label htmlFor="birth-date">{t("出生日期")}</Label>
+              <DatePicker
+                id="birth-date"
+                label={t("出生日期")}
                 value={birthDate}
-                max={new Date().toISOString().slice(0, 10)}
-                onChange={e => setBirthDate(e.target.value)}
+                onValueChange={setBirthDate}
               />
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button

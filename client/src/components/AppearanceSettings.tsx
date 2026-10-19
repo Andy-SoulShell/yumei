@@ -2,6 +2,7 @@
 import { Check, Globe, Monitor, Moon, Palette, Sun } from "lucide-react";
 import {
   THEME_IDS,
+  type ThemeId,
   type ColorMode,
   type UiLanguage,
 } from "@shared/preferences";
@@ -16,28 +17,36 @@ import {
   CardTitle,
 } from "./ui/card";
 import { Button } from "./ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { RadioGroup, RadioGroupChoice } from "./ui/radio-group";
 
 /** 登录前后均可使用的语言选择器，修改后立即生效。 */
 export function LanguagePicker() {
   const { preferences, update } = usePreferences();
   const { t } = useI18n();
   return (
-    <label className="flex items-center gap-2 text-sm">
+    <div className="flex items-center gap-2 text-sm">
       <Globe className="h-4 w-4 text-primary" aria-hidden="true" />
-      <span className="sr-only">{t("界面语言")}</span>
-      <select
-        aria-label={t("界面语言")}
-        className="rounded-lg border border-input bg-background px-3 py-2 text-foreground focus-visible:outline-ring"
+      <Select
         value={preferences.language}
-        onChange={event =>
-          update({ language: event.target.value as UiLanguage })
-        }
+        onValueChange={language => update({ language: language as UiLanguage })}
       >
-        <option value="system">{t("跟随系统")}</option>
-        <option value="zh-CN">简体中文</option>
-        <option value="en">English</option>
-      </select>
-    </label>
+        <SelectTrigger aria-label={t("界面语言")} className="min-w-36">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="system">{t("跟随系统")}</SelectItem>
+          <SelectItem value="zh-CN">简体中文</SelectItem>
+          <SelectItem value="en">English</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
 
@@ -73,36 +82,42 @@ export function AppearanceSettings() {
         </div>
         <fieldset>
           <legend className="mb-3 text-sm font-medium">{t("显示模式")}</legend>
-          <div className="grid grid-cols-3 gap-2">
+          <RadioGroup
+            aria-label={t("显示模式")}
+            className="grid grid-cols-3 gap-2"
+            value={preferences.colorMode}
+            onValueChange={colorMode =>
+              update({ colorMode: colorMode as ColorMode })
+            }
+          >
             {modes.map(({ value, label, icon: Icon }) => (
-              <Button
-                type="button"
+              <RadioGroupChoice
+                variant="segment"
                 key={value}
-                variant={
-                  preferences.colorMode === value ? "default" : "outline"
-                }
-                aria-pressed={preferences.colorMode === value}
-                onClick={() => update({ colorMode: value })}
+                value={value}
                 className="gap-2 px-2"
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 <span>{t(label)}</span>
-              </Button>
+              </RadioGroupChoice>
             ))}
-          </div>
+          </RadioGroup>
         </fieldset>
         <fieldset>
           <legend className="mb-3 text-sm font-medium">{t("主题")}</legend>
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          <RadioGroup
+            aria-label={t("主题")}
+            className="grid grid-cols-1 gap-2.5 sm:grid-cols-2"
+            value={preferences.theme}
+            onValueChange={theme => update({ theme: theme as ThemeId })}
+          >
             {THEME_IDS.map(id => {
               const theme = THEMES[id];
               const selected = preferences.theme === id;
               return (
-                <button
-                  type="button"
+                <RadioGroupChoice
                   key={id}
-                  aria-pressed={selected}
-                  onClick={() => update({ theme: id })}
+                  value={id}
                   className={`flex min-h-24 items-center gap-3 rounded-2xl border px-4 py-4 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${selected ? "border-primary/60 bg-primary/10" : "border-border bg-muted/30 hover:border-primary/40 hover:bg-muted/60"}`}
                 >
                   <span
@@ -130,10 +145,10 @@ export function AppearanceSettings() {
                       <Check className="h-4 w-4" />
                     </span>
                   )}
-                </button>
+                </RadioGroupChoice>
               );
             })}
-          </div>
+          </RadioGroup>
         </fieldset>
         <div aria-live="polite" className="text-xs text-muted-foreground">
           {saveError ? (

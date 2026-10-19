@@ -1,5 +1,9 @@
 /** 界面文案词典；中文原文保持为稳定标识，用户输入不经过此词典。 */
 export const en: Record<string, string> = {
+  出生日期: "Date of birth",
+  标记已读: "Mark as read",
+  清除搜索: "Clear search",
+  已收藏: "Favorites",
   "新建对话失败：{v0}": "Could not start a conversation: {v0}",
   "打开对话失败：{v0}": "Could not open the conversation: {v0}",
   自拍已发到当前对话: "Selfie sent to this conversation",

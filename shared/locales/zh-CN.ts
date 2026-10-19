@@ -2,6 +2,8 @@
 import type { MessageCatalog } from "./types";
 export default {
   explore: {
+    collapseSidebar: "折叠导航",
+    expandSidebar: "展开导航",
     retry: "重试",
     navExplore: "探索",
     navChats: "聊天",

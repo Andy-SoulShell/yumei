@@ -7,6 +7,7 @@ export default defineConfig({
     ...base.test,
     globalSetup: [],
     include: [
+      "client/src/components/AppShell.test.tsx",
       "client/src/lib/navigation.test.ts",
       "client/src/hooks/useCompanionChat.test.tsx",
       "client/src/pages/Explore.test.tsx",

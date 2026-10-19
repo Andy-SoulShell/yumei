@@ -1,6 +1,8 @@
 /** 英文基准语言包；key 与插值参数构成类型契约。 */
 export default {
   explore: {
+    collapseSidebar: "Collapse navigation",
+    expandSidebar: "Expand navigation",
     retry: "Try again",
     navExplore: "Explore",
     navChats: "Chats",

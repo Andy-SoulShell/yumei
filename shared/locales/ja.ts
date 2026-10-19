@@ -2,6 +2,8 @@
 import type { MessageCatalog } from "./types";
 export default {
   explore: {
+    collapseSidebar: "ナビゲーションを折りたたむ",
+    expandSidebar: "ナビゲーションを展開",
     retry: "再試行",
     navExplore: "見つける",
     navChats: "チャット",

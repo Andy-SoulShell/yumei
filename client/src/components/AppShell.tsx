@@ -1,5 +1,5 @@
 /** PC 侧边导航与手机底部导航，共享账号、语言和主题入口。 */
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
   ArrowRight,
@@ -9,6 +9,8 @@ import {
   LogOut,
   MessageCircle,
   Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plus,
   Settings,
   Sparkles,
@@ -37,6 +39,22 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { user, logout, loading } = useAuth();
   const { t } = useI18n();
   const { theme, toggleTheme } = useTheme();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("yumei:sidebar-collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+  const toggleSidebar = () => {
+    const next = !sidebarCollapsed;
+    setSidebarCollapsed(next);
+    try {
+      localStorage.setItem("yumei:sidebar-collapsed", String(next));
+    } catch {
+      /* 浏览器禁用存储时，本次会话仍可手动折叠。 */
+    }
+  };
   const inChat = /^\/chat(?:\/|$)/.test(location);
   const links = [
     {
@@ -77,6 +95,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         href={href}
         className={`app-nav-link ${active ? "is-active" : ""} ${mobile && href === "/setup" ? "is-create" : ""}`}
         aria-current={active ? "page" : undefined}
+        title={!mobile && sidebarCollapsed ? label : undefined}
       >
         <span className="app-nav-icon">
           <Icon size={20} aria-hidden="true" />
@@ -85,7 +104,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Link>
     ));
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell ${sidebarCollapsed ? "is-sidebar-collapsed" : ""}`}
+    >
       <a className="skip-link" href="#main-content">
         {t("explore:skipToContent")}
       </a>
@@ -96,6 +117,21 @@ export function AppShell({ children }: { children: ReactNode }) {
           </span>
           YUMEI<span className="brand-period">.</span>
         </Link>
+        <Button
+          className="sidebar-toggle"
+          variant="ghost"
+          size="icon"
+          aria-label={t(
+            sidebarCollapsed
+              ? "explore:expandSidebar"
+              : "explore:collapseSidebar"
+          )}
+          aria-expanded={!sidebarCollapsed}
+          aria-controls="desktop-navigation"
+          onClick={toggleSidebar}
+        >
+          {sidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+        </Button>
         <span className="app-header-caption">{t("explore:brandCaption")}</span>
         <div className="app-header-actions">
           <div className="header-language">
@@ -164,7 +200,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
       <div className="app-workspace">
-        <aside id="desktop-navigation" className="app-sidebar">
+        <aside
+          id="desktop-navigation"
+          className="app-sidebar"
+          data-state={sidebarCollapsed ? "collapsed" : "expanded"}
+        >
           <div className="sidebar-panel">
             <p className="sidebar-label">{t("explore:yourWorld")}</p>
             <nav aria-label={t("explore:mainNavigation")}>{navigation()}</nav>
@@ -181,6 +221,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 href="/settings"
                 className={`app-nav-link ${location === "/settings" ? "is-active" : ""}`}
                 aria-current={location === "/settings" ? "page" : undefined}
+                title={sidebarCollapsed ? t("common:settings") : undefined}
               >
                 <Settings size={20} />
                 <span className="app-nav-label">{t("common:settings")}</span>

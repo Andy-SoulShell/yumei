@@ -31,6 +31,7 @@ beforeEach(() => {
   vi.spyOn(chatProviders, "resolveChatProvider").mockResolvedValue({
     name: "openrouter",
     baseUrl: "https://openrouter.ai/api/v1",
+    isByok: false,
     model: "openai/gpt-4o-mini",
     apiKey: "operator-test-key",
   });
@@ -139,6 +140,7 @@ describe("OpenRouter API integration", () => {
     vi.mocked(chatProviders.resolveChatProvider).mockResolvedValue({
       name: "openrouter",
       baseUrl: "https://openrouter.ai/api/v1",
+      isByok: false,
       model: "openai/gpt-4o-mini",
       apiKey: null,
     });

@@ -1,5 +1,6 @@
 /** 从环境读取运营方密钥，从加密数据库记录读取用户 BYOK 密钥。 */
 
+import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { userKeys } from "../../../drizzle/schema";
 import { getDb } from "../../db";
@@ -14,6 +15,7 @@ import {
   type KeyName,
   type KeyProvider,
   type KeyScope,
+  type ResolvedKey,
 } from "./types";
 
 /** Provider 名称到运营方环境变量的固定映射。 */
@@ -30,13 +32,17 @@ const OPERATOR_ENV: Record<KeyName, string> = {
 export class EnvKeyProvider implements KeyProvider {
   /** 按用户 BYOK 优先、运营方默认其次的顺序解析明文，均未配置时返回 null。 */
   async get(scope: KeyScope, name: KeyName): Promise<string | null> {
-    if (scope === "operator") {
-      return readOperatorKey(name);
+    return (await this.resolve(scope, name)).value;
+  }
+
+  /** 将明文和来源一起返回，避免密钥变更期间按过期元数据豁免计量。 */
+  async resolve(scope: KeyScope, name: KeyName): Promise<ResolvedKey> {
+    if (scope !== "operator") {
+      const value = await readUserKey(scope.userId, name);
+      if (value) return { value, source: "user" };
     }
-    // 用户范围优先读取 BYOK，无法读取时回退运营方密钥。
-    const userValue = await readUserKey(scope.userId, name);
-    if (userValue) return userValue;
-    return readOperatorKey(name);
+    const value = readOperatorKey(name);
+    return { value, source: value ? "operator" : "none" };
   }
 
   /** 加密保存用户密钥并更新末四位展示信息，空密钥或不支持的名称会被拒绝。 */
@@ -116,7 +122,7 @@ function readOperatorKey(name: KeyName): string | null {
   return value && value.length > 0 ? value : null;
 }
 
-/** 读取并解密用户密钥；无记录或解密失败时返回 null，当前不记录解密失败原因。 */
+/** 读取并解密用户密钥；无记录返回 null，解密失败提示重新保存并禁止回退运营方。 */
 async function readUserKey(
   userId: string,
   name: KeyName
@@ -130,13 +136,15 @@ async function readUserKey(
     .where(and(eq(userKeys.userId, userId), eq(userKeys.name, name)))
     .limit(1);
 
-  if (!row[0]?.encryptedValue) return null;
+  if (!row[0]) return null;
 
   try {
     return await decryptFromString(row[0].encryptedValue);
   } catch {
-    // 密文损坏或主密钥不匹配时静默返回空值，下游可能改用运营方密钥。
-    return null;
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: `BYOK_KEY_UNREADABLE: 请重新保存 ${name} API 密钥`,
+    });
   }
 }
 

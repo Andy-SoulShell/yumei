@@ -23,6 +23,10 @@ beforeEach(() => {
   vi.stubEnv("COMFYUI_BASE_URL", "http://comfy:8188");
   vi.stubEnv("COMFYUI_API_KEY", "private-comfy-token");
   vi.stubEnv("BILLING_PROVIDER", "none");
+  vi.spyOn(keyProvider, "resolve").mockResolvedValue({
+    value: null,
+    source: "none",
+  });
   vi.spyOn(keyProvider, "describeUserKeys").mockResolvedValue({
     fal: { isSet: false },
   } as any);
@@ -124,7 +128,10 @@ describe("ComfyUI selfie integration", () => {
     vi.mocked(keyProvider.describeUserKeys).mockResolvedValue({
       fal: { isSet: true },
     } as any);
-    vi.spyOn(keyProvider, "get").mockResolvedValue("user-fal-key");
+    vi.mocked(keyProvider.resolve).mockResolvedValue({
+      value: "user-fal-key",
+      source: "user",
+    });
     const provider = await providers.resolveImageProvider("u");
     expect(provider).toMatchObject({
       name: "fal",

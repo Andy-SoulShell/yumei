@@ -25,8 +25,17 @@ export type KeyDescription = {
   setAt: Date | null;
 };
 
+/** 实际解析出的凭据与来源，计量必须使用来源而不是“已保存”标记。 */
+export type ResolvedKey = {
+  value: string | null;
+  source: "user" | "operator" | "none";
+};
+
 /** 运营方默认密钥和用户加密 BYOK 密钥的访问契约。 */
 export interface KeyProvider {
+  /** 在同一次解析中返回凭据与来源；已保存密钥无法解密时拒绝回退。 */
+  resolve(scope: KeyScope, name: KeyName): Promise<ResolvedKey>;
+
   /** 按范围解析明文；用户范围允许回退运营方，完全未配置时返回 null。 */
   get(scope: KeyScope, name: KeyName): Promise<string | null>;
 

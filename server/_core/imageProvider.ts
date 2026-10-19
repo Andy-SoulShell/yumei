@@ -21,8 +21,8 @@ export type ImageProvider = {
 export async function resolveImageProvider(
   userId: string
 ): Promise<ImageProvider> {
-  const keys = await keyProvider.describeUserKeys(userId);
-  const isByok = keys.fal?.isSet === true;
+  const key = await keyProvider.resolve({ userId }, "fal");
+  const isByok = key.source === "user";
   if (process.env.IMAGE_PROVIDER === "comfyui" && !isByok) {
     return {
       name: "comfyui",
@@ -31,7 +31,7 @@ export async function resolveImageProvider(
       isByok: false,
     };
   }
-  const apiKey = await keyProvider.get({ userId }, "fal");
+  const apiKey = key.value;
   return { name: "fal", apiKey, configured: !!apiKey, isByok };
 }
 

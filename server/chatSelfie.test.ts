@@ -176,6 +176,7 @@ describe("chat-triggered selfies", () => {
       model: "deepseek-flash",
       apiKey: "fake",
       baseUrl: "https://api.deepseek.com",
+      isByok: false,
     });
     vi.spyOn(db, "getUserApiConfig").mockResolvedValue(undefined);
     vi.spyOn(memory, "buildMemoryPromptBlock").mockResolvedValue("");

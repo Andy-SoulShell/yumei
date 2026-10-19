@@ -732,8 +732,7 @@ export const appRouter = router({
         // 2b. 档位日配额。BYOK 用户自付 API 成本，跳过
         // 用量计量；限流仍然生效。BILLING_PROVIDER=none 的
         // 自托管部署完全不计量。
-        const userKeyInfo = await keyProvider.describeUserKeys(ctx.user.id);
-        const isByokChat = userKeyInfo.openrouter?.isSet === true;
+        const isByokChat = chatProvider.isByok;
         const { tier, limits } = await getTierLimits(ctx.user.id);
         if (
           isBillingEnforced() &&
@@ -1726,17 +1725,20 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
 
         const provider = apiConfig.ttsProvider || "browser";
 
+        const ttsKey =
+          provider === "elevenlabs" || provider === "fishaudio"
+            ? await keyProvider.resolve(
+                { userId: ctx.user.id },
+                provider === "elevenlabs" ? "elevenlabs" : "fish-audio"
+              )
+            : null;
         // 档位门槛：ElevenLabs 需 Plus+，Fish Audio 需
         // Pro；对应 BYOK key 或自托管模式除外。
         if (
           isBillingEnforced() &&
           (provider === "elevenlabs" || provider === "fishaudio")
         ) {
-          const ttsKeys = await keyProvider.describeUserKeys(ctx.user.id);
-          const byokForProvider =
-            provider === "elevenlabs"
-              ? ttsKeys.elevenlabs?.isSet === true
-              : ttsKeys["fish-audio"]?.isSet === true;
+          const byokForProvider = ttsKey?.source === "user";
           if (!byokForProvider) {
             const ttsTier = await getTierLimits(ctx.user.id);
             if (!ttsTier.limits.ttsProviders.includes(provider)) {
@@ -1750,10 +1752,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
 
         if (provider === "elevenlabs") {
           // resolve key via KeyProvider (BYOK → operator).
-          const elevenKey = await keyProvider.get(
-            { userId: ctx.user.id },
-            "elevenlabs"
-          );
+          const elevenKey = ttsKey?.value;
           if (!elevenKey || !apiConfig.elevenlabsVoiceId) {
             throw new Error(
               elevenKey
@@ -1796,10 +1795,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
             throw new Error("ElevenLabs 语音生成失败");
           }
         } else if (provider === "fishaudio") {
-          const fishKey = await keyProvider.get(
-            { userId: ctx.user.id },
-            "fish-audio"
-          );
+          const fishKey = ttsKey?.value;
           if (!fishKey || !apiConfig.fishAudioModelId) {
             throw new Error(
               fishKey
@@ -1868,8 +1864,11 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
 
         // 0b. 档位门槛：免费档不含语音转写；
         // BYOK openai key 或自托管模式除外。
-        const sttKeys = await keyProvider.describeUserKeys(ctx.user.id);
-        if (isBillingEnforced() && sttKeys.openai?.isSet !== true) {
+        const sttKey = await keyProvider.resolve(
+          { userId: ctx.user.id },
+          "openai"
+        );
+        if (isBillingEnforced() && sttKey.source !== "user") {
           const stt = await getTierLimits(ctx.user.id);
           if (!stt.limits.voiceTranscription) {
             throw new TRPCError({
@@ -1908,10 +1907,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         );
 
         // 4. 解析 OpenAI Whisper 密钥：用户 BYOK → 运营方 OPERATOR_OPENAI_KEY。
-        const whisperApiKey = await keyProvider.get(
-          { userId: ctx.user.id },
-          "openai"
-        );
+        const whisperApiKey = sttKey.value;
         if (!whisperApiKey) {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",

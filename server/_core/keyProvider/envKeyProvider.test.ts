@@ -3,6 +3,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { _resetEncryptionForTests } from "../encryption";
 import { EnvKeyProvider } from "./envKeyProvider";
+import { and, eq } from "drizzle-orm";
+import { userKeys } from "../../../drizzle/schema";
 import * as dbModule from "../../db";
 
 const ORIGINAL_ENV = { ...process.env };
@@ -101,5 +103,47 @@ describe("EnvKeyProvider — input validation", () => {
       // @ts-expect-error  intentionally bad input
       kp.setUserKey(1, "stripe", "x")
     ).rejects.toThrow(/Unknown key name/);
+  });
+});
+
+describe("BYOK provenance (DB)", () => {
+  it("returns user provenance, then operator provenance after removal", async () => {
+    const userId = `provenance-${crypto.randomUUID()}`;
+    process.env.OPERATOR_OPENROUTER_KEY = "operator-secret";
+    const kp = new EnvKeyProvider();
+    await kp.setUserKey(userId, "openrouter", "sk-or-v1-user-secret");
+    expect(await kp.resolve({ userId }, "openrouter")).toEqual({
+      value: "sk-or-v1-user-secret",
+      source: "user",
+    });
+    await kp.clearUserKey(userId, "openrouter");
+    expect(await kp.resolve({ userId }, "openrouter")).toEqual({
+      value: "operator-secret",
+      source: "operator",
+    });
+  });
+  it("rejects corrupt saved keys instead of spending operator credentials", async () => {
+    const db = await dbModule.getDb();
+    if (!db) throw new Error("DATABASE_URL required");
+    const userId = `corrupt-${crypto.randomUUID()}`;
+    process.env.OPERATOR_OPENROUTER_KEY = "operator-secret";
+    const kp = new EnvKeyProvider();
+    await db
+      .insert(userKeys)
+      .values({
+        userId,
+        name: "openrouter",
+        encryptedValue: "invalid",
+        lastFour: "fake",
+      });
+    await expect(kp.resolve({ userId }, "openrouter")).rejects.toMatchObject({
+      code: "PRECONDITION_FAILED",
+    });
+    await expect(kp.get({ userId }, "openrouter")).rejects.toThrow(
+      "BYOK_KEY_UNREADABLE"
+    );
+    await db
+      .delete(userKeys)
+      .where(and(eq(userKeys.userId, userId), eq(userKeys.name, "openrouter")));
   });
 });

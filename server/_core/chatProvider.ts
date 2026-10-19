@@ -9,6 +9,8 @@ export type ChatProvider = {
   baseUrl: string;
   model: string;
   apiKey: string | null;
+  /** 本次实际凭据是否来自用户，决定套餐计量豁免。 */
+  isByok: boolean;
 };
 
 /** 按环境选择 DeepSeek 或 OpenRouter 的运营方默认配置。 */
@@ -19,6 +21,7 @@ export function getOperatorChatProvider(): ChatProvider {
       baseUrl: "https://api.deepseek.com",
       model: process.env.DEEPSEEK_MODEL || "deepseek-flash",
       apiKey: process.env.OPERATOR_DEEPSEEK_KEY || null,
+      isByok: false,
     };
   }
   return {
@@ -26,6 +29,7 @@ export function getOperatorChatProvider(): ChatProvider {
     baseUrl: "https://openrouter.ai/api/v1",
     model: FREE_TIER_DEFAULT_MODEL,
     apiKey: process.env.OPERATOR_OPENROUTER_KEY || null,
+    isByok: false,
   };
 }
 
@@ -38,15 +42,13 @@ export async function resolveChatProvider(
   userId: string
 ): Promise<ChatProvider> {
   const operator = getOperatorChatProvider();
-  if (operator.name === "deepseek") {
-    const keys = await keyProvider.describeUserKeys(userId);
-    // BYOK 仍使用 OpenRouter；两家服务的密钥绝不混用。
-    if (!keys.openrouter?.isSet) return operator;
-  }
+  const key = await keyProvider.resolve({ userId }, "openrouter");
+  if (operator.name === "deepseek" && key.source !== "user") return operator;
   return {
     name: "openrouter",
     baseUrl: "https://openrouter.ai/api/v1",
     model: FREE_TIER_DEFAULT_MODEL,
-    apiKey: await keyProvider.get({ userId }, "openrouter"),
+    apiKey: key.value,
+    isByok: key.source === "user",
   };
 }

@@ -21,6 +21,10 @@ beforeEach(() => {
   vi.stubEnv("OPERATOR_DEEPSEEK_KEY", "deepseek-test-secret");
   vi.stubEnv("OPERATOR_OPENROUTER_KEY", "openrouter-test-secret");
   vi.stubEnv("BILLING_PROVIDER", "none");
+  vi.spyOn(keyProvider, "resolve").mockResolvedValue({
+    value: "openrouter-test-secret",
+    source: "operator",
+  });
   vi.spyOn(keyProvider, "describeUserKeys").mockResolvedValue({
     openrouter: { isSet: false, lastFour: null, setAt: null },
   } as any);
@@ -121,7 +125,10 @@ describe("DeepSeek official API deployment", () => {
     vi.mocked(keyProvider.describeUserKeys).mockResolvedValue({
       openrouter: { isSet: true, lastFour: "1234", setAt: null },
     } as any);
-    vi.spyOn(keyProvider, "get").mockResolvedValue("user-openrouter-key");
+    vi.mocked(keyProvider.resolve).mockResolvedValue({
+      value: "user-openrouter-key",
+      source: "user",
+    });
     const provider = await resolveChatProvider(userId);
     expect(provider).toMatchObject({
       name: "openrouter",

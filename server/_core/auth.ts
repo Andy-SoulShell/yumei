@@ -4,6 +4,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { magicLink } from "better-auth/plugins";
 import { drizzle } from "drizzle-orm/mysql2";
+import { createUtcMysqlPool } from "./mysql";
 import * as schema from "../../drizzle/schema";
 import { ENV } from "./env";
 import { sendMagicLinkEmail } from "./email";
@@ -14,7 +15,10 @@ function getAuthDb() {
   if (!ENV.databaseUrl) {
     return null;
   }
-  return drizzle(ENV.databaseUrl, { schema, mode: "default" });
+  return drizzle(createUtcMysqlPool(ENV.databaseUrl), {
+    schema,
+    mode: "default",
+  });
 }
 
 const authDb = getAuthDb();

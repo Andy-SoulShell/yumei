@@ -1,6 +1,7 @@
 /** 覆盖站内通知读取和已读状态。 */
 
-import { describe, it, expect } from "vitest";
+import { beforeAll, describe, it, expect } from "vitest";
+import { createTestUser } from "./testFixtures";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
@@ -26,6 +27,9 @@ function createAuthContext(userId = 9901): { ctx: TrpcContext } {
 }
 
 describe("Notification System", () => {
+  beforeAll(async () => {
+    await createTestUser(createAuthContext().ctx.user!.id);
+  });
   const caller = appRouter.createCaller(createAuthContext().ctx);
 
   it("should return empty notification list for new user", async () => {

@@ -3,6 +3,7 @@
 import { TRPCError } from "@trpc/server";
 import { eq, desc, and, like, sql, isNull, isNotNull, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import { createUtcMysqlPool } from "./_core/mysql";
 import {
   users,
   girlfriends,
@@ -29,7 +30,12 @@ import {
   type InsertNotification,
 } from "../drizzle/schema";
 
-let _db: ReturnType<typeof drizzle> | null = null;
+/** 按 UTC 连接池类型创建业务数据库，保留正确的 Promise Pool 类型。 */
+function createDatabase(uri: string) {
+  return drizzle(createUtcMysqlPool(uri));
+}
+
+let _db: ReturnType<typeof createDatabase> | null = null;
 
 /**
  * 按需创建并缓存 MySQL 连接实例，未设置连接时返回 null。
@@ -39,7 +45,7 @@ let _db: ReturnType<typeof drizzle> | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      _db = createDatabase(process.env.DATABASE_URL);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -1052,99 +1058,105 @@ export function getRandomProactiveMessage(
 // 优先引用最近的 event 类记忆（"你上次说的面试怎么样了？"），
 // 并把频率收紧为每用户每天最多 1 条 —— 主动消息的价值在于"她记得"，
 // 不在于数量；高频模板消息是同类产品差评的高发区。
-/**
- * 根据角色、记忆和心情生成一条主动通知。
- *
- * @returns 不满足生成条件时返回 null
- * @remarks 每日上限使用 UTC 零点与数据库时间比较；检查与写入是独立操作。
- */
+/** 在用户事务锁内按 UTC 自然日生成最多一条主动通知。 */
 export async function checkAndCreateProactiveNotification(
   userId: string
 ): Promise<Notification | null> {
-  const db = await getDb();
-  if (!db) return null;
+  return withUserTransaction(userId, async tx => {
+    const now = new Date();
+    const saveNotification = async (data: InsertNotification) => {
+      const [result] = await tx
+        .insert(notifications)
+        .values({ ...data, createdAt: now });
+      const [saved] = await tx
+        .select()
+        .from(notifications)
+        .where(eq(notifications.id, Number(result.insertId)));
+      return saved;
+    };
+    // 获取用户所有活跃女友
+    const activeGirlfriends = await tx
+      .select()
+      .from(girlfriends)
+      .where(
+        and(eq(girlfriends.userId, userId), isNull(girlfriends.deletedAt))
+      );
 
-  // 获取用户所有活跃女友
-  const activeGirlfriends = await db
-    .select()
-    .from(girlfriends)
-    .where(and(eq(girlfriends.userId, userId), isNull(girlfriends.deletedAt)));
+    if (activeGirlfriends.length === 0) return null;
 
-  if (activeGirlfriends.length === 0) return null;
+    // 随机选择一个女友
+    const gf =
+      activeGirlfriends[Math.floor(Math.random() * activeGirlfriends.length)];
 
-  // 随机选择一个女友
-  const gf =
-    activeGirlfriends[Math.floor(Math.random() * activeGirlfriends.length)];
+    // 频控：每用户每天（UTC）最多 1 条主动通知
+    const startOfDay = `${now.toISOString().slice(0, 10)} 00:00:00`;
+    const endOfDay = `${new Date(now.getTime() + 86_400_000).toISOString().slice(0, 10)} 00:00:00`;
+    const todayCount = await tx
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          sql`${notifications.createdAt} >= ${startOfDay} AND ${notifications.createdAt} < ${endOfDay}`
+        )
+      );
+    if ((todayCount[0]?.count ?? 0) >= 1) return null;
 
-  // 频控：每用户每天（UTC）最多 1 条主动通知
-  const startOfDay = new Date();
-  startOfDay.setUTCHours(0, 0, 0, 0);
-  const todayCount = await db
-    .select({ count: sql<number>`COUNT(*)` })
-    .from(notifications)
-    .where(
-      and(
-        eq(notifications.userId, userId),
-        sql`${notifications.createdAt} >= ${startOfDay}`
+    // 有新鲜的 event 记忆时，主动消息引用它
+    const { getFreshEventMemory } = await import("./memory");
+    const eventMemory = await getFreshEventMemory(userId, gf.id);
+    if (eventMemory) {
+      // 记忆以第三人称存储（"用户下周二…"），发给本人时转成第二人称。
+      const secondPerson = eventMemory.content.replace(/^用户/, "你");
+      return await saveNotification({
+        userId,
+        girlfriendId: gf.id,
+        title: `${gf.name}: 💭 一直惦记着`,
+        content: `我还记得，${secondPerson}。后来怎么样啦？想听你说说～`,
+        type: "random",
+        isRead: false,
+      });
+    }
+
+    // 获取心情状态
+    const mood = await tx
+      .select()
+      .from(girlfriendMoods)
+      .where(
+        and(
+          eq(girlfriendMoods.userId, userId),
+          eq(girlfriendMoods.girlfriendId, gf.id)
+        )
       )
-    );
-  if ((todayCount[0]?.count ?? 0) >= 1) return null;
+      .limit(1);
 
-  // 有新鲜的 event 记忆时，主动消息引用它
-  const { getFreshEventMemory } = await import("./memory");
-  const eventMemory = await getFreshEventMemory(userId, gf.id);
-  if (eventMemory) {
-    // 记忆以第三人称存储（"用户下周二…"），发给本人时转成第二人称。
-    const secondPerson = eventMemory.content.replace(/^用户/, "你");
-    return await createNotification({
+    // 根据心情和时间选择消息类型
+    const hour = now.getHours();
+    let messageType: keyof typeof PROACTIVE_MESSAGES;
+
+    if (hour >= 6 && hour <= 8) {
+      messageType = "good_morning";
+    } else if (hour >= 22 || hour <= 1) {
+      messageType = "good_night";
+    } else if (mood.length > 0 && mood[0].moodScore < 40) {
+      messageType = "miss_you";
+    } else {
+      messageType = Math.random() > 0.5 ? "random" : "miss_you";
+    }
+
+    const { title, content } = getRandomProactiveMessage(messageType);
+
+    const notification = await saveNotification({
       userId,
       girlfriendId: gf.id,
-      title: `${gf.name}: 💭 一直惦记着`,
-      content: `我还记得，${secondPerson}。后来怎么样啦？想听你说说～`,
-      type: "random",
+      title: `${gf.name}: ${title}`,
+      content,
+      type: messageType,
       isRead: false,
     });
-  }
 
-  // 获取心情状态
-  const mood = await db
-    .select()
-    .from(girlfriendMoods)
-    .where(
-      and(
-        eq(girlfriendMoods.userId, userId),
-        eq(girlfriendMoods.girlfriendId, gf.id)
-      )
-    )
-    .limit(1);
-
-  // 根据心情和时间选择消息类型
-  const now = new Date();
-  const hour = now.getHours();
-  let messageType: keyof typeof PROACTIVE_MESSAGES;
-
-  if (hour >= 6 && hour <= 8) {
-    messageType = "good_morning";
-  } else if (hour >= 22 || hour <= 1) {
-    messageType = "good_night";
-  } else if (mood.length > 0 && mood[0].moodScore < 40) {
-    messageType = "miss_you";
-  } else {
-    messageType = Math.random() > 0.5 ? "random" : "miss_you";
-  }
-
-  const { title, content } = getRandomProactiveMessage(messageType);
-
-  const notification = await createNotification({
-    userId,
-    girlfriendId: gf.id,
-    title: `${gf.name}: ${title}`,
-    content,
-    type: messageType,
-    isRead: false,
+    return notification;
   });
-
-  return notification;
 }
 
 // 亲密度。

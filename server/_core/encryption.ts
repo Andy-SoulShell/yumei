@@ -101,11 +101,11 @@ export function pack(blob: EncryptedBlob): string {
 /**
  * 从 base64url 文本拆分加密字段；数据过短时抛出错误。
  *
- * @remarks 当前要求至少一个密文字节，因此与空字符串加密结果的往返不兼容。
+ * @remarks 允许空明文产生的零长度密文，认证标签仍会在解密时校验。
  */
 export function unpack(packed: string): EncryptedBlob {
   const buf = Buffer.from(packed, "base64url");
-  if (buf.length < NONCE_LEN + TAG_LEN + 1) {
+  if (buf.length < NONCE_LEN + TAG_LEN) {
     throw new Error("encrypted blob is too short");
   }
   return {

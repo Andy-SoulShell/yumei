@@ -1,5 +1,6 @@
 /** 业务 tRPC 路由入口，组织认证、角色、聊天、图片、记忆、套餐与语音流程。 */
 
+import { log, providerErrorSummary } from "./_core/log";
 import { getSessionCookieOptions } from "./_core/cookies";
 import {
   keyProvider,
@@ -158,7 +159,11 @@ export const appRouter = router({
       )
       .mutation(async ({ ctx, input }) => {
         const birthDate = new Date(`${input.birthDate}T00:00:00Z`);
-        if (Number.isNaN(birthDate.getTime()) || birthDate > new Date()) {
+        if (
+          Number.isNaN(birthDate.getTime()) ||
+          birthDate.toISOString().slice(0, 10) !== input.birthDate ||
+          birthDate > new Date()
+        ) {
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "Please enter a valid date of birth.",
@@ -796,9 +801,9 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
             girlfriend.intimacyLevel || 1
           );
         } catch (error) {
-          console.error(
-            "[Chat] memory injection failed (non-blocking):",
-            error
+          log.error(
+            "[Chat] memory injection failed (non-blocking)",
+            providerErrorSummary(error)
           );
         }
 
@@ -853,7 +858,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
               ? messageContent
               : JSON.stringify(messageContent);
         } catch (error) {
-          console.error("[Chat] LLM API error:", error);
+          log.error("[Chat] LLM API error", providerErrorSummary(error));
           aiResponse = "抱歉，我现在有点累了，稍后再聊吧~";
         }
 

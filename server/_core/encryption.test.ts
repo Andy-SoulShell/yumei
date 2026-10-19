@@ -29,6 +29,14 @@ afterEach(() => {
 });
 
 describe("encryption", () => {
+  it("round-trips empty plaintext and authenticates its tag", async () => {
+    const packed = await encryptToString("");
+    expect(await decryptFromString(packed)).toBe("");
+    const blob = unpack(packed);
+    blob.tag[0] ^= 1;
+    await expect(decrypt(blob)).rejects.toThrow();
+  });
+
   it("round-trips a simple string", async () => {
     const blob = await encrypt("sk-or-v1-abcdef123456");
     const back = await decrypt(blob);

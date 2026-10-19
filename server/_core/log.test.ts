@@ -1,7 +1,8 @@
 /** 覆盖敏感字段与邮箱脱敏。 */
 
 import { describe, it, expect } from "vitest";
-import { redact } from "./log";
+import axios from "axios";
+import { providerErrorSummary, redact } from "./log";
 
 describe("log.redact", () => {
   it("masks API key fields by exact name", () => {
@@ -109,5 +110,37 @@ describe("log.redact", () => {
     redact(input);
     expect(input.apiKey).toBe("sk-secret");
     expect(input.user.email).toBe("x@y.com");
+  });
+});
+
+describe("provider error logs", () => {
+  it("omits credentials and chat data even when the error message contains them", () => {
+    const error = new axios.AxiosError(
+      "credential-secret private-chat",
+      "ERR_BAD_RESPONSE",
+      {
+        headers: new axios.AxiosHeaders({
+          Authorization: "Bearer credential-secret",
+        }),
+        data: "private-chat",
+      }
+    );
+    error.response = {
+      status: 401,
+      data: "credential-secret",
+      statusText: "Unauthorized",
+      headers: {},
+      config: error.config!,
+    };
+    expect(providerErrorSummary(error)).toEqual({
+      kind: "upstream_http",
+      status: 401,
+    });
+    expect(JSON.stringify(providerErrorSummary(error))).not.toMatch(
+      /credential-secret|private-chat/
+    );
+    expect(providerErrorSummary(new Error("credential-secret"))).toEqual({
+      kind: "unexpected",
+    });
   });
 });

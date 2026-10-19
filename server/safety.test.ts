@@ -60,6 +60,16 @@ describe("safety system clause", () => {
 });
 
 describe("age gate", () => {
+  it.each(["1990-02-31", "2001-02-29", "1990-04-31", "1990-00-01"])(
+    "rejects nonexistent calendar date %s",
+    async birthDate => {
+      const { ctx } = createAuthContext();
+      await expect(
+        appRouter.createCaller(ctx).auth.confirmAge({ birthDate })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    }
+  );
+
   it("rejects under-18 birth dates in auth.confirmAge", async () => {
     const { ctx } = createAuthContext();
     const caller = appRouter.createCaller(ctx);

@@ -23,17 +23,16 @@ const MIME_BY_EXT: Record<string, string> = {
 /**
  * 注册不要求会话的媒体读取路由，持有完整文件地址即可读取。
  *
- * @remarks 当前在错误捕获前再次解码路由参数；非法百分号输入的处理需后续加固。
+ * @remarks Express 已解码参数，此处不重复解码；存储和读取异常统一返回错误响应。
  */
 export function registerFileRoutes(app: Express) {
   app.get(/^\/files\/(.+)$/, async (req: Request, res: Response) => {
-    const key = decodeURIComponent(req.params[0] ?? "");
-    if (!key || key.includes("..") || path.isAbsolute(key)) {
-      res.status(400).json({ error: "Invalid file key" });
-      return;
-    }
-
     try {
+      const key = req.params[0] ?? "";
+      if (!key || key.includes("..") || path.isAbsolute(key)) {
+        res.status(400).json({ error: "Invalid file key" });
+        return;
+      }
       if (ENV.storageDriver === "s3") {
         const url = await s3PresignedGetUrl(key);
         res.redirect(302, url);

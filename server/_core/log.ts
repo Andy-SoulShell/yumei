@@ -1,5 +1,7 @@
 /** 递归脱敏对象中的凭据与邮箱，再交给控制台输出。 */
 
+import axios from "axios";
+
 /** 始终完整遮盖的敏感字段名，遮盖方式不依赖值类型。 */
 const ALWAYS_REDACT_KEYS = new Set([
   "password",
@@ -125,3 +127,10 @@ export const log = {
     console.log(...format(label, args));
   },
 };
+
+/** 仅提取上游异常的类型和 HTTP 状态，不携带消息、凭据、正文或请求配置。 */
+export function providerErrorSummary(error: unknown) {
+  return axios.isAxiosError(error)
+    ? { kind: "upstream_http", status: error.response?.status ?? null }
+    : { kind: "unexpected" };
+}

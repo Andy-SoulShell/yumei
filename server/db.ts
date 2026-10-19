@@ -1089,22 +1089,6 @@ export async function getIntimacyInfo(girlfriendId: number, userId: string) {
 }
 
 /**
- * 获取今日已获得的经验值总量
- */
-export async function getTodayPoints(
-  _girlfriendId: number,
-  _userId: string
-): Promise<number> {
-  const db = await getDb();
-  if (!db) return 0;
-
-  // 使用 girlfriendMoods 表的 todayMessages 作为近似值
-  // 或者我们直接从数据库计算（简化实现，使用内存追踪）
-  // 这里我们返回一个近似值，实际实现可以用 Redis 或单独的表
-  return 0; // 前端会追踪每日上限
-}
-
-/**
  * 增加亲密度经验值
  * @returns 新的亲密度信息和是否升级
  */

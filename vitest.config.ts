@@ -16,7 +16,7 @@ export default defineConfig({
     include: [
       "server/**/*.test.ts",
       "server/**/*.spec.ts",
-      // Phase-1a-ii adds the first client unit test (sanitize). Tests under
+      // Client unit tests use jsdom. Tests under
       // client/** opt into the jsdom environment per-file via a
       // `// @vitest-environment jsdom` comment at the top of the file.
       "client/**/*.test.ts",

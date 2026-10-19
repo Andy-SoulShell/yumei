@@ -24,8 +24,8 @@ import { isSecureRequest } from "./cookies";
  * succeed. Direct cross-site POSTs without the page-load handshake
  * are rejected with HTTP 403.
  *
- * The OAuth callback (`/api/oauth/callback`) is a GET initiated by the
- * external IdP redirect, so it bypasses this check naturally.
+ * Better-Auth endpoints use their own origin checks and are mounted
+ * separately from the tRPC CSRF verifier.
  */
 
 export const CSRF_COOKIE = "csrf_token";

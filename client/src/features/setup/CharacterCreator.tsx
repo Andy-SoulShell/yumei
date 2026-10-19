@@ -66,6 +66,7 @@ function ImageChoices({
         if (option) onChange(option);
       }}
       className={cn("creator-choices", wide && "is-wide")}
+      data-count={options.length}
       data-framing={
         options.some(option =>
           /\/(bodytype|breast|butt)\//.test(option.imageUrl)

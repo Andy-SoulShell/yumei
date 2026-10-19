@@ -369,6 +369,15 @@
     padding-top: 32px;
   }
 }
+@media (min-width: 768px) {
+  .creator-choices[data-count="9"],
+  .creator-choices[data-count="6"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .creator-choices[data-count="5"] {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
 @media (max-width: 1199px) {
   .creator-workspace {
     grid-template-columns: 124px minmax(0, 1fr);

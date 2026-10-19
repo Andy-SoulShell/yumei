@@ -41,7 +41,7 @@
     "dompurify": "^3.4.17",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.4",
-    "express": "^4.22.3",
+    "express": "^5.3.0",
     "i18next": "^26.5.2",
     "lucide-react": "^0.453.0",
     "mysql2": "^3.24.6",
@@ -63,7 +63,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.3.3",
-    "@types/express": "4.17.21",
+    "@types/express": "5.0.6",
     "@types/node": "^24.19.2",
     "@types/nodemailer": "^8.0.2",
     "@types/react": "^19.3.0",

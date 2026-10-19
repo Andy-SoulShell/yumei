@@ -102,7 +102,7 @@ self.addEventListener("fetch", event => {
 
 // Web Push (M4-4) — payload: { title, body, url? }
 self.addEventListener("push", event => {
-  let data = {};
+  let data;
   try {
     data = event.data ? event.data.json() : {};
   } catch {

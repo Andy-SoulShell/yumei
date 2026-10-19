@@ -193,8 +193,11 @@ export class ComfyUIClient {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const status = error.response?.status;
-        if (status === 400)
+        if (status === 400) {
+          // eslint-disable-next-line preserve-caught-error -- Axios errors can contain the ComfyUI bearer token.
           throw new Error("ComfyUI 拒绝了工作流，请检查远端节点和模型是否齐全");
+        }
+        // eslint-disable-next-line preserve-caught-error -- Axios errors can contain the ComfyUI bearer token.
         throw new Error(
           status
             ? `ComfyUI 请求失败（HTTP ${status}）`

@@ -25,11 +25,7 @@ import { VoiceRecordButton } from "@/components/VoiceRecordButton";
 import { LevelUpAnimation } from "@/components/LevelUpAnimation";
 import { IntimacyPanel } from "@/components/IntimacyPanel";
 import { SelfiePoseDialog } from "@/components/SelfiePoseDialog";
-import {
-  getLevelInfo,
-  getLevelProgress,
-  getLevelGradient,
-} from "../../../shared/intimacy";
+import { getLevelInfo } from "../../../shared/intimacy";
 import { detectSelfieRequest } from "@shared/selfieRequest";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useLocation, useParams } from "wouter";
@@ -457,6 +453,7 @@ export default function Chat() {
     },
   });
 
+  const resumeConversation = resumeChat.mutate;
   useEffect(() => {
     if (
       !currentConversationId &&
@@ -464,9 +461,9 @@ export default function Chat() {
       resumeAttemptRef.current !== girlfriend.id
     ) {
       resumeAttemptRef.current = girlfriend.id;
-      resumeChat.mutate({ girlfriendId: girlfriend.id });
+      resumeConversation({ girlfriendId: girlfriend.id });
     }
-  }, [currentConversationId, girlfriend]);
+  }, [currentConversationId, girlfriend, resumeConversation]);
 
   useEffect(() => {
     scrollToBottom();
@@ -620,6 +617,8 @@ export default function Chat() {
     setIsTranscribing,
     transcribeMutation,
     sendMessage,
+    girlfriend,
+    addPoints,
   ]);
 
   // 注册最大时长回调

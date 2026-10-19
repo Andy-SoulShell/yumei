@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  getLevelInfo,
-  getLevelGradient,
-  type IntimacyLevel,
-} from "../../../shared/intimacy";
+import { getLevelInfo } from "../../../shared/intimacy";
 
 interface LevelUpAnimationProps {
   show: boolean;

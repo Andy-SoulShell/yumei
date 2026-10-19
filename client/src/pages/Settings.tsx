@@ -28,15 +28,12 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
-  Eye,
   Star,
   CheckCircle,
   XCircle,
   AlertCircle,
   BarChart3,
   RefreshCw,
-  DollarSign,
-  TrendingUp,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useState, useCallback, useMemo } from "react";
@@ -219,7 +216,6 @@ export default function Settings() {
   });
 
   const setKeyMutation = trpc.apiConfig.setKey.useMutation();
-  const clearKeyMutation = trpc.apiConfig.clearKey.useMutation();
   const utils2 = trpc.useUtils();
 
   /**
@@ -308,15 +304,6 @@ export default function Settings() {
         m.provider.toLowerCase().includes(search)
     );
   }, [modelsData?.models, modelSearch]);
-
-  const groupedModels = useMemo(() => {
-    const groups: Record<string, ModelInfo[]> = {};
-    for (const model of filteredModels) {
-      if (!groups[model.provider]) groups[model.provider] = [];
-      groups[model.provider].push(model);
-    }
-    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  }, [filteredModels]);
 
   // 过滤 ElevenLabs 声音
   const filteredElevenLabsVoices = useMemo(() => {
@@ -499,7 +486,6 @@ export default function Settings() {
   // quota meters built in Phase 1c (issue #10). For now these UI fields
   // render as "—" / "loading off". The visual section below will be
   // rebuilt in Phase 6 when Settings.tsx is decomposed.
-  const [usageRefreshKey, setUsageRefreshKey] = useState(0);
   const openRouterCredits = undefined as
     | { totalCredits: number; totalUsage: number; remaining: number }
     | undefined;
@@ -522,10 +508,8 @@ export default function Settings() {
   const faCreditsLoading = false;
   const faCreditsError = null as { message: string } | null;
 
-  const utils = trpc.useUtils();
   const handleRefreshUsage = () => {
     toast.info("订阅用量面板将在 Phase 1c 上线（issue #10）");
-    setUsageRefreshKey(prev => prev + 1);
     toast.info("正在刷新用量数据...");
   };
 

@@ -62,13 +62,12 @@ import { readPresetReference } from "./characterPresets";
 import {
   POINTS_RULES,
   DAILY_POINTS_LIMIT,
-  getLevelByPoints,
   getLevelInfo,
   getNextLevel,
   getLevelProgress,
   getPointsToNextLevel,
 } from "../shared/intimacy";
-import { FREE_TIER_DEFAULT_MODEL, METERS, TIER_LIMITS } from "../shared/quotas";
+import { FREE_TIER_DEFAULT_MODEL, METERS } from "../shared/quotas";
 import {
   getBillingMode,
   getCheckoutUrls,
@@ -1766,6 +1765,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
             return { audioUrl: url, provider: "elevenlabs" as const };
           } catch (error: any) {
             console.error("[TTS] ElevenLabs error:", error?.response?.status);
+            // eslint-disable-next-line preserve-caught-error -- Upstream errors can contain provider credentials.
             throw new Error("ElevenLabs 语音生成失败");
           }
         } else if (provider === "fishaudio") {
@@ -1812,6 +1812,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
             return { audioUrl: url, provider: "fishaudio" as const };
           } catch (error: any) {
             console.error("[TTS] Fish Audio error:", error?.response?.status);
+            // eslint-disable-next-line preserve-caught-error -- Upstream errors can contain provider credentials.
             throw new Error("Fish Audio 语音生成失败");
           }
         } else {

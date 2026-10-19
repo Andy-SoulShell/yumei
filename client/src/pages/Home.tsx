@@ -25,7 +25,6 @@ import {
   Search,
   X,
   Trash2,
-  RotateCcw,
   CheckSquare,
   Square,
   Trash,
@@ -236,11 +235,12 @@ export default function Home() {
   }, [girlfriends]);
 
   // 确保默认女友存在
-  const ensureDefault = trpc.girlfriend.ensureDefault.useMutation({
-    onSuccess: () => {
-      refetch();
-    },
-  });
+  const { mutate: ensureDefault, isPending: isCreatingDefault } =
+    trpc.girlfriend.ensureDefault.useMutation({
+      onSuccess: () => {
+        refetch();
+      },
+    });
 
   // 登录后自动创建默认女友
   useEffect(() => {
@@ -251,9 +251,9 @@ export default function Home() {
       !defaultCreatedRef.current
     ) {
       defaultCreatedRef.current = true;
-      ensureDefault.mutate();
+      ensureDefault();
     }
-  }, [isAuthenticated, girlfriends]);
+  }, [isAuthenticated, girlfriends, ensureDefault]);
 
   // 软删除（移入回收站）
   const deleteGirlfriend = trpc.girlfriend.delete.useMutation({
@@ -627,7 +627,7 @@ export default function Home() {
         )}
 
         {/* 女友列表 */}
-        {girlfriendsLoading || ensureDefault.isPending ? (
+        {girlfriendsLoading || isCreatingDefault ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>

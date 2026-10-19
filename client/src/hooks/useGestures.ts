@@ -160,8 +160,6 @@ export function usePullToRefresh(options: {
   useEffect(() => {
     if (!enabled) return;
 
-    const container = containerRef?.current || document.documentElement;
-
     const handleTouchStart = (e: TouchEvent) => {
       // 只在滚动到顶部时才触发下拉刷新
       const scrollTop = containerRef?.current

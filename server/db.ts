@@ -1,14 +1,4 @@
-import {
-  eq,
-  desc,
-  and,
-  like,
-  sql,
-  isNull,
-  isNotNull,
-  inArray,
-  lte,
-} from "drizzle-orm";
+import { eq, desc, and, like, sql, isNull, isNotNull, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   users,
@@ -34,7 +24,6 @@ import {
   type Notification,
   type InsertNotification,
 } from "../drizzle/schema";
-import { log } from "./_core/log";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -1046,7 +1035,6 @@ export async function checkAndCreateProactiveNotification(
 import {
   getLevelByPoints,
   calculateDecay,
-  DAILY_POINTS_LIMIT,
   isNightTime,
 } from "../shared/intimacy";
 
@@ -1109,8 +1097,8 @@ export async function getIntimacyInfo(girlfriendId: number, userId: string) {
  * 获取今日已获得的经验值总量
  */
 export async function getTodayPoints(
-  girlfriendId: number,
-  userId: string
+  _girlfriendId: number,
+  _userId: string
 ): Promise<number> {
   const db = await getDb();
   if (!db) return 0;

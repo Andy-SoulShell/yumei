@@ -4,7 +4,9 @@ import en from "./locales/en";
 import { FALLBACK_LOCALE, LANGUAGES, LOCALES, type Locale } from "./locales";
 
 export type MessageKey = {
-  [Namespace in keyof typeof en]: `${Namespace}:${keyof (typeof en)[Namespace] & string}`;
+  [
+    Namespace in keyof typeof en
+  ]: `${Namespace}:${keyof (typeof en)[Namespace] & string}`;
 }[keyof typeof en];
 type Template<Key extends MessageKey> =
   Key extends `${infer Namespace}:${infer Id}`

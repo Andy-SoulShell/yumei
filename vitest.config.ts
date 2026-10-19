@@ -17,7 +17,6 @@ export default defineConfig({
   test: {
     // 每个测试文件会创建独立连接池，限制并发以避免本机数据库和 CPU 争用。
     maxWorkers: 4,
-    minWorkers: 1,
     globalSetup: ["./server/testSetup.ts"],
     environment: "node",
     include: [

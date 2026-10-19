@@ -259,10 +259,7 @@ export default function Setup() {
         girlfriendId: editId,
         imageBase64: base64,
         mimeType: avatarFile.type as
-          | "image/jpeg"
-          | "image/png"
-          | "image/gif"
-          | "image/webp",
+          "image/jpeg" | "image/png" | "image/gif" | "image/webp",
       });
     };
     reader.readAsDataURL(avatarFile);
@@ -330,10 +327,7 @@ export default function Setup() {
           customPrompt: customPrompt || undefined,
           referenceImageBase64: base64,
           referenceImageMimeType: imageFile.type as
-            | "image/jpeg"
-            | "image/png"
-            | "image/gif"
-            | "image/webp",
+            "image/jpeg" | "image/png" | "image/gif" | "image/webp",
         });
       };
       reader.readAsDataURL(imageFile);

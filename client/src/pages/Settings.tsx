@@ -313,8 +313,7 @@ export default function Settings() {
   /** 所有相关写入成功后才清除分区未保存提示并显示成功。 */
   async function saveSection(
     preferences:
-      | Parameters<typeof updatePreferences.mutateAsync>[0]
-      | undefined,
+      Parameters<typeof updatePreferences.mutateAsync>[0] | undefined,
     names: readonly KeyName[] | undefined,
     onSaved: () => void,
     message: string

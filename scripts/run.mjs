@@ -1,7 +1,7 @@
 /** 跨平台开发、构建和启动入口，不依赖 shell 的环境变量与转义语法。 */
 import process from "node:process";
 import { spawn } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, URL } from "node:url";
 
 const command = process.argv[2];
 process.env.NODE_ENV = command === "dev" ? "development" : "production";

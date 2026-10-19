@@ -33,6 +33,7 @@ jobs:
           node-version: "22"
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --prod --audit-level high
       - run: pnpm check
       - run: pnpm db:migrate
       - run: pnpm test

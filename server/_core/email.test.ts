@@ -11,9 +11,9 @@ const nodemailerCreateTransportMock = vi.fn((_options: unknown) => ({
 }));
 
 vi.mock("resend", () => ({
-  Resend: vi.fn().mockImplementation(() => ({
-    emails: { send: resendSendMock },
-  })),
+  Resend: vi.fn().mockImplementation(function () {
+    return { emails: { send: resendSendMock } };
+  }),
 }));
 
 vi.mock("nodemailer", () => ({

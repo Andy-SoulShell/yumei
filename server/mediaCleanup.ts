@@ -6,6 +6,7 @@ import {
   messages,
   selfies,
   voiceTranscriptions,
+  rateWindows,
 } from "../drizzle/schema";
 import { getDb, withUserTransaction, type DbTransaction } from "./db";
 import { storageDelete } from "./storage";
@@ -141,27 +142,55 @@ export async function flushMediaDeletions(userId?: string): Promise<void> {
 
 /** 启动独立于 Web Push 的每分钟清理重试，并返回退出时的停止函数。 */
 export function startMediaCleanupScheduler(): () => void {
-  let running = false;
-  const run = async () => {
-    if (running) return;
-    running = true;
-    try {
-      await flushMediaDeletions();
-      const { expireGenerations } = await import("./generations");
-      await expireGenerations();
-      const db = await getDb();
-      if (db)
+  const running = new Set<string>();
+  const tasks: [string, () => Promise<void>][] = [
+    ["media", () => flushMediaDeletions()],
+    [
+      "generations",
+      async () => {
+        const module = await import("./generations");
+        await module.expireGenerations();
+      },
+    ],
+    [
+      "memories",
+      async () => {
+        const module = await import("./memoryJobs");
+        await module.runMemoryExtractionJobs();
+      },
+    ],
+    [
+      "expiry",
+      async () => {
+        const db = await getDb();
+        if (!db) return;
         await db
           .delete(voiceTranscriptions)
           .where(lte(voiceTranscriptions.expiresAt, new Date()));
-    } catch (error) {
-      log.error("[media] cleanup unavailable", providerErrorSummary(error));
-    } finally {
-      running = false;
+        await db
+          .delete(rateWindows)
+          .where(
+            lte(rateWindows.updatedAt, new Date(Date.now() - 10 * 60_000))
+          );
+      },
+    ],
+  ];
+  const run = () => {
+    for (const [name, action] of tasks) {
+      if (running.has(name)) continue;
+      running.add(name);
+      void action()
+        .catch(error =>
+          log.error("[background] task unavailable", {
+            task: name,
+            ...providerErrorSummary(error),
+          })
+        )
+        .finally(() => running.delete(name));
     }
   };
-  void run();
-  const timer = setInterval(() => void run(), 60_000);
+  run();
+  const timer = setInterval(run, 60_000);
   timer.unref();
   return () => clearInterval(timer);
 }

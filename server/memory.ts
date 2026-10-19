@@ -3,15 +3,9 @@
 import axios from "axios";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import {
-  girlfriends,
-  memories,
-  messages,
-  type Memory,
-} from "../drizzle/schema";
+import { girlfriends, memories, type Memory } from "../drizzle/schema";
 import {
   DUPLICATE_THRESHOLD,
-  EXTRACTION_EVERY_N_MESSAGES,
   MEMORY_CATEGORIES,
   MEMORY_MAX_LENGTH,
   bigramOverlap,
@@ -19,7 +13,7 @@ import {
   memoryInjectionK,
   scoreMemory,
 } from "../shared/memory";
-import { getDb, withUserTransaction } from "./db";
+import { getDb, withUserTransaction, type DbTransaction } from "./db";
 import { log } from "./_core/log";
 import type { ChatProvider } from "./_core/chatProvider";
 
@@ -84,7 +78,7 @@ export function parseExtractionResponse(raw: string): ExtractedMemory[] {
 }
 
 /** 通过当前聊天 Provider 提取记忆；OpenRouter 使用固定轻量模型。 */
-async function callExtractionModel(
+export async function callExtractionModel(
   provider: ChatProvider,
   transcript: string
 ): Promise<ExtractedMemory[]> {
@@ -120,63 +114,69 @@ export async function storeExtractedMemories(
   girlfriendId: number,
   candidates: ExtractedMemory[]
 ): Promise<{ inserted: number; reinforced: number }> {
-  if (candidates.length === 0) return { inserted: 0, reinforced: 0 };
-  return withUserTransaction(userId, async tx => {
-    const [role] = await tx
-      .select({ id: girlfriends.id })
-      .from(girlfriends)
-      .where(
-        and(eq(girlfriends.id, girlfriendId), eq(girlfriends.userId, userId))
-      );
-    if (!role) return { inserted: 0, reinforced: 0 };
-    const existing = await tx
-      .select()
-      .from(memories)
-      .where(
-        and(
-          eq(memories.userId, userId),
-          eq(memories.girlfriendId, girlfriendId)
-        )
-      )
-      .for("update");
-    let inserted = 0;
-    let reinforced = 0;
-    for (const candidate of candidates) {
-      const duplicate = existing.find(
-        m =>
-          m.content === candidate.content ||
-          bigramOverlap(candidate.content, m.content) >= DUPLICATE_THRESHOLD ||
-          bigramOverlap(m.content, candidate.content) >= DUPLICATE_THRESHOLD
-      );
-      if (duplicate) {
-        duplicate.weight = Math.min(100, duplicate.weight + 5);
-        duplicate.lastRecalledAt = new Date();
-        await tx
-          .update(memories)
-          .set({
-            weight: duplicate.weight,
-            lastRecalledAt: duplicate.lastRecalledAt,
-          })
-          .where(eq(memories.id, duplicate.id));
-        reinforced++;
-      } else {
-        const [result] = await tx.insert(memories).values({
-          userId,
-          girlfriendId,
-          category: candidate.category,
-          content: candidate.content,
-          weight: Math.min(90, Math.max(10, candidate.importance * 10)),
-        });
-        const [row] = await tx
-          .select()
-          .from(memories)
-          .where(eq(memories.id, Number(result.insertId)));
-        existing.push(row);
-        inserted++;
-      }
+  if (!candidates.length) return { inserted: 0, reinforced: 0 };
+  return withUserTransaction(userId, tx =>
+    storeExtractedMemoriesInTransaction(tx, userId, girlfriendId, candidates)
+  );
+}
+/** 在现有事务内写入记忆，允许与任务确认原子提交。 */
+export async function storeExtractedMemoriesInTransaction(
+  tx: DbTransaction,
+  userId: string,
+  girlfriendId: number,
+  candidates: ExtractedMemory[]
+) {
+  const [role] = await tx
+    .select({ id: girlfriends.id })
+    .from(girlfriends)
+    .where(
+      and(eq(girlfriends.id, girlfriendId), eq(girlfriends.userId, userId))
+    );
+  if (!role) return { inserted: 0, reinforced: 0 };
+  const existing = await tx
+    .select()
+    .from(memories)
+    .where(
+      and(eq(memories.userId, userId), eq(memories.girlfriendId, girlfriendId))
+    )
+    .for("update");
+  let inserted = 0;
+  let reinforced = 0;
+  for (const candidate of candidates) {
+    const duplicate = existing.find(
+      m =>
+        m.content === candidate.content ||
+        bigramOverlap(candidate.content, m.content) >= DUPLICATE_THRESHOLD ||
+        bigramOverlap(m.content, candidate.content) >= DUPLICATE_THRESHOLD
+    );
+    if (duplicate) {
+      duplicate.weight = Math.min(100, duplicate.weight + 5);
+      duplicate.lastRecalledAt = new Date();
+      await tx
+        .update(memories)
+        .set({
+          weight: duplicate.weight,
+          lastRecalledAt: duplicate.lastRecalledAt,
+        })
+        .where(eq(memories.id, duplicate.id));
+      reinforced++;
+    } else {
+      const [result] = await tx.insert(memories).values({
+        userId,
+        girlfriendId,
+        category: candidate.category,
+        content: candidate.content,
+        weight: Math.min(90, Math.max(10, candidate.importance * 10)),
+      });
+      const [row] = await tx
+        .select()
+        .from(memories)
+        .where(eq(memories.id, Number(result.insertId)));
+      existing.push(row);
+      inserted++;
     }
-    return { inserted, reinforced };
-  });
+  }
+  return { inserted, reinforced };
 }
 
 /**
@@ -187,9 +187,10 @@ export async function storeExtractedMemories(
 export async function enforceMemoryCapacity(
   userId: string,
   girlfriendId: number,
-  intimacyLevel: number
+  intimacyLevel: number,
+  transaction?: DbTransaction
 ): Promise<number> {
-  const db = await getDb();
+  const db = transaction ?? (await getDb());
   if (!db) return 0;
 
   const capacity = memoryCapacity(intimacyLevel);
@@ -221,74 +222,15 @@ export async function enforceMemoryCapacity(
   return toDelete.length;
 }
 
-/**
- * 在助手回复完成后异步检查提取间隔，并触发提取与容量整理。
- *
- * @remarks 间隔按用户与助手消息总条数计算；失败仅写日志，不阻塞聊天响应。
- */
-export function maybeExtractMemories(params: {
-  userId: string;
-  girlfriendId: number;
-  conversationId: number;
-  intimacyLevel: number;
-  provider: ChatProvider;
-}): void {
-  void (async () => {
-    try {
-      const db = await getDb();
-      if (!db) return;
-
-      const countRows = await db
-        .select({ count: sql<number>`COUNT(*)` })
-        .from(messages)
-        .where(
-          and(
-            eq(messages.conversationId, params.conversationId),
-            sql`COALESCE(${messages.generationStatus}, 'succeeded') <> 'failed'`
-          )
-        );
-      const messageCount = countRows[0]?.count ?? 0;
-      if (
-        messageCount === 0 ||
-        messageCount % EXTRACTION_EVERY_N_MESSAGES !== 0
-      ) {
-        return;
-      }
-
-      const window = await db
-        .select()
-        .from(messages)
-        .where(
-          and(
-            eq(messages.conversationId, params.conversationId),
-            sql`COALESCE(${messages.generationStatus}, 'succeeded') <> 'failed'`
-          )
-        )
-        .orderBy(desc(messages.createdAt), desc(messages.id))
-        .limit(EXTRACTION_EVERY_N_MESSAGES * 2);
-
-      const transcript = window
-        .reverse()
-        .map(m => `${m.role === "user" ? "用户" : "AI"}：${m.content}`)
-        .join("\n");
-
-      const candidates = await callExtractionModel(params.provider, transcript);
-      if (candidates.length === 0) return;
-
-      await storeExtractedMemories(
-        params.userId,
-        params.girlfriendId,
-        candidates
-      );
-      await enforceMemoryCapacity(
-        params.userId,
-        params.girlfriendId,
-        params.intimacyLevel
-      );
-    } catch (error) {
-      log.error("[memory] extraction failed (non-blocking)", error);
-    }
-  })();
+/** 唤醒已在消息事务内登记的任务；失败后由持久任务和后台调度重试。 */
+export function maybeExtractMemories(params: { userId: string }): void {
+  void import("./memoryJobs")
+    .then(module => module.runMemoryExtractionJobs(params.userId))
+    .catch(error =>
+      log.error("[memory] worker unavailable", {
+        kind: error instanceof Error ? error.name : "unknown",
+      })
+    );
 }
 
 // ---------------------------------------------------------------------------

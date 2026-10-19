@@ -1,7 +1,7 @@
 /** 覆盖记忆评分、提取解析、持久化和主动消息引用。 */
 
 import { createTestGirlfriend as createGirlfriend } from "./testFixtures";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { renderMessage } from "../shared/i18n";
 import { nanoid } from "nanoid";
 import {
@@ -209,9 +209,11 @@ describe("memory storage (DB)", () => {
     expect(block).toContain("你记得的关于用户的事");
     expect(block).toContain("面试");
 
-    const rows = await listMemories(userId, gf.id);
-    const interview = rows.find(m => m.content.includes("面试"));
-    expect(interview?.lastRecalledAt).toBeTruthy();
+    await vi.waitFor(async () => {
+      const rows = await listMemories(userId, gf.id);
+      const interview = rows.find(m => m.content.includes("面试"));
+      expect(interview?.lastRecalledAt).toBeTruthy();
+    });
   });
 
   it("returns empty block when there are no memories", async () => {

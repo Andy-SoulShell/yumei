@@ -11,7 +11,6 @@ import * as providers from "./_core/imageProvider";
 import * as chat from "./_core/chatProvider";
 import * as memory from "./memory";
 import * as billing from "./billing";
-import * as quota from "./_core/quota";
 
 let serial = 0;
 const caller = () =>
@@ -56,7 +55,6 @@ beforeEach(() => {
   );
 
   vi.stubEnv("BILLING_PROVIDER", "none");
-  quota.resetRateLimits();
   vi.spyOn(db, "getConversation").mockResolvedValue({
     id: 42,
     girlfriendId: 12,

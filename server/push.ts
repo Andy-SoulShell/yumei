@@ -154,10 +154,13 @@ let schedulerTimer: NodeJS.Timeout | null = null;
  *
  * @remarks 首轮在一个小时后触发；跨进程去重及用户独立时区尚未实现。
  */
-export function startProactivePushScheduler(): void {
-  if (!isPushConfigured() || schedulerTimer) return;
+export function startProactivePushScheduler(): () => void {
+  if (!isPushConfigured() || schedulerTimer) return () => {};
+  let running = false;
 
   const tick = async () => {
+    if (running) return;
+    running = true;
     try {
       const hour = new Date().getHours();
       if (hour < 8 || hour >= 22) return;
@@ -180,12 +183,18 @@ export function startProactivePushScheduler(): void {
       }
     } catch (error) {
       log.error("[push] scheduler tick failed", error);
+    } finally {
+      running = false;
     }
   };
 
   schedulerTimer = setInterval(tick, 60 * 60 * 1000);
   schedulerTimer.unref();
   console.log("[boot] proactive push scheduler started (hourly)");
+  return () => {
+    if (schedulerTimer) clearInterval(schedulerTimer);
+    schedulerTimer = null;
+  };
 }
 
 /** 推送离开应用前，按账号语言把结构化系统通知渲染为文本。 */

@@ -1,11 +1,8 @@
 /** 覆盖请求频率、行为冷却与数据库每日计量。 */
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   checkRateLimit,
-  resetRateLimits,
-  isOnCooldown,
-  markCooldown,
   tryConsumeDailyMeter,
   getDailyMeter,
   todayUTC,
@@ -14,54 +11,43 @@ import { RATE_LIMITS_PER_MINUTE } from "../../shared/quotas";
 import { getDb } from "../db";
 import { nanoid } from "nanoid";
 
-describe("checkRateLimit", () => {
-  beforeEach(() => resetRateLimits());
-
-  it("allows requests under the per-minute cap", () => {
-    for (let i = 0; i < RATE_LIMITS_PER_MINUTE.selfie; i++) {
-      expect(() => checkRateLimit("rl-user-1", "selfie")).not.toThrow();
-    }
-  });
-
-  it("throws TOO_MANY_REQUESTS once the cap is hit", () => {
-    for (let i = 0; i < RATE_LIMITS_PER_MINUTE.selfie; i++) {
-      checkRateLimit("rl-user-2", "selfie");
-    }
-    expect(() => checkRateLimit("rl-user-2", "selfie")).toThrowError(
-      /Too many requests/
+describe("shared sliding request windows", () => {
+  it("admits exactly the cap under concurrent requests", async () => {
+    const userId = `rate-${crypto.randomUUID()}`;
+    const results = await Promise.allSettled(
+      Array.from({ length: RATE_LIMITS_PER_MINUTE.selfie + 4 }, () =>
+        checkRateLimit(userId, "selfie")
+      )
     );
+    expect(results.filter(row => row.status === "fulfilled")).toHaveLength(
+      RATE_LIMITS_PER_MINUTE.selfie
+    );
+    expect(results.filter(row => row.status === "rejected")).toHaveLength(4);
+    await expect(checkRateLimit(userId, "chat")).resolves.toBeUndefined();
+    await expect(
+      checkRateLimit(`other-${crypto.randomUUID()}`, "selfie")
+    ).resolves.toBeUndefined();
   });
-
-  it("tracks users independently", () => {
-    for (let i = 0; i < RATE_LIMITS_PER_MINUTE.selfie; i++) {
-      checkRateLimit("rl-user-3", "selfie");
-    }
-    expect(() => checkRateLimit("rl-user-4", "selfie")).not.toThrow();
-  });
-
-  it("tracks actions independently", () => {
-    for (let i = 0; i < RATE_LIMITS_PER_MINUTE.selfie; i++) {
-      checkRateLimit("rl-user-5", "selfie");
-    }
-    expect(() => checkRateLimit("rl-user-5", "chat")).not.toThrow();
-  });
-});
-
-describe("cooldowns (intimacy anti-farming)", () => {
-  beforeEach(() => resetRateLimits());
-
-  it("is not on cooldown before marking", () => {
-    expect(isOnCooldown("cd-user-1", "text_message", 1)).toBe(false);
-  });
-
-  it("is on cooldown right after marking", () => {
-    markCooldown("cd-user-2", "text_message");
-    expect(isOnCooldown("cd-user-2", "text_message", 1)).toBe(true);
-  });
-
-  it("scopes cooldowns per action", () => {
-    markCooldown("cd-user-3", "text_message");
-    expect(isOnCooldown("cd-user-3", "voice_message", 1)).toBe(false);
+  it("shares windows across independently loaded server modules and expires old timestamps", async () => {
+    const userId = `rate-restart-${crypto.randomUUID()}`;
+    await checkRateLimit(userId, "selfie");
+    const db = (await getDb())!;
+    const { rateWindows } = await import("../../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    await db
+      .update(rateWindows)
+      .set({ requests: Array(RATE_LIMITS_PER_MINUTE.selfie).fill(Date.now()) })
+      .where(eq(rateWindows.userId, userId));
+    vi.resetModules();
+    const independent = await import("./quota");
+    await expect(
+      independent.checkRateLimit(userId, "selfie")
+    ).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
+    await db
+      .update(rateWindows)
+      .set({ requests: [Date.now() - 61_000] })
+      .where(eq(rateWindows.userId, userId));
+    await expect(checkRateLimit(userId, "selfie")).resolves.toBeUndefined();
   });
 });
 

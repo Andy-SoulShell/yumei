@@ -660,7 +660,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         // 0. 年龄门 + 服务端限流。
         ensureAgeConfirmed(ctx.user);
-        checkRateLimit(ctx.user.id, "chat");
+        await checkRateLimit(ctx.user.id, "chat");
         if (input.transcriptionId)
           await validateTranscription(
             ctx.user.id,
@@ -879,13 +879,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
         }
 
         // 9. 异步记忆提取：每 10 条消息触发一次，不阻塞响应。
-        maybeExtractMemories({
-          userId: ctx.user.id,
-          girlfriendId: girlfriend.id,
-          conversationId: input.conversationId,
-          intimacyLevel: girlfriend.intimacyLevel || 1,
-          provider: chatProvider,
-        });
+        maybeExtractMemories({ userId: ctx.user.id });
 
         return {
           ...saved,
@@ -925,7 +919,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
       )
       .mutation(async ({ ctx, input }) => {
         ensureAgeConfirmed(ctx.user);
-        checkRateLimit(ctx.user.id, "selfie");
+        await checkRateLimit(ctx.user.id, "selfie");
 
         const conversation = await getConversation(
           input.conversationId,
@@ -1220,8 +1214,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
           selfiesUsed: selfieUsed,
           selfieLimit: limits.dailySelfies ?? limits.monthlySelfies,
           selfiePeriod: (limits.dailySelfies !== null ? "day" : "month") as
-            | "day"
-            | "month",
+            "day" | "month",
         },
         subscription: subscription
           ? {
@@ -1379,7 +1372,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
       try {
         const response = await axios.get(
           "https://openrouter.ai/api/v1/models",
-          { headers: { Authorization: `Bearer ${apiKey}` } }
+          { headers: { Authorization: `Bearer ${apiKey}` }, timeout: 15_000 }
         );
         const models = response.data.data
           .filter((m: any) => {
@@ -1431,7 +1424,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
       try {
         const response = await axios.get(
           "https://api.elevenlabs.io/v1/voices",
-          { headers: { "xi-api-key": apiKey } }
+          { headers: { "xi-api-key": apiKey }, timeout: 15_000 }
         );
         const voices = response.data.voices.map((v: any) => ({
           id: v.voice_id,
@@ -1477,6 +1470,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
           const response = await axios.get("https://api.fish.audio/model", {
             headers: { Authorization: `Bearer ${apiKey}` },
             params,
+            timeout: 15_000,
           });
           const models = response.data.items.map((m: any) => ({
             id: m._id,
@@ -1571,7 +1565,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
       )
       .mutation(async ({ ctx, input }) => {
         // 服务端限流。
-        checkRateLimit(ctx.user.id, "tts");
+        await checkRateLimit(ctx.user.id, "tts");
 
         const apiConfig = await getUserApiConfig(ctx.user.id);
         if (!apiConfig) {
@@ -1720,7 +1714,7 @@ ${girlfriend.interests ? `兴趣爱好：\n${girlfriend.interests}` : ""}
       .mutation(async ({ input, ctx }) => {
         // 0. 年龄门 + 服务端限流。
         ensureAgeConfirmed(ctx.user);
-        checkRateLimit(ctx.user.id, "transcribe");
+        await checkRateLimit(ctx.user.id, "transcribe");
 
         // 0b. 档位门槛：免费档不含语音转写；
         // BYOK openai key 或自托管模式除外。

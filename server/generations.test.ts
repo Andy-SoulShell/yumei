@@ -22,7 +22,6 @@ import type { TrpcContext } from "./_core/context";
 import {
   getDailyMeter,
   getMonthlyMeter,
-  resetRateLimits,
   tryConsumeDailyMeter,
 } from "./_core/quota";
 import * as chat from "./_core/chatProvider";
@@ -67,7 +66,6 @@ async function seed() {
 }
 
 beforeEach(() => {
-  resetRateLimits();
   vi.stubEnv("BILLING_PROVIDER", "free");
   vi.spyOn(chat, "resolveChatProvider").mockResolvedValue({
     name: "deepseek",

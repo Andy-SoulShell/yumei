@@ -102,6 +102,7 @@ describe("OpenRouter API integration", () => {
     });
     expect(get).toHaveBeenCalledWith("https://openrouter.ai/api/v1/models", {
       headers: { Authorization: "Bearer operator-test-key" },
+      timeout: 15_000,
     });
   });
 

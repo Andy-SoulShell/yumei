@@ -1,3 +1,4 @@
+import { EXTRACTION_EVERY_N_MESSAGES } from "../shared/memory";
 /** 持久化生成请求，原子结算消息与额度，并补偿失败和过期预留。 */
 import { TRPCError } from "@trpc/server";
 import {
@@ -8,6 +9,7 @@ import {
 import { consumeTranscription } from "./transcriptions";
 import { and, eq, inArray, isNull, lte, sql } from "drizzle-orm";
 import {
+  memoryExtractionJobs,
   conversations,
   girlfriends,
   generationRequests,
@@ -260,6 +262,24 @@ export async function completeTextGeneration(
       .update(generationRequests)
       .set({ status: "succeeded" })
       .where(eq(generationRequests.id, id));
+    const [messageCount] = await tx
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(messages)
+      .where(
+        and(
+          eq(messages.conversationId, request.conversationId),
+          eq(messages.generationStatus, "succeeded")
+        )
+      );
+    if (Number(messageCount.count) % EXTRACTION_EVERY_N_MESSAGES === 0)
+      await tx.insert(memoryExtractionJobs).values({
+        id: request.id,
+        userId,
+        girlfriendId: role.girlfriendId,
+        conversationId: request.conversationId,
+        lastMessageId: assistantMessage.id,
+        intimacyLevel: relationship.intimacyLevel,
+      });
     return { userMessage, assistantMessage, relationship };
   });
 }

@@ -50,7 +50,7 @@ export async function generateConversationSelfie(
       code: "PRECONDITION_FAILED",
       message: "AGE_CONFIRMATION_REQUIRED",
     });
-  checkRateLimit(user.id, "selfie");
+  await checkRateLimit(user.id, "selfie");
 
   // 0b. 验证对话所有权。selfie.generate 此前会无条件
   // INSERT 一条 assistant message 到 input.conversationId，攻击者可借此

@@ -23,6 +23,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { createUtcMysqlPool } from "./_core/mysql";
 import {
   users,
+  memoryExtractionJobs,
   girlfriends,
   conversations,
   messages,
@@ -733,6 +734,14 @@ export async function permanentDeleteGirlfriend(
         and(
           eq(girlfriendMoods.girlfriendId, id),
           eq(girlfriendMoods.userId, userId)
+        )
+      );
+    await tx
+      .delete(memoryExtractionJobs)
+      .where(
+        and(
+          eq(memoryExtractionJobs.userId, userId),
+          eq(memoryExtractionJobs.girlfriendId, id)
         )
       );
     await tx.delete(girlfriends).where(eq(girlfriends.id, id));

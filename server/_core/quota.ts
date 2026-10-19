@@ -1,98 +1,47 @@
-/** 单进程请求频率和冷却窗口，以及数据库中的每日、每月额度计量。 */
+/** 数据库共享的滑动请求窗口，以及每日、每月额度计量。 */
 
 import { TRPCError } from "@trpc/server";
 import { sql } from "drizzle-orm";
-import { usageMeters } from "../../drizzle/schema";
+import { usageMeters, rateWindows } from "../../drizzle/schema";
 import { getDb, type DbTransaction } from "../db";
 import {
   RATE_LIMITS_PER_MINUTE,
   type RateLimitedAction,
 } from "../../shared/quotas";
 
-// ---------------------------------------------------------------------------
-// 进程内滑动窗口，每分钟限流。
-// ---------------------------------------------------------------------------
-
-const WINDOW_MS = 60_000;
-const requestLog = new Map<string, number[]>();
-
-// 定期清理过期窗口，避免长期运行时无限积累。
-let lastSweep = Date.now();
-/** 按需淘汰已经离开滑动窗口的请求记录，避免内存持续增长。 */
-function sweepIfNeeded(now: number) {
-  if (now - lastSweep < 5 * WINDOW_MS) return;
-  lastSweep = now;
-  requestLog.forEach((timestamps, key) => {
-    const fresh = timestamps.filter((t: number) => now - t < WINDOW_MS);
-    if (fresh.length === 0) requestLog.delete(key);
-    else requestLog.set(key, fresh);
-  });
-}
-
-/**
- * 检查并记录用户的一次请求，超过每分钟上限时抛出 TOO_MANY_REQUESTS。
- *
- * @remarks 窗口保存在当前进程内，重启及多实例不会共享状态。
- */
-export function checkRateLimit(
+/** 以数据库行锁保护滑动窗口，多进程和重启共享同一请求频率。 */
+export async function checkRateLimit(
   userId: string,
   action: RateLimitedAction
-): void {
-  const limit = RATE_LIMITS_PER_MINUTE[action];
-  const now = Date.now();
-  sweepIfNeeded(now);
-
-  const key = `${userId}:${action}`;
-  const timestamps = (requestLog.get(key) ?? []).filter(
-    t => now - t < WINDOW_MS
-  );
-
-  if (timestamps.length >= limit) {
-    const retryAfterSec = Math.ceil((timestamps[0] + WINDOW_MS - now) / 1000);
-    throw new TRPCError({
-      code: "TOO_MANY_REQUESTS",
-      message: `Too many requests. Please wait ${retryAfterSec}s and try again.`,
-    });
-  }
-
-  timestamps.push(now);
-  requestLog.set(key, timestamps);
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const limit = RATE_LIMITS_PER_MINUTE[action],
+    now = Date.now();
+  await db.transaction(async tx => {
+    await tx
+      .insert(rateWindows)
+      .values({ userId, action, requests: [] })
+      .onDuplicateKeyUpdate({ set: { userId } });
+    const where = sql`${rateWindows.userId} = ${userId} AND ${rateWindows.action} = ${action}`;
+    const [row] = await tx
+      .select()
+      .from(rateWindows)
+      .where(where)
+      .for("update");
+    const requests = row.requests.filter(time => now - time < 60_000);
+    if (requests.length >= limit)
+      throw new TRPCError({
+        code: "TOO_MANY_REQUESTS",
+        message: `Too many requests. Please wait ${Math.ceil((requests[0] + 60_000 - now) / 1000)}s and try again.`,
+      });
+    requests.push(now);
+    await tx
+      .update(rateWindows)
+      .set({ requests, updatedAt: new Date() })
+      .where(where);
+  });
 }
-
-/** 清空请求窗口与行为冷却记录，仅用于测试隔离。 */
-export function resetRateLimits(): void {
-  requestLog.clear();
-  cooldowns.clear();
-}
-
-// ---------------------------------------------------------------------------
-// Action cooldowns (in-memory; used by intimacy anti-farming)
-// ---------------------------------------------------------------------------
-
-const cooldowns = new Map<string, number>();
-
-/**
- * 判断用户的指定行为是否仍在冷却期内。
- *
- * @param minutes - 冷却时间，单位为分钟
- */
-export function isOnCooldown(
-  userId: string,
-  action: string,
-  minutes: number
-): boolean {
-  const last = cooldowns.get(`${userId}:${action}`);
-  return last !== undefined && Date.now() - last < minutes * 60_000;
-}
-
-/** 记录用户行为的当前时间，供后续冷却判断使用。 */
-export function markCooldown(userId: string, action: string): void {
-  cooldowns.set(`${userId}:${action}`, Date.now());
-}
-
-// ---------------------------------------------------------------------------
-// Daily meters (persistent)
-// ---------------------------------------------------------------------------
 
 /** 返回当前 UTC 自然日，格式为 YYYY-MM-DD。 */
 export function todayUTC(): string {

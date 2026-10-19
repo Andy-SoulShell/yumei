@@ -71,7 +71,7 @@ afterEach(() => {
 });
 
 describe("DeepSeek official API deployment", () => {
-  it("sends chat to DeepSeek Flash and passes the same provider to memory extraction", async () => {
+  it("sends chat to DeepSeek Flash and wakes persisted memory work for the same user", async () => {
     vi.spyOn(db, "getConversation").mockResolvedValue({ id: 1, userId } as any);
     vi.spyOn(db, "getActiveGirlfriend").mockResolvedValue({
       id: 1,
@@ -116,14 +116,7 @@ describe("DeepSeek official API deployment", () => {
         }),
       })
     );
-    expect(extraction).toHaveBeenCalledWith(
-      expect.objectContaining({
-        provider: expect.objectContaining({
-          name: "deepseek",
-          model: "deepseek-flash",
-        }),
-      })
-    );
+    expect(extraction).toHaveBeenCalledWith({ userId });
   });
 
   it("rejects missing DeepSeek keys before writes, even when an OpenRouter key exists", async () => {
@@ -184,28 +177,13 @@ describe("DeepSeek official API deployment", () => {
   });
 
   it("extracts JSON memories through DeepSeek instead of the hardcoded OpenRouter model", async () => {
-    const limit = vi
-      .fn()
-      .mockResolvedValue([{ role: "user", content: "我喜欢喝茶" }]);
-    const select = vi
-      .fn()
-      .mockReturnValueOnce({
-        from: () => ({ where: async () => [{ count: 10 }] }),
-      })
-      .mockReturnValueOnce({
-        from: () => ({ where: () => ({ orderBy: () => ({ limit }) }) }),
-      });
-    vi.spyOn(db, "getDb").mockResolvedValue({ select } as any);
     const post = vi.spyOn(axios, "post").mockResolvedValue({
       data: { choices: [{ message: { content: '{"memories":[]}' } }] },
     });
-    memory.maybeExtractMemories({
-      userId,
-      girlfriendId: 1,
-      conversationId: 1,
-      intimacyLevel: 1,
-      provider: await resolveChatProvider(userId),
-    });
+    await memory.callExtractionModel(
+      await resolveChatProvider(userId),
+      "用户：我喜欢喝茶"
+    );
     await vi.waitFor(() =>
       expect(post).toHaveBeenCalledWith(
         "https://api.deepseek.com/chat/completions",

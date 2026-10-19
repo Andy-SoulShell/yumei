@@ -336,6 +336,10 @@ export const subscriptions = mysqlTable("subscriptions", {
     .notNull()
     .unique(),
   lsCustomerId: varchar("lsCustomerId", { length: 64 }),
+  /** 已应用的 Provider 快照时间，用于拒绝乱序和相同版本事件。 */
+  providerUpdatedAt: timestamp("providerUpdatedAt", { fsp: 3 }),
+  /** 首次进入欠费状态的时间，后续通知不延长宽限期。 */
+  pastDueSince: timestamp("pastDueSince", { fsp: 3 }),
   plan: mysqlEnum("plan", ["plus", "pro"]).notNull(),
   status: mysqlEnum("status", [
     "on_trial",
@@ -371,3 +375,13 @@ export const pushSubscriptions = mysqlTable("pushSubscriptions", {
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 /** 从 pushSubscriptions 表结构推导的新增记录输入，允许省略由数据库填充的字段。 */
 export type InsertPushSubscription = typeof pushSubscriptions.$inferInsert;
+
+/** 支付 Webhook 的语义指纹收据，不保存客户原始支付数据。 */
+export const billingEvents = mysqlTable("billingEvents", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  userId: varchar("userId", { length: 255 }).notNull(),
+  subscriptionId: varchar("subscriptionId", { length: 64 }).notNull(),
+  eventName: varchar("eventName", { length: 64 }).notNull(),
+  occurredAt: timestamp("occurredAt", { fsp: 3 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});

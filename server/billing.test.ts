@@ -1,18 +1,31 @@
 /** 覆盖计费模式、套餐映射、签名与订阅更新。 */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
+import { billingEvents } from "../drizzle/schema";
 import { createHmac } from "node:crypto";
 import { nanoid } from "nanoid";
 import {
   getBillingMode,
   getUserTier,
-  handleLemonEvent,
+  getSubscription,
+  handleLemonEvent as handleProviderEvent,
   isBillingEnforced,
   resolvePlan,
   verifyLemonSignature,
 } from "./billing";
+import { createTestUser } from "./testFixtures";
 import { getDb } from "./db";
 import { TIER_LIMITS } from "../shared/quotas";
+
+let eventSequence = 0;
+async function handleLemonEvent(
+  payload: Parameters<typeof handleProviderEvent>[0]
+) {
+  if (payload.meta?.custom_data?.user_id)
+    await createTestUser(payload.meta.custom_data.user_id);
+  return handleProviderEvent(payload);
+}
 
 const SECRET = "test-webhook-secret";
 
@@ -37,6 +50,7 @@ function subscriptionPayload(overrides: {
       id: overrides.subId ?? `ls-${nanoid(8)}`,
       attributes: {
         customer_id: 12345,
+        updated_at: new Date(Date.now() + eventSequence++ * 1000).toISOString(),
         status: overrides.status ?? "active",
         renews_at: "2027-01-01T00:00:00.000000Z",
         ends_at: overrides.endsAt ?? null,
@@ -172,7 +186,7 @@ describe("webhook state machine (DB)", () => {
     expect(await getUserTier(userId)).toBe("free");
   });
 
-  it("payment_failed marks past_due (grace: keeps access)", async () => {
+  it("payment invoice does not override the canonical subscription snapshot", async () => {
     if (!(await getDb())) return;
     process.env.BILLING_PROVIDER = "lemonsqueezy";
     const userId = `bill-user-${nanoid(8)}`;
@@ -223,5 +237,107 @@ describe("tier limits shape", () => {
     expect(TIER_LIMITS.pro.monthlySelfies).toBe(100);
     expect(TIER_LIMITS.pro.maxGirlfriends).toBeNull();
     expect(TIER_LIMITS.pro.ttsProviders).toContain("fishaudio");
+  });
+});
+
+describe("billing event ordering regressions", () => {
+  it("does not reactivate expired access for delayed payment failures or recoveries", async () => {
+    process.env.BILLING_PROVIDER = "lemonsqueezy";
+    const userId = `expired-${nanoid(8)}`;
+    const subId = `ls-${nanoid(8)}`;
+    await handleLemonEvent(
+      subscriptionPayload({
+        userId,
+        subId,
+        status: "expired",
+        event: "subscription_expired",
+        endsAt: new Date(Date.now() - 86_400_000).toISOString(),
+      })
+    );
+    for (const event of [
+      "subscription_payment_failed",
+      "subscription_payment_recovered",
+      "subscription_payment_success",
+    ]) {
+      await handleLemonEvent({
+        meta: { event_name: event, custom_data: { user_id: userId } },
+        data: {
+          id: `invoice-${event}`,
+          attributes: { subscription_id: subId },
+        },
+      });
+      expect(await getUserTier(userId)).toBe("free");
+      expect((await getSubscription(userId))?.status).toBe("expired");
+    }
+  });
+
+  it("ignores older and equal-version snapshots and deduplicates concurrent retries", async () => {
+    const userId = `ordered-${nanoid(8)}`;
+    const subId = `ls-${nanoid(8)}`;
+    const expired = subscriptionPayload({
+      userId,
+      subId,
+      status: "expired",
+      event: "subscription_expired",
+    });
+    expired.data.attributes.updated_at = "2026-10-19T02:00:00.123Z";
+    const results = await Promise.all(
+      Array.from({ length: 6 }, () => handleLemonEvent(expired))
+    );
+    expect(results.filter(r => r.ok && !r.ignored)).toHaveLength(1);
+    const old = subscriptionPayload({
+      userId,
+      subId,
+      status: "active",
+      event: "subscription_updated",
+    });
+    for (const time of [
+      "2026-10-19T01:00:00.000Z",
+      "2026-10-19T02:00:00.123Z",
+    ]) {
+      old.data.attributes.updated_at = time;
+      expect(await handleLemonEvent(old)).toMatchObject({
+        ok: true,
+        ignored: "stale subscription snapshot",
+      });
+    }
+    expect((await getSubscription(userId))?.status).toBe("expired");
+    const receipts = await (await getDb())!
+      .select()
+      .from(billingEvents)
+      .where(eq(billingEvents.userId, userId));
+    expect(receipts).toHaveLength(3);
+  });
+
+  it("does not extend the seven-day overdue grace on later failed-payment snapshots", async () => {
+    process.env.BILLING_PROVIDER = "lemonsqueezy";
+    const userId = `grace-${nanoid(8)}`;
+    const subId = `ls-${nanoid(8)}`;
+    const first = subscriptionPayload({ userId, subId, status: "past_due" });
+    first.data.attributes.updated_at = new Date(
+      Date.now() - 8 * 86_400_000
+    ).toISOString();
+    await handleLemonEvent(first);
+    await handleLemonEvent(
+      subscriptionPayload({
+        userId,
+        subId,
+        status: "past_due",
+        event: "subscription_updated",
+      })
+    );
+    expect(await getUserTier(userId)).toBe("free");
+  });
+
+  it("rejects a subscription belonging to another user", async () => {
+    const subId = `ls-${nanoid(8)}`;
+    const owner = `owner-${nanoid(8)}`;
+    await handleLemonEvent(subscriptionPayload({ userId: owner, subId }));
+    expect(
+      await handleLemonEvent(
+        subscriptionPayload({ userId: `other-${nanoid(8)}`, subId })
+      )
+    ).toMatchObject({ ok: false, error: "subscription owner mismatch" });
+    expect((await getSubscription(owner))?.lsSubscriptionId).toBe(subId);
   });
 });

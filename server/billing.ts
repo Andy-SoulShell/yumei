@@ -1,12 +1,16 @@
 /** 套餐判定、权益读取与 Lemon Squeezy 订阅事件处理。 */
 
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import type { Express, Request, Response } from "express";
 import express from "express";
-import { eq } from "drizzle-orm";
-import { subscriptions, type Subscription } from "../drizzle/schema";
+import { eq, or } from "drizzle-orm";
+import {
+  billingEvents,
+  subscriptions,
+  type Subscription,
+} from "../drizzle/schema";
 import { TIER_LIMITS, type Tier, type TierLimits } from "../shared/quotas";
-import { getDb } from "./db";
+import { getDb, getUserById, withUserTransaction } from "./db";
 import { log } from "./_core/log";
 
 /** 计费运行模式：免费额度、自托管全解锁或外部订阅。 */
@@ -48,7 +52,7 @@ export async function getSubscription(
 /**
  * 根据计费模式及本地订阅状态推导用户档位。
  *
- * @remarks 当前 active、on_trial、past_due 直接授权；其余状态在 endsAt 未到时也保留权益。
+ * @remarks 已过 endsAt 或明确终止的订阅不授权；欠费宽限最多七天，取消续费可保留未到期权益。
  */
 export async function getUserTier(userId: string): Promise<Tier> {
   const mode = getBillingMode();
@@ -58,6 +62,18 @@ export async function getUserTier(userId: string): Promise<Tier> {
   const sub = await getSubscription(userId);
   if (!sub) return "free";
 
+  const now = Date.now();
+  if (sub.endsAt && sub.endsAt.getTime() <= now) return "free";
+  if (
+    sub.status === "expired" ||
+    sub.status === "unpaid" ||
+    sub.status === "paused"
+  )
+    return "free";
+  if (sub.status === "past_due") {
+    const since = sub.pastDueSince ?? sub.providerUpdatedAt ?? sub.updatedAt;
+    return now - since.getTime() < 7 * 86_400_000 ? sub.plan : "free";
+  }
   if (ACTIVE_STATUSES.includes(sub.status)) return sub.plan;
 
   // 已取消续费但仍处于已支付周期内，继续保留对应权益。
@@ -136,7 +152,9 @@ type LemonPayload = {
       variant_name?: string;
       product_name?: string;
       // 支付事件通过此字段携带所属订阅 ID。
-      subscription_id?: number;
+      subscription_id?: number | string;
+      updated_at?: string;
+      created_at?: string;
     };
   };
 };
@@ -176,83 +194,117 @@ const LS_STATUSES = new Set([
 ]);
 
 /**
- * 将已通过签名验证的订阅事件写入本地订阅表。
+ * 幂等应用经验证的订阅快照，拒绝过期版本和跨用户订阅归属变更。
  *
- * @remarks 本函数本身不验证签名，也未记录事件去重键或按事件时间防止乱序覆盖。
+ * @remarks 付款事件仅记录收据；权益由 subscription_created/updated 等完整快照更新。
+ * 事件约定参考 https://docs.lemonsqueezy.com/help/webhooks/event-types 。
  */
 export async function handleLemonEvent(
   payload: LemonPayload
 ): Promise<{ ok: true; ignored?: string } | { ok: false; error: string }> {
   const eventName = payload.meta?.event_name ?? "";
-  if (!SUBSCRIPTION_EVENTS.has(eventName)) {
+  if (!SUBSCRIPTION_EVENTS.has(eventName))
     return { ok: true, ignored: `event ${eventName || "(missing)"}` };
-  }
-
   const userId = payload.meta?.custom_data?.user_id;
-  if (!userId) {
-    // 结账链接需带 checkout[custom][user_id]，否则无法关联用户。
-    return { ok: false, error: "missing meta.custom_data.user_id" };
-  }
-
+  if (!userId) return { ok: false, error: "missing meta.custom_data.user_id" };
   const attributes = payload.data?.attributes ?? {};
-  // 支付事件取 attributes.subscription_id；订阅事件直接取 data.id。
-  const lsSubscriptionId = eventName.startsWith("subscription_payment")
-    ? String(attributes.subscription_id ?? "")
-    : String(payload.data?.id ?? "");
-  if (!lsSubscriptionId) {
-    return { ok: false, error: "missing subscription id" };
-  }
-
-  const db = await getDb();
-  if (!db) return { ok: false, error: "database unavailable" };
-
-  // 支付事件只更新已有订阅的时间和状态，不创建套餐记录。
-  if (eventName.startsWith("subscription_payment")) {
-    if (eventName === "subscription_payment_failed") {
-      await db
-        .update(subscriptions)
-        .set({ status: "past_due" })
-        .where(eq(subscriptions.lsSubscriptionId, lsSubscriptionId));
-    } else {
-      await db
-        .update(subscriptions)
-        .set({ status: "active" })
-        .where(eq(subscriptions.lsSubscriptionId, lsSubscriptionId));
-    }
-    return { ok: true };
-  }
-
-  const plan = resolvePlan(attributes);
-  if (!plan)
-    return {
-      ok: false,
-      error: "unresolvable plan (set LEMONSQUEEZY_VARIANT_PLUS/_PRO)",
-    };
-
-  const rawStatus = attributes.status ?? "active";
-  const status = (
-    LS_STATUSES.has(rawStatus) ? rawStatus : "active"
-  ) as Subscription["status"];
+  const payment = eventName.startsWith("subscription_payment");
+  const subscriptionId = String(
+    payment ? (attributes.subscription_id ?? "") : (payload.data?.id ?? "")
+  );
+  if (!subscriptionId) return { ok: false, error: "missing subscription id" };
+  const timestamp = attributes.updated_at ?? attributes.created_at;
+  const occurredAt = timestamp ? new Date(timestamp) : null;
+  if (
+    (!payment && !occurredAt) ||
+    (occurredAt && Number.isNaN(occurredAt.getTime()))
+  )
+    return { ok: false, error: "valid provider timestamp required" };
+  const plan = payment ? null : resolvePlan(attributes);
+  const status = attributes.status as Subscription["status"];
+  if (!payment && (!plan || !LS_STATUSES.has(status)))
+    return { ok: false, error: "unresolvable plan or status" };
   const renewsAt = attributes.renews_at ? new Date(attributes.renews_at) : null;
   const endsAt = attributes.ends_at ? new Date(attributes.ends_at) : null;
-
-  await db
-    .insert(subscriptions)
-    .values({
-      userId,
-      lsSubscriptionId,
+  if ([renewsAt, endsAt].some(date => date && Number.isNaN(date.getTime())))
+    return { ok: false, error: "invalid subscription dates" };
+  if (!(await getUserById(userId))) return { ok: false, error: "unknown user" };
+  const id = createHash("sha256")
+    .update(
+      JSON.stringify({
+        eventName,
+        userId,
+        subscriptionId,
+        resourceId: payload.data?.id,
+        timestamp,
+        plan,
+        status,
+        renewsAt,
+        endsAt,
+      })
+    )
+    .digest("hex");
+  return withUserTransaction(userId, async tx => {
+    const [receipt] = await tx
+      .select({ id: billingEvents.id })
+      .from(billingEvents)
+      .where(eq(billingEvents.id, id));
+    if (receipt) return { ok: true, ignored: "duplicate event" };
+    const rows = await tx
+      .select()
+      .from(subscriptions)
+      .where(
+        or(
+          eq(subscriptions.userId, userId),
+          eq(subscriptions.lsSubscriptionId, subscriptionId)
+        )
+      )
+      .for("update");
+    if (
+      rows.some(
+        row => row.lsSubscriptionId === subscriptionId && row.userId !== userId
+      )
+    )
+      return { ok: false, error: "subscription owner mismatch" };
+    await tx
+      .insert(billingEvents)
+      .values({ id, userId, subscriptionId, eventName, occurredAt });
+    if (payment)
+      return {
+        ok: true,
+        ignored: "invoice recorded; awaiting subscription snapshot",
+      };
+    const current = rows.find(row => row.userId === userId);
+    if (
+      current?.providerUpdatedAt &&
+      occurredAt!.getTime() <= current.providerUpdatedAt.getTime()
+    )
+      return { ok: true, ignored: "stale subscription snapshot" };
+    const pastDueSince =
+      status === "past_due"
+        ? current?.status === "past_due"
+          ? (current.pastDueSince ?? current.providerUpdatedAt ?? occurredAt)
+          : occurredAt
+        : null;
+    const snapshot = {
+      lsSubscriptionId: subscriptionId,
       lsCustomerId:
         attributes.customer_id != null ? String(attributes.customer_id) : null,
-      plan,
+      plan: plan!,
       status,
       renewsAt,
       endsAt,
-    })
-    .onDuplicateKeyUpdate({
-      set: { userId, plan, status, renewsAt, endsAt },
-    });
-
-  return { ok: true };
+      providerUpdatedAt: occurredAt,
+      pastDueSince,
+    };
+    if (current)
+      await tx
+        .update(subscriptions)
+        .set(snapshot)
+        .where(eq(subscriptions.id, current.id));
+    else await tx.insert(subscriptions).values({ userId, ...snapshot });
+    return { ok: true };
+  });
 }
 
 /**

@@ -15,6 +15,13 @@
       "when": 1792402542555,
       "tag": "0001_intimacy_decay_checkpoint",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1792403050370,
+      "tag": "0002_billing_event_order",
+      "breakpoints": true
     }
   ]
 }

@@ -8,8 +8,10 @@ import { storageRead } from "./storage";
 import { readDefaultReference } from "./characterPresets";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
+// 每次执行使用新账号，避免复用旧数据库记录中指向上次临时目录的文件键。
+const defaultUserId = `test-default-${crypto.randomUUID()}`;
 
-function createAuthContext(userId = 1): { ctx: TrpcContext } {
+function createAuthContext(userId: string | number = 1): { ctx: TrpcContext } {
   const user: AuthenticatedUser = {
     // Better-Auth uses string user IDs.
     id: String(userId),
@@ -38,7 +40,7 @@ function createAuthContext(userId = 1): { ctx: TrpcContext } {
 
 describe("girlfriend.ensureDefault", () => {
   it("should create default girlfriend YUMEI for new user", async () => {
-    const { ctx } = createAuthContext(88888);
+    const { ctx } = createAuthContext(defaultUserId);
     await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 
@@ -47,9 +49,11 @@ describe("girlfriend.ensureDefault", () => {
     expect(result).toBeDefined();
     expect(result.name).toBe("YUMEI");
     expect(result.personality).toContain("活泼开朗");
-    expect(result.userId).toBe("88888");
+    expect(result.userId).toBe(defaultUserId);
     expect(result.isActive).toBe(true);
-    expect(result.referenceImageKey).toMatch(/^default-yumei-88888-.*\.jpg$/);
+    expect(result.referenceImageKey).toMatch(
+      new RegExp(`^default-yumei-${defaultUserId}-.*\\.jpg$`)
+    );
     expect(result.referenceImageUrl).toContain(
       `/files/${result.referenceImageKey}`
     );
@@ -59,7 +63,7 @@ describe("girlfriend.ensureDefault", () => {
   });
 
   it("should return existing girlfriend if one already exists", async () => {
-    const { ctx } = createAuthContext(88888);
+    const { ctx } = createAuthContext(defaultUserId);
     await createTestUser(ctx.user!.id);
     const caller = appRouter.createCaller(ctx);
 

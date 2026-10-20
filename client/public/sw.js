@@ -3,7 +3,7 @@
  *
  * @remarks 只缓存应用静态资源；私人媒体、API 和跨来源请求始终走网络。
  */
-const CACHE_NAME = "yumei-static-v5";
+const CACHE_NAME = "yumei-static-v6";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",

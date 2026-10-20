@@ -332,7 +332,15 @@ export async function storeExtractedMemoriesInTransaction(
         candidate.sourceMessageId < duplicate.sourceMessageId
       )
         continue;
-      if (memoryMatch(candidate, duplicate) === "correction") {
+      const match = memoryMatch(candidate, duplicate);
+      // 重叠提取窗口可以反复包含同一条原话，只有新的用户证据才强化权重。
+      if (
+        match === "same" &&
+        candidate.sourceMessageId !== undefined &&
+        candidate.sourceMessageId === duplicate.sourceMessageId
+      )
+        continue;
+      if (match === "correction") {
         duplicate.content = candidate.content;
         duplicate.category = candidate.category;
         duplicate.weight = Math.min(

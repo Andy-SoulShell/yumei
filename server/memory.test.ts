@@ -26,6 +26,10 @@ import {
 } from "./memory";
 import { checkAndCreateProactiveNotification } from "./repositories/notifications";
 import { createTestGirlfriend as createGirlfriend } from "./testFixtures";
+import {
+  createConversation,
+  createMessage,
+} from "./repositories/conversations";
 
 // ---------------------------------------------------------------------------
 // Pure scoring (no DB)
@@ -334,6 +338,46 @@ async function makeGirlfriend(userId: string) {
 }
 
 describe("memory storage (DB)", () => {
+  it("reinforces a repeated fact only when a new user message supports it", async () => {
+    const userId = `source-dedupe-${nanoid(8)}`;
+    const gf = await makeGirlfriend(userId);
+    const conversation = await createConversation({
+      userId,
+      girlfriendId: gf.id,
+    });
+    const content = "我家的猫叫团团。";
+    const source = await createMessage({
+      conversationId: conversation.id,
+      role: "user",
+      content,
+    });
+    const candidate = {
+      category: "fact" as const,
+      content,
+      importance: 6,
+      sourceMessageId: source.id,
+    };
+    expect(
+      await storeExtractedMemories(userId, gf.id, [candidate, candidate])
+    ).toEqual({ inserted: 1, reinforced: 0, updated: 0 });
+    expect(await storeExtractedMemories(userId, gf.id, [candidate])).toEqual({
+      inserted: 0,
+      reinforced: 0,
+      updated: 0,
+    });
+    expect((await listMemories(userId, gf.id))[0].weight).toBe(60);
+    const repeated = await createMessage({
+      conversationId: conversation.id,
+      role: "user",
+      content,
+    });
+    expect(
+      await storeExtractedMemories(userId, gf.id, [
+        { ...candidate, sourceMessageId: repeated.id },
+      ])
+    ).toEqual({ inserted: 0, reinforced: 1, updated: 0 });
+    expect((await listMemories(userId, gf.id))[0].weight).toBe(65);
+  });
   it("recalls several personal facts despite synonyms and more than five competing memories", async () => {
     const userId = `recall-${nanoid(8)}`;
     const gf = await makeGirlfriend(userId);

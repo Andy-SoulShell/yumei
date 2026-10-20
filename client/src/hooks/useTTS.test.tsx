@@ -36,6 +36,7 @@ function Harness() {
   return null;
 }
 beforeEach(() => {
+  localStorage.clear();
   mock.provider = "browser";
   mock.mutate.mockReset();
   mock.error.mockReset();
@@ -72,6 +73,7 @@ afterEach(() => {
   if (!unmounted) act(() => root.unmount());
   container.remove();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 function render() {
   act(() => root.render(<Harness />));
@@ -141,3 +143,29 @@ it("does not create audio if generation finishes after leaving the page", () => 
   callbacks.onSuccess({ audioUrl: "/late.mp3" });
   expect(audio).toHaveLength(0);
 });
+
+it("allows speed and autoplay changes even when device storage is denied", () => {
+  vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+    throw new DOMException("blocked", "SecurityError");
+  });
+  vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    throw new DOMException("blocked", "QuotaExceededError");
+  });
+  render();
+  expect(state.playbackSpeed).toBe(1);
+  expect(state.autoPlay).toBe(false);
+  act(() => {
+    state.updateSpeed(1.5);
+    state.toggleAutoPlay();
+  });
+  expect(state.playbackSpeed).toBe(1.5);
+  expect(state.autoPlay).toBe(true);
+});
+it.each(["NaN", "0", "100", "1.5bad"])(
+  "uses normal speed instead of corrupt cached value %s",
+  saved => {
+    localStorage.setItem("tts-speed", saved);
+    render();
+    expect(state.playbackSpeed).toBe(1);
+  }
+);

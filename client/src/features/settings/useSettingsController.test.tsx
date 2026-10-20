@@ -88,6 +88,26 @@ async function mount() {
   };
 }
 
+it("keeps settings and favorites usable when device storage is denied or malformed", async () => {
+  localStorage.setItem("favorite-models", '{"broken":true}');
+  const probe = await mount();
+  try {
+    expect(probe.current.favoriteModels).toEqual([]);
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("blocked", "SecurityError");
+    });
+    await act(async () => {
+      probe.current.handleTtsToggle(true);
+      probe.current.toggleFavoriteModel("qa-model");
+    });
+    expect(probe.current.ttsAutoPlay).toBe(true);
+    expect(probe.current.favoriteModels).toEqual(["qa-model"]);
+  } finally {
+    vi.restoreAllMocks();
+    await probe.unmount();
+  }
+});
+
 it("keeps unsaved prompt, model, and voice while saving an image key and refreshing configuration", async () => {
   const probe = await mount();
   try {

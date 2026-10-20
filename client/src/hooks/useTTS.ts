@@ -2,6 +2,7 @@ import { apiErrorMessage } from "@/lib/errors";
 import { useI18n } from "@/lib/i18n";
 import { resolveSpeechLanguage, selectSpeechVoice } from "@/lib/speech";
 import { trpc } from "@/lib/trpc";
+import { readDeviceValue, writeDeviceValue } from "@/lib/deviceStorage";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 export const SPEED_OPTIONS = [
@@ -17,11 +18,11 @@ export function useTTS() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [activeMessageId, setActiveMessageId] = useState<number | null>(null);
   const [autoPlay, setAutoPlay] = useState(() => {
-    return localStorage.getItem("tts-autoplay") === "true";
+    return readDeviceValue("tts-autoplay") === "true";
   });
   const [playbackSpeed, setPlaybackSpeed] = useState(() => {
-    const saved = localStorage.getItem("tts-speed");
-    return saved ? parseFloat(saved) : 1;
+    const saved = Number(readDeviceValue("tts-speed"));
+    return SPEED_OPTIONS.some(option => option.value === saved) ? saved : 1;
   });
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -59,7 +60,7 @@ export function useTTS() {
   // 更新播放速度
   const updateSpeed = useCallback((speed: number) => {
     setPlaybackSpeed(speed);
-    localStorage.setItem("tts-speed", String(speed));
+    writeDeviceValue("tts-speed", String(speed));
     // 如果当前正在播放，实时更新速度
     if (audioRef.current) {
       audioRef.current.playbackRate = speed;
@@ -162,7 +163,7 @@ export function useTTS() {
   const toggleAutoPlay = useCallback(() => {
     setAutoPlay(prev => {
       const next = !prev;
-      localStorage.setItem("tts-autoplay", String(next));
+      writeDeviceValue("tts-autoplay", String(next));
       return next;
     });
   }, []);

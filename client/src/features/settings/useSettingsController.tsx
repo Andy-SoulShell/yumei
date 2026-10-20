@@ -5,6 +5,7 @@ import { apiErrorMessage } from "@/lib/errors";
 import { useI18n } from "@/lib/i18n";
 import { selectSpeechVoice } from "@/lib/speech";
 import { trpc } from "@/lib/trpc";
+import { readDeviceValue, writeDeviceValue } from "@/lib/deviceStorage";
 import { LANGUAGES } from "@shared/locales";
 import type { KeyName } from "@shared/providerKeys";
 import { useCallback, useMemo, useState } from "react";
@@ -97,7 +98,7 @@ export function useSettingsController() {
   const [whisperSettingsDirty, setHasUnsavedWhisperChanges] = useState(false);
 
   const [ttsAutoPlay, setTtsAutoPlay] = useState(() => {
-    return localStorage.getItem("tts-autoplay") === "true";
+    return readDeviceValue("tts-autoplay") === "true";
   });
 
   // ElevenLabs 配置状态。
@@ -242,7 +243,7 @@ export function useSettingsController() {
   const handleTtsToggle = useCallback(
     (checked: boolean) => {
       setTtsAutoPlay(checked);
-      localStorage.setItem("tts-autoplay", String(checked));
+      writeDeviceValue("tts-autoplay", String(checked));
       toast.success(
         checked ? t("settings:autoReadEnabled") : t("settings:autoReadDisabled")
       );

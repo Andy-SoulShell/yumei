@@ -1,5 +1,6 @@
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
+import { readDeviceValue, writeDeviceValue } from "@/lib/deviceStorage";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { ApiConfig, ElevenLabsVoice, ModelInfo } from "./types";
@@ -20,7 +21,12 @@ export function useProviderCatalogs(
   // 模型收藏列表（localStorage 存储）
   const [favoriteModels, setFavoriteModels] = useState<string[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem("favorite-models") || "[]");
+      const saved: unknown = JSON.parse(
+        readDeviceValue("favorite-models") || "[]"
+      );
+      return Array.isArray(saved)
+        ? saved.filter((id): id is string => typeof id === "string")
+        : [];
     } catch {
       return [];
     }
@@ -125,7 +131,7 @@ export function useProviderCatalogs(
       const next = prev.includes(modelId)
         ? prev.filter(id => id !== modelId)
         : [...prev, modelId];
-      localStorage.setItem("favorite-models", JSON.stringify(next));
+      writeDeviceValue("favorite-models", JSON.stringify(next));
       toast.success(
         next.includes(modelId)
           ? t("settings:modelAddedToFavorites")

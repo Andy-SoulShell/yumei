@@ -5,6 +5,7 @@ import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { apiErrorMessage } from "@/lib/errors";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
+import { readDeviceValue, writeDeviceValue } from "@/lib/deviceStorage";
 import { detectSelfieRequest } from "@shared/selfieRequest";
 import { detectSelfHarm } from "@shared/safety";
 import { isChatTurnTerminal } from "@shared/chatStreaming";
@@ -85,9 +86,7 @@ export function useChatController() {
   const [failedMessages, setFailedMessages] = useState<FailedChatMessage[]>([]);
 
   const [inputMode, setInputMode] = useState<"text" | "voice">(() => {
-    return (
-      (localStorage.getItem("chat-input-mode") as "text" | "voice") || "text"
-    );
+    return readDeviceValue("chat-input-mode") === "voice" ? "voice" : "text";
   });
 
   const [showIntimacyPanel, setShowIntimacyPanel] = useState(false);
@@ -716,7 +715,7 @@ export function useChatController() {
   // 语音/文字模式切换
   const switchInputMode = useCallback((mode: "text" | "voice") => {
     setInputMode(mode);
-    localStorage.setItem("chat-input-mode", mode);
+    writeDeviceValue("chat-input-mode", mode);
   }, []);
 
   // 处理录音完成

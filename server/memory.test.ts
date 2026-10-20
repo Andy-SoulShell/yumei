@@ -45,6 +45,49 @@ import {
 // ---------------------------------------------------------------------------
 
 describe("shared/memory scoring", () => {
+  it.each([
+    "请更新记忆：我的猫现在叫麻薯。以后不要再叫旧名字了。",
+    "请帮我记住：我的猫叫团子。",
+    "请你帮我记住：我的猫叫团子。",
+    "麻烦帮我记住：我的猫叫团子。",
+    "請更正記憶：我的貓現在叫麻糬。",
+    "把关于我的记忆更新一下：我的猫改名了。",
+    "Please update your memory: my cat is now called Mochi.",
+    "Correct what you remember about my cat: her name is Mochi.",
+    "記憶を更新して。うちの猫の名前はモチです。",
+    "覚えている内容を訂正して：猫の名前はモチです。",
+    "기억을 수정해 줘. 내 고양이 이름은 모찌야.",
+    "내 고양이에 대한 기억을 업데이트해 주세요.",
+  ])("extracts an explicit update outside the periodic round: %s", text => {
+    expect(shouldExtractMemories(2, text)).toBe(true);
+  });
+
+  it.each([
+    "记忆是什么？",
+    "你记住我的猫名了吗？",
+    "你记住我的猫名了吗。",
+    "你是否记住我的猫名。",
+    "你没有记住我的猫名。",
+    "不要记住我的猫名。",
+    "请不要更新记忆。",
+    "请不要帮我记住我的猫名。",
+    "麻烦别帮我记住我的猫名。",
+    "What is memory?",
+    "Do you remember my cat's name?",
+    "Please don't update your memory.",
+    "Don't remember my cat's name.",
+    "記憶とは何ですか？",
+    "私の猫の名前を覚えていますか？",
+    "これは覚えないで。",
+    "記憶を更新しないで。",
+    "기억이 뭐야?",
+    "내 고양이 이름 기억해?",
+    "이건 기억하지 마.",
+    "기억을 수정하지 마세요.",
+  ])("does not treat a question or refusal as a save request: %s", text => {
+    expect(shouldExtractMemories(2, text)).toBe(false);
+  });
+
   it("extracts the first round, explicit requests and every fifth round", () => {
     expect(shouldExtractMemories(1, "我喜欢猫")).toBe(true);
     expect(shouldExtractMemories(2, "天气不错")).toBe(false);

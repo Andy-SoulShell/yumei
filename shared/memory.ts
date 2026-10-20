@@ -23,7 +23,30 @@ export const MEMORY_CATEGORY_LABELS: Record<MemoryCategory, string> = {
 /** 常规记忆提取间隔，按成功文字对话的用户与助手消息总条数计算。 */
 export const EXTRACTION_EVERY_N_MESSAGES = 10;
 
-/** 首轮、明确要求记住信息或每五轮成功文字对话后提取，不受图片消息影响。 */
+/** 明确保存或更正请求才加速提取，疑问和拒绝保存不作为指令。 */
+function hasExplicitMemoryRequest(message: string): boolean {
+  return message.split(/(?<=[。！？!?;；\r\n])|\.(?=\s|$)/).some(part => {
+    const text = part.trim();
+    if (
+      /(?:不要|別(?!忘)|别(?!忘)|不必|不用).{0,12}(?:记住|記住|记录|紀錄|记忆|記憶)|\b(?:do not|don't|never|not to)\b.{0,24}\b(?:remember|update|correct|revise|change|store)\b|覚え(?:ないで|なくて)|(?:記憶|覚えている内容).{0,16}(?:しないで|しなくて|ないで)|기억.{0,20}(?:하지\s*마|하지\s*말|하지\s*않)/i.test(
+        text
+      ) ||
+      /[?？]\s*$/.test(text) ||
+      /^\s*(?:do|does|did)\s+you\s+remember\b/i.test(text)
+    )
+      return false;
+    return (
+      /(?:^|[，,:：])\s*(?:(?:请|請)(?:你)?\s*)?(?:(?:麻烦|麻煩|拜托|拜託)(?:你)?\s*)?(?:帮我|幫我|你(?:要|得))?\s*(?:记住|記住)/.test(
+        text
+      ) ||
+      /别忘了|別忘了|(?:更新|更正|纠正|糾正|修改|修正)(?:一下)?(?:你的?|你对我(?:的)?)?(?:记忆|記憶|记录|紀錄)|(?:把|将|將).{0,20}(?:记忆|記憶).{0,8}(?:更新|更正|修改|修正)|\b(?:please\s+remember|remember\s+(?:that|my|I\b))|\b(?:update|correct|revise|change)\s+(?:(?:your|the|my)\s+)?(?:memory|memories|what\s+you\s+remember)\b|覚えて|覚え直して|(?:記憶|覚えている内容)(?:を|の).{0,8}(?:更新|訂正|修正)して|기억해|기억(?:을|를)?.{0,8}(?:수정|정정|업데이트|갱신)해/i.test(
+        text
+      )
+    );
+  });
+}
+
+/** 首轮、明确保存/更正请求或每五轮成功文字对话后提取，不受图片消息影响。 */
 export function shouldExtractMemories(
   completedChatRounds: number,
   userMessage: string
@@ -32,9 +55,7 @@ export function shouldExtractMemories(
   return (
     completedChatRounds === 1 ||
     (completedChatRounds * 2) % EXTRACTION_EVERY_N_MESSAGES === 0 ||
-    /记住|記住|别忘了|別忘了|\b(?:please\s+remember|remember\s+(?:that|my|I\b))|覚えて|기억해/i.test(
-      userMessage
-    )
+    hasExplicitMemoryRequest(userMessage)
   );
 }
 

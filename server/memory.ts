@@ -157,6 +157,7 @@ function completeUserStatement(source: string, quote: string): string | null {
       )
     )
       return null;
+    if (petNameReference(statement)?.rejected) return null;
     return statement;
   }
   return null;
@@ -257,8 +258,88 @@ export async function callExtractionModel(
   return candidates;
 }
 
+type PetNameReference = {
+  species: "cat" | "dog";
+  subject: string | null;
+  name: string | null;
+  rejected?: boolean;
+};
+/** 只给明确用户所属、可区分主体的宠物命名分配槽位；另一只/新养的宠物保持不确定。 */
+function petNameReference(content: string): PetNameReference | null {
+  const patterns = [
+    /(?:我的|我家的|我家|用户的|用户家的|用户家|我养的|我養的)((?:黑|白|橘|灰)(?:色)?(?:的)?|第一只|第二只|另[一1]只|新(?:养|養)的|小|大)?(猫|貓|狗)(?:(?:现在|現在|如今)?(?:名叫|叫|改叫|改名(?:为|為|成|叫))|(?:的名字|名字)(?:现在|現在|如今)?(?:是|改成|改为|改為))(?=[^。！？!?；;，,\r\n])/gi,
+    /\bmy\s+((?:black|white|orange|gr[ae]y|first|second|other|another|new|little|big)\s+)?(cat|dog)(?:(?:'s|’s)\s+name\s+(?:is\s+(?:now\s+)?|has\s+changed\s+to\s+)|\s+(?:is\s+)?(?:now\s+)?(?:called|named)\s+)(?=[^\s.!?;,\r\n])/gi,
+    /(?:私の|うちの)((?:黒|白|茶|灰色|一匹目の|二匹目の|もう一匹の)?)(猫|犬)の名前(?:は|を)(?=[^。！？!?；;，,\r\n])/g,
+    /(?:내|제|우리)\s*((?:(?:검은|하얀|회색|첫 번째|두 번째|다른)\s*)?)(고양이|개)(?:의)?\s*이름(?:은|이|을)\s*(?=[^\s.!?;,\r\n])/g,
+  ];
+  const matches = patterns.flatMap(pattern =>
+    Array.from(content.matchAll(pattern))
+  );
+  const match = matches[0];
+  if (!match) {
+    // 明确还有/另养宠物即构成多主体证据，不要求用户同时说出名字。
+    const additional =
+      content.match(
+        /(?:我|用户)(?:也|又|还|還)?(?:有|养|養|领养|領養|收养|收養)(?:了)?(?:(?:另外|另)?一只|另[一1]只|[两兩二三四五六七八九十\d]+只|一[条條])?(猫|貓|狗)/
+      ) ??
+      content.match(
+        /\bI\s+(?:(?:also|now)\s+)?(?:have|adopted|got)\s+(?:an?|another|one(?:\s+more)?|two|second|new)\s+(cat|dog)\b/i
+      );
+    if (additional)
+      return {
+        species: /猫|貓|cat/i.test(additional[1]) ? "cat" : "dog",
+        subject: null,
+        name: null,
+      };
+    return null;
+  }
+  const species = /猫|貓|cat|고양이/i.test(match[2]) ? "cat" : "dog";
+  const prefix = content.slice(0, match.index);
+  if (
+    /(?:不是|并非|並非|不(?:是|是说|是說))\s*$|(?:你|他|她|有人|别人|別人|朋友|家人|助手|模型).{0,6}(?:说|說|提到|以为|以為|认为|認為).{0,12}$|(?:听说|聽說|据说|據說).{0,12}$|\b(?:not|isn't|wasn't)\s*$|\b(?:you|he|she|they|someone|my friend|my mother|my father)\s+(?:said|say|thought|think|claimed)\b.{0,20}$/i.test(
+      prefix
+    )
+  )
+    return { species, subject: null, name: null, rejected: true };
+  const qualifier = match[1]?.trim() ?? "";
+  if (
+    matches.length !== 1 ||
+    /另|第二|新|other|another|second|new|二匹目|もう一匹|두 번째|다른/i.test(
+      qualifier
+    )
+  )
+    return { species, subject: null, name: null };
+  const subjects: [string, RegExp][] = [
+    ["black", /黑|black|黒|검은/i],
+    ["white", /白|white|하얀/i],
+    ["orange", /橘|orange|茶/i],
+    ["gray", /灰|gr[ae]y|회색/i],
+    ["first", /第一|first|一匹目|첫 번째/i],
+    ["small", /小|little/i],
+    ["big", /大|big/i],
+  ];
+  return {
+    species,
+    name: normalizeMemoryText(
+      content
+        .slice(match.index! + match[0].length)
+        .split(/[。！？!?；;，,\r\n]|\.(?=\s|$)/)[0]
+    ),
+    subject: qualifier
+      ? (subjects.find(([, pattern]) => pattern.test(qualifier))?.[0] ?? null)
+      : "",
+  };
+}
+function petNameKey(reference: PetNameReference) {
+  return reference.subject === null
+    ? null
+    : `pet.${reference.species}${reference.subject ? `.${reference.subject}` : ""}.name`;
+}
+
 /** 识别有明确用户主语的单值资料；并列职业/兴趣不覆盖既有事实。 */
 function factKey(content: string): string | null {
+  const pet = petNameReference(content);
+  if (pet) return petNameKey(pet);
   if (
     /(?:我|用户)(?:现在|目前|如今)?(?:住在|定居|生活在)|(?:我|用户).{0,15}(?:搬到|搬去|搬来)|\b(?:I live in|I moved to|I'm based in)\b/i.test(
       content
@@ -284,7 +365,7 @@ function factKey(content: string): string | null {
   return null;
 }
 function isExplicitChange(content: string) {
-  return /更正|纠正|說錯|说错|记错|改成|改为|改喝|不再|搬到|搬去|搬来|改行|换工作|以前.{0,30}(?:现在|如今)|(?:现在|如今).{0,20}(?:是|住|当|就职)|\b(?:correction|instead|no longer|moved to|now (?:live|work|am))\b/i.test(
+  return /更正|纠正|糾正|說錯|说错|记错|改成|改为|改喝|改名|改叫|不再|搬到|搬去|搬来|改行|换工作|更新.{0,8}(?:记忆|記憶)|以前.{0,30}(?:现在|如今)|(?:现在|現在|如今).{0,20}(?:是|叫|住|当|就职)|\b(?:correction|instead|no longer|moved to|now (?:live|work|am|called|named))\b|\b(?:update|correct|revise|change)\s+(?:(?:your|the|my)\s+)?(?:memory|memories|what you remember)\b|訂正|修正|改名|정정|이름.{0,16}(?:바꿨|바꾸|변경)|기억.{0,8}(?:수정|업데이트)/i.test(
     content
   );
 }
@@ -294,13 +375,39 @@ function memoryMatch(
     eventDay: string | null;
     eventStatus: Memory["eventStatus"];
   },
-  previous: Memory
+  previous: Memory,
+  existing: readonly Memory[]
 ): "same" | "correction" | null {
   const normalize = (value: string) =>
     normalizeMemoryText(value).replace(/一名|一位|一个/g, "");
   if (normalize(candidate.content) === normalize(previous.content))
     return "same";
   if (candidate.category !== previous.category) return null;
+  const pet =
+    candidate.category === "fact" ? petNameReference(candidate.content) : null;
+  const previousPet =
+    previous.category === "fact" ? petNameReference(previous.content) : null;
+  if (pet || previousPet) {
+    if (
+      !pet ||
+      !previousPet ||
+      !petNameKey(pet) ||
+      petNameKey(pet) !== petNameKey(previousPet)
+    )
+      return null;
+    // 多只同物种宠物时，“我的猫”不能可靠指向某一只，必须给出稳定身份。
+    if (
+      pet.subject === "" &&
+      existing.filter(
+        memory =>
+          memory.category === "fact" &&
+          petNameReference(memory.content)?.species === pet.species
+      ).length > 1
+    )
+      return null;
+    if (pet.name && pet.name === previousPet.name) return "same";
+    return isExplicitChange(candidate.content) ? "correction" : null;
+  }
   if (candidate.factKey || previous.factKey)
     return candidate.factKey &&
       candidate.factKey === previous.factKey &&
@@ -517,7 +624,7 @@ export async function storeExtractedMemoriesInTransaction(
       }
     }
     const duplicate = existing.find(
-      memory => memoryMatch(candidate, memory) !== null
+      memory => memoryMatch(candidate, memory, existing) !== null
     );
     if (
       duplicate &&
@@ -534,7 +641,7 @@ export async function storeExtractedMemoriesInTransaction(
       ...date,
     };
     if (duplicate) {
-      if (memoryMatch(candidate, duplicate) === "correction") {
+      if (memoryMatch(candidate, duplicate, existing) === "correction") {
         if (!invalidated) {
           await invalidateMemoryDerived(tx, userId, girlfriendId);
           invalidated = true;

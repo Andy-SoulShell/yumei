@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   aiTaskRuns,
   conversationSummaries,
+  girlfriends,
   memoryEmbeddings,
   memoryExtractionJobs,
   messages,
@@ -109,6 +110,236 @@ function pausedResponse() {
 }
 
 describe("trusted memory lifecycle", () => {
+  it.each([
+    "请更新记忆：我的猫现在叫麻薯。以后不要再叫旧名字了。",
+    "请记住，更正：我的猫现在叫麻薯。",
+  ])(
+    "replaces the same cat's name from an explicit sourced correction: %s",
+    async update => {
+      const a = await fixture();
+      await a.add("请记住：我的猫叫团子。");
+      await a.add("我喝咖啡不加糖。", "preference");
+      const before = await memory.listMemories(a.userId, a.gf.id);
+      const initial = before.find(row => row.content.includes("团子"))!;
+      const [role] = await a.db
+        .select()
+        .from(girlfriends)
+        .where(eq(girlfriends.id, a.gf.id));
+      await a.db.insert(memoryEmbeddings).values({
+        memoryId: initial.id,
+        userId: a.userId,
+        girlfriendId: a.gf.id,
+        memoryEpoch: role.memoryEpoch,
+        contentVersion: initial.contentVersion,
+        provider: "openrouter",
+        baseUrl: "test-hash",
+        model: "test/embedding",
+        isByok: false,
+        dimensions: 2,
+        vector: [1, 0],
+      });
+      await a.db.insert(conversationSummaries).values({
+        conversationId: a.conversation.id,
+        userId: a.userId,
+        girlfriendId: a.gf.id,
+        memoryEpoch: role.memoryEpoch,
+        throughMessageId: initial.sourceMessageId!,
+        content: initial.content,
+        sources: [
+          {
+            memoryId: initial.id,
+            contentVersion: initial.contentVersion,
+            sourceMessageId: initial.sourceMessageId,
+          },
+        ],
+        topics: [],
+      });
+      const latest = await createMessage({
+        conversationId: a.conversation.id,
+        role: "user",
+        content: update,
+        generationStatus: "succeeded",
+      });
+      expect(
+        await memory.storeExtractedMemories(a.userId, a.gf.id, [
+          {
+            category: "fact",
+            content: "我的猫现在叫麻薯",
+            sourceMessageId: latest.id,
+            importance: 7,
+          },
+        ])
+      ).toEqual({ inserted: 0, reinforced: 0, updated: 1 });
+      const rows = await memory.listMemories(a.userId, a.gf.id);
+      expect(rows).toHaveLength(2);
+      expect(rows.find(row => row.id === initial.id)).toMatchObject({
+        content: update.split("。")[0] + "。",
+        factKey: "pet.cat.name",
+        sourceMessageId: latest.id,
+        contentVersion: initial.contentVersion + 1,
+      });
+      expect(rows.some(row => row.content.includes("团子"))).toBe(false);
+      expect(rows.some(row => row.content === "我喝咖啡不加糖。")).toBe(true);
+      expect(
+        await a.db
+          .select()
+          .from(memoryEmbeddings)
+          .where(eq(memoryEmbeddings.userId, a.userId))
+      ).toEqual([]);
+      expect(
+        await a.db
+          .select()
+          .from(conversationSummaries)
+          .where(eq(conversationSummaries.userId, a.userId))
+      ).toEqual([]);
+      const [currentRole] = await a.db
+        .select()
+        .from(girlfriends)
+        .where(eq(girlfriends.id, a.gf.id));
+      expect(currentRole.memoryEpoch).toBe(role.memoryEpoch + 1);
+      await memory.storeExtractedMemories(a.userId, a.gf.id, [
+        {
+          category: "fact",
+          content: initial.content,
+          sourceMessageId: initial.sourceMessageId!,
+          importance: 7,
+        },
+      ]);
+      expect(
+        (await memory.listMemories(a.userId, a.gf.id)).some(row =>
+          row.content.includes("团子")
+        )
+      ).toBe(false);
+    }
+  );
+
+  it("keeps a person's name and a dog's name separate from the corrected cat", async () => {
+    const a = await fixture();
+    await a.add("我叫团子。");
+    await a.add("我的狗叫团子。");
+    await a.add("我的猫叫团子。");
+    await a.add("更正，我的猫现在叫麻薯。");
+    const rows = await memory.listMemories(a.userId, a.gf.id);
+    expect(rows).toHaveLength(3);
+    expect(rows.map(row => row.content)).toEqual(
+      expect.arrayContaining([
+        "我叫团子。",
+        "我的狗叫团子。",
+        "更正，我的猫现在叫麻薯。",
+      ])
+    );
+  });
+
+  it.each([
+    "更正，不是我的猫叫麻薯，是我朋友的猫叫麻薯。",
+    "更正，你说我的猫叫麻薯，但那是我朋友的猫。",
+    "更正，我朋友说我的猫叫麻薯，但他说错了。",
+    "Correction: you said my cat is called Mochi, but it is my friend's cat.",
+    "Correction: my friend said my cat is called Mochi, but he was wrong.",
+  ])(
+    "rejects a negated or reported personal-pet assertion: %s",
+    async correction => {
+      const a = await fixture();
+      await a.add("我的猫叫团子。");
+      await a.add(correction);
+      expect(await memory.listMemories(a.userId, a.gf.id)).toMatchObject([
+        { content: "我的猫叫团子。", contentVersion: 1 },
+      ]);
+    }
+  );
+
+  it("reinforces the same named pet across a request prefix and remains correctable", async () => {
+    const a = await fixture();
+    await a.add("请记住：我的猫叫团子。");
+    const [initial] = await memory.listMemories(a.userId, a.gf.id);
+    await a.add("我的猫叫团子。");
+    expect(await memory.listMemories(a.userId, a.gf.id)).toMatchObject([
+      { id: initial.id, content: "我的猫叫团子。", contentVersion: 2 },
+    ]);
+    await a.add("请更新记忆：我的猫改名叫麻薯。");
+    expect(await memory.listMemories(a.userId, a.gf.id)).toMatchObject([
+      {
+        id: initial.id,
+        content: "请更新记忆：我的猫改名叫麻薯。",
+        contentVersion: 3,
+      },
+    ]);
+  });
+
+  it.each([
+    ["My cat is called Dumpling.", "Correction: my cat is now called Mochi."],
+    ["うちの猫の名前はダンゴです。", "訂正：うちの猫の名前はモチです。"],
+    ["내 고양이 이름은 단고야.", "정정: 내 고양이 이름은 모찌야."],
+  ])(
+    "resolves the same pet slot from a supported language: %s",
+    async (before, correction) => {
+      const a = await fixture();
+      await a.add(before);
+      const [initial] = await memory.listMemories(a.userId, a.gf.id);
+      const source = await a.add(correction);
+      expect(await memory.listMemories(a.userId, a.gf.id)).toMatchObject([
+        {
+          id: initial.id,
+          content: correction,
+          factKey: "pet.cat.name",
+          contentVersion: 2,
+          sourceMessageId: source.id,
+        },
+      ]);
+    }
+  );
+
+  it("keeps a statement naming multiple pets outside any single-pet slot", async () => {
+    const a = await fixture();
+    await a.add("我的猫叫团子，我的另一只猫叫汤圆。");
+    await a.add("更正，我的猫现在叫麻薯。");
+    const rows = await memory.listMemories(a.userId, a.gf.id);
+    expect(rows).toHaveLength(2);
+    expect(
+      rows.some(
+        row =>
+          row.content === "我的猫叫团子，我的另一只猫叫汤圆。" &&
+          row.factKey === null
+      )
+    ).toBe(true);
+  });
+
+  it("corrects only an explicitly identified cat among multiple pets", async () => {
+    const a = await fixture();
+    await a.add("我的黑猫叫团子。");
+    await a.add("我的白猫叫汤圆。");
+    await a.add("更正，我的黑猫现在叫麻薯。");
+    const rows = await memory.listMemories(a.userId, a.gf.id);
+    expect(rows).toHaveLength(2);
+    expect(rows.map(row => row.content)).toEqual(
+      expect.arrayContaining(["我的白猫叫汤圆。", "更正，我的黑猫现在叫麻薯。"])
+    );
+  });
+
+  it.each([
+    "我也养了另一只猫叫汤圆。",
+    "我又养了一只猫，叫汤圆。",
+    "我还有一只猫叫汤圆。",
+    "我有另一只猫，名字是汤圆。",
+    "我还有一只猫。",
+    "My other cat is called Tangyuan.",
+    "I also have another cat named Tangyuan.",
+    "I also have another cat.",
+  ])(
+    "keeps additional cats and an ambiguous later rename separate: %s",
+    async other => {
+      const a = await fixture();
+      await a.add("我的猫叫团子。");
+      await a.add(other);
+      await a.add("更正，我的猫现在叫麻薯。");
+      const rows = await memory.listMemories(a.userId, a.gf.id);
+      expect(rows).toHaveLength(3);
+      expect(rows.map(row => row.content)).toEqual(
+        expect.arrayContaining(["我的猫叫团子。", other])
+      );
+    }
+  );
+
   it("does not replace a user's confirmed name with a correction about their cat", async () => {
     const a = await fixture();
     const nameSource = await a.add("我叫张三。");

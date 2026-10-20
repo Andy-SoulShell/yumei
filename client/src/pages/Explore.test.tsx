@@ -141,7 +141,7 @@ describe("exploration", () => {
     expect(new URLSearchParams(mock.query).get("style")).toBe("realistic");
     expect(new URLSearchParams(mock.query).get("page")).toBe("2");
     expect(new URLSearchParams(mock.query).has("character")).toBe(false);
-    expect(document.activeElement).toBe(card);
+    await vi.waitFor(() => expect(document.activeElement).toBe(card));
   });
   it("normalizes invalid filter and page values for a usable public directory", async () => {
     mock.query = "style=unknown&page=Infinity";

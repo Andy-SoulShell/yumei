@@ -113,8 +113,23 @@ describe("public landing page", () => {
         .click()
     );
     expect(document.querySelector('[role="dialog"]')).toBeNull();
-    expect(document.activeElement).toBe(card);
+    await vi.waitFor(() => expect(document.activeElement).toBe(card));
   });
+  it.each([".character-card", ".featured-character"])(
+    "returns focus to an unfocused clicked trigger: %s",
+    async selector => {
+      await settle(() => root.render(<Landing />));
+      const card = container.querySelector<HTMLButtonElement>(selector)!;
+      expect(document.activeElement).not.toBe(card);
+      await settle(() => card.click());
+      await settle(() =>
+        document
+          .querySelector<HTMLButtonElement>('[data-slot="dialog-close"]')!
+          .click()
+      );
+      await vi.waitFor(() => expect(document.activeElement).toBe(card));
+    }
+  );
   it("opens one FAQ at a time and changes the registration prompt for members", async () => {
     await settle(() => root.render(<Landing />));
     const questions =

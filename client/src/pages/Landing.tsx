@@ -70,7 +70,9 @@ export default function Landing() {
               variant="plain"
               size="none"
               className="featured-character"
-              onClick={() => preview.showCharacter(preset.id)}
+              onClick={event =>
+                preview.showCharacter(preset.id, event.currentTarget)
+              }
               aria-label={t("explore:viewCharacter", { name: preset.name })}
             >
               <span className="featured-avatar">

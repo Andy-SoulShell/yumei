@@ -11,7 +11,7 @@ export function CharacterCatalogueGrid({
   priorityCount = 0,
 }: {
   characters: readonly CharacterPreset[];
-  onSelect: (id: string) => void;
+  onSelect: (id: string, trigger?: HTMLElement) => void;
   priorityCount?: number;
 }) {
   const { t } = useI18n();
@@ -28,7 +28,7 @@ export function CharacterCatalogueGrid({
           styleLabel={t(
             preset.style === "anime" ? "explore:anime" : "explore:realistic"
           )}
-          onClick={() => onSelect(preset.id)}
+          onClick={event => onSelect(preset.id, event.currentTarget)}
           priority={index < priorityCount}
         />
       ))}

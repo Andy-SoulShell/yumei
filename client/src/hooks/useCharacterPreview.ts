@@ -10,8 +10,9 @@ export function useCharacterPreview() {
   const params = new URLSearchParams(search);
   const selected = getCharacterPreset(params.get("character") ?? "");
   const returnFocus = useRef<HTMLElement | null>(null);
-  const showCharacter = (id: string) => {
-    returnFocus.current = document.activeElement as HTMLElement;
+  const showCharacter = (id: string, trigger?: HTMLElement) => {
+    // 触摸或部分浏览器的鼠标点击不会先聚焦按钮，直接记录真实触发入口。
+    returnFocus.current = trigger ?? (document.activeElement as HTMLElement);
     const next = new URLSearchParams(search);
     next.set("character", id);
     navigate(location + "?" + next.toString(), { replace: true });

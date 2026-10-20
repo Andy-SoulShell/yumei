@@ -1,5 +1,6 @@
 /** 探索页使用的图片角色卡，展示真实角色信息并打开详情。 */
 import { ArrowUpRight, Sparkles } from "lucide-react";
+import type { MouseEventHandler } from "react";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "./ui/button";
 
@@ -20,7 +21,7 @@ export function CharacterCard({
   description: string;
   age?: number;
   styleLabel?: string;
-  onClick: () => void;
+  onClick: MouseEventHandler<HTMLButtonElement>;
   priority?: boolean;
 }) {
   const { t } = useI18n();

@@ -2,7 +2,6 @@
 import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
-  ArrowRight,
   Compass,
   Heart,
   ImagePlus,
@@ -18,7 +17,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
-import { loginUrl } from "@/lib/navigation";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
@@ -39,6 +37,7 @@ import {
 import { NotificationBell } from "./NotificationBell";
 import { SidebarPreferences } from "./AppearanceSettings";
 import { AgeGate } from "./AgeGate";
+import { SignInButton } from "./SignInButton";
 import { toast } from "sonner";
 
 type NavigationLink = {
@@ -284,12 +283,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               </div>
             </>
           ) : (
-            <Button asChild className="header-signin" disabled={loading}>
-              <Link href={loginUrl(location + window.location.search)}>
-                {t("explore:signIn")}
-                <ArrowRight />
-              </Link>
-            </Button>
+            <SignInButton
+              returnTo={location + window.location.search}
+              disabled={loading}
+            />
           )}
         </div>
       </header>

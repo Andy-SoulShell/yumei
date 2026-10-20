@@ -1,4 +1,4 @@
-/** 与同源 Better-Auth 接口通信的邮箱链接登录客户端。 */
+/** 与同源 Better-Auth 接口通信的邮箱密码和邮箱链接认证客户端。 */
 
 import { createAuthClient } from "better-auth/react";
 import { magicLinkClient } from "better-auth/client/plugins";

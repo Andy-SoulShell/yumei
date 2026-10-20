@@ -1,111 +1,51 @@
-/** 邮箱链接登录页面，使用同源 Better-Auth 客户端发起登录。 */
-
-import { LanguagePicker } from "@/components/AppearanceSettings";
-import { useI18n } from "@/lib/i18n";
-import { authClient } from "@/lib/auth-client";
+/** 手机认证页面、邮件回调，以及桌面可直接访问的认证弹框路由。 */
+import { Link, useLocation, useSearch } from "wouter";
+import { ArrowLeft } from "lucide-react";
+import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useState } from "react";
-import { Link, useSearch } from "wouter";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { AuthFlow } from "@/features/auth/AuthFlow";
+import { useDesktopAuth } from "@/hooks/useDesktopAuth";
+import { authModeForPath, authUrl, type AuthMode } from "@/lib/auth-navigation";
 import { safeReturnTo } from "@/lib/navigation";
+import { useI18n } from "@/lib/i18n";
+import Explore from "./Explore";
 
-/**
- * 收集邮箱并请求登录链接，展示发送状态与失败信息。
- *
- * @remarks 实际发信行为由服务端驱动决定，stdout 模式仅将链接写入本地日志。
- */
+/** 邮件验证和重置始终是独立页面，方便从任意邮箱客户端打开。 */
 export default function Login() {
-  const { t, locale } = useI18n();
+  const [location, navigate] = useLocation();
   const search = useSearch();
+  const { t } = useI18n();
+  const desktop = useDesktopAuth();
+  const mode = authModeForPath(location) ?? "login";
   const returnTo = safeReturnTo(new URLSearchParams(search).get("next"));
-  const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    try {
-      const { error: authError } = await authClient.signIn.magicLink({
-        email,
-        callbackURL: returnTo,
-        fetchOptions: { headers: { "x-yumei-locale": locale } },
-      });
-      if (authError) {
-        setError(t("common:failedToSendMagicLink"));
-      } else {
-        setSent(true);
-      }
-    } catch {
-      setError(t("auth:networkErrorPleaseTryAgain"));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (sent) {
+  const onModeChange = (next: AuthMode) => navigate(authUrl(next, returnTo));
+  if (desktop && mode !== "verify" && mode !== "reset")
     return (
-      <div className="auth-page flex items-center justify-center">
-        <div className="flex flex-col items-center gap-6 p-8 max-w-md w-full">
-          <LanguagePicker />
-          <h1 className="text-2xl font-semibold tracking-tight text-center">
-            {t("auth:checkYourInbox")}
-          </h1>
-          <p className="text-sm text-muted-foreground text-center max-w-sm">
-            {t("auth:linkSent", { email })}
-          </p>
-          <Button
-            variant="ghost"
-            onClick={() => {
-              setSent(false);
-              setEmail("");
-            }}
-          >
-            {t("auth:useADifferentEmail")}
-          </Button>
-        </div>
-      </div>
+      <AppShell>
+        <Explore />
+        <Dialog
+          open
+          onOpenChange={open => {
+            if (!open) navigate("/", { replace: true });
+          }}
+        >
+          <DialogContent className="auth-dialog max-h-[calc(100dvh-3rem)] overflow-y-auto p-7 sm:max-w-[440px]">
+            <AuthFlow
+              mode={mode}
+              returnTo={returnTo}
+              onModeChange={onModeChange}
+              dialog
+            />
+          </DialogContent>
+        </Dialog>
+      </AppShell>
     );
-  }
-
   return (
-    <div className="login-page auth-page flex items-center justify-center">
-      <div className="flex flex-col items-center gap-6 p-8 max-w-md w-full">
-        <Link href="/" className="app-brand">
-          <Sparkles size={24} />
-          YUMEI<span className="brand-period">.</span>
-        </Link>
-        <LanguagePicker />
-        <h1 className="text-2xl font-semibold tracking-tight text-center">
-          {t("auth:signInToContinue")}
-        </h1>
-        <p className="text-sm text-muted-foreground text-center max-w-sm">
-          {t("auth:enterYourEmailAndWeLlSendYou")}
-        </p>
-        <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
-          <Input
-            type="email"
-            placeholder={t("auth:youExampleCom")}
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-            autoFocus
-          />
-          {error && (
-            <p className="text-sm text-destructive text-center">{error}</p>
-          )}
-          <Button type="submit" size="lg" className="w-full" disabled={loading}>
-            {loading ? t("auth:sending") : t("auth:sendMagicLink")}
-          </Button>
-        </form>
-        <p className="text-xs text-muted-foreground text-center max-w-sm">
-          {t("auth:guide18OnlyCompanionsOnYUMEIAreAIGenerated")}
-        </p>
-        <Button asChild variant="ghost">
+    <div className="login-page auth-page flex items-center">
+      <div className="w-full max-w-md space-y-4 p-6 sm:p-8">
+        <AuthFlow mode={mode} returnTo={returnTo} onModeChange={onModeChange} />
+        <Button asChild variant="ghost" className="w-full">
           <Link href="/">
             <ArrowLeft />
             {t("explore:navExplore")}

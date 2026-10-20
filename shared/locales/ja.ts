@@ -60,6 +60,74 @@ export default {
     generateAction: "一緒に写真を作る",
   },
   auth: {
+    email: "メールアドレス",
+    password: "パスワード",
+    confirmPassword: "パスワードの確認",
+    currentPassword: "現在のパスワード",
+    newPassword: "新しいパスワード",
+    showPassword: "パスワードを表示",
+    hidePassword: "パスワードを隠す",
+    signIn: "ログイン",
+    signingIn: "ログイン中…",
+    createAccount: "アカウントを作成",
+    creatingAccount: "作成中…",
+    registerTitle: "アカウントを作成",
+    registerDescription:
+      "メールアドレスを確認して、あなただけの物語を始めましょう。",
+    loginDescription: "メールアドレスとパスワードでログイン。",
+    forgotPassword: "パスワードをお忘れですか？",
+    forgotTitle: "パスワードの再設定",
+    forgotDescription:
+      "再設定リンクをメールでお送りします。以前メールリンクでログインしていた方も、同じアカウントにパスワードを設定できます。",
+    sendResetLink: "再設定リンクを送信",
+    resetTitle: "新しいパスワードを設定",
+    resetDescription: "アカウントの新しいパスワードを設定してください。",
+    resetPassword: "新しいパスワードを保存",
+    resetSuccess: "パスワードを再設定しました",
+    resetSuccessDescription: "新しいパスワードで再度ログインしてください。",
+    backToLogin: "ログインに戻る",
+    noAccount: "アカウントをお持ちでない方",
+    alreadyHaveAccount: "すでにアカウントをお持ちの方",
+    magicLinkLogin: "メールリンクでログイン",
+    magicLinkTitle: "メールリンクでログイン",
+    verificationSentDescription:
+      "登録可能な場合、確認リンクを {{email}} に送信します。すでに登録済みの場合は、ログインまたはパスワードの再設定を行ってください。",
+    resetSentDescription:
+      "{{email}} が登録されている場合、再設定リンクをお送りします。迷惑メールフォルダもご確認ください。",
+    verifyTitle: "メールアドレスの確認",
+    verifiedTitle: "メールアドレスを確認しました",
+    verifiedDescription:
+      "メールアドレスの確認が完了しました。YUMEI をお楽しみください。",
+    invalidLink: "リンクが無効か、有効期限が切れています",
+    invalidLinkDescription: "新しいリンクを取得してください。",
+    resendVerification: "確認メールを再送信",
+    resendAfter: "{{seconds}} 秒後に再送信できます",
+    emailNotVerified:
+      "ログインする前にメールアドレスを確認してください。下から確認メールを再送信できます。",
+    invalidCredentials: "メールアドレスまたはパスワードが正しくありません。",
+    registrationFailed:
+      "アカウントを作成できませんでした。もう一度お試しください。",
+    requestFailed: "処理を完了できませんでした。もう一度お試しください。",
+    tooManyRequests: "試行回数が多すぎます。1 分ほど待ってからお試しください。",
+    passwordMismatch: "パスワードが一致しません。",
+    passwordRules: "{{min}}～{{max}} 文字で入力してください。",
+    passwordChanged:
+      "パスワードを更新し、ほかのセッションをログアウトしました。",
+    passwordSecurity: "アカウントのセキュリティ",
+    passwordSecurityDescription:
+      "パスワードとアカウントへのアクセスを管理します。",
+    setPassword: "パスワードを設定",
+    setPasswordDescription:
+      "メールで確認して、既存のアカウントにパスワードを追加します。",
+    changePassword: "パスワードを変更",
+    savePassword: "パスワードを更新",
+    defaultName: "YUMEI ユーザー",
+    continue: "続ける",
+    working: "処理中…",
+    verificationResent:
+      "確認メールを送信しました。受信トレイをご確認ください。",
+    passwordLoadFailed:
+      "セキュリティ情報を読み込めませんでした。もう一度お試しください。",
     dateOfBirth: "生年月日",
     networkErrorPleaseTryAgain:
       "ネットワークエラーです。もう一度お試しください。",

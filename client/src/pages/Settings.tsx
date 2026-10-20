@@ -9,6 +9,7 @@ import { ImageSettings } from "@/features/settings/ImageSettings";
 import { TranscriptionSettings } from "@/features/settings/TranscriptionSettings";
 import { useSettingsController } from "@/features/settings/useSettingsController";
 import { VoiceSettings } from "@/features/settings/VoiceSettings";
+import { PasswordSettings } from "@/features/settings/PasswordSettings";
 import { ArrowLeft, Loader2, Moon, Save, Sun } from "lucide-react";
 export default function Settings() {
   const state = useSettingsController();
@@ -55,6 +56,7 @@ export default function Settings() {
           </div>
         ) : (
           <>
+            <PasswordSettings />
             {/* ========== 订阅与用量 ========== */}
             <BillingCard />
 

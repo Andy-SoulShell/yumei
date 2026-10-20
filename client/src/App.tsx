@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useSwipeBack } from "@/hooks/useGestures";
 import { loginUrl } from "@/lib/navigation";
+import { authModeForPath } from "@/lib/auth-navigation";
 import { Loader2 } from "lucide-react";
 import { lazy, Suspense, type ReactNode } from "react";
 import { Redirect, Route, Switch, useLocation, useSearch } from "wouter";
@@ -54,7 +55,7 @@ function Router() {
   // 在非首页启用左滑返回手势
   useSwipeBack({ enabled: location !== "/" });
 
-  if (location === "/login")
+  if (authModeForPath(location))
     return (
       <Suspense fallback={<PageLoading />}>
         <Login />

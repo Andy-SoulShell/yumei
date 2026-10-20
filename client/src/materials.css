@@ -3,6 +3,7 @@
   --surface-panel: color-mix(in oklch, var(--card) 94%, var(--background));
   --surface-field: color-mix(in oklch, var(--muted) 72%, var(--card));
   --glass-fill: color-mix(in oklch, var(--card) 78%, transparent);
+  --glass-nav-fill: color-mix(in oklch, var(--card) 96%, transparent);
   --glass-raised-fill: color-mix(in oklch, var(--card) 90%, transparent);
   --glass-highlight: #ffffffb3;
   --shadow-panel: 0 4px 24px
@@ -232,8 +233,22 @@
   .glass-surface {
     background: var(--glass-raised-fill);
   }
+  /* 底栏覆盖照片时提高底色浓度，避免底图文字干扰导航标签。 */
+  .app-bottom-nav {
+    background: var(--glass-nav-fill);
+  }
 }
 @media (max-width: 900px) {
+  .app-shell:not(.is-chat)::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: calc(112px + var(--safe-area-bottom));
+    z-index: 29;
+    pointer-events: none;
+    background: linear-gradient(to bottom, transparent, var(--background) 28px);
+  }
   .app-bottom-nav {
     position: absolute;
     left: max(10px, var(--safe-area-left));

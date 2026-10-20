@@ -3,7 +3,7 @@
  *
  * @remarks 只缓存应用静态资源；私人媒体、API 和跨来源请求始终走网络。
  */
-const CACHE_NAME = "yumei-static-v3";
+const CACHE_NAME = "yumei-static-v4";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",
@@ -50,6 +50,14 @@ self.addEventListener("fetch", event => {
 
   // API 始终交给网络处理。
   if (url.pathname.startsWith("/api/")) return;
+
+  // 认证回调可能带有一次性令牌，既不读取旧缓存，也不保存这些页面地址。
+  if (
+    /^\/(?:login|register|forgot-password|reset-password|verify-email|magic-link)(?:\/|$)/.test(
+      url.pathname
+    )
+  )
+    return;
 
   // 跳过 WebSocket 与包含 OAuth 标记的请求。
   if (url.pathname.startsWith("/ws") || url.pathname.includes("oauth")) return;

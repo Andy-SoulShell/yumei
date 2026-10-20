@@ -14,6 +14,7 @@ function worker() {
         "other-app",
         "yumei-static-v2",
         "yumei-static-v3",
+        "yumei-static-v4",
       ]),
     delete: vi.fn().mockResolvedValue(true),
     match: vi.fn().mockResolvedValue(new Response("stale private bytes")),
@@ -41,6 +42,9 @@ describe("private media cache policy", () => {
       "/files/private.jpg",
       "/files/audio.mp3?token=secret",
       "/api/trpc/auth.me",
+      "/reset-password?token=secret",
+      "/verify-email?token=secret",
+      "/login?next=%2Fsettings",
       "https://other.test/private.jpg",
     ]) {
       const respondWith = vi.fn();
@@ -67,6 +71,7 @@ describe("private media cache policy", () => {
     expect(w.caches.delete.mock.calls).toEqual([
       ["yumei-v1"],
       ["yumei-static-v2"],
+      ["yumei-static-v3"],
     ]);
   });
 

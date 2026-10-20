@@ -6,6 +6,7 @@ import superjson from "superjson";
 import type { TrpcContext } from "./context";
 import { BusinessRuleError } from "./businessError";
 import { log, providerErrorSummary } from "./log";
+import { normalizeMediaResponse } from "./mediaUrls";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
@@ -37,7 +38,9 @@ const observed = t.middleware(async opts => {
       trpcCode: result.error.code,
       ...providerErrorSummary(result.error.cause),
     });
-  return result;
+  return result.ok
+    ? { ...result, data: normalizeMediaResponse(result.data) }
+    : result;
 });
 export const publicProcedure = t.procedure.use(observed);
 

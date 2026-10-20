@@ -116,9 +116,13 @@ describe("ComfyUI selfie integration", () => {
     expect(generations.completeImageGeneration).toHaveBeenCalledWith(
       "mock-request",
       expect.any(String),
-      expect.objectContaining({ imageUrl: result.message.imageUrl }),
+      expect.objectContaining({
+        imageUrl: "http://localhost:3000/files/generated.png",
+      }),
       undefined
     );
+    expect(result.message.imageUrl).toBe("/files/generated.png");
+    expect(result.selfie?.imageUrl).toBe("/files/generated.png");
     expect(key).not.toHaveBeenCalled();
   });
 

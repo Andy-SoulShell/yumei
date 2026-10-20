@@ -1,7 +1,14 @@
 import { LANGUAGES, LOCALES } from "@shared/locales";
-import { themeMessages } from "@/locales/domain";
 /** 参考主题色卡的八套配色选择，以及独立的界面语言和显示模式。 */
-import { Check, Globe, Monitor, Moon, Palette, Sun } from "lucide-react";
+import {
+  Check,
+  Globe,
+  Monitor,
+  Moon,
+  Palette,
+  Sun,
+  type LucideIcon,
+} from "lucide-react";
 import {
   THEME_IDS,
   type ThemeId,
@@ -10,7 +17,7 @@ import {
 } from "@shared/preferences";
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { useI18n } from "@/lib/i18n";
-import { THEMES } from "@/lib/themes";
+import { ThemeOption } from "./ThemeOption";
 import {
   Card,
   CardContent,
@@ -27,6 +34,16 @@ import {
   SelectValue,
 } from "./ui/select";
 import { RadioGroup, RadioGroupChoice } from "./ui/radio-group";
+
+const DISPLAY_MODES: {
+  value: ColorMode;
+  label: import("@shared/i18n").StaticMessageKey;
+  icon: LucideIcon;
+}[] = [
+  { value: "system", label: "appearance:system", icon: Monitor },
+  { value: "light", label: "common:light", icon: Sun },
+  { value: "dark", label: "common:dark", icon: Moon },
+];
 
 /** 登录前后均可使用的语言选择器，修改后立即生效。 */
 export function LanguagePicker() {
@@ -62,15 +79,6 @@ export function LanguagePicker() {
 export function AppearanceSettings() {
   const { preferences, update, saving, saveError, retry } = usePreferences();
   const { t } = useI18n();
-  const modes: {
-    value: ColorMode;
-    label: import("@shared/i18n").StaticMessageKey;
-    icon: typeof Sun;
-  }[] = [
-    { value: "system", label: "appearance:system", icon: Monitor },
-    { value: "light", label: "common:light", icon: Sun },
-    { value: "dark", label: "common:dark", icon: Moon },
-  ];
   return (
     <Card>
       <CardHeader>
@@ -106,7 +114,7 @@ export function AppearanceSettings() {
               update({ colorMode: colorMode as ColorMode })
             }
           >
-            {modes.map(({ value, label, icon: Icon }) => (
+            {DISPLAY_MODES.map(({ value, label, icon: Icon }) => (
               <RadioGroupChoice
                 variant="segment"
                 key={value}
@@ -130,7 +138,6 @@ export function AppearanceSettings() {
             onValueChange={theme => update({ theme: theme as ThemeId })}
           >
             {THEME_IDS.map(id => {
-              const theme = THEMES[id];
               const selected = preferences.theme === id;
               return (
                 <RadioGroupChoice
@@ -138,26 +145,7 @@ export function AppearanceSettings() {
                   value={id}
                   className={`flex min-h-24 items-center gap-3 rounded-2xl border px-4 py-4 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${selected ? "border-primary/60 bg-primary/10" : "border-border bg-muted/30 hover:border-primary/40 hover:bg-muted/60"}`}
                 >
-                  <span
-                    className="flex shrink-0 -space-x-1.5"
-                    aria-hidden="true"
-                  >
-                    {theme.colors.map(color => (
-                      <span
-                        key={color}
-                        style={{ backgroundColor: color }}
-                        className="h-4 w-4 rounded-full border border-black/10 sm:h-5 sm:w-5"
-                      />
-                    ))}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold">
-                      {t(themeMessages[id].name)}
-                    </span>
-                    <span className="mt-1 block text-xs text-muted-foreground">
-                      {t(themeMessages[id].description)}
-                    </span>
-                  </span>
+                  <ThemeOption theme={id} />
                   {selected && (
                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
                       <Check className="h-4 w-4" />

@@ -12,6 +12,7 @@ import {
 import { BusinessRuleError } from "../_core/businessError";
 import { log, providerErrorSummary } from "../_core/log";
 import { protectedProcedure, router } from "../_core/trpc";
+import { decodeBase64Upload } from "../_core/uploads";
 import { getTierLimits, isBillingEnforced } from "../billing";
 import { readDefaultReference, readPresetReference } from "../characterPresets";
 import { putStagedMedia } from "../managedMedia";
@@ -79,7 +80,7 @@ export const girlfriendRouter = router({
 
       // 上传参考图片到存储
       const imageBuffer = input.referenceImageBase64
-        ? Buffer.from(input.referenceImageBase64, "base64")
+        ? decodeBase64Upload(input.referenceImageBase64)
         : await readPresetReference(input.presetId!);
       const mimeType = input.referenceImageBase64
         ? input.referenceImageMimeType!
@@ -180,13 +181,15 @@ export const girlfriendRouter = router({
           code: "NOT_FOUND",
           message: "Companion not found",
         });
-      // 验证文件大小（Base64 编码后约为原始大小的 4/3，10MB 原始文件 ≈ 13.33MB Base64）
-      const maxBase64Size = (10 * 1024 * 1024 * 4) / 3; // ~13.33MB
-      if (input.imageBase64.length > maxBase64Size) {
-        throw new Error("图片文件过大，请选择 10MB 以内的图片");
+      const imageBuffer = decodeBase64Upload(input.imageBase64);
+      // 按解码字节计量，避免填充字符让恰好 10MB 的图片被误拒绝。
+      if (imageBuffer.length > 10 * 1024 * 1024) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "图片文件过大，请选择 10MB 以内的图片",
+        });
       }
 
-      const imageBuffer = Buffer.from(input.imageBase64, "base64");
       const ext =
         input.mimeType.split("/")[1] === "jpeg"
           ? "jpg"

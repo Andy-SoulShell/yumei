@@ -11,6 +11,7 @@ import { keyProvider } from "../_core/keyProvider";
 import { log, providerErrorSummary } from "../_core/log";
 import { checkRateLimit, getDailyMeter, getMonthlyMeter } from "../_core/quota";
 import { protectedProcedure, router } from "../_core/trpc";
+import { decodeBase64Upload } from "../_core/uploads";
 import { getTierLimits, isBillingEnforced, upsellHint } from "../billing";
 import {
   completeImageGeneration,
@@ -109,7 +110,7 @@ export const selfieRouter = router({
           message: "Unsupported photo format (use JPG/PNG/WebP)",
         });
       }
-      const photoBuffer = Buffer.from(input.userPhotoBase64, "base64");
+      const photoBuffer = decodeBase64Upload(input.userPhotoBase64);
       if (photoBuffer.length > 10 * 1024 * 1024) {
         throw new TRPCError({
           code: "BAD_REQUEST",

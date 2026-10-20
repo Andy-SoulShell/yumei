@@ -5,6 +5,7 @@ import { keyProvider } from "../_core/keyProvider";
 import { transcribeWithOpenAI } from "../_core/openaiWhisper";
 import { checkRateLimit } from "../_core/quota";
 import { protectedProcedure, router } from "../_core/trpc";
+import { decodeBase64Upload } from "../_core/uploads";
 import { getTierLimits, isBillingEnforced } from "../billing";
 import { saveTranscription } from "../transcriptions";
 import { ensureAgeConfirmed } from "./guards";
@@ -42,7 +43,7 @@ export const voiceRouter = router({
       }
 
       // 1. Base64 解码
-      const audioBuffer = Buffer.from(input.audioBase64, "base64");
+      const audioBuffer = decodeBase64Upload(input.audioBase64);
 
       // 2. 文件大小校验（16MB 限制）
       const sizeMB = audioBuffer.length / (1024 * 1024);

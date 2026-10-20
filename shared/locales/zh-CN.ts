@@ -985,7 +985,7 @@ export default {
     experimentalGlass: "通透玻璃",
     experimentalBadge: "实验性",
     experimentalGlassDescription:
-      "更通透的导航，让下层内容的色彩透出。仅在此设备保存。",
+      "为所有页面的导航、卡片、控件和弹层启用通透玻璃。仅在此设备保存。",
     appearanceLanguage: "外观与语言",
     theme: "主题",
     interfaceLanguage: "界面语言",

@@ -264,7 +264,7 @@ export default function Memories() {
 
       <div className="max-w-2xl mx-auto p-3 sm:p-4 space-y-6 pb-10">
         <section
-          className="space-y-4 rounded-xl border p-4"
+          className="surface-card space-y-4 rounded-xl border p-4"
           aria-labelledby="memory-controls-title"
         >
           <div className="flex items-start justify-between gap-4">
@@ -359,7 +359,7 @@ export default function Memories() {
         </section>
 
         <section
-          className="space-y-3 rounded-xl border p-4"
+          className="surface-card space-y-3 rounded-xl border p-4"
           aria-labelledby="memory-summary-title"
         >
           <h2 id="memory-summary-title" className="font-semibold">

@@ -1043,7 +1043,7 @@ export default {
     experimentalGlass: "透けるガラス",
     experimentalBadge: "実験的",
     experimentalGlassDescription:
-      "ナビゲーションの透明感を高め、背後のコンテンツの色を映します。この端末にのみ保存されます。",
+      "すべての画面のナビゲーション、カード、操作部品、ポップアップに透けるガラスを適用します。この端末にのみ保存されます。",
     appearanceLanguage: "外観と言語",
     theme: "テーマ",
     interfaceLanguage: "表示言語",

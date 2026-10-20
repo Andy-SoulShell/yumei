@@ -10,6 +10,7 @@ let container: HTMLDivElement;
 let viewport: HTMLDivElement;
 let content: HTMLDivElement;
 let notify: () => void;
+let render: (scope: number) => Promise<void>;
 let dimensions: {
   width: number;
   height: number;
@@ -55,12 +56,15 @@ beforeEach(async () => {
   );
   const viewportRef = { current: viewport };
   const contentRef = { current: content };
-  function Probe() {
-    useChatScrollAnchor(viewportRef, contentRef);
+  function Probe({ scope }: { scope: number }) {
+    useChatScrollAnchor(viewportRef, contentRef, scope);
     return null;
   }
   root = createRoot(container);
-  await act(async () => root.render(<Probe />));
+  render = async scope => {
+    await act(async () => root.render(<Probe scope={scope} />));
+  };
+  await render(1);
 });
 
 afterEach(async () => {
@@ -71,6 +75,19 @@ afterEach(async () => {
 });
 
 describe("聊天滚动位置", () => {
+  it("初次进入已有长记录的会话时定位到末尾", async () => {
+    await act(async () => root.render(null));
+    dimensions.top = 0;
+    await render(1);
+    expect(dimensions.top).toBe(900);
+  });
+
+  it("切换会话时重新定位末尾，不继承另一会话的历史阅读状态", async () => {
+    dimensions.top = 400;
+    viewport.dispatchEvent(new Event("scroll"));
+    await render(2);
+    expect(dimensions.top).toBe(900);
+  });
   it("停在最新消息时，横竖屏或键盘改变尺寸后继续贴住末尾", () => {
     dimensions.width = 320;
     dimensions.height = 200;

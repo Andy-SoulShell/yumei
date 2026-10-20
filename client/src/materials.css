@@ -1,4 +1,4 @@
-/* 玻璃仅用于导航和输入托盘；浮层使用实色，避免 Portal 菜单叠在玻璃上再次模糊。 */
+/* 标准模式保持克制的导航玻璃；实验模式在下方统一扩展各类组件材质。 */
 :root {
   --surface-panel: color-mix(in oklch, var(--card) 94%, var(--background));
   --surface-field: color-mix(in oklch, var(--muted) 72%, var(--card));
@@ -324,7 +324,7 @@
     scroll-padding-bottom: calc(90px + var(--safe-area-bottom));
   }
 }
-/* 实验模式只强化导航平面，独立菜单和内容卡片仍保持稳定的实色。 */
+/* 实验模式统一页面与组件；内容透色、控件描边，独立浮层承担一层背景模糊。 */
 @supports (
   (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
 ) {
@@ -336,6 +336,12 @@
     --glass-blur: 20px;
     --glass-saturation: 1.35;
     --glass-header-space: calc(84px + var(--safe-area-top));
+    --glass-panel-fill: color-mix(in oklch, var(--card) 72%, transparent);
+    --glass-popup-fill: color-mix(in oklch, var(--popover) 82%, transparent);
+    --glass-field-fill: color-mix(in oklch, var(--muted) 58%, transparent);
+    --glass-bubble-fill: color-mix(in oklch, var(--muted) 84%, transparent);
+    --glass-label-fill: #17121eb8;
+    --glass-edge: color-mix(in oklch, var(--foreground) 12%, transparent);
     --canvas-glow:
       radial-gradient(
         ellipse at 0% 40%,
@@ -353,6 +359,10 @@
     --glass-toolbar-fill: color-mix(in oklch, var(--card) 78%, transparent);
     --glass-header-fill: color-mix(in oklch, var(--card) 72%, transparent);
     --glass-nav-fill: color-mix(in oklch, var(--card) 72%, transparent);
+    --glass-panel-fill: color-mix(in oklch, var(--card) 76%, transparent);
+    --glass-popup-fill: color-mix(in oklch, var(--popover) 86%, transparent);
+    --glass-field-fill: color-mix(in oklch, var(--muted) 64%, transparent);
+    --glass-bubble-fill: color-mix(in oklch, var(--muted) 88%, transparent);
   }
   /* 低特异性让下方的系统无障碍规则始终可以回退为实色。 */
   :where(:root[data-glass="experimental"]) .app-header {
@@ -425,12 +435,194 @@
   :where(:root[data-glass="experimental"]) .account-signout {
     background: transparent;
   }
-  /* 窄抽屉是导航平面；它打开的选择菜单仍是上面的实色 floating-surface。 */
+  /* 窄抽屉与其他独立浮层共享材质，子菜单打开时会降低后方层级。 */
   :where(:root[data-glass="experimental"]) .mobile-sidebar {
     background: var(--glass-toolbar-fill);
     -webkit-backdrop-filter: blur(var(--glass-blur))
       saturate(var(--glass-saturation));
     backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  }
+  /* 所有业务卡片、登录页与会话列表共享透色面板；不逐张叠加模糊。 */
+  :where(:root[data-glass="experimental"])
+    :is(.surface-card, .conversation-card, .auth-page > div) {
+    background: var(--glass-panel-fill);
+    box-shadow:
+      var(--tw-ring-offset-shadow, 0 0 #0000),
+      var(--tw-ring-shadow, 0 0 #0000),
+      var(--shadow-panel),
+      inset 0 0 0 1px var(--glass-edge),
+      inset 0 1px 0 var(--glass-highlight);
+  }
+  :where(:root[data-glass="experimental"]) .auth-page > div {
+    border-radius: 24px;
+  }
+  :where(:root[data-glass="experimental"])
+    :is(
+      .companion-card.is-active,
+      .conversation-card:hover,
+      .quick-entry:hover
+    ) {
+    background: color-mix(in oklch, var(--primary) 8%, var(--glass-panel-fill));
+  }
+  /* 内嵌卡片共用外层表面，避免设置分区、抽屉里的组件再叠一层。 */
+  :where(:root[data-glass="experimental"])
+    :is(.surface-card, .floating-surface)
+    .surface-card {
+    background: transparent;
+    box-shadow: none;
+  }
+  :where(:root[data-glass="experimental"]) .floating-surface [cmdk-root] {
+    background: transparent;
+  }
+  :where(:root[data-glass="experimental"])
+    :is([data-slot="avatar-fallback"], [data-slot="progress"]) {
+    background: var(--glass-field-fill);
+  }
+  :where(:root[data-glass="experimental"]) [data-slot="avatar"] {
+    outline: 1px solid var(--glass-edge);
+    outline-offset: -1px;
+  }
+  :where(:root[data-glass="experimental"]) [data-slot="badge"] {
+    box-shadow:
+      var(--tw-ring-offset-shadow, 0 0 #0000),
+      var(--tw-ring-shadow, 0 0 #0000),
+      inset 0 1px 0 var(--glass-highlight);
+  }
+  :where(:root[data-glass="experimental"])
+    [data-slot="badge"]:is(
+      [data-variant="secondary"],
+      [data-variant="outline"]
+    ) {
+    background: var(--glass-field-fill);
+    border-color: var(--glass-edge);
+  }
+  :where(:root[data-glass="experimental"])
+    :is(
+      .surface-field,
+      .button-soft,
+      [data-slot="button"][data-variant="secondary"]
+    ):not(.sidebar-preference-trigger):not(.chat-composer-input) {
+    background: var(--glass-field-fill);
+    box-shadow:
+      var(--tw-ring-offset-shadow, 0 0 #0000),
+      var(--tw-ring-shadow, 0 0 #0000),
+      inset 0 1px 0 var(--glass-highlight);
+  }
+  :where(:root[data-glass="experimental"])
+    [data-slot="button"]:is(
+      [data-variant="default"],
+      [data-variant="destructive"]
+    ) {
+    box-shadow:
+      var(--tw-ring-offset-shadow, 0 0 #0000),
+      var(--tw-ring-shadow, 0 0 #0000),
+      inset 0 1px 0 #ffffff40,
+      inset 0 -1px 0 #00000014;
+  }
+  :where(:root[data-glass="experimental"])
+    :is(.button-soft, [data-slot="button"][data-variant="secondary"]):hover {
+    background: color-mix(in oklch, var(--primary) 8%, var(--glass-field-fill));
+  }
+  :where(:root[data-glass="experimental"])
+    [data-slot="radio-group-choice"][data-state="unchecked"] {
+    background: var(--glass-field-fill);
+    box-shadow:
+      var(--tw-ring-offset-shadow, 0 0 #0000),
+      var(--tw-ring-shadow, 0 0 #0000),
+      inset 0 0 0 1px var(--glass-edge);
+  }
+  :where(:root[data-glass="experimental"])
+    [data-slot="radio-group-choice"][data-variant="card"][data-state="checked"] {
+    background: color-mix(
+      in oklch,
+      var(--primary) 14%,
+      var(--glass-panel-fill)
+    );
+    box-shadow:
+      var(--tw-ring-offset-shadow, 0 0 #0000),
+      var(--tw-ring-shadow, 0 0 #0000),
+      inset 0 0 0 1px color-mix(in oklch, var(--primary) 35%, transparent);
+  }
+  :where(:root[data-glass="experimental"])
+    :is([data-slot="switch"], [data-slot="checkbox"])[data-state="unchecked"] {
+    background: var(--glass-field-fill);
+    box-shadow:
+      var(--tw-ring-offset-shadow, 0 0 #0000),
+      var(--tw-ring-shadow, 0 0 #0000),
+      inset 0 0 0 1px var(--glass-edge);
+  }
+  :where(:root[data-glass="experimental"]) .chat-bubble-assistant {
+    background: var(--glass-bubble-fill);
+    box-shadow: inset 0 0 0 1px var(--glass-edge);
+  }
+  :where(:root[data-glass="experimental"]) .chat-bubble-user {
+    box-shadow: inset 0 1px 0 #ffffff40;
+  }
+  /* 图片保留原色，只让覆盖照片的文字托盘使用深色玻璃，稳定白字对比。 */
+  :where(:root[data-glass="experimental"]) .character-card-content {
+    inset-inline: 10px;
+    bottom: 10px;
+    padding: 10px;
+    border-radius: 14px;
+    background: var(--glass-label-fill);
+    box-shadow: inset 0 0 0 1px #ffffff26;
+  }
+  /* Portal 浮层也统一覆盖：对话框、确认框、抽屉、搜索、菜单和选择器。 */
+  :where(:root[data-glass="experimental"]) .floating-surface {
+    background: var(--glass-popup-fill);
+    /* 材质退层立即生效，只让浮层位移和显隐参与过渡。 */
+    transition-property: transform, opacity;
+    -webkit-backdrop-filter: blur(var(--glass-blur))
+      saturate(var(--glass-saturation));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+    box-shadow:
+      var(--tw-ring-offset-shadow, 0 0 #0000),
+      var(--tw-ring-shadow, 0 0 #0000),
+      var(--shadow-floating),
+      inset 0 0 0 1px var(--glass-edge);
+  }
+  :where(:root[data-glass="experimental"])
+    :is(
+      [data-slot="tooltip-content"],
+      .toaster [data-sonner-toast][data-styled="true"]
+    ) {
+    background: var(--glass-popup-fill);
+    color: var(--popover-foreground);
+    box-shadow:
+      var(--shadow-glass),
+      inset 0 0 0 1px var(--glass-edge);
+  }
+  :where(:root[data-glass="experimental"]) [data-slot="tooltip-content"] svg {
+    background: var(--glass-popup-fill);
+    fill: var(--glass-popup-fill);
+  }
+  /* 上层浮层打开时，后方导航不继续模糊；子菜单出现时父菜单同样退后。 */
+  :where(
+      :root[data-glass="experimental"]:has(.floating-surface[data-state="open"])
+    )
+    :is(
+      .app-header,
+      .app-sidebar,
+      .app-bottom-nav,
+      .sidebar-panel,
+      .page-toolbar,
+      .chat-header,
+      .chat-composer-surface
+    ),
+  :where(:root[data-glass="experimental"])
+    .floating-surface:has(
+      :is(
+        [aria-haspopup="menu"][data-state="open"],
+        button[role="combobox"][aria-expanded="true"]
+      )
+    ),
+  :where(
+      :root[data-glass="experimental"]:has([role="listbox"][data-state="open"])
+    )
+    .mobile-sidebar {
+    background: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
   :where(:root[data-glass="experimental"])
     :is(.app-sidebar, .mobile-sidebar)
@@ -488,6 +680,14 @@
 @media (prefers-reduced-transparency: reduce),
   (prefers-contrast: more),
   (forced-colors: active) {
+  :root[data-glass="experimental"],
+  :root[data-glass="experimental"].dark {
+    --glass-panel-fill: var(--card);
+    --glass-popup-fill: var(--popover);
+    --glass-field-fill: var(--surface-field);
+    --glass-bubble-fill: var(--muted);
+    --glass-label-fill: #17121e;
+  }
   .app-header,
   .app-sidebar,
   .chat-header,

@@ -71,7 +71,7 @@ export function ChatMessages({
       caption: msg.content === "[自拍照片]" ? null : msg.content,
     }));
   const contentRef = useRef<HTMLDivElement>(null);
-  useChatScrollAnchor(messageListRef, contentRef);
+  useChatScrollAnchor(messageListRef, contentRef, currentConversationId);
   return (
     <div
       ref={messageListRef}
@@ -137,7 +137,7 @@ export function ChatMessages({
                         <div
                           key={segment.id}
                           data-segment-id={segment.id}
-                          className="rounded-2xl bg-muted px-4 py-2 text-foreground"
+                          className="chat-bubble-assistant rounded-2xl bg-muted px-4 py-2 text-foreground"
                         >
                           <p className="whitespace-pre-wrap break-words">
                             {segment.content}
@@ -151,8 +151,8 @@ export function ChatMessages({
                       <div
                         className={`rounded-2xl px-4 py-2 ${
                           msg.role === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-foreground"
+                            ? "chat-bubble-user bg-primary text-primary-foreground"
+                            : "chat-bubble-assistant bg-muted text-foreground"
                         }`}
                       >
                         {msg.imageUrl ? (

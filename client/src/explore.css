@@ -549,6 +549,14 @@
 .gallery-photo-card {
   container-type: inline-size;
 }
+@media (max-width: 640px), (pointer: coarse) {
+  /* 下载、删除和朗读图标保持轻量，触控区域扩大，减少小屏误触。 */
+  .gallery-photo-footer button,
+  .chat-messages button[aria-pressed] {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
 @container (max-width: 180px) {
   .gallery-photo-footer {
     flex-wrap: wrap;

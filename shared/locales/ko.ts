@@ -1029,7 +1029,7 @@ export default {
     experimentalGlass: "투명한 유리",
     experimentalBadge: "실험적",
     experimentalGlassDescription:
-      "탐색 영역을 더 투명하게 만들어 뒤쪽 콘텐츠의 색이 비쳐 보여요. 이 기기에만 저장돼요.",
+      "모든 화면의 탐색 영역, 카드, 컨트롤, 팝업에 투명한 유리 효과를 적용해요. 이 기기에만 저장돼요.",
     appearanceLanguage: "화면 및 언어",
     theme: "테마",
     interfaceLanguage: "화면 언어",

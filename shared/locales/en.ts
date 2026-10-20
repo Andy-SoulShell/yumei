@@ -1048,7 +1048,7 @@ export default {
     experimentalGlass: "Translucent glass",
     experimentalBadge: "Experimental",
     experimentalGlassDescription:
-      "More translucent navigation lets background colors show through. Saved on this device only.",
+      "Use translucent glass for navigation, cards, controls, and overlays on every page. Saved on this device only.",
     appearanceLanguage: "Appearance & language",
     theme: "Theme",
     interfaceLanguage: "Interface language",

@@ -100,7 +100,7 @@ export function IntimacyPanel({
 
               {/* 统计数据 */}
               <div className="grid grid-cols-2 gap-3 pt-2">
-                <div className="bg-background rounded-lg p-3">
+                <div className="surface-field bg-background rounded-lg p-3">
                   <p className="text-2xl font-bold text-primary">
                     {consecutiveDays}
                   </p>
@@ -108,7 +108,7 @@ export function IntimacyPanel({
                     {t("intimacy:consecutiveDaysTogether")}
                   </p>
                 </div>
-                <div className="bg-background rounded-lg p-3">
+                <div className="surface-field bg-background rounded-lg p-3">
                   <p className="text-2xl font-bold text-primary">
                     {intimacyPoints}
                   </p>

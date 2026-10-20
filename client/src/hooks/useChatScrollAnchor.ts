@@ -1,17 +1,20 @@
 /** 调整窗口、软键盘或图片高度时，保留用户在最新消息或历史记录中的阅读位置。 */
-import { useEffect, type RefObject } from "react";
+import { useLayoutEffect, type RefObject } from "react";
 
 export function useChatScrollAnchor(
   viewportRef: RefObject<HTMLDivElement | null>,
-  contentRef: RefObject<HTMLDivElement | null>
+  contentRef: RefObject<HTMLDivElement | null>,
+  conversationId?: number | null
 ) {
-  useEffect(() => {
+  useLayoutEffect(() => {
     const viewport = viewportRef.current;
     const content = contentRef.current;
     if (!viewport || !content || typeof ResizeObserver === "undefined") return;
     const atBottom = () =>
       viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop < 48;
-    let pinned = atBottom();
+    // 初次进入或切换会话时先展示最新内容，之后才跟随用户的阅读意图。
+    viewport.scrollTop = viewport.scrollHeight;
+    let pinned = true;
     let width = viewport.clientWidth;
     let height = viewport.clientHeight;
     let scrollHeight = viewport.scrollHeight;
@@ -37,5 +40,5 @@ export function useChatScrollAnchor(
       observer.disconnect();
       viewport.removeEventListener("scroll", onScroll);
     };
-  }, [viewportRef, contentRef]);
+  }, [viewportRef, contentRef, conversationId]);
 }

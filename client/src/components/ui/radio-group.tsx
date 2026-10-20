@@ -56,6 +56,7 @@ function RadioGroupChoice({
   return (
     <RadioGroupPrimitive.Item
       data-slot="radio-group-choice"
+      data-variant={variant}
       className={cn(
         "min-w-0 rounded-xl text-left transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50",
         variant === "card"

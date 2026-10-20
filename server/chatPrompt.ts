@@ -4,7 +4,7 @@ import { resolveCompanionBehavior } from "../shared/companionBehavior";
 import type { CompanionEmotion } from "../shared/companionEmotion";
 
 /** 用于统计、回归和回退的提示词版本。 */
-export const CHAT_PROMPT_VERSION = "companion/1.2";
+export const CHAT_PROMPT_VERSION = "companion/1.3";
 
 /** 本轮预览尚未持久化，只有成功结算才推进情绪。 */
 export type ChatBehaviorContext = { emotion?: CompanionEmotion | null };
@@ -25,6 +25,13 @@ function dataBlock(value: unknown, budget = 6000) {
   })
     .replace(/</g, "\\u003c")
     .replace(/>/g, "\\u003e");
+}
+
+/** DeepSeek 的长历史会延续旧回复语言；在本轮用户输入前重复设置，不改用户原文。 */
+export function buildTurnLanguageReminder(language: string | null | undefined) {
+  const value = language?.trim().slice(0, 50);
+  if (!value) return "";
+  return `Current application reply-language setting: ${dataBlock(value)}. Answer this turn entirely in this language, even if earlier replies or the user input use another language. Keep all platform safety and AI identity rules. Proper names and explicitly requested quotations or translations may keep their original language.`;
 }
 
 /** 组合角色行为，显式回复语言和长度优先于风格默认。 */

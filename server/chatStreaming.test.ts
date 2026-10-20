@@ -29,6 +29,7 @@ import {
 } from "./repositories/companions";
 import { createConversation } from "./repositories/conversations";
 import { createTestGirlfriend } from "./testFixtures";
+import { upsertApiConfig } from "./repositories/apiConfig";
 
 const encoder = new TextEncoder();
 const frame = (value: unknown) => `data: ${JSON.stringify(value)}\n\n`;
@@ -143,6 +144,46 @@ afterEach(() => {
 });
 
 describe("durable chat turns", () => {
+  it("applies a changed DeepSeek language before the current input while preserving old replies and raw user text", async () => {
+    const { user, input } = await seed();
+    const fetchMock = vi.fn(async (_url: unknown, _options: RequestInit) =>
+      response(delta("旧的中文回复。") + finish + "data: [DONE]\n\n")
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await submitChatTurn(user, input);
+    await runChatTurns([user.id]);
+    expect(
+      JSON.parse(fetchMock.mock.calls[0][1]?.body as string).messages.filter(
+        (item: { role: string }) => item.role === "system"
+      )
+    ).toHaveLength(1);
+    await upsertApiConfig({ userId: user.id, replyLanguage: "English" });
+    const next = {
+      ...input,
+      clientRequestId: crypto.randomUUID(),
+      content: "今天想接着聊，怎么放松？",
+    };
+    const accepted = await submitChatTurn(user, next);
+    await runChatTurns([user.id]);
+    const wire = JSON.parse(
+      fetchMock.mock.calls[1][1]?.body as string
+    ).messages;
+    expect(wire.at(-1)).toEqual({ role: "user", content: next.content });
+    expect(wire.at(-2)).toMatchObject({
+      role: "system",
+      content: expect.stringContaining('reply-language setting: "English"'),
+    });
+    expect(wire.at(-2).content).toContain(
+      "platform safety and AI identity rules"
+    );
+    expect(wire).toContainEqual({
+      role: "assistant",
+      content: "旧的中文回复。",
+    });
+    expect(
+      (await getChatTurnSnapshot(user.id, accepted.id)).userMessage.content
+    ).toBe(next.content);
+  });
   it("atomically accepts two canonical messages and deduplicates concurrent retries before rate/quota", async () => {
     const { user, input } = await seed();
     const [first, second] = await Promise.all([
@@ -221,7 +262,7 @@ describe("durable chat turns", () => {
       model: "test-stream-model",
       stream_options: { include_usage: true },
     });
-    expect(body.messages[0].content).toContain("companion/1.2");
+    expect(body.messages[0].content).toContain("companion/1.3");
     expect(body.messages[0].content).toContain("安全");
     expect(
       body.messages.filter(

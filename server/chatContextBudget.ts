@@ -26,9 +26,12 @@ export function planChatContext(input: {
   summary: string;
   followups: ContextMessage[];
   previous: ContextMessage[];
+  additionalSystemPrompt?: string;
 }) {
   const limits = chatContextLimits();
-  if (input.platform.length > limits.platform)
+  const platformSize =
+    input.platform.length + (input.additionalSystemPrompt?.length ?? 0);
+  if (platformSize > limits.platform)
     throw new Error("Platform context exceeds configured reserve");
   const followupsSize = input.followups.reduce(
     (n, item) => n + item.content.length,
@@ -36,7 +39,7 @@ export function planChatContext(input: {
   );
   if (followupsSize > limits.followups)
     throw new Error("Accepted follow-up context exceeds budget");
-  let remaining = limits.total - input.platform.length - followupsSize;
+  let remaining = limits.total - platformSize - followupsSize;
   let systemPrompt = input.platform;
   for (const block of [input.memory, input.summary]) {
     if (block.length <= Math.min(remaining, limits.memory)) {

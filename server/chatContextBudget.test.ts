@@ -3,6 +3,27 @@ import { chatContextLimits, planChatContext } from "./chatContextBudget";
 
 afterEach(() => vi.unstubAllEnvs());
 
+it("budgets a separate turn system rule inside the same platform reserve and total", () => {
+  vi.stubEnv("CHAT_CONTEXT_CHAR_LIMIT", "64000");
+  const input = {
+    platform: "P".repeat(13000),
+    additionalSystemPrompt: "L".repeat(1000),
+    memory: "M".repeat(6000),
+    summary: "",
+    followups: [{ role: "user" as const, content: "U".repeat(48000) }],
+    previous: [{ role: "assistant" as const, content: "H".repeat(6000) }],
+  };
+  const result = planChatContext(input);
+  expect(
+    result.systemPrompt.length +
+      input.additionalSystemPrompt.length +
+      result.history.reduce((n, item) => n + item.content.length, 0)
+  ).toBeLessThanOrEqual(64000);
+  expect(() =>
+    planChatContext({ ...input, additionalSystemPrompt: "L".repeat(1001) })
+  ).toThrow("reserve");
+});
+
 it("keeps accepted supplementary messages and complete priority blocks within the common budget", () => {
   vi.stubEnv("CHAT_CONTEXT_CHAR_LIMIT", "64000");
   const followups = Array.from({ length: 6 }, () => ({

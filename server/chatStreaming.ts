@@ -21,7 +21,11 @@ import { resolveChatProvider } from "./_core/chatProvider";
 import { parseChatProviderStream } from "./_core/chatStreamProvider";
 import { log, providerErrorSummary } from "./_core/log";
 import { getTierLimits, isBillingEnforced, upsellHint } from "./billing";
-import { buildChatSystemPrompt, CHAT_PROMPT_VERSION } from "./chatPrompt";
+import {
+  buildChatSystemPrompt,
+  buildTurnLanguageReminder,
+  CHAT_PROMPT_VERSION,
+} from "./chatPrompt";
 import { chatContextLimits, planChatContext } from "./chatContextBudget";
 import { runtimeInteger } from "./aiTaskRuntime";
 import { getChatBehaviorContext } from "./companionContext";
@@ -819,13 +823,27 @@ async function executeChatTurn(request: Request, leaseToken: string) {
           .orderBy(desc(messages.id))
           .limit(10)
       : [];
+    const turnLanguage =
+      provider.name === "deepseek"
+        ? buildTurnLanguageReminder(config?.replyLanguage)
+        : "";
     const { systemPrompt, history } = planChatContext({
       platform: platformPrompt + `\n${SAFETY_SYSTEM_CLAUSE}`,
       memory: memoryBlock,
       summary: "",
       previous: previous.reverse(),
       followups,
+      additionalSystemPrompt: turnLanguage,
     });
+    const providerMessages: {
+      role: "system" | "user" | "assistant";
+      content: string;
+    }[] = [
+      { role: "system", content: systemPrompt },
+      ...history.map(item => ({ role: item.role, content: item.content })),
+    ];
+    if (turnLanguage && providerMessages.at(-1)?.role === "user")
+      providerMessages.splice(-1, 0, { role: "system", content: turnLanguage });
     // All accepted follow-up messages are already canonical history, including the current user message.
     await withUserTransaction(request.userId, tx =>
       liveLease(tx, request, leaseToken, memoryEpoch)
@@ -841,10 +859,7 @@ async function executeChatTurn(request: Request, leaseToken: string) {
         model,
         stream: true,
         stream_options: { include_usage: true },
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...history.map(item => ({ role: item.role, content: item.content })),
-        ],
+        messages: providerMessages,
         ...(provider.name === "deepseek"
           ? { thinking: { type: "disabled" } }
           : {}),

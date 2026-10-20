@@ -1,7 +1,7 @@
 /** 桌面弹框与手机页面共用的认证表单和邮件结果反馈。 */
 import { useId } from "react";
 import { useSearch } from "wouter";
-import { ArrowLeft, CheckCircle2, Loader2, Mail, Sparkles } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Loader2, Mail } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { LanguagePicker } from "@/components/AppearanceSettings";
 import { Button } from "@/components/ui/button";
@@ -114,9 +114,6 @@ export function AuthFlow(props: {
     <div className="auth-flow space-y-5">
       <div className="flex items-center justify-between gap-4 pr-6">
         <a href="/" className="app-brand" aria-label="YUMEI">
-          <span className="brand-mark">
-            <Sparkles size={20} />
-          </span>
           YUMEI<span className="brand-period">.</span>
         </a>
         <LanguagePicker />

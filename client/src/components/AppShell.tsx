@@ -12,7 +12,6 @@ import {
   PanelLeftOpen,
   Plus,
   Settings,
-  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -202,9 +201,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           </SheetContent>
         </Sheet>
         <Link href="/" className="app-brand" aria-label="YUMEI">
-          <span className="brand-mark">
-            <Sparkles size={20} />
-          </span>
           YUMEI<span className="brand-period">.</span>
         </Link>
         <Button

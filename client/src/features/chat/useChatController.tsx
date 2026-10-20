@@ -289,7 +289,6 @@ export function useChatController() {
         await selfieQuota.refetch();
         if (data.imageGeneration !== "completed") {
           toast.error(t("chat:selfieGenerationFailedNoQuotaWasChargedDetails"));
-          scrollToBottom();
           return;
         }
       }
@@ -310,8 +309,6 @@ export function useChatController() {
       if (data.safetyNotice) {
         setShowCrisisAlert(true);
       }
-
-      scrollToBottom();
     },
     onError: (error, variables) => {
       // 失败消息留在对话中，可单独重试；不覆盖用户正在写的下一条。
@@ -370,7 +367,6 @@ export function useChatController() {
             snapshot.assistantMessage.id
           );
         }
-        scrollToBottom();
       },
       onError: error => {
         if (error instanceof ChatStreamRequestError) {
@@ -428,7 +424,6 @@ export function useChatController() {
     }
     return Array.from(messages.values()).sort((a, b) => a.id - b.id);
   }, [historicalMessages, chatStream.turns]);
-  const lastMessageId = chatMessages.at(-1)?.id;
   const isAccepting = chatStream.isAccepting || sendMediaMessage.isPending;
   const stopChatStream = chatStream.stop;
   const submitStream = chatStream.submit;
@@ -452,7 +447,6 @@ export function useChatController() {
       showRelationship(data);
       await refreshConversation();
       await selfieQuota.refetch();
-      scrollToBottom();
       // 触发自拍亲密度经验值
     },
     onError: error => {
@@ -492,7 +486,6 @@ export function useChatController() {
       showRelationship(data);
       await refreshConversation();
       await selfieQuota.refetch();
-      scrollToBottom();
     },
     onError: error => {
       void selfieQuota.refetch();
@@ -531,10 +524,6 @@ export function useChatController() {
     }
   }, [currentConversationId, girlfriend, resumeConversation]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [lastMessageId]);
-
   // 预加载浏览器语音列表
   useEffect(() => {
     if ("speechSynthesis" in window) {
@@ -545,8 +534,10 @@ export function useChatController() {
     }
   }, []);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
+    const viewport = messageListRef.current;
     setTimeout(() => {
+      if (!isCurrentScope() || messageListRef.current !== viewport) return;
       messagesEndRef.current?.scrollIntoView({
         behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)")
           .matches
@@ -554,7 +545,7 @@ export function useChatController() {
           : "smooth",
       });
     }, 100);
-  };
+  }, [isCurrentScope]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -617,8 +608,9 @@ export function useChatController() {
         }
         return;
       }
+      // 主动发送时回到末尾；后续流式更新由滚动锚点跟随，尊重向上阅读。
+      scrollToBottom();
       await submitStream(draft);
-      if (isCurrentScope()) scrollToBottom();
     },
     [
       currentConversationId,
@@ -627,6 +619,7 @@ export function useChatController() {
       submitStream,
       sendMediaMessage,
       isCurrentScope,
+      scrollToBottom,
     ]
   );
   const handleStopGeneration = async () => {

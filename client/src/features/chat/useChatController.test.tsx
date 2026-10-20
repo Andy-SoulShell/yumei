@@ -234,6 +234,37 @@ it("keeps the next draft when a pending reply completes", async () => {
   });
   expect(controller.message).toBe("下一条尚未发送");
 });
+it("does not interrupt history reading when messages arrive or a reply completes", async () => {
+  const scroll = vi.fn();
+  controller.messagesEndRef.current = { scrollIntoView: scroll } as any;
+  controller.messageListRef.current = document.createElement("div");
+  await act(async () => vi.runOnlyPendingTimers());
+  scroll.mockClear();
+  mock.history = [{ id: 12, role: "assistant", content: "新回复" }];
+  await render();
+  await act(async () => {
+    await mock.options.stream.onComplete(
+      { status: "succeeded", assistantMessage: { id: 12, content: "新回复" } },
+      { content: "之前发送的消息" }
+    );
+    await vi.runOnlyPendingTimersAsync();
+  });
+  expect(scroll).not.toHaveBeenCalled();
+});
+it("scrolls on send and cancels delayed scrolling after switching conversations", async () => {
+  const scroll = vi.fn();
+  controller.messagesEndRef.current = { scrollIntoView: scroll } as any;
+  controller.messageListRef.current = document.createElement("div");
+  await sendFirst();
+  await act(async () => vi.runOnlyPendingTimers());
+  expect(scroll).toHaveBeenCalledOnce();
+  scroll.mockClear();
+  await sendFirst("下一条");
+  mock.conversationId = "43";
+  await render();
+  await act(async () => vi.runOnlyPendingTimers());
+  expect(scroll).not.toHaveBeenCalled();
+});
 it("retains failed media requests separately and retries without consuming the next draft", async () => {
   const media = { ...variables, content: "给我发一张自拍" };
   await sendFirst(media.content);

@@ -105,6 +105,7 @@ export function CharacterGrid({
                 {batchMode && (
                   <div className="flex-shrink-0">
                     <Checkbox
+                      aria-label={t("characters:select", { name: gf.name })}
                       checked={isSelected}
                       onCheckedChange={() => toggleSelect(gf.id)}
                     />

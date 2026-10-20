@@ -218,6 +218,27 @@
   }
 }
 
+/* 小控件保持原有比例，透明命中区提供 44px 的触控范围。 */
+.compact-control {
+  min-width: 0;
+  min-height: 0;
+}
+.compact-control::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
+}
+
+/* 这些滚动区只做纵向滚动，避免 Radix 的 table 包装被长标题撑宽。 */
+[data-slot="scroll-area-viewport"] > div {
+  display: block !important;
+  width: 100%;
+}
+
 /* 日历在最窄手机上平分七列，避免全局触控尺寸把浮层撑出屏幕。 */
 @media (max-width: 900px), (pointer: coarse) {
   [data-slot="calendar"] {

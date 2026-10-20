@@ -143,9 +143,13 @@ export function NotificationBell() {
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[320px] sm:w-[380px] p-0">
+      <SheetContent
+        side="right"
+        className="w-[320px] sm:w-[380px] p-0"
+        aria-describedby={undefined}
+      >
         <SheetHeader className="pl-4 pr-16 pt-4 pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <SheetTitle className="text-lg">
               {t("notifications:notifications")}
             </SheetTitle>

@@ -144,11 +144,6 @@ export function VoiceSettings(state: Props) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-sm">{option.label}</span>
-                    {option.value === "browser" && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-600 font-medium">
-                        {t("settings:free")}
-                      </span>
-                    )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {option.desc}

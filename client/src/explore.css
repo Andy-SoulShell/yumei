@@ -1268,15 +1268,18 @@
 .sheet-panel > [data-slot="sheet-header"] {
   flex: none;
 }
+.sheet-panel > [data-slot="sheet-header"] > [data-slot="sheet-title"] {
+  padding-right: 40px;
+}
 .sheet-panel .sheet-close {
-  top: calc(16px + var(--safe-area-top));
-  right: 16px;
+  top: calc(8px + var(--safe-area-top));
+  right: 8px;
 }
 .sheet-panel[data-side="right"] .sheet-close {
-  right: calc(16px + var(--safe-area-right));
+  right: calc(8px + var(--safe-area-right));
 }
 .sheet-panel[data-side="bottom"] .sheet-close {
-  top: 16px;
+  top: 8px;
 }
 @media (min-width: 1640px) {
   .character-grid {

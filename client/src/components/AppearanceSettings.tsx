@@ -1,4 +1,5 @@
 import { LANGUAGES, LOCALES } from "@shared/locales";
+import { themeMessages } from "@/locales/domain";
 /** 参考主题色卡的八套配色选择，以及独立的界面语言和显示模式。 */
 import {
   Check,
@@ -44,6 +45,121 @@ const DISPLAY_MODES: {
   { value: "light", label: "common:light", icon: Sun },
   { value: "dark", label: "common:dark", icon: Moon },
 ];
+
+/** 侧栏的语言、显示模式和主题入口，沿用账号偏好的即时保存逻辑。 */
+export function SidebarPreferences({
+  collapsed = false,
+}: {
+  collapsed?: boolean;
+}) {
+  const { preferences, update, saveError, saving, retry } = usePreferences();
+  const { t } = useI18n();
+  const controls = [
+    {
+      id: "language",
+      label: t("appearance:interfaceLanguage"),
+      icon: Globe,
+      value: preferences.language,
+      onChange: (language: string) =>
+        update({ language: language as UiLanguage }),
+      options: [
+        { value: "system", label: t("appearance:system") },
+        ...LOCALES.map(locale => ({
+          value: locale,
+          label: LANGUAGES[locale].label,
+        })),
+      ],
+    },
+    {
+      id: "colorMode",
+      label: t("appearance:displayMode"),
+      icon: DISPLAY_MODES.find(mode => mode.value === preferences.colorMode)!
+        .icon,
+      value: preferences.colorMode,
+      onChange: (colorMode: string) =>
+        update({ colorMode: colorMode as ColorMode }),
+      options: DISPLAY_MODES.map(mode => ({
+        value: mode.value,
+        label: t(mode.label),
+      })),
+    },
+    {
+      id: "theme",
+      label: t("appearance:theme"),
+      icon: Palette,
+      value: preferences.theme,
+      onChange: (theme: string) => update({ theme: theme as ThemeId }),
+      options: THEME_IDS.map(id => ({
+        value: id,
+        label: t(themeMessages[id].name),
+      })),
+    },
+  ];
+  return (
+    <div
+      className="sidebar-preferences"
+      role="group"
+      aria-label={t("appearance:appearanceLanguage")}
+    >
+      {controls.map(({ id, label, icon: Icon, value, onChange, options }) => (
+        <Select key={id} value={value} onValueChange={onChange}>
+          <SelectTrigger
+            className="sidebar-preference-trigger"
+            aria-label={label}
+            title={
+              collapsed
+                ? `${label}: ${options.find(option => option.value === value)?.label}`
+                : undefined
+            }
+          >
+            <Icon size={20} aria-hidden="true" />
+            <span className="sidebar-preference-value">
+              <SelectValue>
+                {id === "theme" ? (
+                  <ThemeOption theme={preferences.theme} variant="value" />
+                ) : undefined}
+              </SelectValue>
+            </span>
+          </SelectTrigger>
+          <SelectContent
+            className={
+              id === "theme" ? "w-64 max-w-[calc(100vw-2rem)]" : undefined
+            }
+          >
+            {options.map(option => (
+              <SelectItem
+                key={option.value}
+                value={option.value}
+                textValue={option.label}
+                className={
+                  id === "theme"
+                    ? "min-h-11 rounded-lg border border-transparent px-2 py-1 pr-8 data-[state=checked]:border-primary/60 data-[state=checked]:bg-primary/5"
+                    : undefined
+                }
+              >
+                {id === "theme" ? (
+                  <ThemeOption theme={option.value as ThemeId} variant="menu" />
+                ) : (
+                  option.label
+                )}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ))}
+      {saveError && (
+        <div className="sidebar-preferences-error" role="status">
+          {!collapsed && (
+            <p>{t("appearance:notSyncedToYourAccountYetYourChoice")}</p>
+          )}
+          <Button variant="ghost" size="sm" disabled={saving} onClick={retry}>
+            {t("appearance:retrySave")}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** 登录前后均可使用的语言选择器，修改后立即生效。 */
 export function LanguagePicker() {

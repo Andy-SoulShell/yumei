@@ -1,4 +1,4 @@
-/** PC 侧边导航与手机底部导航，共享账号、语言和主题入口。 */
+/** 分组侧边导航与手机底部导航，顶部仅承载登录和账号操作。 */
 import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
@@ -7,38 +7,45 @@ import {
   Heart,
   ImagePlus,
   LogOut,
+  Menu,
   MessageCircle,
-  Moon,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
   Settings,
   Sparkles,
-  Sun,
+  type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useTheme } from "@/contexts/ThemeContext";
 import { useI18n } from "@/lib/i18n";
 import { loginUrl } from "@/lib/navigation";
 import { Button } from "./ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "./ui/sheet";
 import { NotificationBell } from "./NotificationBell";
-import { LanguagePicker } from "./AppearanceSettings";
+import { SidebarPreferences } from "./AppearanceSettings";
 import { AgeGate } from "./AgeGate";
 import { toast } from "sonner";
+
+type NavigationLink = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  active: boolean;
+};
 
 /** 全局应用框架；聊天时手机隐藏底栏，为输入框和软键盘留足空间。 */
 export function AppShell({ children }: { children: ReactNode }) {
   const [location, navigate] = useLocation();
   const { user, logout, loading } = useAuth();
   const { t } = useI18n();
-  const { theme, toggleTheme } = useTheme();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem("yumei:sidebar-collapsed") === "true";
@@ -46,6 +53,21 @@ export function AppShell({ children }: { children: ReactNode }) {
       return false;
     }
   });
+  const signOut = () => {
+    void logout()
+      .then(() => navigate("/"))
+      .catch(() => toast.error(t("auth:networkErrorPleaseTryAgain")));
+  };
+  const accountAvatar = user && (
+    <Avatar className="account-avatar">
+      {user.image && (
+        <AvatarImage src={user.image} alt={user.name || user.email} />
+      )}
+      <AvatarFallback className="account-avatar-fallback">
+        {(user.name || user.email || "Y").slice(0, 1).toUpperCase()}
+      </AvatarFallback>
+    </Avatar>
+  );
   const toggleSidebar = () => {
     const next = !sidebarCollapsed;
     setSidebarCollapsed(next);
@@ -56,46 +78,53 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   };
   const inChat = /^\/chat(?:\/|$)/.test(location);
-  const links = [
-    {
+  const links = {
+    explore: {
       href: "/",
       label: t("explore:navExplore"),
       icon: Compass,
       active: location === "/" || location === "/explore",
     },
-    {
+    chats: {
       href: "/chats",
       label: t("explore:navChats"),
       icon: MessageCircle,
       active: location === "/chats" || inChat,
     },
-    {
+    create: {
       href: "/setup",
       label: t("explore:navCreate"),
       icon: Plus,
       active: location.startsWith("/setup"),
     },
-    {
+    generate: {
       href: "/generate",
       label: t("explore:navGenerate"),
       icon: ImagePlus,
       active: location === "/generate" || location === "/gallery",
     },
-    {
+    characters: {
       href: "/characters",
       label: t("explore:navCharacters"),
       icon: Heart,
       active: location === "/characters" || location.startsWith("/memories/"),
     },
-  ];
-  const navigation = (mobile = false) =>
-    links.map(({ href, label, icon: Icon, active }) => (
+  };
+  const actionLinks = [links.create, links.chats];
+  const discoveryLinks = [links.explore, links.generate, links.characters];
+  const navigation = (
+    items: NavigationLink[],
+    mobile = false,
+    collapsed = sidebarCollapsed
+  ) =>
+    items.map(({ href, label, icon: Icon, active }) => (
       <Link
         key={href}
         href={href}
         className={`app-nav-link ${active ? "is-active" : ""} ${mobile && href === "/setup" ? "is-create" : ""}`}
         aria-current={active ? "page" : undefined}
-        title={!mobile && sidebarCollapsed ? label : undefined}
+        title={!mobile && collapsed ? label : undefined}
+        onClick={() => setMobileMenuOpen(false)}
       >
         <span className="app-nav-icon">
           <Icon size={20} aria-hidden="true" />
@@ -103,6 +132,38 @@ export function AppShell({ children }: { children: ReactNode }) {
         <span className="app-nav-label">{label}</span>
       </Link>
     ));
+  const sidebar = (collapsed: boolean) => (
+    <div className="sidebar-panel">
+      <nav aria-label={t("explore:mainNavigation")}>
+        {[actionLinks, discoveryLinks].map(group => (
+          <div
+            key={group[0].href}
+            className="sidebar-nav-group"
+            role="group"
+            aria-label={group.map(link => link.label).join(" / ")}
+          >
+            {navigation(group, false, collapsed)}
+          </div>
+        ))}
+      </nav>
+      <SidebarPreferences collapsed={collapsed} />
+      <div className="sidebar-bottom">
+        <Link
+          href="/settings"
+          className={`app-nav-link ${location === "/settings" ? "is-active" : ""}`}
+          aria-current={location === "/settings" ? "page" : undefined}
+          title={collapsed ? t("common:settings") : undefined}
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <Settings size={20} aria-hidden="true" />
+          <span className="app-nav-label">{t("common:settings")}</span>
+        </Link>
+        <span className="sidebar-copyright">
+          © {new Date().getFullYear()} YUMEI
+        </span>
+      </div>
+    </div>
+  );
   return (
     <div
       className={`app-shell ${sidebarCollapsed ? "is-sidebar-collapsed" : ""}`}
@@ -111,6 +172,28 @@ export function AppShell({ children }: { children: ReactNode }) {
         {t("explore:skipToContent")}
       </a>
       <header className="app-header">
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetTrigger asChild>
+            <Button
+              className="mobile-menu-toggle"
+              variant="ghost"
+              size="icon"
+              aria-label={t("explore:mainNavigation")}
+            >
+              <Menu />
+            </Button>
+          </SheetTrigger>
+          <SheetContent
+            side="left"
+            className="mobile-sidebar"
+            aria-describedby={undefined}
+          >
+            <SheetHeader>
+              <SheetTitle>{t("explore:mainNavigation")}</SheetTitle>
+            </SheetHeader>
+            {sidebar(false)}
+          </SheetContent>
+        </Sheet>
         <Link href="/" className="app-brand" aria-label="YUMEI">
           <span className="brand-mark">
             <Sparkles size={20} />
@@ -132,63 +215,34 @@ export function AppShell({ children }: { children: ReactNode }) {
         >
           {sidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
         </Button>
-        <span className="app-header-caption">{t("explore:brandCaption")}</span>
         <div className="app-header-actions">
-          <div className="header-language">
-            <LanguagePicker />
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={t("common:toggleDisplayMode")}
-            onClick={toggleTheme}
-          >
-            {theme === "dark" ? <Sun /> : <Moon />}
-          </Button>
-          {user && <NotificationBell />}
           {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <>
+              <div className="header-notifications">
+                <NotificationBell />
+              </div>
+              <div
+                className="account-controls"
+                role="group"
+                aria-label={t("explore:account")}
+              >
+                {accountAvatar}
+                <span className="account-email" title={user.email}>
+                  {user.email}
+                </span>
                 <Button
                   variant="ghost"
-                  className="account-trigger"
-                  aria-label={t("explore:account")}
-                >
-                  <span className="account-avatar">
-                    {(user.name || user.email || "Y").slice(0, 1).toUpperCase()}
-                  </span>
-                  <span className="account-name">
-                    {user.name || user.email}
-                  </span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <div className="truncate px-2 py-2 text-xs text-muted-foreground">
-                  {user.email}
-                </div>
-                <DropdownMenuItem onSelect={() => navigate("/settings")}>
-                  <Settings />
-                  {t("common:settings")}
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => navigate("/characters")}>
-                  <Heart />
-                  {t("explore:navCharacters")}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onSelect={() => {
-                    void logout()
-                      .then(() => navigate("/"))
-                      .catch(() =>
-                        toast.error(t("auth:networkErrorPleaseTryAgain"))
-                      );
-                  }}
+                  size="icon"
+                  className="account-signout"
+                  aria-label={t("auth:signOut")}
+                  title={t("auth:signOut")}
+                  disabled={loading}
+                  onClick={signOut}
                 >
                   <LogOut />
-                  {t("auth:signOut")}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </Button>
+              </div>
+            </>
           ) : (
             <Button asChild className="header-signin" disabled={loading}>
               <Link href={loginUrl(location + window.location.search)}>
@@ -205,33 +259,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           className="app-sidebar"
           data-state={sidebarCollapsed ? "collapsed" : "expanded"}
         >
-          <div className="sidebar-panel">
-            <p className="sidebar-label">{t("explore:yourWorld")}</p>
-            <nav aria-label={t("explore:mainNavigation")}>{navigation()}</nav>
-            <div className="sidebar-bottom">
-              <div className="sidebar-note">
-                <Sparkles size={18} />
-                <p>{t("explore:sidebarNote")}</p>
-                <Link href="/setup">
-                  {t("explore:heroSecondary")}
-                  <ArrowRight size={14} />
-                </Link>
-              </div>
-              <Link
-                href="/settings"
-                className={`app-nav-link ${location === "/settings" ? "is-active" : ""}`}
-                aria-current={location === "/settings" ? "page" : undefined}
-                title={sidebarCollapsed ? t("common:settings") : undefined}
-              >
-                <Settings size={20} />
-                <span className="app-nav-label">{t("common:settings")}</span>
-              </Link>
-              <p className="sidebar-disclosure">{t("explore:disclosure")}</p>
-              <span className="sidebar-copyright">
-                © {new Date().getFullYear()} YUMEI
-              </span>
-            </div>
-          </div>
+          {sidebar(sidebarCollapsed)}
         </aside>
         <main
           id="main-content"
@@ -247,7 +275,16 @@ export function AppShell({ children }: { children: ReactNode }) {
           className="app-bottom-nav"
           aria-label={t("explore:mainNavigation")}
         >
-          {navigation(true)}
+          {navigation(
+            [
+              links.explore,
+              links.chats,
+              links.create,
+              links.generate,
+              links.characters,
+            ],
+            true
+          )}
         </nav>
       )}
       {user && <AgeGate />}

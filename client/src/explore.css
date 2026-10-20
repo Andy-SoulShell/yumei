@@ -41,52 +41,60 @@
   color: var(--primary);
   margin-left: -7px;
 }
-.app-header-caption {
-  color: var(--muted-foreground);
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  padding-left: 24px;
-  border-left: 1px solid var(--border);
-}
 .app-header-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 12px;
+  min-width: 0;
   margin-left: auto;
 }
-.header-language [role="combobox"] {
-  min-width: 104px;
-  width: auto;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
+.header-notifications {
+  flex: none;
 }
-.header-language > div {
-  gap: 0;
+.header-notifications > button {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--card);
 }
-.header-language > div > svg {
-  display: none;
-}
-.account-trigger {
-  gap: 9px;
-  padding: 3px 8px;
-  height: 40px;
+.account-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 5px 5px 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
 }
 .account-avatar {
-  display: grid;
-  place-items: center;
-  width: 31px;
-  height: 31px;
-  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+}
+.account-avatar-fallback {
   background: var(--primary);
   color: var(--primary-foreground);
   font-size: 13px;
   font-weight: 600;
 }
-.account-name {
-  max-width: 130px;
+.account-email {
+  min-width: 0;
+  max-width: 240px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+.account-signout {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border: 1px solid color-mix(in oklch, var(--primary) 35%, var(--border));
+  border-radius: 11px;
+  color: var(--muted-foreground);
+}
+.account-signout:hover {
+  color: var(--primary);
 }
 .header-signin {
   border-radius: 10px;
@@ -108,24 +116,29 @@
   background: color-mix(in oklch, var(--card) 60%, var(--background));
   overflow-y: auto;
 }
-.sidebar-label {
-  color: var(--muted-foreground);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  padding: 0 14px 16px;
-}
 .sidebar-panel {
   display: flex;
   flex: 1;
   flex-direction: column;
+  min-height: max-content;
 }
-.app-sidebar nav {
+.sidebar-panel nav {
   display: flex;
   flex-direction: column;
-  gap: 7px;
 }
-.app-nav-link {
+.sidebar-nav-group,
+.sidebar-preferences {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sidebar-nav-group + .sidebar-nav-group {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.app-nav-link,
+.sidebar-preference-trigger {
   display: flex;
   align-items: center;
   gap: 14px;
@@ -134,11 +147,14 @@
   color: var(--muted-foreground);
   font-size: 14px;
   font-weight: 500;
+  line-height: 20px;
   transition:
     background 0.18s,
     color 0.18s;
 }
-.app-nav-link:hover {
+.app-nav-link:hover,
+.sidebar-preference-trigger:hover,
+.sidebar-preference-trigger[data-state="open"] {
   color: var(--foreground);
   background: var(--accent);
 }
@@ -148,45 +164,53 @@
 }
 .app-nav-icon {
   display: inline-flex;
+  flex: none;
 }
 .sidebar-bottom {
   margin-top: auto;
-  padding-top: 48px;
+  padding-top: 16px;
 }
-.sidebar-note {
-  padding: 18px 14px;
-  margin: 0 2px 20px;
-  border: 1px solid var(--border);
-  border-radius: 13px;
-  background: linear-gradient(
-    140deg,
-    color-mix(in oklch, var(--primary) 8%, transparent),
-    transparent
-  );
+.sidebar-bottom::before {
+  content: "";
+  display: block;
+  height: 1px;
+  margin-bottom: 16px;
+  background: var(--border);
 }
-.sidebar-note > svg {
-  color: var(--primary);
+.sidebar-preferences {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
 }
-.sidebar-note p {
-  font-size: 13px;
-  line-height: 1.7;
-  margin: 9px 0 12px;
+.sidebar-preference-trigger {
+  height: 44px;
+  min-height: 44px;
+  justify-content: flex-start;
+  border: 0;
+  box-shadow: none;
 }
-.sidebar-note a {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--primary);
+.sidebar-preference-trigger > svg,
+.sidebar-panel .app-nav-link > svg {
+  flex: none;
+}
+.sidebar-preference-trigger > .sidebar-preference-value {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: inherit;
+}
+.sidebar-preferences-error {
+  padding: 4px 8px;
+  color: var(--destructive);
   font-size: 11px;
 }
-.sidebar-disclosure {
-  margin: 18px 14px 5px;
-  color: var(--muted-foreground);
-  font-size: 10px;
-  line-height: 1.7;
-}
 .sidebar-copyright {
-  margin-left: 14px;
+  display: block;
+  margin: 12px 14px 0;
   color: var(--muted-foreground);
   font-size: 10px;
   opacity: 0.7;
@@ -194,6 +218,18 @@
 .sidebar-toggle {
   flex: none;
   color: var(--muted-foreground);
+}
+.mobile-menu-toggle {
+  display: none;
+}
+.mobile-sidebar {
+  max-width: 300px;
+  gap: 0;
+  overflow-y: auto;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.mobile-sidebar .sidebar-panel {
+  padding: 8px 12px 18px;
 }
 @media (min-width: 901px) {
   .app-sidebar {
@@ -216,11 +252,16 @@
     background: var(--card);
     box-shadow: 0 6px 24px #0000000a;
   }
+  .is-sidebar-collapsed .app-sidebar .app-nav-link,
+  .is-sidebar-collapsed .sidebar-preference-trigger {
+    justify-content: center;
+    height: 44px;
+    min-height: 44px;
+    padding: 12px 0;
+    gap: 0;
+  }
   .is-sidebar-collapsed .app-sidebar .app-nav-link {
     position: relative;
-    justify-content: center;
-    padding: 13px 0;
-    gap: 0;
   }
   .is-sidebar-collapsed .app-sidebar .app-nav-label {
     position: absolute;
@@ -232,16 +273,24 @@
     clip-path: inset(50%);
     white-space: nowrap;
   }
-  .is-sidebar-collapsed .sidebar-label,
-  .is-sidebar-collapsed .sidebar-note,
-  .is-sidebar-collapsed .sidebar-disclosure,
+  .is-sidebar-collapsed .sidebar-preference-value,
+  .is-sidebar-collapsed .sidebar-preference-trigger > svg:last-child {
+    display: none;
+  }
+  .is-sidebar-collapsed .sidebar-nav-group + .sidebar-nav-group,
+  .is-sidebar-collapsed .sidebar-preferences {
+    margin-top: 6px;
+    padding-top: 12px;
+  }
   .is-sidebar-collapsed .sidebar-copyright {
     display: none;
   }
   .is-sidebar-collapsed .sidebar-bottom {
-    border-top: 1px solid var(--border);
     margin-top: 8px;
-    padding-top: 8px;
+    padding-top: 0;
+  }
+  .is-sidebar-collapsed .sidebar-bottom::before {
+    margin-bottom: 8px;
   }
 }
 .app-main {
@@ -1034,15 +1083,18 @@
   }
 }
 @media (max-width: 900px) {
+  .mobile-menu-toggle {
+    display: inline-flex;
+    flex: none;
+  }
   .sidebar-toggle {
     display: none;
   }
   .app-header {
     min-height: 60px;
     padding-inline: 20px;
-    gap: 16px;
+    gap: 8px;
   }
-  .app-header-caption,
   .app-sidebar {
     display: none;
   }
@@ -1102,52 +1154,32 @@
 }
 @media (max-width: 640px) {
   .app-header {
-    padding: max(8px, env(safe-area-inset-top)) 12px 8px 16px;
-    min-height: 58px;
+    padding: max(8px, env(safe-area-inset-top))
+      max(8px, env(safe-area-inset-right)) 8px
+      max(8px, env(safe-area-inset-left));
+    min-height: 60px;
+    gap: 4px;
   }
   .app-brand {
-    font-size: 21px;
+    font-size: 20px;
     gap: 6px;
   }
   .brand-mark {
-    width: 27px;
-    height: 27px;
-    border-radius: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
   }
   .brand-mark svg {
-    width: 17px;
-  }
-  .account-name {
-    display: none;
+    width: 18px;
   }
   .app-header-actions {
-    gap: 0;
-  }
-  .header-language > div {
-    position: relative;
-  }
-  .header-language > div > svg {
-    display: block;
-    position: absolute;
-    left: 14px;
-    pointer-events: none;
-  }
-  .header-language [role="combobox"] {
-    min-width: 44px;
-    width: 44px;
-    padding: 0;
-  }
-  .header-language [role="combobox"] > span,
-  .header-language [role="combobox"] > svg {
-    display: none;
-  }
-  .account-trigger {
-    padding: 2px;
+    gap: 2px;
   }
   .header-signin {
-    margin-left: 4px;
-    padding-inline: 10px;
-    font-size: 12px;
+    height: 44px;
+    margin-left: 0;
+    padding-inline: 14px;
+    font-size: 13px;
   }
   .header-signin svg {
     width: 14px;

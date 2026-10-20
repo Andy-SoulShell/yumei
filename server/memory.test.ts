@@ -193,6 +193,72 @@ describe("extraction provider responses", () => {
     ).resolves.toEqual([]);
     expect(post).not.toHaveBeenCalled();
   });
+  it("preserves negation when the extractor returns only a substring", async () => {
+    vi.spyOn(axios, "post").mockResolvedValue({
+      data: {
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                memories: [
+                  {
+                    category: "preference",
+                    sourceMessageId: 1,
+                    quote: "喜欢黑咖啡",
+                    importance: 7,
+                  },
+                ],
+              }),
+            },
+          },
+        ],
+      },
+    });
+    await expect(
+      callExtractionModel(provider, [
+        { id: 1, role: "user", content: "我不喜欢黑咖啡，也不想改喝它。" },
+      ])
+    ).resolves.toEqual([
+      {
+        category: "preference",
+        content: "我不喜欢黑咖啡，也不想改喝它。",
+        importance: 7,
+      },
+    ]);
+  });
+  it.each([
+    "你刚才说你喜欢黑咖啡。",
+    "假如我喜欢黑咖啡，我可能会尝一口。",
+    "不要记住我喜欢黑咖啡这件事。",
+    "你还记得我喜欢黑咖啡吗？",
+  ])(
+    "does not turn non-assertive context into a preference: %s",
+    async content => {
+      vi.spyOn(axios, "post").mockResolvedValue({
+        data: {
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  memories: [
+                    {
+                      category: "preference",
+                      sourceMessageId: 1,
+                      quote: "喜欢黑咖啡",
+                      importance: 7,
+                    },
+                  ],
+                }),
+              },
+            },
+          ],
+        },
+      });
+      await expect(
+        callExtractionModel(provider, [{ id: 1, role: "user", content }])
+      ).resolves.toEqual([]);
+    }
+  );
 });
 
 // ---------------------------------------------------------------------------

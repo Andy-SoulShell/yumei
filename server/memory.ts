@@ -105,7 +105,34 @@ export function parseExtractionResponse(raw: string): ExtractedMemory[] {
   return parseExtractionPayload(raw) ?? [];
 }
 
-/** 校验用户来源与逐字证据，直接保存用户原话，阻止模型概括时偷换事实。 */
+/** 将片段扩为完整原句，保留否定、条件和说话对象，拒绝疑问与明确不保存的要求。 */
+function completeUserStatement(source: string, quote: string): string | null {
+  const start = source.indexOf(quote);
+  if (start < 0 || start !== source.lastIndexOf(quote)) return null;
+  for (const match of Array.from(
+    source.matchAll(/[^。！？!?；;\r\n]+[。！？!?；;]?/g)
+  )) {
+    const from = match.index!;
+    if (from > start || from + match[0].length < start + quote.length) continue;
+    const statement = match[0].trim();
+    if (
+      statement.length > MEMORY_MAX_LENGTH ||
+      /[?？]$/.test(statement) ||
+      /^(?:如果|假如|假设|假設|要是|比如|例如|(?:刚才|刚刚|之前|上次)?你(?:刚才|之前|曾经|剛才)?说|你(?:剛才|之前)?說|她说|他说|听说|据说)/.test(
+        statement
+      ) ||
+      /^(?:if\b|suppose\b|you said\b|she said\b|he said\b)/i.test(statement) ||
+      /(?:不要|別|别|不想).{0,8}(?:记住|記住|记录|紀錄)|\b(?:do not|don't)\s+(?:remember|store)\b/i.test(
+        statement
+      )
+    )
+      return null;
+    return statement;
+  }
+  return null;
+}
+
+/** 校验用户来源与完整陈述，防止截取原话时去掉否定或转述语境。 */
 function parseGroundedExtraction(
   raw: string,
   sources: MemorySourceMessage[]
@@ -123,15 +150,13 @@ function parseGroundedExtraction(
         message =>
           message.role === "user" && message.id === candidate.sourceMessageId
       );
-      if (
-        !source?.content.includes(candidate.quote) ||
-        /[?？]$/.test(candidate.quote)
-      )
-        return [];
+      if (!source) return [];
+      const statement = completeUserStatement(source.content, candidate.quote);
+      if (!statement) return [];
       return [
         {
           category: candidate.category,
-          content: candidate.quote,
+          content: statement,
           importance: candidate.importance,
         },
       ];

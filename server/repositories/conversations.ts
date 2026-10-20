@@ -239,7 +239,8 @@ export async function getConversationsWithLastMessage(
       messages,
       eq(
         messages.id,
-        sql<number>`(SELECT MAX(recent.id) FROM messages recent WHERE recent.conversationId = ${conversations.id})`
+        // 流式回复的空占位消息不能把已有聊天的预览覆盖成“暂无消息”。
+        sql<number>`(SELECT MAX(recent.id) FROM messages recent WHERE recent.conversationId = ${conversations.id} AND (TRIM(recent.content) <> '' OR recent.imageUrl IS NOT NULL))`
       )
     )
     .where(

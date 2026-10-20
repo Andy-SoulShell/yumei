@@ -20,6 +20,37 @@ const profile = {
   referenceImageKey: "test-ref",
   referenceImageUrl: "https://example.test/ref",
 };
+it("keeps a useful preview while the newest assistant reply is empty", async () => {
+  const userId = `preview-${crypto.randomUUID()}`;
+  const gf = await createTestGirlfriend({ ...profile, userId });
+  const conversation = await createConversation({
+    userId,
+    girlfriendId: gf.id,
+  });
+  await createMessage({
+    conversationId: conversation.id,
+    role: "user",
+    content: "今天想分享一件小事",
+  });
+  for (const status of ["pending", "stopped", "failed"] as const) {
+    await createMessage({
+      conversationId: conversation.id,
+      role: "assistant",
+      content: "",
+      generationStatus: status,
+    });
+    const [preview] = await getConversationsWithLastMessage(userId);
+    expect(preview.lastMessage).toBe("今天想分享一件小事");
+  }
+  await createMessage({
+    conversationId: conversation.id,
+    role: "assistant",
+    content: "已经收到的部分回复",
+    generationStatus: "stopped",
+  });
+  const [preview] = await getConversationsWithLastMessage(userId);
+  expect(preview.lastMessage).toBe("已经收到的部分回复");
+});
 it("paginates tied activity timestamps without duplicates using one summary query per page", async () => {
   const userId = `pagination-${crypto.randomUUID()}`;
   const gf = await createTestGirlfriend({ ...profile, userId });

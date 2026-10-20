@@ -1,6 +1,7 @@
 /** 覆盖亲密度等级、经验、夜间时段与衰减计算。 */
 
 import { describe, it, expect } from "vitest";
+import { SELFIE_POSES } from "../shared/selfiePoses";
 import {
   getLevelByPoints,
   getLevelInfo,
@@ -40,6 +41,16 @@ describe("Intimacy System - Constants", () => {
 
   it("should have daily points limit of 200", () => {
     expect(DAILY_POINTS_LIMIT).toBe(200);
+  });
+
+  it("advertises the selfie poses actually available at each unlock level", () => {
+    for (const level of INTIMACY_LEVELS.filter(level => level.level > 1)) {
+      const poses = SELFIE_POSES.filter(pose => pose.minLevel === level.level);
+      expect(level.unlocks).toHaveLength(poses.length);
+      poses.forEach((pose, index) => {
+        expect(level.unlocks[index]).toContain(pose.label);
+      });
+    }
   });
 
   it("should define all expected point rules", () => {

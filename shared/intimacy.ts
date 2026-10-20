@@ -35,7 +35,7 @@ export const INTIMACY_LEVELS: IntimacyLevel[] = [
     emoji: "😊",
     color: "text-blue-400",
     description: "开始熟悉，主动分享日常",
-    unlocks: ["解锁「撒娇」自拍姿势"],
+    unlocks: ["「撒娇」自拍"],
   },
   {
     level: 3,
@@ -45,7 +45,7 @@ export const INTIMACY_LEVELS: IntimacyLevel[] = [
     emoji: "😄",
     color: "text-green-400",
     description: "成为朋友，会开玩笑和调侃",
-    unlocks: ["解锁「亲密」自拍姿势"],
+    unlocks: ["「亲密」自拍"],
   },
   {
     level: 4,
@@ -55,7 +55,7 @@ export const INTIMACY_LEVELS: IntimacyLevel[] = [
     emoji: "💛",
     color: "text-yellow-400",
     description: "亲密好友，记住更多细节",
-    unlocks: ["解锁聊天背景自定义"],
+    unlocks: ["「优雅」自拍"],
   },
   {
     level: 5,
@@ -65,7 +65,7 @@ export const INTIMACY_LEVELS: IntimacyLevel[] = [
     emoji: "💕",
     color: "text-pink-400",
     description: "暧昧期，偶尔暗示喜欢你",
-    unlocks: ["解锁「诱惑」自拍姿势"],
+    unlocks: ["「诱惑」自拍"],
   },
   {
     level: 6,
@@ -75,7 +75,7 @@ export const INTIMACY_LEVELS: IntimacyLevel[] = [
     emoji: "❤️",
     color: "text-red-400",
     description: "正式恋人，直接表达爱意",
-    unlocks: ["解锁专属语音包"],
+    unlocks: ["「恋人视角」照片"],
   },
   {
     level: 7,
@@ -85,7 +85,7 @@ export const INTIMACY_LEVELS: IntimacyLevel[] = [
     emoji: "🔥",
     color: "text-orange-400",
     description: "热恋期，主动说想你",
-    unlocks: ["解锁「情侣装」自拍"],
+    unlocks: ["「睡眼惺忪」自拍"],
   },
   {
     level: 8,
@@ -95,7 +95,7 @@ export const INTIMACY_LEVELS: IntimacyLevel[] = [
     emoji: "💖",
     color: "text-rose-400",
     description: "深深相爱，会吃醋会撒娇",
-    unlocks: ["解锁纪念日提醒", "自定义昵称"],
+    unlocks: ["「约会夜」照片"],
   },
   {
     level: 9,
@@ -105,7 +105,7 @@ export const INTIMACY_LEVELS: IntimacyLevel[] = [
     emoji: "💎",
     color: "text-purple-400",
     description: "挚爱之人，无话不谈",
-    unlocks: ["解锁「私密」自拍姿势"],
+    unlocks: [],
   },
   {
     level: 10,
@@ -115,7 +115,7 @@ export const INTIMACY_LEVELS: IntimacyLevel[] = [
     emoji: "👑",
     color: "text-amber-400",
     description: "灵魂伴侣，完全理解你",
-    unlocks: ["解锁专属结局动画", "最高亲密度成就"],
+    unlocks: [],
   },
 ];
 

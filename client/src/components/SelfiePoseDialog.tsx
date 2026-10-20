@@ -81,7 +81,6 @@ export function SelfiePoseDialog({
               </RadioGroupChoice>
             </RadioGroup>
             <p className="text-xs text-muted-foreground">
-              {t("selfie:generatesA916PortraitImageByDefault")}
               {selectedMode === "reference"
                 ? t("selfie:usesTheCharacterReferenceToHelpKeepThe")
                 : t("selfie:generatesFromTheCharacterDescriptionAndSceneText")}

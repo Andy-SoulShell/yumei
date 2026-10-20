@@ -55,19 +55,19 @@ export const intimacyMessages: Record<
     name: "intimacy:levels.8.name",
     description: "intimacy:levels.8.description",
     petName: "intimacy:levels.8.petName",
-    unlocks: ["intimacy:levels.8.unlocks.0", "intimacy:levels.8.unlocks.1"],
+    unlocks: ["intimacy:levels.8.unlocks.0"],
   },
   "9": {
     name: "intimacy:levels.9.name",
     description: "intimacy:levels.9.description",
     petName: "intimacy:levels.9.petName",
-    unlocks: ["intimacy:levels.9.unlocks.0"],
+    unlocks: [],
   },
   "10": {
     name: "intimacy:levels.10.name",
     description: "intimacy:levels.10.description",
     petName: "intimacy:levels.10.petName",
-    unlocks: ["intimacy:levels.10.unlocks.0", "intimacy:levels.10.unlocks.1"],
+    unlocks: [],
   },
 };
 export const poseMessages: Record<string, StaticMessageKey> = {

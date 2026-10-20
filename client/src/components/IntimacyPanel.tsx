@@ -136,14 +136,54 @@ export function IntimacyPanel({
                 {t("intimacy:unlockedFeatures")}
               </h4>
               <div className="space-y-2">
-                {INTIMACY_LEVELS.filter(l => l.level <= intimacyLevel).map(
-                  l => (
+                {INTIMACY_LEVELS.filter(
+                  l => l.level <= intimacyLevel && l.unlocks.length > 0
+                ).map(l => (
+                  <div key={l.level} className="flex items-start gap-2">
+                    <span className="text-sm flex-shrink-0">{l.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium">
+                        {t("common:lv")}
+                        {l.level} {t(intimacyMessages[l.level].name)}
+                      </p>
+                      {l.unlocks.map((u, i) => (
+                        <p key={i} className="text-xs text-muted-foreground">
+                          {t(intimacyMessages[l.level].unlocks[i])}
+                        </p>
+                      ))}
+                    </div>
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] flex-shrink-0"
+                    >
+                      {t("intimacy:unlocked")}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 未解锁内容 */}
+            {INTIMACY_LEVELS.some(
+              l => l.level > intimacyLevel && l.unlocks.length > 0
+            ) && (
+              <div>
+                <h4 className="font-semibold text-sm mb-3 text-muted-foreground">
+                  {t("intimacy:locked")}
+                </h4>
+                <div className="space-y-2 opacity-60">
+                  {INTIMACY_LEVELS.filter(
+                    l => l.level > intimacyLevel && l.unlocks.length > 0
+                  ).map(l => (
                     <div key={l.level} className="flex items-start gap-2">
-                      <span className="text-sm flex-shrink-0">{l.emoji}</span>
+                      <span className="text-sm flex-shrink-0">🔒</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium">
-                          {t("common:lv")}
-                          {l.level} {t(intimacyMessages[l.level].name)}
+                          {t("intimacy:lockedLevel", {
+                            level: l.level,
+                            name: t(intimacyMessages[l.level].name),
+                            points: l.requiredPoints,
+                          })}
                         </p>
                         {l.unlocks.map((u, i) => (
                           <p key={i} className="text-xs text-muted-foreground">
@@ -151,49 +191,8 @@ export function IntimacyPanel({
                           </p>
                         ))}
                       </div>
-                      <Badge
-                        variant="secondary"
-                        className="text-[10px] flex-shrink-0"
-                      >
-                        {t("intimacy:unlocked")}
-                      </Badge>
                     </div>
-                  )
-                )}
-              </div>
-            </div>
-
-            {/* 未解锁内容 */}
-            {intimacyLevel < 10 && (
-              <div>
-                <h4 className="font-semibold text-sm mb-3 text-muted-foreground">
-                  {t("intimacy:locked")}
-                </h4>
-                <div className="space-y-2 opacity-60">
-                  {INTIMACY_LEVELS.filter(l => l.level > intimacyLevel).map(
-                    l => (
-                      <div key={l.level} className="flex items-start gap-2">
-                        <span className="text-sm flex-shrink-0">🔒</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium">
-                            {t("intimacy:lockedLevel", {
-                              level: l.level,
-                              name: t(intimacyMessages[l.level].name),
-                              points: l.requiredPoints,
-                            })}
-                          </p>
-                          {l.unlocks.map((u, i) => (
-                            <p
-                              key={i}
-                              className="text-xs text-muted-foreground"
-                            >
-                              {t(intimacyMessages[l.level].unlocks[i])}
-                            </p>
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  )}
+                  ))}
                 </div>
               </div>
             )}

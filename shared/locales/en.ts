@@ -289,8 +289,7 @@ export default {
     deletedCompanionsAreKeptFor7DaysBefore:
       "Restore within 7 days. After that, deletion is permanent.",
     trashIsEmpty: "Trash is empty",
-    deletedCompanionsStayHereFor7Days:
-      "Deleted companions stay here for 7 days",
+
     permanentlyDeletedInDays: "Permanently deleted in {{count}} days",
     deletionPending: "Deletion pending",
     restore: "Restore",
@@ -817,7 +816,7 @@ export default {
     "levels.4.name": "Close friends",
     "levels.4.description": "Close friends who remember the little details",
     "levels.4.petName": "Sweetheart",
-    "levels.4.unlocks.0": "Custom chat backgrounds",
+    "levels.4.unlocks.0": "Elegant selfie pose",
     "levels.5.name": "Flirting",
     "levels.5.description": "Flirting, with little hints of affection",
     "levels.5.petName": "Baby",
@@ -825,25 +824,23 @@ export default {
     "levels.6.name": "Partners",
     "levels.6.description": "Partners who openly express affection",
     "levels.6.petName": "Darling",
-    "levels.6.unlocks.0": "Exclusive voice pack",
+    "levels.6.unlocks.0": "Date POV pose",
     "levels.7.name": "In love",
     "levels.7.description": "In love and eager to say you are missed",
     "levels.7.petName": "My darling",
-    "levels.7.unlocks.0": "Matching-outfit selfies",
+    "levels.7.unlocks.0": "Sleepy morning pose",
     "levels.8.name": "Deep love",
     "levels.8.description": "Deeply in love, with playful affection",
     "levels.8.petName": "♡",
-    "levels.8.unlocks.0": "Anniversary reminders",
-    "levels.8.unlocks.1": "Custom nickname",
+    "levels.8.unlocks.0": "Date night pose",
+
     "levels.9.name": "Devotion",
     "levels.9.description": "Someone you can share everything with",
     "levels.9.petName": "♡",
-    "levels.9.unlocks.0": "Private selfie pose",
+
     "levels.10.name": "Soulmates",
     "levels.10.description": "Soulmates with a deep understanding",
     "levels.10.petName": "♡",
-    "levels.10.unlocks.0": "Exclusive ending animation",
-    "levels.10.unlocks.1": "Maximum intimacy achievement",
   },
   selfie: {
     askForAPhoto: "Take a photo",
@@ -852,7 +849,7 @@ export default {
     generationMode: "Generation mode",
     fromReference: "From reference",
     fromText: "From text",
-    generatesA916PortraitImageByDefault: "9:16 portrait",
+
     usesTheCharacterReferenceToHelpKeepThe:
       "Uses the reference to help preserve appearance.",
     generatesFromTheCharacterDescriptionAndSceneText:

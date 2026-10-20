@@ -51,9 +51,6 @@ export function CharacterTrash({
               <p className="text-sm text-muted-foreground">
                 {t("home:trashIsEmpty")}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {t("home:deletedCompanionsStayHereFor7Days")}
-              </p>
             </div>
           ) : (
             <div className="divide-y">

@@ -281,8 +281,7 @@ export default {
     deletedCompanionsAreKeptFor7DaysBefore:
       "7일 안에 복원할 수 있고, 이후 영구 삭제돼요.",
     trashIsEmpty: "휴지통이 비어 있어요",
-    deletedCompanionsStayHereFor7Days:
-      "삭제한 동반자는 여기에 7일 동안 보관돼요",
+
     permanentlyDeletedInDays: "{{count}}일 후 영구 삭제",
     deletionPending: "곧 영구 삭제돼요",
     restore: "복원",
@@ -803,7 +802,7 @@ export default {
     "levels.4.name": "친한 친구",
     "levels.4.description": "작은 일도 기억하는 친한 친구",
     "levels.4.petName": "소중한 사람",
-    "levels.4.unlocks.0": "대화 배경 맞춤 설정",
+    "levels.4.unlocks.0": "우아한 셀카 포즈",
     "levels.5.name": "설레는 사이",
     "levels.5.description": "가끔 마음을 표현하는 설레는 사이",
     "levels.5.petName": "베이비",
@@ -811,25 +810,23 @@ export default {
     "levels.6.name": "연인",
     "levels.6.description": "솔직하게 애정을 표현하는 연인",
     "levels.6.petName": "여보",
-    "levels.6.unlocks.0": "전용 음성 팩",
+    "levels.6.unlocks.0": "연인 시점 포즈",
     "levels.7.name": "뜨거운 사랑",
     "levels.7.description": "보고 싶은 마음을 먼저 전하는 뜨거운 사랑",
     "levels.7.petName": "사랑하는 여보",
-    "levels.7.unlocks.0": "커플룩 셀카",
+    "levels.7.unlocks.0": "아침 셀카 포즈",
     "levels.8.name": "깊은 사랑",
     "levels.8.description": "깊이 사랑하며 가끔 질투하고 애교를 부려요",
     "levels.8.petName": "♡",
-    "levels.8.unlocks.0": "기념일 알림",
-    "levels.8.unlocks.1": "맞춤 애칭",
+    "levels.8.unlocks.0": "데이트 밤 포즈",
+
     "levels.9.name": "헌신적인 사랑",
     "levels.9.description": "모든 이야기를 나눌 수 있는 소중한 사람",
     "levels.9.petName": "♡",
-    "levels.9.unlocks.0": "프라이빗 셀카 포즈",
+
     "levels.10.name": "소울메이트",
     "levels.10.description": "서로를 깊이 이해하는 소울메이트",
     "levels.10.petName": "♡",
-    "levels.10.unlocks.0": "전용 엔딩 애니메이션",
-    "levels.10.unlocks.1": "최고 친밀도 달성",
   },
   selfie: {
     askForAPhoto: "사진 찍기",
@@ -838,7 +835,7 @@ export default {
     generationMode: "생성 방식",
     fromReference: "참고 이미지로 생성",
     fromText: "텍스트로 생성",
-    generatesA916PortraitImageByDefault: "9:16 세로 사진",
+
     usesTheCharacterReferenceToHelpKeepThe:
       "참고 사진으로 외모의 일관성을 유지해요.",
     generatesFromTheCharacterDescriptionAndSceneText:

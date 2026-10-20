@@ -169,7 +169,12 @@ describe("extraction provider responses", () => {
         { id: 2, role: "assistant", content: "我最常喝手冲咖啡" },
       ])
     ).resolves.toEqual([
-      { category: "preference", content: sources[0].content, importance: 7 },
+      {
+        category: "preference",
+        content: sources[0].content,
+        importance: 7,
+        sourceMessageId: 1,
+      },
     ]);
     expect(post).toHaveBeenCalledWith(
       expect.any(String),
@@ -223,6 +228,7 @@ describe("extraction provider responses", () => {
         category: "preference",
         content: "我不喜欢黑咖啡，也不想改喝它。",
         importance: 7,
+        sourceMessageId: 1,
       },
     ]);
   });
@@ -487,6 +493,57 @@ describe("proactive notifications reference memories", () => {
 });
 
 describe("memory reinforcement regressions", () => {
+  it("updates a negated preference and rejects a late result from older evidence", async () => {
+    const userId = `correction-${nanoid(8)}`;
+    const gf = await makeGirlfriend(userId);
+    const before = {
+      category: "preference" as const,
+      content: "我喜欢加糖的燕麦拿铁",
+      importance: 7,
+      sourceMessageId: 10,
+    };
+    await storeExtractedMemories(userId, gf.id, [before]);
+    const [initial] = await listMemories(userId, gf.id);
+    await setMemoryPinned(userId, initial.id, true);
+    await expect(
+      storeExtractedMemories(userId, gf.id, [
+        {
+          ...before,
+          content: "我不喜欢加糖的燕麦拿铁",
+          importance: 8,
+          sourceMessageId: 20,
+        },
+      ])
+    ).resolves.toEqual({ inserted: 0, reinforced: 0, updated: 1 });
+    await storeExtractedMemories(userId, gf.id, [before]);
+    const rows = await listMemories(userId, gf.id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      content: "我不喜欢加糖的燕麦拿铁",
+      sourceMessageId: 20,
+      pinned: true,
+      weight: 80,
+    });
+  });
+  it("keeps independently stated similar preferences instead of merging them", async () => {
+    const userId = `distinct-${nanoid(8)}`;
+    const gf = await makeGirlfriend(userId);
+    await storeExtractedMemories(userId, gf.id, [
+      {
+        category: "preference",
+        content: "我喜欢喝燕麦拿铁",
+        importance: 6,
+        sourceMessageId: 10,
+      },
+      {
+        category: "preference",
+        content: "我喜欢喝黑糖拿铁",
+        importance: 6,
+        sourceMessageId: 11,
+      },
+    ]);
+    expect(await listMemories(userId, gf.id)).toHaveLength(2);
+  });
   it("reinforces the real inserted row repeatedly within the same batch", async () => {
     const userId = `batch-${nanoid(8)}`;
     const gf = await makeGirlfriend(userId);
@@ -501,7 +558,7 @@ describe("memory reinforcement regressions", () => {
         candidate,
         candidate,
       ])
-    ).toEqual({ inserted: 1, reinforced: 2 });
+    ).toEqual({ inserted: 1, reinforced: 2, updated: 0 });
     const rows = await listMemories(userId, gf.id);
     expect(rows).toHaveLength(1);
     expect(rows[0].weight).toBe(60);

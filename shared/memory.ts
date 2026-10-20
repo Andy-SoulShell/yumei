@@ -67,7 +67,7 @@ export function memoryInjectionK(
 // ---------------------------------------------------------------------------
 
 /** 统一大小写并去掉常见空白和标点，供文本匹配使用。 */
-function normalizeForMatch(text: string): string {
+export function normalizeMemoryText(text: string): string {
   // 去除空白与常见中英文标点，供去重和关键词比较使用。
   return text
     .toLowerCase()
@@ -89,8 +89,8 @@ function bigrams(text: string): Set<string> {
  * @remarks 结果具有方向性；任一规范化文本不足两个字符时返回 0。
  */
 export function bigramOverlap(a: string, b: string): number {
-  const na = normalizeForMatch(a);
-  const nb = normalizeForMatch(b);
+  const na = normalizeMemoryText(a);
+  const nb = normalizeMemoryText(b);
   if (na.length < 2 || nb.length < 2) return 0;
   const ba = bigrams(na);
   const bb = bigrams(nb);

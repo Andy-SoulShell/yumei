@@ -11,6 +11,7 @@ import {
   bigramOverlap,
   memoryCapacity,
   memoryInjectionK,
+  normalizeMemoryText,
   scoreMemory,
 } from "../shared/memory";
 import type { ChatProvider } from "./_core/chatProvider";
@@ -42,7 +43,7 @@ const extractionResultSchema = z.object({
 /** 经结构校验后的单条模型提取结果，包含类别、正文和重要性。 */
 export type ExtractedMemory = z.infer<
   typeof extractionResultSchema
->["memories"][number];
+>["memories"][number] & { sourceMessageId?: number };
 
 /** 提取器只能引用当前窗口内真实用户消息的编号与原文。 */
 export type MemorySourceMessage = {
@@ -158,6 +159,7 @@ function parseGroundedExtraction(
           category: candidate.category,
           content: statement,
           importance: candidate.importance,
+          sourceMessageId: source.id,
         },
       ];
     });
@@ -214,13 +216,53 @@ export async function storeExtractedMemories(
   userId: string,
   girlfriendId: number,
   candidates: ExtractedMemory[]
-): Promise<{ inserted: number; reinforced: number }> {
-  if (!candidates.length) return { inserted: 0, reinforced: 0 };
+): Promise<{ inserted: number; reinforced: number; updated: number }> {
+  if (!candidates.length) return { inserted: 0, reinforced: 0, updated: 0 };
   return withUserTransaction(userId, tx =>
     storeExtractedMemoriesInTransaction(tx, userId, girlfriendId, candidates)
   );
 }
-/** 在现有事务内写入记忆，允许与任务确认原子提交。 */
+/** 仅把同一陈述或明确的更正归为一组，避免相似句式吞掉独立偏好。 */
+function memoryMatch(
+  candidate: ExtractedMemory,
+  previous: Memory
+): "same" | "correction" | null {
+  const normalize = (value: string) =>
+    normalizeMemoryText(value).replace(/一名|一位|一个/g, "");
+  if (normalize(candidate.content) === normalize(previous.content))
+    return "same";
+  if (candidate.category !== previous.category) return null;
+  const similarity = Math.max(
+    bigramOverlap(candidate.content, previous.content),
+    bigramOverlap(previous.content, candidate.content)
+  );
+  if (similarity < DUPLICATE_THRESHOLD) return null;
+  const negation = /不|没|無|无|\b(?:not|don't|no longer)\b/gi;
+  const nextNegations = candidate.content.match(negation)?.length ?? 0;
+  const priorNegations = previous.content.match(negation)?.length ?? 0;
+  const withoutNegation = (value: string) =>
+    normalizeMemoryText(value.replace(negation, ""));
+  if (
+    /更正|纠正|說錯|说错|记错|改成|改为|改喝|不再|以前.{0,30}(?:现在|如今)|\b(?:correction|instead|no longer)\b/i.test(
+      candidate.content
+    ) ||
+    (nextNegations !== priorNegations &&
+      Math.max(
+        bigramOverlap(
+          withoutNegation(candidate.content),
+          withoutNegation(previous.content)
+        ),
+        bigramOverlap(
+          withoutNegation(previous.content),
+          withoutNegation(candidate.content)
+        )
+      ) >= 0.85)
+  )
+    return "correction";
+  return null;
+}
+
+/** 在现有事务内写入记忆，按消息编号避免旧提取任务覆盖用户后来的更正。 */
 export async function storeExtractedMemoriesInTransaction(
   tx: DbTransaction,
   userId: string,
@@ -233,7 +275,7 @@ export async function storeExtractedMemoriesInTransaction(
     .where(
       and(eq(girlfriends.id, girlfriendId), eq(girlfriends.userId, userId))
     );
-  if (!role) return { inserted: 0, reinforced: 0 };
+  if (!role) return { inserted: 0, reinforced: 0, updated: 0 };
   const existing = await tx
     .select()
     .from(memories)
@@ -243,21 +285,50 @@ export async function storeExtractedMemoriesInTransaction(
     .for("update");
   let inserted = 0;
   let reinforced = 0;
+  let updated = 0;
+  existing.sort((a, b) => (b.sourceMessageId ?? 0) - (a.sourceMessageId ?? 0));
   for (const candidate of candidates) {
-    const duplicate = existing.find(
-      m =>
-        m.content === candidate.content ||
-        bigramOverlap(candidate.content, m.content) >= DUPLICATE_THRESHOLD ||
-        bigramOverlap(m.content, candidate.content) >= DUPLICATE_THRESHOLD
-    );
+    const duplicate = existing.find(m => memoryMatch(candidate, m) !== null);
     if (duplicate) {
+      if (
+        candidate.sourceMessageId !== undefined &&
+        duplicate.sourceMessageId !== null &&
+        candidate.sourceMessageId < duplicate.sourceMessageId
+      )
+        continue;
+      if (memoryMatch(candidate, duplicate) === "correction") {
+        duplicate.content = candidate.content;
+        duplicate.category = candidate.category;
+        duplicate.weight = Math.min(
+          90,
+          Math.max(10, candidate.importance * 10)
+        );
+        duplicate.sourceMessageId =
+          candidate.sourceMessageId ?? duplicate.sourceMessageId;
+        duplicate.lastRecalledAt = new Date();
+        await tx
+          .update(memories)
+          .set({
+            content: duplicate.content,
+            category: duplicate.category,
+            weight: duplicate.weight,
+            sourceMessageId: duplicate.sourceMessageId,
+            lastRecalledAt: duplicate.lastRecalledAt,
+          })
+          .where(eq(memories.id, duplicate.id));
+        updated++;
+        continue;
+      }
       duplicate.weight = Math.min(100, duplicate.weight + 5);
       duplicate.lastRecalledAt = new Date();
+      duplicate.sourceMessageId =
+        candidate.sourceMessageId ?? duplicate.sourceMessageId;
       await tx
         .update(memories)
         .set({
           weight: duplicate.weight,
           lastRecalledAt: duplicate.lastRecalledAt,
+          sourceMessageId: duplicate.sourceMessageId,
         })
         .where(eq(memories.id, duplicate.id));
       reinforced++;
@@ -268,6 +339,7 @@ export async function storeExtractedMemoriesInTransaction(
         category: candidate.category,
         content: candidate.content,
         weight: Math.min(90, Math.max(10, candidate.importance * 10)),
+        sourceMessageId: candidate.sourceMessageId,
       });
       const [row] = await tx
         .select()
@@ -277,7 +349,7 @@ export async function storeExtractedMemoriesInTransaction(
       inserted++;
     }
   }
-  return { inserted, reinforced };
+  return { inserted, reinforced, updated };
 }
 
 /**

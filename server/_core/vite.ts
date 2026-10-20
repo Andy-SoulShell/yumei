@@ -11,9 +11,9 @@ import viteConfig from "../../vite.config";
 /** 在现有 HTTP 服务中挂载 Vite，按请求转换前端入口 HTML。 */
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
+    ...viteConfig.server,
     middlewareMode: true,
     hmr: { server },
-    allowedHosts: true as const,
   };
 
   const vite = await createViteServer({

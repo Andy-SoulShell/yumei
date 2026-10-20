@@ -4,6 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
 import { defineConfig } from "vite";
+import { getLocalAccessHosts } from "./server/_core/authOrigins";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -22,10 +23,8 @@ export default defineConfig({
   },
   server: {
     host: true,
-    // 通过进程变量允许额外开发主机；生产静态服务不读取此列表。
-    allowedHosts: process.env.VITE_EXTRA_ALLOWED_HOST
-      ? [process.env.VITE_EXTRA_ALLOWED_HOST, "localhost", "127.0.0.1"]
-      : ["localhost", "127.0.0.1"],
+    // 和认证共用本机地址白名单，额外域名可通过环境变量补充。
+    allowedHosts: getLocalAccessHosts(),
     fs: {
       strict: true,
       deny: ["**/.*"],

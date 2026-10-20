@@ -12,7 +12,7 @@ import {
   sendPasswordResetEmail,
   sendVerificationEmail,
 } from "./email";
-import { getTrustedAuthOrigins } from "./authOrigins";
+import { getAuthOriginOptions } from "./authOrigins";
 import { normalizeLocale } from "../../shared/locales";
 import {
   AUTH_LINK_EXPIRES_SECONDS,
@@ -33,9 +33,11 @@ function getAuthDb() {
 
 const authDb = getAuthDb();
 
-// 认证链接和可信来源以公开地址为基准；开发默认使用 localhost:PORT。
-const PORT = process.env.PORT || "3000";
-const BASE_URL = ENV.publicUrl;
+// 开发与显式本地日志模式允许本机别名；公网发信模式使用固定站点。
+const originOptions = getAuthOriginOptions(
+  ENV.publicUrl,
+  !ENV.isProduction || process.env.EMAIL_PROVIDER === "stdout"
+);
 
 /** 共享认证实例，负责邮箱链接和会话持久化；会话有效性以数据库为准。 */
 export const auth = authDb
@@ -52,7 +54,7 @@ export const auth = authDb
         },
       }),
       // 四张认证表统一使用字符串 ID。
-      baseURL: BASE_URL,
+      ...originOptions,
       // 复用启动时已校验长度的 JWT_SECRET 签名会话令牌。
       secret: ENV.cookieSecret,
       emailAndPassword: {
@@ -105,14 +107,6 @@ export const auth = authDb
           maxAge: 60 * 5, // 缓存停用后由数据库判断会话是否仍有效
         },
       },
-      // 本机 stdout 模式允许公开端口对应的回环别名；托管环境限制为公开来源。
-      // Cookie 命名由 Better-Auth 决定，HTTPS 下可能带 __Secure- 前缀。
-      trustedOrigins: ENV.isProduction
-        ? getTrustedAuthOrigins(
-            BASE_URL,
-            process.env.EMAIL_PROVIDER === "stdout"
-          )
-        : [BASE_URL, `http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`],
       plugins: [
         magicLink({
           // 邮箱登录链接十五分钟后过期。

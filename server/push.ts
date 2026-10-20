@@ -4,7 +4,7 @@ import { resolveLocale } from "../shared/preferences";
 import { getInterfacePreferences } from "./preferences";
 /** Web Push 订阅管理、通知投递及每小时主动消息调度。 */
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { pushSubscriptions } from "../drizzle/schema";
 import { log } from "./_core/log";
 import { getDb } from "./database";
@@ -61,16 +61,14 @@ export async function removePushSubscription(
 ): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  const rows = await db
-    .select()
-    .from(pushSubscriptions)
-    .where(eq(pushSubscriptions.endpoint, endpoint))
-    .limit(1);
-  if (rows[0] && rows[0].userId === userId) {
-    await db
-      .delete(pushSubscriptions)
-      .where(eq(pushSubscriptions.id, rows[0].id));
-  }
+  await db
+    .delete(pushSubscriptions)
+    .where(
+      and(
+        eq(pushSubscriptions.endpoint, endpoint),
+        eq(pushSubscriptions.userId, userId)
+      )
+    );
 }
 
 /** 判断用户是否至少保存了一个推送端点。 */
@@ -134,7 +132,14 @@ export async function sendPushToUser(
       if (status === 404 || status === 410) {
         await db
           .delete(pushSubscriptions)
-          .where(eq(pushSubscriptions.id, row.id));
+          .where(
+            and(
+              eq(pushSubscriptions.id, row.id),
+              eq(pushSubscriptions.userId, row.userId),
+              eq(pushSubscriptions.p256dh, row.p256dh),
+              eq(pushSubscriptions.auth, row.auth)
+            )
+          );
       } else {
         log.error("[push] delivery failed (non-blocking)", error);
       }

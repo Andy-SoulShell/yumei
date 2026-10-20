@@ -2,6 +2,7 @@ import { memoryMessages } from "@/locales/domain";
 /** 指定角色的长期记忆列表与用户管理入口。 */
 
 import { useI18n } from "@/lib/i18n";
+import { useCompanionChat } from "@/hooks/useCompanionChat";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,7 @@ import {
   PinOff,
   Trash2,
 } from "lucide-react";
-import { useLocation, useParams } from "wouter";
+import { useParams } from "wouter";
 import { toast } from "sonner";
 
 /** 读取角色记忆，并提供置顶、取消置顶和删除操作。 */
@@ -24,12 +25,13 @@ export default function Memories() {
   const { t, locale } = useI18n();
   const params = useParams<{ id: string }>();
   const girlfriendId = Number(params.id);
-  const [, setLocation] = useLocation();
+
   const { isAuthenticated, loading: authLoading } = useAuth({
     redirectOnUnauthenticated: true,
     redirectPath: "/login",
   });
 
+  const { open: openChat, pending } = useCompanionChat();
   const utils = trpc.useUtils();
   const { data: girlfriends } = trpc.girlfriend.list.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -106,7 +108,8 @@ export default function Memories() {
             <Button
               variant="outline"
               className="mt-6"
-              onClick={() => setLocation(`/chat/${girlfriendId}`)}
+              disabled={pending !== null}
+              onClick={() => void openChat(girlfriendId)}
             >
               {t("common:openChat")}
             </Button>

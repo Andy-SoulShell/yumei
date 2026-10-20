@@ -34,7 +34,7 @@ export function useCompanionChat() {
         role.appearance === preset.appearance
     );
   const open = async (role: number | CharacterPreset, selfie = false) => {
-    if (busy.current) return;
+    if (busy.current) return false;
     if (!isAuthenticated) {
       const params = new URLSearchParams(search);
       if (typeof role !== "number") params.set("character", role.id);
@@ -47,7 +47,7 @@ export function useCompanionChat() {
             "?" +
             params.toString();
       navigate(loginUrl(returnTo));
-      return;
+      return false;
     }
     busy.current = true;
     setPending(typeof role === "number" ? role : role.id);
@@ -79,6 +79,7 @@ export function useCompanionChat() {
       const conversation = await resume.mutateAsync({ girlfriendId: id });
       await utils.conversation.invalidate();
       navigate(`/chat/${conversation.id}${selfie ? "?selfie=1" : ""}`);
+      return true;
     } catch (error) {
       toast.error(
         apiErrorMessage(
@@ -94,6 +95,7 @@ export function useCompanionChat() {
           },
         }
       );
+      return false;
     } finally {
       busy.current = false;
       setPending(null);

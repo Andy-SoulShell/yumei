@@ -23,7 +23,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useLocation } from "wouter";
+import { useCompanionChat } from "@/hooks/useCompanionChat";
 
 const NOTIFICATION_ICONS: Record<string, React.ReactNode> = {
   miss_you: <MessageCircleHeart className="w-4 h-4 text-primary" />,
@@ -41,7 +41,7 @@ const NOTIFICATION_ICONS: Record<string, React.ReactNode> = {
 export function NotificationBell() {
   const { t, locale } = useI18n();
   const [open, setOpen] = useState(false);
-  const [, navigate] = useLocation();
+  const { open: openChat, pending } = useCompanionChat();
 
   // 获取未读数量
   const { data: unreadCount = 0, refetch: refetchCount } =
@@ -91,13 +91,6 @@ export function NotificationBell() {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 请求浏览器通知权限
-  useEffect(() => {
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
-  }, []);
-
   // 标记已读
   const markRead = trpc.notification.markRead.useMutation({
     onSuccess: () => {
@@ -114,15 +107,12 @@ export function NotificationBell() {
   });
 
   const handleNotificationClick = useCallback(
-    (notif: { id: number; isRead: boolean; girlfriendId: number }) => {
-      if (!notif.isRead) {
-        markRead.mutate({ id: notif.id });
-      }
+    async (notif: { id: number; isRead: boolean; girlfriendId: number }) => {
+      if (!(await openChat(notif.girlfriendId))) return;
+      if (!notif.isRead) markRead.mutate({ id: notif.id });
       setOpen(false);
-      // 导航到对应女友的聊天
-      navigate(`/chat/${notif.girlfriendId}`);
     },
-    [markRead, navigate]
+    [markRead, openChat]
   );
 
   const formatTime = (date: string | Date) => formatRelativeTime(date, locale);
@@ -185,7 +175,8 @@ export function NotificationBell() {
                     className={`block min-w-0 flex-1 text-left px-4 py-3 hover:bg-accent/50 transition-colors ${
                       !notif.isRead ? "bg-primary/5" : ""
                     }`}
-                    onClick={() => handleNotificationClick(notif)}
+                    disabled={pending !== null}
+                    onClick={() => void handleNotificationClick(notif)}
                   >
                     <div className="flex items-start gap-3">
                       <div className="mt-0.5 shrink-0">
@@ -222,6 +213,7 @@ export function NotificationBell() {
                       size="icon"
                       aria-label={t("notifications:markAsRead")}
                       title={t("notifications:markAsRead")}
+                      disabled={markRead.isPending}
                       className="mt-3 h-7 w-7 shrink-0"
                       onClick={e => {
                         e.stopPropagation();

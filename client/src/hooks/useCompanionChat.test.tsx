@@ -94,7 +94,11 @@ describe("companion chat entry", () => {
   });
   it("continues an existing matching character without creating another", async () => {
     mock.roles = [{ ...preset, id: 7 }];
-    await act(async () => chat.open(preset));
+    let opened = false;
+    await act(async () => {
+      opened = await chat.open(preset);
+    });
+    expect(opened).toBe(true);
     expect(mock.create).not.toHaveBeenCalled();
     expect(mock.resume).toHaveBeenCalledWith({ girlfriendId: 7 });
     expect(mock.navigate).toHaveBeenCalledWith("/chat/42");
@@ -130,7 +134,7 @@ describe("companion chat entry", () => {
           finish = resolve;
         })
     );
-    let request!: Promise<void>;
+    let request!: Promise<boolean>;
     await act(async () => {
       request = chat.open(7);
       await chat.open(7);

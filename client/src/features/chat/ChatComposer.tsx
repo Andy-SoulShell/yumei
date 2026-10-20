@@ -148,8 +148,8 @@ export function ChatComposer({
                 aria-label={t("chat:sendMessage")}
                 title={t("chat:sendMessage")}
                 className="chat-composer-send"
-                onPointerDown={event => {
-                  // 点击发送时保留输入焦点，避免手机键盘收起。
+                onMouseDown={event => {
+                  // 保留焦点；不取消 pointerdown，避免 Safari 吞掉触摸 click。
                   if (event.button === 0) event.preventDefault();
                 }}
               >

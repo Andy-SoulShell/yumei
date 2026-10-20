@@ -20,12 +20,14 @@ export function useKeyboardViewport() {
         viewport.scale === 1 &&
         window.innerHeight - viewport.height > 120
       ) {
+        document.documentElement.setAttribute("data-keyboard-open", "");
         style.setProperty(
           "--keyboard-viewport-height",
           `${Math.round(viewport.height)}px`
         );
       } else {
         style.removeProperty("--keyboard-viewport-height");
+        document.documentElement.removeAttribute("data-keyboard-open");
       }
     };
     viewport.addEventListener("resize", update);
@@ -39,6 +41,7 @@ export function useKeyboardViewport() {
       document.removeEventListener("focusin", update);
       document.removeEventListener("focusout", update);
       style.removeProperty("--keyboard-viewport-height");
+      document.documentElement.removeAttribute("data-keyboard-open");
     };
   }, []);
 }

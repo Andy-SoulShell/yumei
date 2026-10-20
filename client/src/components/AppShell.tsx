@@ -173,7 +173,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
   return (
     <div
-      className={`app-shell ${sidebarCollapsed ? "is-sidebar-collapsed" : ""}`}
+      className={`app-shell ${inChat ? "is-chat" : ""} ${sidebarCollapsed ? "is-sidebar-collapsed" : ""}`}
     >
       <a className="skip-link" href="#main-content">
         {t("explore:skipToContent")}

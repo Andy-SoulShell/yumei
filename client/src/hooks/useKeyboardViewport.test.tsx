@@ -44,8 +44,14 @@ describe("软键盘视觉视口", () => {
     container.querySelector("input")!.focus();
     resize(480.4);
     expect(height()).toBe("480px");
+    expect(document.documentElement.hasAttribute("data-keyboard-open")).toBe(
+      true
+    );
     resize(800);
     expect(height()).toBe("");
+    expect(document.documentElement.hasAttribute("data-keyboard-open")).toBe(
+      false
+    );
   });
 
   it("没有输入焦点时不把窗口变化当成软键盘，失焦也清除临时高度", () => {
@@ -56,6 +62,9 @@ describe("软键盘视觉视口", () => {
     expect(height()).toBe("450px");
     input.blur();
     expect(height()).toBe("");
+    expect(document.documentElement.hasAttribute("data-keyboard-open")).toBe(
+      false
+    );
   });
 
   it("工具栏的小幅变化和捏合缩放沿用浏览器布局", () => {
@@ -72,6 +81,9 @@ describe("软键盘视觉视口", () => {
     expect(height()).toBe("450px");
     await act(async () => root.render(null));
     expect(height()).toBe("");
+    expect(document.documentElement.hasAttribute("data-keyboard-open")).toBe(
+      false
+    );
     resize(420);
     expect(height()).toBe("");
   });

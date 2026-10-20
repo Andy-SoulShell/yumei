@@ -513,6 +513,8 @@ export default {
     askForASelfie: "셀카 찍기",
     askForASelfieRemaining: "셀카 찍기 ({{count}}장 남음)",
     selfieQuotaReached: "셀카 한도를 모두 사용했어요",
+    stopAudio: "읽기 중지",
+    messagePlaceholder: "메시지…",
     saySomethingTo: "{{name}} 님에게 말을 걸어 보세요…",
     switchToVoiceInput: "음성 입력으로 전환",
     switchToTextInput: "텍스트 입력으로 전환",

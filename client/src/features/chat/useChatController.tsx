@@ -39,6 +39,7 @@ export function useChatController() {
     speak,
     stop,
     isSpeaking,
+    activeMessageId,
     autoPlay,
     toggleAutoPlay,
     ttsProvider,
@@ -258,7 +259,7 @@ export function useChatController() {
       ) {
         const content = data.assistantMessage.content;
         if (!content.startsWith("[")) {
-          speak(content);
+          speak(content, data.assistantMessage.id);
         }
       }
       lastInputWasVoiceRef.current = false;
@@ -457,11 +458,11 @@ export function useChatController() {
     sendMessage.mutate(failed);
   };
 
-  const handleSpeakMessage = (text: string) => {
-    if (isSpeaking) {
+  const handleSpeakMessage = (text: string, messageId: number) => {
+    if (isSpeaking && activeMessageId === messageId) {
       stop();
     } else {
-      speak(text);
+      speak(text, messageId);
     }
   };
 
@@ -652,6 +653,7 @@ export function useChatController() {
     retryMessage,
     handleSpeakMessage,
     isSpeaking,
+    activeMessageId,
     user,
     pendingMessageAfterId,
     messagesEndRef,

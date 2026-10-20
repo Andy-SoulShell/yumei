@@ -106,7 +106,7 @@ export function ChatComposer({
               rows={1}
               value={message}
               onChange={event => setMessage(event.target.value)}
-              placeholder={t("chat:saySomethingTo", { name: girlfriend.name })}
+              placeholder={t("chat:messagePlaceholder")}
               aria-label={t("chat:saySomethingTo", { name: girlfriend.name })}
               className="chat-composer-input"
               onKeyDown={event => {

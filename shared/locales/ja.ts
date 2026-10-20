@@ -524,6 +524,8 @@ export default {
     askForASelfie: "自撮りを撮る",
     askForASelfieRemaining: "自撮り（残り {{count}} 枚）",
     selfieQuotaReached: "自撮りの利用枠を使い切りました",
+    stopAudio: "読み上げを停止",
+    messagePlaceholder: "メッセージ…",
     saySomethingTo: "{{name}}に話しかけてみよう…",
     switchToVoiceInput: "音声入力に切り替える",
     switchToTextInput: "文字入力に切り替える",

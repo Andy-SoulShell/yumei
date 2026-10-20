@@ -492,6 +492,8 @@ export default {
     askForASelfie: "拍张自拍",
     askForASelfieRemaining: "拍张自拍（剩余 {{count}} 张）",
     selfieQuotaReached: "自拍额度已用完",
+    stopAudio: "停止朗读",
+    messagePlaceholder: "发消息…",
     saySomethingTo: "和 {{name}} 说点什么...",
     switchToVoiceInput: "切换到语音输入",
     switchToTextInput: "切换到文字输入",

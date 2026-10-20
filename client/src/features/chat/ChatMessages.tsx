@@ -5,7 +5,7 @@ import { PageError } from "@/components/PageError";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { detectSelfieRequest } from "@shared/selfieRequest";
-import { Heart, Loader2, Volume2 } from "lucide-react";
+import { Heart, Loader2, Square, Volume2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useChatScrollAnchor } from "@/hooks/useChatScrollAnchor";
 
@@ -24,6 +24,7 @@ type Props = Pick<
   | "sendMessage"
   | "handleSpeakMessage"
   | "isSpeaking"
+  | "activeMessageId"
   | "user"
   | "pendingMessageAfterId"
   | "generateSelfie"
@@ -46,6 +47,7 @@ export function ChatMessages({
   girlfriend,
   handleSpeakMessage,
   isSpeaking,
+  activeMessageId,
   user,
   pendingMessageAfterId,
   generateSelfie,
@@ -165,14 +167,26 @@ export function ChatMessages({
                         variant="plain"
                         size="none"
                         type="button"
-                        onClick={() => handleSpeakMessage(msg.content)}
-                        className="self-start ml-1 text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-                        title={t("chat:playAudio", {
-                          suffix: ttsLabel ? ` (${ttsLabel})` : "",
-                        })}
+                        onClick={() => handleSpeakMessage(msg.content, msg.id)}
+                        className="self-start size-8 rounded-full text-muted-foreground hover:bg-accent hover:text-primary transition-colors"
+                        aria-pressed={isSpeaking && activeMessageId === msg.id}
+                        aria-label={
+                          isSpeaking && activeMessageId === msg.id
+                            ? t("chat:stopAudio")
+                            : t("chat:playAudio", {
+                                suffix: ttsLabel ? ` (${ttsLabel})` : "",
+                              })
+                        }
+                        title={
+                          isSpeaking && activeMessageId === msg.id
+                            ? t("chat:stopAudio")
+                            : t("chat:playAudio", {
+                                suffix: ttsLabel ? ` (${ttsLabel})` : "",
+                              })
+                        }
                       >
-                        {isSpeaking ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        {isSpeaking && activeMessageId === msg.id ? (
+                          <Square className="size-3.5 fill-current" />
                         ) : (
                           <Volume2 className="w-3.5 h-3.5" />
                         )}

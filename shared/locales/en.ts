@@ -522,6 +522,8 @@ export default {
     askForASelfie: "Take a selfie",
     askForASelfieRemaining: "Take a selfie ({{count}} left)",
     selfieQuotaReached: "Selfie quota reached",
+    stopAudio: "Stop audio",
+    messagePlaceholder: "Message…",
     saySomethingTo: "Say something to {{name}}…",
     switchToVoiceInput: "Switch to voice input",
     switchToTextInput: "Switch to text input",

@@ -2,7 +2,7 @@ import { apiErrorMessage } from "@/lib/errors";
 import { useI18n } from "@/lib/i18n";
 import { resolveSpeechLanguage, selectSpeechVoice } from "@/lib/speech";
 import { trpc } from "@/lib/trpc";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 export const SPEED_OPTIONS = [
   { value: 0.5, label: "0.5x" },
@@ -15,6 +15,7 @@ export const SPEED_OPTIONS = [
 export function useTTS() {
   const { t } = useI18n();
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [activeMessageId, setActiveMessageId] = useState<number | null>(null);
   const [autoPlay, setAutoPlay] = useState(() => {
     return localStorage.getItem("tts-autoplay") === "true";
   });
@@ -24,6 +25,29 @@ export function useTTS() {
   });
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playbackRequest = useRef(0);
+  const mounted = useRef(true);
+
+  // 停止或离开页面后，迟到的语音生成结果也不能重新播放。
+  const stopPlayback = useCallback(() => {
+    playbackRequest.current += 1;
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    utteranceRef.current = null;
+    audioRef.current?.pause();
+    audioRef.current = null;
+  }, []);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      stopPlayback();
+    };
+  }, [stopPlayback]);
+  const finish = useCallback((request: number) => {
+    if (request !== playbackRequest.current) return;
+    setIsSpeaking(false);
+    setActiveMessageId(null);
+  }, []);
 
   // 获取用户的 TTS 配置
   const { data: apiConfig } = trpc.apiConfig.get.useQuery();
@@ -47,12 +71,12 @@ export function useTTS() {
 
   // 浏览器内置语音
   const speakBrowser = useCallback(
-    (text: string) => {
+    (text: string, request: number) => {
       if (!("speechSynthesis" in window)) {
+        finish(request);
         toast.error(t("common:thisBrowserDoesNotSupportSpeech"));
         return;
       }
-      window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = resolveSpeechLanguage(
         apiConfig?.preferences?.replyLanguage
@@ -63,23 +87,22 @@ export function useTTS() {
       const voices = window.speechSynthesis.getVoices();
       const voice = selectSpeechVoice(voices, utterance.lang);
       if (voice) utterance.voice = voice;
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
+      utterance.onend = () => finish(request);
+      utterance.onerror = () => finish(request);
       utteranceRef.current = utterance;
       window.speechSynthesis.speak(utterance);
     },
-    [playbackSpeed, t, apiConfig?.preferences?.replyLanguage]
+    [playbackSpeed, t, apiConfig?.preferences?.replyLanguage, finish]
   );
 
   // API 语音（ElevenLabs / Fish Audio）
   const speakApi = useCallback(
-    (text: string) => {
-      setIsSpeaking(true);
+    (text: string, request: number) => {
       ttsGenerate.mutate(
         { text },
         {
           onSuccess: data => {
+            if (request !== playbackRequest.current) return;
             if (audioRef.current) {
               audioRef.current.pause();
               audioRef.current = null;
@@ -87,17 +110,21 @@ export function useTTS() {
             const audio = new Audio(data.audioUrl);
             audio.playbackRate = playbackSpeed;
             audioRef.current = audio;
-            audio.onended = () => setIsSpeaking(false);
+            audio.onended = () => finish(request);
             audio.onerror = () => {
-              setIsSpeaking(false);
+              if (request !== playbackRequest.current) return;
+              finish(request);
               toast.error(t("common:audioPlaybackFailed"));
             };
             audio.play().catch(() => {
-              setIsSpeaking(false);
+              if (request !== playbackRequest.current) return;
+              finish(request);
+              toast.error(t("common:audioPlaybackFailed"));
             });
           },
           onError: error => {
-            setIsSpeaking(false);
+            if (request !== playbackRequest.current) return;
+            finish(request);
             toast.error(
               t("chat:speechGenerationFailed", {
                 error: apiErrorMessage(error, t),
@@ -107,28 +134,30 @@ export function useTTS() {
         }
       );
     },
-    [ttsGenerate, playbackSpeed, t]
+    [ttsGenerate, playbackSpeed, t, finish]
   );
 
   const speak = useCallback(
-    (text: string) => {
+    (text: string, messageId?: number) => {
+      if (!mounted.current) return;
+      stopPlayback();
+      const request = playbackRequest.current;
+      setIsSpeaking(true);
+      setActiveMessageId(messageId ?? null);
       if (ttsProvider === "browser") {
-        speakBrowser(text);
+        speakBrowser(text, request);
       } else {
-        speakApi(text);
+        speakApi(text, request);
       }
     },
-    [ttsProvider, speakBrowser, speakApi]
+    [ttsProvider, speakBrowser, speakApi, stopPlayback]
   );
 
   const stop = useCallback(() => {
-    window.speechSynthesis.cancel();
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
+    stopPlayback();
     setIsSpeaking(false);
-  }, []);
+    setActiveMessageId(null);
+  }, [stopPlayback]);
 
   const toggleAutoPlay = useCallback(() => {
     setAutoPlay(prev => {
@@ -142,6 +171,7 @@ export function useTTS() {
     speak,
     stop,
     isSpeaking,
+    activeMessageId,
     autoPlay,
     toggleAutoPlay,
     ttsProvider,

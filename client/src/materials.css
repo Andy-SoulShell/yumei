@@ -411,11 +411,8 @@
     margin-inline: auto;
   }
   :where(:root[data-glass="experimental"]) .page-toolbar.sticky::after {
-    background: linear-gradient(
-      to bottom,
-      color-mix(in oklch, var(--background) 64%, transparent),
-      transparent
-    );
+    /* 浮动胶囊依靠自身材质保持可读，矩形渐隐会在圆角下方露出色带。 */
+    display: none;
   }
   :where(:root[data-glass="experimental"])
     :is(
@@ -471,11 +468,20 @@
     background: transparent;
     box-shadow: none;
   }
-  :where(:root[data-glass="experimental"]) .floating-surface [cmdk-root] {
+  :where(:root[data-glass="experimental"])
+    :is([cmdk-root], [data-slot="calendar"]) {
+    background: var(--glass-panel-fill);
+  }
+  :where(:root[data-glass="experimental"])
+    :is(.surface-card, .floating-surface)
+    :is([cmdk-root], [data-slot="calendar"]) {
     background: transparent;
   }
   :where(:root[data-glass="experimental"])
-    :is([data-slot="avatar-fallback"], [data-slot="progress"]) {
+    :is(
+      [data-slot="avatar-fallback"]:not(.account-avatar-fallback),
+      [data-slot="progress"]
+    ) {
     background: var(--glass-field-fill);
   }
   :where(:root[data-glass="experimental"]) [data-slot="avatar"] {

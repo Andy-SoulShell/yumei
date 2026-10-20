@@ -1700,17 +1700,36 @@
   }
 }
 
-/* 键盘展开时只保留聊天导航，让小屏仍能看到消息。 */
+/* iOS 聚焦输入时还可能平移视觉视口，根布局与 Portal 共用同一可见区域。 */
+:root[data-keyboard-open] {
+  /* 键盘已经遮住主屏指示条，不再为它重复保留底部空白。 */
+  --safe-area-bottom: 0px;
+}
+:root[data-keyboard-open] #root {
+  position: fixed;
+  top: var(--keyboard-viewport-top);
+  inset-inline: 0;
+}
 /* Portal 浮层也使用视觉视口，避免抽屉搜索和弹框按钮落到键盘后面。 */
 :root[data-keyboard-open] [data-slot="dialog-content"],
 :root[data-keyboard-open] [data-slot="alert-dialog-content"] {
-  top: calc(var(--app-height) / 2);
+  top: calc(var(--keyboard-viewport-top) + var(--app-height) / 2);
   max-height: calc(var(--app-height) - 32px);
+}
+:root[data-keyboard-open] .sheet-panel {
+  max-height: var(--app-height);
 }
 :root[data-keyboard-open] .sheet-panel[data-side="left"],
 :root[data-keyboard-open] .sheet-panel[data-side="right"] {
+  top: var(--keyboard-viewport-top);
   height: var(--app-height);
   bottom: auto;
+}
+:root[data-keyboard-open] .sheet-panel[data-side="top"] {
+  top: var(--keyboard-viewport-top);
+}
+:root[data-keyboard-open] .sheet-panel[data-side="bottom"] {
+  bottom: calc(100% - var(--keyboard-viewport-top) - var(--app-height));
 }
 @media (max-width: 900px), (pointer: coarse) {
   :root[data-keyboard-open] .app-bottom-nav,

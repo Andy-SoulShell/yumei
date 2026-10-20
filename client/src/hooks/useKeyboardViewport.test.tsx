@@ -7,7 +7,11 @@ import { useKeyboardViewport } from "./useKeyboardViewport";
 
 let root: Root;
 let container: HTMLDivElement;
-let viewport: EventTarget & { height: number; scale: number };
+let viewport: EventTarget & {
+  height: number;
+  scale: number;
+  offsetTop: number;
+};
 
 function Form() {
   useKeyboardViewport();
@@ -16,7 +20,11 @@ function Form() {
 
 beforeEach(async () => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
-  viewport = Object.assign(new EventTarget(), { height: 800, scale: 1 });
+  viewport = Object.assign(new EventTarget(), {
+    height: 800,
+    scale: 1,
+    offsetTop: 0,
+  });
   vi.stubGlobal("visualViewport", viewport);
   vi.stubGlobal("innerHeight", 800);
   container = document.createElement("div");
@@ -33,6 +41,8 @@ afterEach(async () => {
 
 const height = () =>
   document.documentElement.style.getPropertyValue("--keyboard-viewport-height");
+const top = () =>
+  document.documentElement.style.getPropertyValue("--keyboard-viewport-top");
 function resize(value: number, scale = 1) {
   viewport.height = value;
   viewport.scale = scale;
@@ -44,14 +54,28 @@ describe("软键盘视觉视口", () => {
     container.querySelector("input")!.focus();
     resize(480.4);
     expect(height()).toBe("480px");
+    expect(top()).toBe("0px");
     expect(document.documentElement.hasAttribute("data-keyboard-open")).toBe(
       true
     );
     resize(800);
     expect(height()).toBe("");
+    expect(top()).toBe("");
     expect(document.documentElement.hasAttribute("data-keyboard-open")).toBe(
       false
     );
+  });
+
+  it("视觉视口平移而高度不变时，仍跟随键盘上方的可见区域", () => {
+    container.querySelector("input")!.focus();
+    resize(480);
+    viewport.offsetTop = 110.4;
+    viewport.dispatchEvent(new Event("scroll"));
+    expect(height()).toBe("480px");
+    expect(top()).toBe("110px");
+    viewport.offsetTop = -12;
+    viewport.dispatchEvent(new Event("scroll"));
+    expect(top()).toBe("0px");
   });
 
   it("没有输入焦点时不把窗口变化当成软键盘，失焦也清除临时高度", () => {
@@ -62,6 +86,7 @@ describe("软键盘视觉视口", () => {
     expect(height()).toBe("450px");
     input.blur();
     expect(height()).toBe("");
+    expect(top()).toBe("");
     expect(document.documentElement.hasAttribute("data-keyboard-open")).toBe(
       false
     );
@@ -73,6 +98,7 @@ describe("软键盘视觉视口", () => {
     expect(height()).toBe("");
     resize(400, 2);
     expect(height()).toBe("");
+    expect(top()).toBe("");
   });
 
   it("卸载后释放事件和高度，后续视口事件不会影响其他页面", async () => {
@@ -81,10 +107,14 @@ describe("软键盘视觉视口", () => {
     expect(height()).toBe("450px");
     await act(async () => root.render(null));
     expect(height()).toBe("");
+    expect(top()).toBe("");
     expect(document.documentElement.hasAttribute("data-keyboard-open")).toBe(
       false
     );
     resize(420);
+    viewport.offsetTop = 100;
+    viewport.dispatchEvent(new Event("scroll"));
     expect(height()).toBe("");
+    expect(top()).toBe("");
   });
 });

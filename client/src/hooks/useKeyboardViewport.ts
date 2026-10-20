@@ -25,22 +25,30 @@ export function useKeyboardViewport() {
           "--keyboard-viewport-height",
           `${Math.round(viewport.height)}px`
         );
+        style.setProperty(
+          "--keyboard-viewport-top",
+          `${Math.max(0, Math.round(viewport.offsetTop))}px`
+        );
       } else {
         style.removeProperty("--keyboard-viewport-height");
+        style.removeProperty("--keyboard-viewport-top");
         document.documentElement.removeAttribute("data-keyboard-open");
       }
     };
     viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
     window.addEventListener("resize", update);
     document.addEventListener("focusin", update);
     document.addEventListener("focusout", update);
     update();
     return () => {
       viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
       document.removeEventListener("focusin", update);
       document.removeEventListener("focusout", update);
       style.removeProperty("--keyboard-viewport-height");
+      style.removeProperty("--keyboard-viewport-top");
       document.documentElement.removeAttribute("data-keyboard-open");
     };
   }, []);

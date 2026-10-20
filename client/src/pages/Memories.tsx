@@ -239,7 +239,7 @@ export default function Memories() {
   const capacity = memoryCapacity(girlfriend?.intimacyLevel || 1);
 
   return (
-    <div className="min-h-full bg-background">
+    <div className="memories-page min-h-full bg-background">
       <header className="flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3 page-toolbar sticky top-0 z-10">
         <Button
           variant="ghost"
@@ -262,7 +262,7 @@ export default function Memories() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto p-3 sm:p-4 space-y-6 pb-10">
+      <div className="max-w-2xl mx-auto p-3 sm:p-4 space-y-6 pb-10">
         <section
           className="space-y-4 rounded-xl border p-4"
           aria-labelledby="memory-controls-title"
@@ -696,7 +696,7 @@ export default function Memories() {
             </section>
           ))
         )}
-      </main>
+      </div>
     </div>
   );
 }

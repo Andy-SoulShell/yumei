@@ -36,7 +36,7 @@ export default function Settings() {
   } = state;
 
   return (
-    <div className="min-h-full bg-background">
+    <div className="settings-page min-h-full bg-background">
       {/* 顶部导航栏 */}
       <header className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 page-toolbar sticky top-0 z-10">
         <Button

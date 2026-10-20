@@ -387,6 +387,19 @@
     margin-inline: 12px;
     border-radius: 20px;
   }
+  .settings-page,
+  .memories-page {
+    --page-content-width: 42rem;
+  }
+  .gallery-page {
+    --page-content-width: 56rem;
+  }
+  /* 次级导航与正文同宽，避免窄内容上方出现整屏的玻璃横带。 */
+  :where(:root[data-glass="experimental"]) .page-toolbar {
+    width: calc(100% - 24px);
+    max-width: var(--page-content-width, none);
+    margin-inline: auto;
+  }
   :where(:root[data-glass="experimental"]) .page-toolbar.sticky::after {
     background: linear-gradient(
       to bottom,

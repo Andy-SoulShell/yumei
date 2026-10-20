@@ -102,7 +102,8 @@ const EXTRACTION_PROMPT = `你是一个记忆提取器。输入是按时间排�
 - 「我的猫叫什么」「我常喝哪种咖啡」只是提问，不能据此记录「名字/口味未知」，也不能编造答案。
 - category 取值：fact（稳定事实：职业/城市/生日等）、preference（喜好/厌恶）、event（发生过或计划中的事）、relationship（用户与 AI 伴侣之间的约定或共同经历）。
 - sourceMessageId 必须是输入中对应用户消息的 id。
-- quote 必须逐字摘录该消息中的完整陈述片段，不得改写、补全或拼接，不超过 ${MEMORY_MAX_LENGTH} 字。一条消息可摘录多个不同事实。
+- quote 必须逐字摘录该消息中的单一完整陈述句，不得改写、补全或拼接，不超过 ${MEMORY_MAX_LENGTH} 字。一条消息的不同事实分别输出，不能把多句话拼在一个 quote 里。
+- 明确更新/更正记忆时，提取用户最新陈述的事实；“请更新记忆”“以后不要再叫旧名字”等操作指令本身不作为事实。保留事实句中的否定、条件和说话对象。
 - importance 1-10：日常琐事 1-3，有用的个人信息 4-7，重大事件/核心事实 8-10。
 - 没有值得记的就返回空数组。
 
@@ -136,31 +137,83 @@ export function parseExtractionResponse(raw: string): ExtractedMemory[] {
   return parseExtractionPayload(raw) ?? [];
 }
 
-/** 将片段扩为完整原句，保留否定、条件和说话对象，拒绝疑问与明确不保存的要求。 */
-function completeUserStatement(source: string, quote: string): string | null {
-  const start = source.indexOf(quote);
-  if (start < 0 || start !== source.lastIndexOf(quote)) return null;
-  for (const match of memoryStatementRanges(source)) {
-    const from = match.index;
-    if (from > start || from + match.value.length < start + quote.length)
-      continue;
-    const statement = match.value.trim();
-    if (
-      statement.length > MEMORY_MAX_LENGTH ||
-      /[?？]$/.test(statement) ||
+/** 拒绝/假设/转述会限定同一条用户来源，不能靠只引用其中一句绕过；宁可不保存。 */
+function hasUnsafeMemorySource(source: string) {
+  const statements = memoryStatementRanges(source).map(range =>
+    range.value.trim()
+  );
+  return statements.some(
+    (statement, index) =>
       /^(?:如果|假如|假设|假設|要是|比如|例如|(?:刚才|刚刚|之前|上次)?你(?:刚才|之前|曾经|剛才)?说|你(?:剛才|之前)?說|她说|他说|听说|据说)/.test(
         statement
       ) ||
       /^(?:if\b|suppose\b|you said\b|she said\b|he said\b)/i.test(statement) ||
       /(?:不要|別|别|不想).{0,8}(?:记住|記住|记录|紀錄)|\b(?:do not|don't)\s+(?:remember|store)\b/i.test(
         statement
-      )
-    )
-      return null;
-    if (petNameReference(statement)?.rejected) return null;
-    return statement;
+      ) ||
+      !!petNameReference(statement)?.rejected ||
+      /^(?:刚才|剛才|前面|以上|上述|这|這|那).{0,10}(?:只是|是).{0,8}(?:假设|假設|玩笑|举例|舉例|转述|轉述|别人|別人|朋友说|朋友說)|^(?:这|這|那)?(?:不是事实|不是事實|不是真的)|^(?:只是|仅仅是|僅僅是)(?:开|開)?(?:玩笑|假设|假設)|\b(?:that|this|the above).{0,12}(?:hypothetical|not true|a joke|someone else's)\b/i.test(
+        statement
+      ) ||
+      (index > 0 &&
+        statements
+          .slice(0, index)
+          .some(previous => !isMemoryControlStatement(previous)) &&
+        /^(?:不是|不对|不對|其实不是|其實不是|更正|纠正|糾正|訂正|違う|いや|아니)|^(?:actually[,\s]+)?(?:no\b|not\b)|^correction\b|^I (?:was|am) joking\b/i.test(
+          statement
+        ))
+  );
+}
+
+/** 将片段扩为完整原句，完整来源先校验，提取和事务落库共用。 */
+function completeUserStatement(source: string, quote: string): string | null {
+  const start = source.indexOf(quote);
+  if (
+    start < 0 ||
+    start !== source.lastIndexOf(quote) ||
+    hasUnsafeMemorySource(source)
+  )
+    return null;
+  for (const match of memoryStatementRanges(source)) {
+    const from = match.index;
+    if (from > start || from + match.value.length < start + quote.length)
+      continue;
+    const statement = match.value.trim();
+    return statement.length <= MEMORY_MAX_LENGTH && !/[?？]$/.test(statement)
+      ? statement
+      : null;
   }
   return null;
+}
+
+/** 单独的保存/称呼操作没有事实；带具体陈述的原句仍完整保留。 */
+function isMemoryControlStatement(statement: string) {
+  return /^(?:请|請)?(?:你)?(?:帮我|幫我)?(?:更新|更正|修改|修正)(?:一下)?(?:你的?|你对我(?:的)?)?(?:记忆|記憶)[。.!]*$|^(?:请|請)?(?:你)?(?:帮我|幫我)?(?:记住|記住)(?:这个|這個|这件事|這件事|这点|這點)?[。.!]*$|^(?:以后|以後|今后|今後)?(?:请|請)?(?:不要|别|別)(?:再)?(?:叫|称呼|稱呼|使用|用).{0,20}(?:旧|舊|原来|原來|以前).{0,8}(?:名字|名称|名稱|称呼|稱呼).{0,8}[。.!]*$|^(?:please\s+)?(?:remember\s+(?:this|that)|update\s+(?:your\s+)?memory)[.!]*$|^(?:please\s+)?(?:do not|don't|stop).{0,16}(?:use|using|call|calling).{0,16}(?:old|previous)\s+name[.!]*$|^(?:これを)?覚えて(?:おいて)?[。.!]*$|^(?:이걸\s*)?기억해\s*(?:줘|주세요)?[.!]*$/i.test(
+    statement
+  );
+}
+
+/** 跨句 quote 仍只接受逐字连续来源；任一句含不可信语境时不裁掉它去挽救断言。 */
+function completeUserStatements(source: string, quote: string): string[] {
+  const start = source.indexOf(quote);
+  if (start < 0 || start !== source.lastIndexOf(quote)) return [];
+  const end = start + quote.length;
+  const ranges = memoryStatementRanges(source).filter(
+    range =>
+      normalizeMemoryText(
+        source.slice(
+          Math.max(start, range.index),
+          Math.min(end, range.index + range.value.length)
+        )
+      ).length > 0
+  );
+  const statements = ranges.map(range =>
+    completeUserStatement(source, range.value.trim())
+  );
+  if (!statements.length || statements.some(statement => statement === null))
+    return [];
+  const grounded = statements as string[];
+  return grounded.filter(statement => !isMemoryControlStatement(statement));
 }
 
 /** 校验用户来源与完整陈述，防止截取原话时去掉否定或转述语境。 */
@@ -182,16 +235,14 @@ function parseGroundedExtraction(
           message.role === "user" && message.id === candidate.sourceMessageId
       );
       if (!source) return [];
-      const statement = completeUserStatement(source.content, candidate.quote);
-      if (!statement) return [];
-      return [
-        {
+      return completeUserStatements(source.content, candidate.quote).map(
+        statement => ({
           category: candidate.category,
           content: statement,
           importance: candidate.importance,
           sourceMessageId: source.id,
-        },
-      ];
+        })
+      );
     });
   } catch {
     return null;
@@ -214,7 +265,7 @@ export async function callExtractionModel(
       provider: provider.name,
       model,
       isByok: provider.isByok,
-      promptVersion: "memory-extract/2",
+      promptVersion: "memory-extract/3",
     },
     async signal => {
       if (!(await sameMemoryRouting(context.userId, provider)))

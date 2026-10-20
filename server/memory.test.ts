@@ -186,6 +186,120 @@ describe("extraction provider responses", () => {
       callExtractionModel(provider, sources, context)
     ).resolves.toEqual([]);
   });
+  it("keeps a verbatim correction when the extractor quotes the complete two-sentence request", async () => {
+    const content = "请更新记忆：我的猫现在叫麻薯。以后不要再叫旧名字了。";
+    vi.spyOn(axios, "post").mockResolvedValue({
+      data: {
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                memories: [
+                  {
+                    category: "fact",
+                    sourceMessageId: 1,
+                    quote: content,
+                    importance: 7,
+                  },
+                ],
+              }),
+            },
+          },
+        ],
+      },
+    });
+    await expect(
+      callExtractionModel(provider, [{ id: 1, role: "user", content }], context)
+    ).resolves.toEqual([
+      {
+        category: "fact",
+        sourceMessageId: 1,
+        content: "请更新记忆：我的猫现在叫麻薯。",
+        importance: 7,
+      },
+    ]);
+  });
+  it.each([
+    ["我不喜欢黑咖啡。请记住这个。", "我不喜欢黑咖啡。"],
+    [
+      "请更新记忆。我的猫现在叫麻薯。以后不要再叫旧名字了。",
+      "我的猫现在叫麻薯。",
+    ],
+  ])(
+    "keeps a grounded fact without saving a standalone memory command: %s",
+    async (content, fact) => {
+      vi.spyOn(axios, "post").mockResolvedValue({
+        data: {
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  memories: [
+                    {
+                      category: "fact",
+                      sourceMessageId: 1,
+                      quote: content,
+                      importance: 7,
+                    },
+                  ],
+                }),
+              },
+            },
+          ],
+        },
+      });
+      await expect(
+        callExtractionModel(
+          provider,
+          [{ id: 1, role: "user", content }],
+          context
+        )
+      ).resolves.toEqual([
+        { category: "fact", sourceMessageId: 1, content: fact, importance: 7 },
+      ]);
+    }
+  );
+
+  it.each([
+    "我的猫叫麻薯。不要记住这个。",
+    "假如我养了猫。我的猫叫麻薯。",
+    "我的猫叫麻薯。刚才只是假设。",
+    "我的猫叫麻薯。其实不是。",
+    "我的猫叫麻薯。只是开玩笑。",
+    "我喜欢黑咖啡。不是，我不喜欢黑咖啡。",
+    "你说我的猫叫麻薯。那是我朋友的猫。",
+  ])(
+    "does not salvage an assertion by dropping unsafe cross-sentence context: %s",
+    async content => {
+      vi.spyOn(axios, "post").mockResolvedValue({
+        data: {
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  memories: [
+                    {
+                      category: "fact",
+                      sourceMessageId: 1,
+                      quote: content,
+                      importance: 7,
+                    },
+                  ],
+                }),
+              },
+            },
+          ],
+        },
+      });
+      await expect(
+        callExtractionModel(
+          provider,
+          [{ id: 1, role: "user", content }],
+          context
+        )
+      ).resolves.toEqual([]);
+    }
+  );
   it("accepts only verbatim user evidence and never stores model-written paraphrases or companion quotes", async () => {
     const post = vi.spyOn(axios, "post").mockResolvedValue({
       data: {
@@ -253,6 +367,129 @@ describe("extraction provider responses", () => {
       expect.any(Object)
     );
   });
+
+  it("splits two supported preference statements while retaining their original negation", async () => {
+    const content = "我不喜欢黑咖啡。我喜欢红茶。";
+    vi.spyOn(axios, "post").mockResolvedValue({
+      data: {
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                memories: [
+                  {
+                    category: "preference",
+                    sourceMessageId: 1,
+                    quote: content,
+                    importance: 7,
+                  },
+                ],
+              }),
+            },
+          },
+        ],
+      },
+    });
+    await expect(
+      callExtractionModel(provider, [{ id: 1, role: "user", content }], context)
+    ).resolves.toEqual([
+      {
+        category: "preference",
+        sourceMessageId: 1,
+        content: "我不喜欢黑咖啡。",
+        importance: 7,
+      },
+      {
+        category: "preference",
+        sourceMessageId: 1,
+        content: "我喜欢红茶。",
+        importance: 7,
+      },
+    ]);
+  });
+  it.each([
+    [
+      "请记住：我的猫叫团子。你喜欢猫吗？",
+      "我的猫叫团子。",
+      [
+        {
+          category: "fact",
+          sourceMessageId: 1,
+          content: "请记住：我的猫叫团子。",
+          importance: 7,
+        },
+      ],
+    ],
+    ["我的猫叫什么？", "我的猫叫什么", []],
+  ])(
+    "allows independent follow-up questions while rejecting a quoted question: %s",
+    async (content, quote, expected) => {
+      vi.spyOn(axios, "post").mockResolvedValue({
+        data: {
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  memories: [
+                    {
+                      category: "fact",
+                      sourceMessageId: 1,
+                      quote,
+                      importance: 7,
+                    },
+                  ],
+                }),
+              },
+            },
+          ],
+        },
+      });
+      await expect(
+        callExtractionModel(
+          provider,
+          [{ id: 1, role: "user", content }],
+          context
+        )
+      ).resolves.toEqual(expected);
+    }
+  );
+  it.each([
+    ["我的猫叫麻薯。不要记住这个。", "我的猫叫麻薯。"],
+    ["假如我养了猫。我的猫叫麻薯。", "我的猫叫麻薯。"],
+    ["我的猫叫麻薯。刚才只是假设。", "我的猫叫麻薯。"],
+    ["请更新记忆：我的猫现在叫麻薯。不要记住这个。", "我的猫现在叫麻薯。"],
+  ])(
+    "validates complete source context even when the extractor quotes only one sentence: %s",
+    async (content, quote) => {
+      vi.spyOn(axios, "post").mockResolvedValue({
+        data: {
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  memories: [
+                    {
+                      category: "fact",
+                      sourceMessageId: 1,
+                      quote,
+                      importance: 7,
+                    },
+                  ],
+                }),
+              },
+            },
+          ],
+        },
+      });
+      await expect(
+        callExtractionModel(
+          provider,
+          [{ id: 1, role: "user", content }],
+          context
+        )
+      ).resolves.toEqual([]);
+    }
+  );
   it("does not send assistant-only input to the extraction provider", async () => {
     const post = vi.spyOn(axios, "post");
     await expect(

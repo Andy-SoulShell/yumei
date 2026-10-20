@@ -111,6 +111,149 @@ function pausedResponse() {
 
 describe("trusted memory lifecycle", () => {
   it.each([
+    ["请记住：我的猫叫团子。你喜欢猫吗？", "我的猫叫团子。", 1],
+    ["我的猫叫什么？", "我的猫叫什么", 0],
+  ])(
+    "applies the same selected-sentence question boundary at transaction commit: %s",
+    async (content, quote, count) => {
+      const a = await fixture();
+      const source = await createMessage({
+        conversationId: a.conversation.id,
+        role: "user",
+        content,
+        generationStatus: "succeeded",
+      });
+      expect(
+        await memory.storeExtractedMemories(a.userId, a.gf.id, [
+          {
+            category: "fact",
+            content: String(quote),
+            sourceMessageId: source.id,
+            importance: 7,
+          },
+        ])
+      ).toEqual({ inserted: count, updated: 0, reinforced: 0 });
+      const rows = await memory.listMemories(a.userId, a.gf.id);
+      expect(rows).toHaveLength(Number(count));
+      if (count) expect(rows[0].content).toBe("请记住：我的猫叫团子。");
+    }
+  );
+  it.each([
+    ["我的猫叫麻薯。不要记住这个。", "我的猫叫麻薯。"],
+    ["假如我养了猫。我的猫叫麻薯。", "我的猫叫麻薯。"],
+    ["我的猫叫麻薯。刚才只是假设。", "我的猫叫麻薯。"],
+    ["请更新记忆：我的猫现在叫麻薯。不要记住这个。", "我的猫现在叫麻薯。"],
+  ])(
+    "rechecks whole-source context in the store transaction instead of trusting an extracted sentence: %s",
+    async (content, quote) => {
+      const a = await fixture();
+      await a.add("我的猫叫团子。");
+      const source = await createMessage({
+        conversationId: a.conversation.id,
+        role: "user",
+        content,
+        generationStatus: "succeeded",
+      });
+      expect(
+        await memory.storeExtractedMemories(a.userId, a.gf.id, [
+          {
+            category: "fact",
+            content: quote,
+            sourceMessageId: source.id,
+            importance: 7,
+          },
+        ])
+      ).toEqual({ inserted: 0, updated: 0, reinforced: 0 });
+      expect(await memory.listMemories(a.userId, a.gf.id)).toMatchObject([
+        { content: "我的猫叫团子。", contentVersion: 1 },
+      ]);
+    }
+  );
+  it("applies the observed extractor response through the real leased job without restoring old facts", async () => {
+    const a = await fixture();
+    const previousSource = await a.add("请记住：我的猫叫团子。");
+    const coffeeSource = await a.add("我喝咖啡不加糖。", "preference");
+    const [initial] = (await memory.listMemories(a.userId, a.gf.id)).filter(
+      row => row.factKey === "pet.cat.name"
+    );
+    const source = await createMessage({
+      conversationId: a.conversation.id,
+      role: "user",
+      content: "请更新记忆：我的猫现在叫麻薯。以后不要再叫旧名字了。",
+      generationStatus: "succeeded",
+    });
+    await a.db.insert(memoryExtractionJobs).values({
+      id: crypto.randomUUID(),
+      userId: a.userId,
+      girlfriendId: a.gf.id,
+      conversationId: a.conversation.id,
+      lastMessageId: source.id,
+      intimacyLevel: 1,
+      memoryEpoch: 0,
+    });
+    vi.spyOn(derived, "refreshMemoryDerived").mockResolvedValue();
+    vi.spyOn(axios, "post").mockResolvedValue({
+      data: {
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                memories: [
+                  {
+                    category: "fact",
+                    sourceMessageId: previousSource.id,
+                    quote: "我的猫叫团子。",
+                    importance: 6,
+                  },
+                  {
+                    category: "preference",
+                    sourceMessageId: coffeeSource.id,
+                    quote: "我喝咖啡不加糖。",
+                    importance: 6,
+                  },
+                  {
+                    category: "fact",
+                    sourceMessageId: source.id,
+                    quote: "我的猫现在叫麻薯。以后不要再叫旧名字了。",
+                    importance: 6,
+                  },
+                ],
+              }),
+            },
+          },
+        ],
+        usage: { prompt_tokens: 90, completion_tokens: 30 },
+      },
+    });
+    await runMemoryExtractionJobs(a.userId);
+    expect(await memory.listMemories(a.userId, a.gf.id)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: initial.id,
+          content: "请更新记忆：我的猫现在叫麻薯。",
+          contentVersion: 2,
+          sourceMessageId: source.id,
+        }),
+        expect.objectContaining({ content: "我喝咖啡不加糖。" }),
+      ])
+    );
+    const rows = await memory.listMemories(a.userId, a.gf.id);
+    expect(rows).toHaveLength(2);
+    expect(rows.some(row => /团子|旧名字/.test(row.content))).toBe(false);
+    expect(
+      await a.db
+        .select()
+        .from(memoryExtractionJobs)
+        .where(eq(memoryExtractionJobs.userId, a.userId))
+    ).toEqual([]);
+    const [role] = await a.db
+      .select()
+      .from(girlfriends)
+      .where(eq(girlfriends.id, a.gf.id));
+    expect(role.memoryEpoch).toBe(1);
+    expect(role.memoryForgottenThroughId).toBe(source.id);
+  });
+  it.each([
     "请更新记忆：我的猫现在叫麻薯。以后不要再叫旧名字了。",
     "请记住，更正：我的猫现在叫麻薯。",
   ])(

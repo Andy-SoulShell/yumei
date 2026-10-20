@@ -52,7 +52,7 @@ export default function Chats() {
           className="mx-auto my-16 animate-spin"
           aria-label={t("home:searching")}
         />
-      ) : error ? (
+      ) : error && !results?.length ? (
         <div className="explore-empty">
           <p>{t("auth:networkErrorPleaseTryAgain")}</p>
           <Button onClick={() => void refetch()}>{t("explore:retry")}</Button>
@@ -88,7 +88,25 @@ export default function Chats() {
               <ArrowUpRight size={18} />
             </Link>
           ))}
-          {query.hasNextPage && (
+          {error && (
+            <div role="alert" className="flex flex-wrap items-center gap-3">
+              <p className="text-sm text-muted-foreground">
+                {t("auth:networkErrorPleaseTryAgain")}
+              </p>
+              <Button
+                variant="outline"
+                disabled={query.isFetching}
+                onClick={() =>
+                  void (query.isFetchNextPageError
+                    ? query.fetchNextPage()
+                    : refetch())
+                }
+              >
+                {t("explore:retry")}
+              </Button>
+            </div>
+          )}
+          {query.hasNextPage && !error && (
             <Button
               variant="outline"
               disabled={query.isFetchingNextPage}

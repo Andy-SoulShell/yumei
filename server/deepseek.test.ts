@@ -185,10 +185,9 @@ describe("DeepSeek official API deployment", () => {
     const post = vi.spyOn(axios, "post").mockResolvedValue({
       data: { choices: [{ message: { content: '{"memories":[]}' } }] },
     });
-    await memory.callExtractionModel(
-      await resolveChatProvider(userId),
-      "用户：我喜欢喝茶"
-    );
+    await memory.callExtractionModel(await resolveChatProvider(userId), [
+      { id: 1, role: "user", content: "我喜欢喝茶" },
+    ]);
     await vi.waitFor(() =>
       expect(post).toHaveBeenCalledWith(
         "https://api.deepseek.com/chat/completions",

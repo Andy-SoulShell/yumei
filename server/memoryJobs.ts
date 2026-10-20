@@ -63,16 +63,14 @@ export async function runMemoryExtractionJobs(userId?: string): Promise<void> {
           and(
             eq(messages.conversationId, job.conversationId),
             lte(messages.id, job.lastMessageId),
-            eq(messages.generationStatus, "succeeded")
+            eq(messages.role, "user"),
+            sql`COALESCE(${messages.generationStatus}, 'succeeded') = 'succeeded'`,
+            isNull(messages.imageUrl)
           )
         )
         .orderBy(desc(messages.id))
-        .limit(EXTRACTION_EVERY_N_MESSAGES * 2);
-      const transcript = window
-        .reverse()
-        .map(row => `${row.role === "user" ? "用户" : "AI"}：${row.content}`)
-        .join("\n");
-      const candidates = await callExtractionModel(provider, transcript);
+        .limit(EXTRACTION_EVERY_N_MESSAGES);
+      const candidates = await callExtractionModel(provider, window.reverse());
       await withUserTransaction(job.userId, async tx => {
         const [current] = await tx
           .select()

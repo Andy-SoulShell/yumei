@@ -47,9 +47,18 @@ export function memoryCapacity(intimacyLevel: number): number {
   return 20 + level * 10;
 }
 
-/** 根据亲密度计算单次最多注入的记忆条数，现有等级范围返回 5 至 9。 */
-export function memoryInjectionK(intimacyLevel: number): number {
+/** 日常对话注入 5 至 9 条；询问个人往事时扩到 20 条，让模型理解同义表达。 */
+export function memoryInjectionK(
+  intimacyLevel: number,
+  userMessage = ""
+): number {
   const level = Math.min(Math.max(intimacyLevel, 1), 10);
+  if (
+    /记得|记不记得|記得|提过|提過|约定|約定|暗号|暗號|我.{0,20}(?:什么|哪|多少|叫)|\b(?:remember|recall|my\s+\w+)\b|覚え|私の|기억|내가/i.test(
+      userMessage
+    )
+  )
+    return 20;
   return Math.min(4 + Math.ceil(level / 2), 10);
 }
 

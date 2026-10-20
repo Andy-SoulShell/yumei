@@ -1,7 +1,8 @@
 /** 覆盖记忆评分、提取解析、持久化和主动消息引用。 */
 
 import { nanoid } from "nanoid";
-import { describe, expect, it, vi } from "vitest";
+import axios from "axios";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderMessage } from "../shared/i18n";
 import {
   bigramOverlap,
@@ -14,6 +15,7 @@ import {
 import { getDb } from "./database";
 import {
   buildMemoryPromptBlock,
+  callExtractionModel,
   deleteMemory,
   enforceMemoryCapacity,
   getFreshEventMemory,
@@ -88,6 +90,111 @@ describe("shared/memory scoring", () => {
   });
 });
 
+describe("extraction provider responses", () => {
+  afterEach(() => vi.restoreAllMocks());
+  const provider = {
+    name: "deepseek" as const,
+    baseUrl: "https://example.test",
+    model: "deepseek-flash",
+    apiKey: "fake-key",
+    isByok: false,
+  };
+  const sources = [
+    { id: 1, role: "user" as const, content: "我喜欢不加糖的燕麦拿铁" },
+  ];
+  it("rejects invalid responses so the persistent job can retry", async () => {
+    for (const content of [
+      undefined,
+      "",
+      "invalid JSON",
+      '{"memories":[{"category":"nope"}]}',
+    ]) {
+      vi.spyOn(axios, "post").mockResolvedValue({
+        data: { choices: [{ message: { content } }] },
+      });
+      await expect(callExtractionModel(provider, sources)).rejects.toThrow(
+        "Invalid memory extraction response"
+      );
+    }
+  });
+  it("accepts a valid empty result without retrying ordinary small talk", async () => {
+    vi.spyOn(axios, "post").mockResolvedValue({
+      data: { choices: [{ message: { content: '{"memories":[]}' } }] },
+    });
+    await expect(callExtractionModel(provider, sources)).resolves.toEqual([]);
+  });
+  it("accepts only verbatim user evidence and never stores model-written paraphrases or companion quotes", async () => {
+    const post = vi.spyOn(axios, "post").mockResolvedValue({
+      data: {
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                memories: [
+                  {
+                    category: "preference",
+                    sourceMessageId: 1,
+                    quote: sources[0].content,
+                    importance: 7,
+                    content: "用户最常喝黑咖啡",
+                  },
+                  {
+                    category: "preference",
+                    sourceMessageId: 2,
+                    quote: "我最常喝手冲咖啡",
+                    importance: 8,
+                  },
+                  {
+                    category: "preference",
+                    sourceMessageId: 1,
+                    quote: "我最常喝手冲咖啡",
+                    importance: 8,
+                  },
+                  {
+                    category: "fact",
+                    sourceMessageId: 999,
+                    quote: sources[0].content,
+                    importance: 8,
+                  },
+                ],
+              }),
+            },
+          },
+        ],
+      },
+    });
+    await expect(
+      callExtractionModel(provider, [
+        ...sources,
+        { id: 2, role: "assistant", content: "我最常喝手冲咖啡" },
+      ])
+    ).resolves.toEqual([
+      { category: "preference", content: sources[0].content, importance: 7 },
+    ]);
+    expect(post).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            role: "user",
+            content: JSON.stringify([{ id: 1, content: sources[0].content }]),
+          }),
+        ]),
+      }),
+      expect.any(Object)
+    );
+  });
+  it("does not send assistant-only input to the extraction provider", async () => {
+    const post = vi.spyOn(axios, "post");
+    await expect(
+      callExtractionModel(provider, [
+        { id: 2, role: "assistant", content: "我喜欢手冲咖啡" },
+      ])
+    ).resolves.toEqual([]);
+    expect(post).not.toHaveBeenCalled();
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Extraction parsing (no DB / no network)
 // ---------------------------------------------------------------------------
@@ -155,6 +262,37 @@ async function makeGirlfriend(userId: string) {
 }
 
 describe("memory storage (DB)", () => {
+  it("recalls several personal facts despite synonyms and more than five competing memories", async () => {
+    const userId = `recall-${nanoid(8)}`;
+    const gf = await makeGirlfriend(userId);
+    await storeExtractedMemories(userId, gf.id, [
+      {
+        category: "preference",
+        content: "我最喜欢不加糖的燕麦拿铁",
+        importance: 7,
+      },
+      { category: "fact", content: "我家养了一只叫团团的猫", importance: 7 },
+      {
+        category: "relationship",
+        content: "我们的专属暗号是月亮颜料",
+        importance: 7,
+      },
+      ...Array.from({ length: 12 }, () => ({
+        category: "event" as const,
+        content: `之前提过的日常安排${nanoid(30)}`,
+        importance: 8,
+      })),
+    ]);
+    const block = await buildMemoryPromptBlock(
+      userId,
+      gf.id,
+      "你还记得我之前提过的猫叫什么、常喝哪种咖啡和专属暗号吗？",
+      1
+    );
+    expect(block).toContain("团团");
+    expect(block).toContain("燕麦拿铁");
+    expect(block).toContain("月亮颜料");
+  });
   it("inserts new memories and reinforces near-duplicates", async () => {
     if (!(await getDb())) throw new Error("DATABASE_URL required");
     const userId = `mem-user-${nanoid(8)}`;

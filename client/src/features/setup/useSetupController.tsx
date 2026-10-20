@@ -25,8 +25,12 @@ export function useSetupController() {
 
   const params = useParams<{ id?: string }>();
 
-  const editId = params.id ? parseInt(params.id) : null;
+  const editId = params.id ? Number(params.id) : null;
 
+  const validEditId = editId !== null && Number.isInteger(editId) && editId > 0;
+  const initializedEdit = useRef<number | null>(null);
+  const submissionBusy = useRef(false);
+  const [isReadingImage, setIsReadingImage] = useState(false);
   const search = useSearch();
 
   const initialPreset = !editId
@@ -75,8 +79,13 @@ export function useSetupController() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // 获取女友列表用于编辑
-  const { data: girlfriends } = trpc.girlfriend.list.useQuery(undefined, {
-    enabled: !!editId,
+  const {
+    data: girlfriends,
+    isLoading: editLoading,
+    error: editError,
+    refetch: retryEdit,
+  } = trpc.girlfriend.list.useQuery(undefined, {
+    enabled: validEditId,
   });
 
   // 获取全局提示词配置
@@ -86,7 +95,8 @@ export function useSetupController() {
   useEffect(() => {
     if (editId && girlfriends) {
       const gf = girlfriends.find(g => g.id === editId);
-      if (gf) {
+      if (gf && initializedEdit.current !== editId) {
+        initializedEdit.current = editId;
         setName(gf.name);
         setPersonality(gf.personality);
         setAppearance(gf.appearance);
@@ -102,6 +112,9 @@ export function useSetupController() {
   const utils = trpc.useUtils();
 
   const createGirlfriend = trpc.girlfriend.create.useMutation({
+    onSettled: () => {
+      submissionBusy.current = false;
+    },
     onSuccess: async () => {
       await utils.girlfriend.invalidate();
       toast.success(t("setup:companionCreated"));
@@ -117,7 +130,11 @@ export function useSetupController() {
   // 亲密度经验值
 
   const updateGirlfriend = trpc.girlfriend.update.useMutation({
-    onSuccess: () => {
+    onSettled: () => {
+      submissionBusy.current = false;
+    },
+    onSuccess: async () => {
+      await utils.girlfriend.invalidate();
       toast.success(t("setup:companionUpdated"));
       // 触发编辑资料亲密度经验值
 
@@ -131,13 +148,13 @@ export function useSetupController() {
   });
 
   const uploadAvatar = trpc.girlfriend.uploadAvatar.useMutation({
-    onSuccess: data => {
+    onSuccess: async data => {
       setExistingAvatarUrl(data.avatarUrl);
       setAvatarFile(null);
       setAvatarPreview(null);
       setIsUploadingAvatar(false);
+      await utils.girlfriend.invalidate();
       toast.success(t("setup:avatarUploaded"));
-      // 触发上传头像亲密度经验值
     },
     onError: error => {
       setIsUploadingAvatar(false);
@@ -157,6 +174,20 @@ export function useSetupController() {
         t("common:couldNotDelete", { error: apiErrorMessage(error, t) })
       );
     },
+  });
+
+  const removeAvatar = trpc.girlfriend.update.useMutation({
+    onSuccess: async () => {
+      setExistingAvatarUrl(null);
+      setAvatarFile(null);
+      setAvatarPreview(null);
+      await utils.girlfriend.invalidate();
+    },
+    onError: error =>
+      toast.error(
+        t("setup:couldNotUpdate", { error: apiErrorMessage(error, t) })
+      ),
+    onSettled: () => setIsUploadingAvatar(false),
   });
 
   const handleDelete = () => {
@@ -200,7 +231,8 @@ export function useSetupController() {
   // 头像选择处理
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    e.target.value = "";
+    if (!file || isUploadingAvatar) return;
 
     // 格式校验
     if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
@@ -228,11 +260,15 @@ export function useSetupController() {
 
   // 上传头像
   const handleUploadAvatar = () => {
-    if (!avatarFile || !editId) return;
+    if (!avatarFile || !editId || isUploadingAvatar) return;
 
     setIsUploadingAvatar(true);
     const reader = new FileReader();
-    reader.onloadend = () => {
+    reader.onerror = () => {
+      setIsUploadingAvatar(false);
+      toast.error(t("setup:couldNotReadImage"));
+    };
+    reader.onload = () => {
       const base64 = (reader.result as string).split(",")[1];
       uploadAvatar.mutate({
         girlfriendId: editId,
@@ -246,34 +282,32 @@ export function useSetupController() {
 
   // 移除头像（设为 null）
   const handleRemoveAvatar = () => {
-    if (editId) {
-      updateGirlfriend.mutate({
-        id: editId,
-        avatarUrl: null,
-        avatarKey: null,
-      });
-      setExistingAvatarUrl(null);
-      setAvatarFile(null);
-      setAvatarPreview(null);
-    }
+    if (!editId || isUploadingAvatar) return;
+    setIsUploadingAvatar(true);
+    removeAvatar.mutate({ id: editId, avatarUrl: null, avatarKey: null });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name || !personality || !appearance) {
+    if (submissionBusy.current || isUploadingAvatar) return;
+    const fields = { name, personality, appearance };
+    const invalid = Object.entries(fields).find(([, value]) => !value.trim());
+    if (invalid) {
       toast.error(t("setup:fillInAllRequiredFields"));
+      document.getElementById(invalid[0])?.focus();
       return;
     }
 
     if (editId) {
+      submissionBusy.current = true;
       // 编辑模式
       updateGirlfriend.mutate({
         id: editId,
-        name,
-        personality,
-        appearance,
-        interests: interests || undefined,
+        name: name.trim(),
+        personality: personality.trim(),
+        appearance: appearance.trim(),
+        interests: interests.trim(),
         customPrompt: customPrompt || null,
       });
     } else {
@@ -284,10 +318,11 @@ export function useSetupController() {
       }
 
       if (!imageFile) {
+        submissionBusy.current = true;
         createGirlfriend.mutate({
-          name,
-          personality,
-          appearance,
+          name: name.trim(),
+          personality: personality.trim(),
+          appearance: appearance.trim(),
           interests: interests || undefined,
           customPrompt: customPrompt || undefined,
           presetId: presetId!,
@@ -295,13 +330,21 @@ export function useSetupController() {
         return;
       }
 
+      submissionBusy.current = true;
+      setIsReadingImage(true);
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onerror = () => {
+        submissionBusy.current = false;
+        setIsReadingImage(false);
+        toast.error(t("setup:couldNotReadImage"));
+      };
+      reader.onload = () => {
         const base64 = (reader.result as string).split(",")[1];
+        setIsReadingImage(false);
         createGirlfriend.mutate({
-          name,
-          personality,
-          appearance,
+          name: name.trim(),
+          personality: personality.trim(),
+          appearance: appearance.trim(),
           interests: interests || undefined,
           customPrompt: customPrompt || undefined,
           referenceImageBase64: base64,
@@ -313,9 +356,17 @@ export function useSetupController() {
     }
   };
 
-  const isEditing = !!editId;
+  const isEditing = params.id !== undefined;
+  const editNotFound =
+    isEditing &&
+    (!validEditId ||
+      (!editLoading &&
+        !editError &&
+        girlfriends &&
+        !girlfriends.some(g => g.id === editId)));
 
-  const isPending = createGirlfriend.isPending || updateGirlfriend.isPending;
+  const isPending =
+    createGirlfriend.isPending || updateGirlfriend.isPending || isReadingImage;
 
   const displayImage =
     imagePreview ||
@@ -327,6 +378,10 @@ export function useSetupController() {
     setLocation,
     t,
     isEditing,
+    editLoading,
+    editError,
+    editNotFound,
+    retryEdit,
     handleSubmit,
     presetId,
     handleSelectPreset,

@@ -57,8 +57,12 @@ export function ReferenceUpload({
             )}
           </div>
         ) : (
-          <label
-            htmlFor="image"
+          <Button
+            type="button"
+            variant="plain"
+            size="none"
+            onClick={() => imageInputRef.current?.click()}
+            aria-label={t("setup:uploadAReferencePhoto")}
             className="w-48 h-48 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary transition-colors"
           >
             <Upload className="w-12 h-12 text-muted-foreground mb-2" />
@@ -68,7 +72,7 @@ export function ReferenceUpload({
             <span className="text-xs text-muted-foreground mt-1">
               {t("setup:jpgPNGGIFOrWebPUpTo10")}
             </span>
-          </label>
+          </Button>
         )}
         {!isEditing && (
           <Input

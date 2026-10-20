@@ -535,6 +535,8 @@ export default {
     "empty.start": "{{name}}と話してみましょう",
   },
   common: {
+    loadFailed: "読み込めませんでした",
+    contentUnavailable: "コンテンツが見つかりません",
     loadMore: "もっと見る",
     couldNotOpenTheConversation: "会話を開けませんでした：{{error}}",
     points: "{{mood}}（{{points}}ポイント）",
@@ -618,6 +620,7 @@ export default {
     "categories.relationship": "ふたりの関係",
   },
   setup: {
+    couldNotReadImage: "画像を読み込めません。もう一度選んでください。",
     companionCreated: "作成しました",
     couldNotCreateCompanion: "パートナーを作成できませんでした：{{error}}",
     companionUpdated: "更新しました",

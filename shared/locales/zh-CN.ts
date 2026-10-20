@@ -502,6 +502,8 @@ export default {
     "empty.start": "开始和 {{name}} 聊天吧～",
   },
   common: {
+    loadFailed: "加载失败，请重试",
+    contentUnavailable: "内容不存在或已删除",
     loadMore: "加载更多",
     couldNotOpenTheConversation: "打开对话失败：{{error}}",
     points: "{{mood}} ({{points}}分)",
@@ -583,6 +585,7 @@ export default {
     "categories.relationship": "我们之间",
   },
   setup: {
+    couldNotReadImage: "无法读取图片，请重新选择",
     companionCreated: "角色已创建",
     couldNotCreateCompanion: "创建失败：{{error}}",
     companionUpdated: "角色已更新",

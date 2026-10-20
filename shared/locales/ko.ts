@@ -523,6 +523,8 @@ export default {
     "empty.start": "{{name}} 님과 대화를 시작해 보세요",
   },
   common: {
+    loadFailed: "불러오지 못했어요",
+    contentUnavailable: "콘텐츠를 찾을 수 없어요",
     loadMore: "더 보기",
     couldNotOpenTheConversation: "대화를 열지 못했어요: {{error}}",
     points: "{{mood}}({{points}}점)",
@@ -606,6 +608,7 @@ export default {
     "categories.relationship": "우리 사이",
   },
   setup: {
+    couldNotReadImage: "이미지를 읽지 못했어요. 다시 선택해 주세요.",
     companionCreated: "캐릭터를 만들었어요",
     couldNotCreateCompanion: "동반자를 만들지 못했어요: {{error}}",
     companionUpdated: "캐릭터를 수정했어요",

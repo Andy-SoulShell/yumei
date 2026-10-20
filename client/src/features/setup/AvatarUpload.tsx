@@ -46,6 +46,7 @@ export function AvatarUpload({
           type="button"
           aria-label={t("setup:upload")}
           className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-border flex-shrink-0 cursor-pointer group"
+          disabled={isUploadingAvatar}
           onClick={() => avatarInputRef.current?.click()}
         >
           {displayAvatar ? (
@@ -102,6 +103,8 @@ export function AvatarUpload({
                 type="button"
                 variant="ghost"
                 size="sm"
+                aria-label={t("common:cancel")}
+                disabled={isUploadingAvatar}
                 onClick={() => {
                   setAvatarFile(null);
                   setAvatarPreview(null);
@@ -115,6 +118,7 @@ export function AvatarUpload({
               type="button"
               variant="outline"
               size="sm"
+              disabled={isUploadingAvatar}
               onClick={() => avatarInputRef.current?.click()}
             >
               <Camera className="w-3.5 h-3.5 mr-1" />
@@ -127,6 +131,7 @@ export function AvatarUpload({
               variant="ghost"
               size="sm"
               className="text-destructive hover:text-destructive text-xs"
+              disabled={isUploadingAvatar}
               onClick={handleRemoveAvatar}
             >
               <X className="w-3 h-3 mr-1" />

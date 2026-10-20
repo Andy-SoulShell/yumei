@@ -532,6 +532,8 @@ export default {
     "empty.start": "Start chatting with {{name}}",
   },
   common: {
+    loadFailed: "Could not load this page",
+    contentUnavailable: "This content is unavailable",
     loadMore: "Load more",
     couldNotOpenTheConversation: "Could not open the conversation: {{error}}",
     points: "{{mood}} ({{points}} points)",
@@ -614,6 +616,7 @@ export default {
     "categories.relationship": "Our relationship",
   },
   setup: {
+    couldNotReadImage: "Could not read the image. Choose it again.",
     companionCreated: "Character created",
     couldNotCreateCompanion: "Could not create companion: {{error}}",
     companionUpdated: "Character updated",

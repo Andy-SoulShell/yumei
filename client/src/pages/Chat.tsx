@@ -37,7 +37,7 @@ export default function Chat() {
     conversationId ? conversationLoading || girlfriendsLoading : activeLoading
   ) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-full flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -45,7 +45,7 @@ export default function Chat() {
 
   if (!girlfriend) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
+      <div className="min-h-full flex flex-col items-center justify-center p-4 bg-background">
         <Heart className="w-16 h-16 text-primary mb-4" />
         <h2 className="text-2xl font-bold mb-2">{t("chat:noCompanionYet")}</h2>
         <p className="text-muted-foreground mb-4">

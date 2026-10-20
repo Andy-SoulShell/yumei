@@ -62,7 +62,7 @@ export default function MyCharacters() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-full flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -70,7 +70,7 @@ export default function MyCharacters() {
 
   // 已登录 - 女友列表
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-full bg-background">
       <header className="characters-toolbar flex items-center justify-between gap-3 border-b px-4 py-4 sm:px-8">
         <h1 className="text-lg font-semibold">{t("explore:navCharacters")}</h1>
         <div className="flex items-center gap-2">

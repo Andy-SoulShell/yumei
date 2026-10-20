@@ -49,10 +49,7 @@ export default function Setup() {
   } = state;
 
   return (
-    <div
-      className="min-h-screen bg-background app-surface p-3 sm:p-4"
-      style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
-    >
+    <div className="min-h-full bg-background app-surface p-3 sm:p-4">
       <div className="max-w-2xl mx-auto py-4 sm:py-8">
         <Button
           variant="ghost"

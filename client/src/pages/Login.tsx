@@ -49,7 +49,7 @@ export default function Login() {
 
   if (sent) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="auth-page flex items-center justify-center">
         <div className="flex flex-col items-center gap-6 p-8 max-w-md w-full">
           <LanguagePicker />
           <h1 className="text-2xl font-semibold tracking-tight text-center">
@@ -73,7 +73,7 @@ export default function Login() {
   }
 
   return (
-    <div className="login-page flex items-center justify-center min-h-screen">
+    <div className="login-page auth-page flex items-center justify-center">
       <div className="flex flex-col items-center gap-6 p-8 max-w-md w-full">
         <Link href="/" className="app-brand">
           <Sparkles size={24} />

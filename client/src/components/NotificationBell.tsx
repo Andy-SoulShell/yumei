@@ -165,7 +165,7 @@ export function NotificationBell() {
           </div>
         </SheetHeader>
 
-        <ScrollArea className="h-[calc(100vh-80px)]">
+        <ScrollArea className="min-h-0 flex-1">
           {notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
               <Bell className="w-12 h-12 mb-3 opacity-30" />

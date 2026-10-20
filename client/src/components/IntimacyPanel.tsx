@@ -63,7 +63,7 @@ export function IntimacyPanel({
           </SheetDescription>
         </SheetHeader>
 
-        <ScrollArea className="h-[calc(100vh-120px)]">
+        <ScrollArea className="min-h-0 flex-1">
           <div className="px-6 pb-6 space-y-6">
             {/* 当前等级卡片 */}
             <div className="bg-muted/50 rounded-xl p-5 text-center space-y-3">

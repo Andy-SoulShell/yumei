@@ -40,7 +40,7 @@ class ErrorBoundary extends Component<Props, State> {
       translate(text, normalizeLocale(document.documentElement.lang));
     if (this.state.hasError) {
       return (
-        <div className="flex items-center justify-center min-h-screen p-8 bg-background">
+        <div className="auth-page flex items-center justify-center p-8 bg-background">
           <div className="flex flex-col items-center w-full max-w-2xl p-8">
             <AlertTriangle
               size={48}

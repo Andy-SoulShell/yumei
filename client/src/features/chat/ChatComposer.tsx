@@ -55,8 +55,7 @@ export function ChatComposer({
   return (
     <form
       onSubmit={handleSendMessage}
-      className="flex items-center gap-2 p-2 sm:p-4 border-t bg-card"
-      style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
+      className="chat-composer flex items-center gap-2 p-2 sm:p-4 border-t bg-card"
     >
       {/* 拍照按钮（打开姿势选择器；徽章显示剩余额度） */}
       <Button

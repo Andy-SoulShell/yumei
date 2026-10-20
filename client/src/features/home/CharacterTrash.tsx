@@ -44,7 +44,7 @@ export function CharacterTrash({
           </SheetDescription>
         </SheetHeader>
 
-        <ScrollArea className="h-[calc(100vh-120px)]">
+        <ScrollArea className="min-h-0 flex-1">
           {!trashItems || trashItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center px-4">
               <Trash className="w-12 h-12 text-muted-foreground mb-3" />

@@ -71,10 +71,7 @@ export function ChatHeader({
   theme,
 }: Props) {
   return (
-    <header
-      className="flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3 border-b bg-card"
-      style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}
-    >
+    <header className="flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3 border-b bg-card">
       <Button
         variant="ghost"
         size="icon"

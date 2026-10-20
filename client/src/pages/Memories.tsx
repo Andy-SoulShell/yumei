@@ -56,7 +56,7 @@ export default function Memories() {
 
   if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-full flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -73,11 +73,8 @@ export default function Memories() {
   const capacity = memoryCapacity(girlfriend?.intimacyLevel || 1);
 
   return (
-    <div className="min-h-screen bg-background">
-      <header
-        className="flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3 border-b bg-card sticky top-0 z-10"
-        style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}
-      >
+    <div className="min-h-full bg-background">
+      <header className="flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3 border-b bg-card sticky top-0 z-10">
         <Button variant="ghost" size="icon" onClick={() => history.back()}>
           <ArrowLeft className="w-5 h-5" />
         </Button>

@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100dvh;
+  height: 100%;
   overflow: hidden;
   background: var(--background);
 }
@@ -14,7 +14,8 @@
   gap: 28px;
   flex: none;
   min-height: var(--shell-header);
-  padding: max(12px, env(safe-area-inset-top)) 28px 12px 24px;
+  padding: calc(12px + var(--safe-area-top)) max(28px, var(--safe-area-right))
+    12px max(24px, var(--safe-area-left));
   border-bottom: 1px solid var(--border);
   background: var(--background);
   z-index: 30;
@@ -108,6 +109,7 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  padding-inline: var(--safe-area-left) var(--safe-area-right);
 }
 .app-sidebar {
   display: flex;
@@ -229,7 +231,6 @@
   max-width: 300px;
   gap: 0;
   overflow-y: auto;
-  padding-bottom: env(safe-area-inset-bottom);
 }
 .mobile-sidebar .sidebar-panel {
   padding: 8px 12px 18px;
@@ -314,6 +315,10 @@
 }
 .chat-page > header {
   flex-shrink: 0;
+}
+.chat-composer {
+  flex: none;
+  padding-bottom: max(8px, var(--safe-area-bottom));
 }
 .app-bottom-nav {
   display: none;
@@ -1049,6 +1054,53 @@
     transparent 60%
   );
 }
+.auth-page {
+  height: 100%;
+  overflow-y: auto;
+  padding: max(16px, var(--safe-area-top)) max(0px, var(--safe-area-right))
+    max(16px, var(--safe-area-bottom)) max(0px, var(--safe-area-left));
+  flex-direction: column;
+  justify-content: flex-start;
+}
+.auth-page > div {
+  flex: none;
+  margin-block: auto;
+}
+/* 抽屉独立于应用布局挂载，只有接触屏幕边缘的一侧补偿安全区。 */
+.sheet-panel[data-side="left"],
+.sheet-panel[data-side="right"] {
+  padding-top: var(--safe-area-top);
+  padding-bottom: var(--safe-area-bottom);
+}
+.sheet-panel[data-side="left"] {
+  padding-left: var(--safe-area-left);
+}
+.sheet-panel[data-side="right"] {
+  padding-right: var(--safe-area-right);
+}
+.sheet-panel[data-side="top"],
+.sheet-panel[data-side="bottom"] {
+  padding-inline: var(--safe-area-left) var(--safe-area-right);
+}
+.sheet-panel[data-side="top"] {
+  padding-top: var(--safe-area-top);
+}
+.sheet-panel[data-side="bottom"] {
+  padding-bottom: var(--safe-area-bottom);
+}
+.sheet-panel > [data-slot="sheet-header"] {
+  flex: none;
+}
+.sheet-panel .sheet-close {
+  top: calc(16px + var(--safe-area-top));
+  right: 16px;
+}
+.sheet-panel[data-side="right"] .sheet-close {
+  right: calc(16px + var(--safe-area-right));
+}
+.sheet-panel[data-side="bottom"] .sheet-close {
+  top: 16px;
+}
 @media (min-width: 1640px) {
   .character-grid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -1095,7 +1147,8 @@
   }
   .app-header {
     min-height: 60px;
-    padding-inline: 20px;
+    padding-inline: max(20px, var(--safe-area-left))
+      max(20px, var(--safe-area-right));
     gap: 8px;
   }
   .app-header-actions {
@@ -1156,8 +1209,8 @@
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     flex: none;
-    padding: 6px max(8px, env(safe-area-inset-right))
-      max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    padding: 6px max(8px, var(--safe-area-right))
+      max(8px, var(--safe-area-bottom)) max(8px, var(--safe-area-left));
     background: var(--background);
     border-top: 1px solid var(--border);
     z-index: 30;
@@ -1208,9 +1261,8 @@
 }
 @media (max-width: 640px) {
   .app-header {
-    padding: max(8px, env(safe-area-inset-top))
-      max(8px, env(safe-area-inset-right)) 8px
-      max(8px, env(safe-area-inset-left));
+    padding: calc(8px + var(--safe-area-top)) max(8px, var(--safe-area-right))
+      8px max(8px, var(--safe-area-left));
     min-height: 60px;
     gap: 4px;
   }

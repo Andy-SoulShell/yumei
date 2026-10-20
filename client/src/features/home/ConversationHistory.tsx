@@ -101,7 +101,7 @@ export function ConversationHistory({
           </div>
         </SheetHeader>
 
-        <ScrollArea className="h-[calc(100vh-160px)]">
+        <ScrollArea className="min-h-0 flex-1">
           {searchLoading && isSearchMode && (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-5 h-5 animate-spin text-primary mr-2" />

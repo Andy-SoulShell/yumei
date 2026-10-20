@@ -16,12 +16,18 @@ export function useAutosizeTextarea(
     resize();
     if (typeof ResizeObserver === "undefined") return;
     let width = element.clientWidth;
+    let frame = 0;
     const observer = new ResizeObserver(() => {
       if (element.clientWidth === width) return;
       width = element.clientWidth;
-      resize();
+      // 不在 ResizeObserver 回调内改被观察元素的高度，避免 WebKit 的循环通知。
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(resize);
     });
     observer.observe(element);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+    };
   }, [ref, value, enabled]);
 }

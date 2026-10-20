@@ -497,6 +497,7 @@ export function useChatController() {
         userContext: message.trim() || undefined,
       });
     };
+    reader.onerror = () => toast.error(t("setup:couldNotReadImage"));
     reader.readAsDataURL(file);
   };
 

@@ -47,7 +47,7 @@ export function memoryCapacity(intimacyLevel: number): number {
   return 20 + level * 10;
 }
 
-/** 日常对话注入 5 至 9 条；询问个人往事时扩到 20 条，让模型理解同义表达。 */
+/** 日常对话注入 5 至 9 条；回忆时读取角色容量内的全部记忆，避免字面排序漏掉同义事实。 */
 export function memoryInjectionK(
   intimacyLevel: number,
   userMessage = ""
@@ -58,7 +58,7 @@ export function memoryInjectionK(
       userMessage
     )
   )
-    return 20;
+    return memoryCapacity(intimacyLevel);
   return Math.min(4 + Math.ceil(level / 2), 10);
 }
 

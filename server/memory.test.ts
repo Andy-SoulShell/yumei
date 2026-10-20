@@ -365,6 +365,37 @@ describe("memory storage (DB)", () => {
     expect(block).toContain("燕麦拿铁");
     expect(block).toContain("月亮颜料");
   });
+  it("recalls a weakly worded preference beyond the former twenty-item cutoff", async () => {
+    const userId = `large-recall-${nanoid(8)}`;
+    const gf = await makeGirlfriend(userId);
+    await storeExtractedMemories(userId, gf.id, [
+      {
+        category: "preference",
+        content: "我最喜欢喝不加糖的燕麦拿铁",
+        importance: 4,
+      },
+      ...Array.from({ length: 25 }, (_, i) => ({
+        category: "event" as const,
+        content: `咖啡海报设计第${i}次安排${nanoid(32)}`,
+        importance: 8,
+      })),
+    ]);
+    await enforceMemoryCapacity(userId, gf.id, 1);
+    const block = await buildMemoryPromptBlock(
+      userId,
+      gf.id,
+      "你还记得我最常喝哪种咖啡吗？",
+      1
+    );
+    expect(block).toContain("燕麦拿铁");
+    expect(
+      block.split("\n").filter(line => line.startsWith("- "))
+    ).toHaveLength(26);
+    expect(memoryInjectionK(10, "Do you remember my favorite drink?")).toBe(
+      120
+    );
+    expect(memoryInjectionK(1, "今天天气不错")).toBe(5);
+  });
   it("inserts new memories and reinforces near-duplicates", async () => {
     if (!(await getDb())) throw new Error("DATABASE_URL required");
     const userId = `mem-user-${nanoid(8)}`;

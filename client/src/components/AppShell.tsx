@@ -22,6 +22,14 @@ import { loginUrl } from "@/lib/navigation";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import {
   Sheet,
   SheetContent,
   SheetHeader,
@@ -220,6 +228,38 @@ export function AppShell({ children }: { children: ReactNode }) {
             <>
               <div className="header-notifications">
                 <NotificationBell />
+              </div>
+              <div className="mobile-account-menu">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="mobile-account-trigger"
+                      aria-label={t("explore:account")}
+                    >
+                      {accountAvatar}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    sideOffset={8}
+                    className="mobile-account-dropdown w-64 max-w-[calc(100vw-2rem)]"
+                  >
+                    <DropdownMenuLabel className="break-all px-3 py-2 text-sm font-medium">
+                      {user.email}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="min-h-11 px-3"
+                      disabled={loading}
+                      onSelect={signOut}
+                    >
+                      <LogOut />
+                      {t("auth:signOut")}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               <div
                 className="account-controls"

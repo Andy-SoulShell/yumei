@@ -274,6 +274,36 @@ describe("header account actions", () => {
     expect(mock.navigate).not.toHaveBeenCalled();
     expect(mock.toastError).toHaveBeenCalledWith("网络错误，请重试。");
   });
+
+  it("opens email and sign-out from the mobile avatar without signing out on open", async () => {
+    mock.user = {
+      name: "Andy",
+      email: "a.very.long.email.address@example.com",
+      image: null,
+    };
+    await render();
+    const trigger = container.querySelector<HTMLButtonElement>(
+      ".mobile-account-trigger"
+    )!;
+    expect(trigger.textContent).toBe("A");
+    await settle(() =>
+      trigger.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Enter",
+          bubbles: true,
+          cancelable: true,
+        })
+      )
+    );
+    const menu = document.querySelector('[role="menu"]')!;
+    expect(menu.textContent).toContain(mock.user.email);
+    expect(mock.logout).not.toHaveBeenCalled();
+    const signOut = menu.querySelector<HTMLElement>('[role="menuitem"]')!;
+    expect(signOut.textContent).toBe("退出登录");
+    await settle(() => signOut.click());
+    expect(mock.logout).toHaveBeenCalledOnce();
+    expect(mock.navigate).toHaveBeenCalledWith("/");
+  });
 });
 
 describe("desktop navigation modes", () => {

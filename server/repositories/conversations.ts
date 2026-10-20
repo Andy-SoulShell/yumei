@@ -218,10 +218,7 @@ export async function getConversationsWithLastMessage(
   if (!db) return [];
   if (options.ids?.length === 0) return [];
   const cursor = options.cursor;
-  const pattern =
-    "%" +
-    (options.search || "").replace(/[!%_]/g, "!const cursor=options.cursor;") +
-    "%";
+  const pattern = "%" + (options.search || "").replace(/[!%_]/g, "!$&") + "%";
   const rows = await db
     .select({
       ...getTableColumns(conversations),

@@ -124,3 +124,53 @@ it("treats percent and underscore literally and returns only owned conversations
     await searchConversations(userId, "%_", second[0].matchedMessageId, 1)
   ).toEqual([]);
 });
+
+it.each(["%", "_", "!"])(
+  "filters conversation summaries with literal %s in names, titles and messages",
+  async character => {
+    const userId = `summary-search-${crypto.randomUUID()}`;
+    const own = await createTestGirlfriend({ ...profile, userId });
+    const named = await createTestGirlfriend({
+      ...profile,
+      userId,
+      name: `Name ${character} match`,
+    });
+    const foreign = await createTestGirlfriend({
+      ...profile,
+      userId: `foreign-${crypto.randomUUID()}`,
+      name: `Foreign ${character} match`,
+    });
+    const titleMatch = await createConversation({
+      userId,
+      girlfriendId: own.id,
+      title: `Title ${character} match`,
+    });
+    const nameMatch = await createConversation({
+      userId,
+      girlfriendId: named.id,
+      title: "No match",
+    });
+    const messageMatch = await createConversation({
+      userId,
+      girlfriendId: own.id,
+      title: "No match",
+    });
+    await createMessage({
+      conversationId: messageMatch.id,
+      role: "user",
+      content: `Message ${character} match`,
+    });
+    await createConversation({ userId, girlfriendId: own.id, title: "Other" });
+    await createConversation({
+      userId: foreign.userId,
+      girlfriendId: foreign.id,
+      title: `Foreign ${character} match`,
+    });
+    const results = await getConversationsWithLastMessage(userId, {
+      search: character,
+    });
+    expect(results.map(row => row.id).sort()).toEqual(
+      [titleMatch.id, nameMatch.id, messageMatch.id].sort()
+    );
+  }
+);

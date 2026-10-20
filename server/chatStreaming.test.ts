@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   generationRequests,
   girlfriendMoods,
+  girlfriends,
   messages,
   rateWindows,
   users,
@@ -144,6 +145,31 @@ afterEach(() => {
 });
 
 describe("durable chat turns", () => {
+  it.each([
+    [true, "1", "长期记忆由后台异步提取"],
+    [false, "1", "长期记忆已关闭或暂停"],
+    [true, "0", "长期记忆已关闭或暂停"],
+  ])(
+    "passes actual role/global memory availability to the model: %s/%s",
+    async (enabled, flag, expected) => {
+      const { user, gf, input } = await seed();
+      vi.stubEnv("COMPANION_MEMORY_ENABLED", flag);
+      await (await getDb())!
+        .update(girlfriends)
+        .set({ memoryEnabled: enabled })
+        .where(eq(girlfriends.id, gf.id));
+      const fetchMock = vi.fn(async (_url: unknown, _options: RequestInit) =>
+        response(delta("了解了。") + finish + "data: [DONE]\n\n")
+      );
+      vi.stubGlobal("fetch", fetchMock);
+      await submitChatTurn(user, input);
+      await runChatTurns([user.id]);
+      expect(
+        JSON.parse(fetchMock.mock.calls[0][1].body as string).messages[0]
+          .content
+      ).toContain(expected);
+    }
+  );
   it("applies a changed DeepSeek language before the current input while preserving old replies and raw user text", async () => {
     const { user, input } = await seed();
     const fetchMock = vi.fn(async (_url: unknown, _options: RequestInit) =>
@@ -262,7 +288,7 @@ describe("durable chat turns", () => {
       model: "test-stream-model",
       stream_options: { include_usage: true },
     });
-    expect(body.messages[0].content).toContain("companion/1.3");
+    expect(body.messages[0].content).toContain("companion/1.4");
     expect(body.messages[0].content).toContain("安全");
     expect(
       body.messages.filter(

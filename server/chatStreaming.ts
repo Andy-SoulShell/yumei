@@ -27,7 +27,7 @@ import {
   CHAT_PROMPT_VERSION,
 } from "./chatPrompt";
 import { chatContextLimits, planChatContext } from "./chatContextBudget";
-import { runtimeInteger } from "./aiTaskRuntime";
+import { memoryFeatureEnabled, runtimeInteger } from "./aiTaskRuntime";
 import { getChatBehaviorContext } from "./companionContext";
 import { getDb, withUserTransaction, type DbTransaction } from "./database";
 import {
@@ -754,11 +754,10 @@ async function executeChatTurn(request: Request, leaseToken: string) {
         providerErrorSummary(error)
       );
     }
-    const platformPrompt = buildChatSystemPrompt(
-      girlfriend,
-      config,
-      behaviorContext
-    );
+    const platformPrompt = buildChatSystemPrompt(girlfriend, config, {
+      ...behaviorContext,
+      memoryEnabled: memoryFeatureEnabled() && girlfriend.memoryEnabled,
+    });
     let memoryBlock = "";
     try {
       memoryBlock = await buildMemoryPromptBlock(

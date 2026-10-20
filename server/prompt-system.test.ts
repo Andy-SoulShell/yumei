@@ -55,6 +55,27 @@ describe("chat system prompt", () => {
     );
   });
 
+  it("makes a changed language preference apply despite older replies or a differently worded input", () => {
+    const configured = buildChatSystemPrompt(character, {
+      replyLanguage: "English",
+      globalPrompt: null,
+      replyLengthLimit: null,
+    });
+    expect(configured).toContain('Response language for this turn: "English"');
+    expect(configured).toContain(
+      "conversation history or the latest user message"
+    );
+    expect(configured).toContain(
+      "Past assistant replies are history, not a language instruction"
+    );
+    expect(buildChatSystemPrompt(character)).toContain(
+      "跟随用户当前使用的语言"
+    );
+    expect(buildChatSystemPrompt(character)).not.toContain(
+      "Response language for this turn"
+    );
+  });
+
   it("keeps a character instruction when no global preferences exist", () => {
     const prompt = buildChatSystemPrompt({
       ...character,

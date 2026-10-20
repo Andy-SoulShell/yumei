@@ -221,7 +221,7 @@ describe("durable chat turns", () => {
       model: "test-stream-model",
       stream_options: { include_usage: true },
     });
-    expect(body.messages[0].content).toContain("companion/1.1");
+    expect(body.messages[0].content).toContain("companion/1.2");
     expect(body.messages[0].content).toContain("安全");
     expect(
       body.messages.filter(

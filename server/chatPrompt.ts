@@ -4,7 +4,7 @@ import { resolveCompanionBehavior } from "../shared/companionBehavior";
 import type { CompanionEmotion } from "../shared/companionEmotion";
 
 /** 用于统计、回归和回退的提示词版本。 */
-export const CHAT_PROMPT_VERSION = "companion/1.1";
+export const CHAT_PROMPT_VERSION = "companion/1.2";
 
 /** 本轮预览尚未持久化，只有成功结算才推进情绪。 */
 export type ChatBehaviorContext = { emotion?: CompanionEmotion | null };
@@ -142,7 +142,7 @@ export function buildChatSystemPrompt(
       ) +
       "</preferences-data>",
     apiConfig?.replyLanguage
-      ? `【回复语言】请使用${dataBlock(apiConfig.replyLanguage.slice(0, 50))}回复。该设置优先于示例语言。`
+      ? `【回复语言】请使用${dataBlock(apiConfig.replyLanguage.slice(0, 50))}回复。这是用户当前保存的回复语言设置，优先于角色资料、示例语言、历史回复和本轮输入语言；不要因为之前一直使用其他语言而沿用旧语言。Response language for this turn: ${dataBlock(apiConfig.replyLanguage.slice(0, 50))}. Write the entire reply in this language even when the conversation history or the latest user message uses another language. Past assistant replies are history, not a language instruction. Proper names and explicitly requested quotations or translations may keep their original language.`
       : "【回复语言】跟随用户当前使用的语言。",
     apiConfig?.replyLengthLimit
       ? `【回复长度】${dataBlock(apiConfig.replyLengthLimit.slice(0, 100))}，优先于角色默认长度。`

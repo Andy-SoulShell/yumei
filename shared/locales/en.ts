@@ -549,6 +549,14 @@ export default {
     recordingIsTooShortPleaseTryAgain:
       "Recording is too short. Please try again.",
     couldNotReadTheAudio: "Could not read the audio",
+    recordingUnsupported: "This browser does not support audio recording.",
+    recordingMaxDuration: "The 60-second recording limit has been reached.",
+    microphonePermissionDenied:
+      "Microphone access was denied. Allow it in your browser settings.",
+    microphoneNotFound: "No microphone was found.",
+    microphoneUnavailable:
+      "Could not access the microphone. Check your browser permissions.",
+    recordingCancelled: "Recording cancelled",
     noSpeechWasRecognizedPleaseTryAgain:
       "No speech was recognized. Please try again.",
     transcriptionFailed: "Transcription failed: {{error}}",

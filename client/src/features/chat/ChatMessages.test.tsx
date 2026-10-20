@@ -84,6 +84,19 @@ it("renders separate stable segment bubbles within one canonical assistant messa
   expect(container.textContent?.match(/你好呀。/g)).toHaveLength(1);
 });
 
+it("does not render blank bubbles for provider newline-only segments", async () => {
+  props.chatMessages[1].segments!.splice(1, 0, {
+    id: "blank-line",
+    sequence: 1,
+    content: "\n\n",
+  });
+  await render();
+  expect(container.querySelector('[data-segment-id="blank-line"]')).toBeNull();
+  expect(container.querySelectorAll("[data-segment-id]")).toHaveLength(2);
+  expect(container.textContent).toContain("你好呀。");
+  expect(container.textContent).toContain("今天怎么样？");
+});
+
 it("retries an accepted failed generation by canonical message id", async () => {
   props.chatMessages[1].generationStatus = "failed";
   await render();

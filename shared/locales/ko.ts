@@ -540,6 +540,14 @@ export default {
     recordingIsTooShortPleaseTryAgain:
       "녹음이 너무 짧아요. 다시 시도해 주세요.",
     couldNotReadTheAudio: "오디오 데이터를 읽지 못했어요",
+    recordingUnsupported: "이 브라우저는 녹음을 지원하지 않아요.",
+    recordingMaxDuration: "최대 녹음 시간인 60초에 도달했어요.",
+    microphonePermissionDenied:
+      "마이크 접근이 거부되었어요. 브라우저 설정에서 허용해 주세요.",
+    microphoneNotFound: "마이크를 찾을 수 없어요.",
+    microphoneUnavailable:
+      "마이크를 사용할 수 없어요. 브라우저 권한을 확인해 주세요.",
+    recordingCancelled: "녹음을 취소했어요",
     noSpeechWasRecognizedPleaseTryAgain:
       "음성을 인식하지 못했어요. 다시 시도해 주세요.",
     transcriptionFailed: "음성 변환에 실패했어요: {{error}}",

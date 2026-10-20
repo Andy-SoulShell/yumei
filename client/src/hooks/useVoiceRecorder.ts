@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
 
 /** 一次有效录音的 Blob 与实际编码 MIME 类型。 */
 interface VoiceRecorderResult {
@@ -15,6 +16,7 @@ interface VoiceRecorderResult {
  * @remarks duration 单位为秒；六十秒时触发注册回调，停止录音由回调执行；卸载会清理音轨与计时器。
  */
 export function useVoiceRecorder() {
+  const { t } = useI18n();
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -26,6 +28,9 @@ export function useVoiceRecorder() {
   const streamRef = useRef<MediaStream | null>(null);
   const maxDurationRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onMaxDurationRef = useRef<(() => void) | null>(null);
+  const stopResolverRef = useRef<
+    ((result: VoiceRecorderResult | null) => void) | null
+  >(null);
 
   // 检测浏览器支持
   useEffect(() => {
@@ -50,8 +55,16 @@ export function useVoiceRecorder() {
       streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
     }
+    const recorder = mediaRecorderRef.current;
+    if (recorder) {
+      recorder.ondataavailable = null;
+      recorder.onstop = null;
+    }
     mediaRecorderRef.current = null;
     chunksRef.current = [];
+    const resolveStop = stopResolverRef.current;
+    stopResolverRef.current = null;
+    resolveStop?.(null);
     setIsRecording(false);
     setDuration(0);
   }, []);
@@ -79,7 +92,7 @@ export function useVoiceRecorder() {
             : "";
 
       if (!mimeType) {
-        toast.error("当前浏览器不支持音频录制");
+        toast.error(t("chat:recordingUnsupported"));
         cleanup();
         return;
       }
@@ -89,6 +102,7 @@ export function useVoiceRecorder() {
       chunksRef.current = [];
 
       recorder.ondataavailable = e => {
+        if (mediaRecorderRef.current !== recorder) return;
         if (e.data.size > 0) {
           chunksRef.current.push(e.data);
         }
@@ -105,7 +119,7 @@ export function useVoiceRecorder() {
 
       // 最大录音时长 60 秒
       maxDurationRef.current = setTimeout(() => {
-        toast.info("已达到最大录音时长（60秒）");
+        toast.info(t("chat:recordingMaxDuration"));
         if (onMaxDurationRef.current) {
           onMaxDurationRef.current();
         }
@@ -117,15 +131,15 @@ export function useVoiceRecorder() {
       }
     } catch (error: any) {
       if (error.name === "NotAllowedError") {
-        toast.error("麦克风权限被拒绝，请在浏览器设置中允许麦克风访问");
+        toast.error(t("chat:microphonePermissionDenied"));
       } else if (error.name === "NotFoundError") {
-        toast.error("未检测到麦克风设备");
+        toast.error(t("chat:microphoneNotFound"));
       } else {
-        toast.error("无法访问麦克风，请检查浏览器权限设置");
+        toast.error(t("chat:microphoneUnavailable"));
       }
       cleanup();
     }
-  }, [cleanup]);
+  }, [cleanup, t]);
 
   // 停止录音并返回音频数据
   /** 停止录音并等待完整 Blob，未开始录音时返回 null。 */
@@ -138,9 +152,12 @@ export function useVoiceRecorder() {
         return;
       }
 
+      stopResolverRef.current = resolve;
       recorder.onstop = () => {
+        if (stopResolverRef.current !== resolve) return;
         const mimeType = recorder.mimeType;
         const blob = new Blob(chunksRef.current, { type: mimeType });
+        stopResolverRef.current = null;
         cleanup();
         resolve({ blob, mimeType });
       };
@@ -153,13 +170,16 @@ export function useVoiceRecorder() {
   /** 停止并丢弃当前录音，不触发业务提交回调。 */
   const cancelRecording = useCallback(() => {
     const recorder = mediaRecorderRef.current;
+    const wasActive =
+      Boolean(recorder && recorder.state !== "inactive") ||
+      stopResolverRef.current !== null;
     if (recorder && recorder.state !== "inactive") {
       recorder.onstop = () => {}; // 不触发回调
       recorder.stop();
     }
     cleanup();
-    toast.info("录音已取消");
-  }, [cleanup]);
+    if (wasActive) toast.info(t("chat:recordingCancelled"));
+  }, [cleanup, t]);
 
   // 注册最大时长回调
   /** 注册达到六十秒时的回调，由调用方决定如何结束和提交录音。 */

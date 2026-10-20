@@ -131,17 +131,19 @@ export function ChatMessages({
                 <div className="flex flex-col gap-1 max-w-[80%] sm:max-w-[75%]">
                   {msg.role === "assistant" &&
                     !msg.imageUrl &&
-                    msg.segments?.map(segment => (
-                      <div
-                        key={segment.id}
-                        data-segment-id={segment.id}
-                        className="rounded-2xl bg-muted px-4 py-2 text-foreground"
-                      >
-                        <p className="whitespace-pre-wrap break-words">
-                          {segment.content}
-                        </p>
-                      </div>
-                    ))}
+                    msg.segments
+                      ?.filter(segment => segment.content.trim())
+                      .map(segment => (
+                        <div
+                          key={segment.id}
+                          data-segment-id={segment.id}
+                          className="rounded-2xl bg-muted px-4 py-2 text-foreground"
+                        >
+                          <p className="whitespace-pre-wrap break-words">
+                            {segment.content}
+                          </p>
+                        </div>
+                      ))}
                   {(!msg.segments?.length ||
                     msg.role === "user" ||
                     msg.imageUrl) &&

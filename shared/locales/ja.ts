@@ -551,6 +551,14 @@ export default {
     recordingIsTooShortPleaseTryAgain:
       "録音が短すぎます。もう一度お試しください。",
     couldNotReadTheAudio: "音声データを読み込めませんでした",
+    recordingUnsupported: "このブラウザーは録音に対応していません。",
+    recordingMaxDuration: "録音の上限（60秒）に達しました。",
+    microphonePermissionDenied:
+      "マイクへのアクセスが拒否されました。ブラウザーの設定で許可してください。",
+    microphoneNotFound: "マイクが見つかりません。",
+    microphoneUnavailable:
+      "マイクを使用できません。ブラウザーの権限設定を確認してください。",
+    recordingCancelled: "録音をキャンセルしました",
     noSpeechWasRecognizedPleaseTryAgain:
       "音声を認識できませんでした。もう一度お試しください。",
     transcriptionFailed: "音声の書き起こしに失敗しました：{{error}}",

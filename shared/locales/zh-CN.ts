@@ -515,6 +515,13 @@ export default {
     selfieGenerationFailed: "生成自拍失败：{{error}}",
     recordingIsTooShortPleaseTryAgain: "录音时间太短，请重试",
     couldNotReadTheAudio: "音频数据读取失败",
+    recordingUnsupported: "当前浏览器不支持音频录制",
+    recordingMaxDuration: "已达到最大录音时长（60秒）",
+    microphonePermissionDenied:
+      "麦克风权限被拒绝，请在浏览器设置中允许麦克风访问",
+    microphoneNotFound: "未检测到麦克风设备",
+    microphoneUnavailable: "无法访问麦克风，请检查浏览器权限设置",
+    recordingCancelled: "录音已取消",
     noSpeechWasRecognizedPleaseTryAgain: "未识别到有效语音内容，请重试",
     transcriptionFailed: "语音识别失败：{{error}}",
     noCompanionYet: "还没有角色",

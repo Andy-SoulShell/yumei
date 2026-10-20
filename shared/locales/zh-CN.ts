@@ -307,6 +307,8 @@ export default {
       "确定要删除选中的 {{count}} 位女友吗？她们将被移入回收站，7 天内可以恢复。",
   },
   settings: {
+    savedApiKeys: "已保存的密钥",
+    removeApiKey: "移除 {{name}} 密钥",
     advancedServices: "高级服务设置",
     favorites: "已收藏",
     everydayCompanionship: "🏠 日常陪伴",
@@ -502,6 +504,7 @@ export default {
     "empty.start": "开始和 {{name}} 聊天吧～",
   },
   common: {
+    cannotUndo: "此操作无法撤销。",
     loadFailed: "加载失败，请重试",
     contentUnavailable: "内容不存在或已删除",
     loadMore: "加载更多",
@@ -800,6 +803,7 @@ export default {
     "levels.10.petName": "♡",
   },
   selfie: {
+    invalidCoupleImage: "请选择 10MB 以内的 JPG、PNG 或 WebP 图片。",
     askForAPhoto: "拍张照片",
     unlockPosesAsYouGrowCloserTextIn: "姿势随亲密度解锁，输入框可填写场景。",
     generationMode: "生图方式",

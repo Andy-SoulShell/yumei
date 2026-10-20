@@ -328,6 +328,8 @@ export default {
       "Delete the {{count}} selected companions? You can restore them from trash within 7 days.",
   },
   settings: {
+    savedApiKeys: "Saved API keys",
+    removeApiKey: "Remove {{name}} key",
     advancedServices: "Advanced services",
     favorites: "Favorites",
     everydayCompanionship: "🏠 Everyday companionship",
@@ -532,6 +534,7 @@ export default {
     "empty.start": "Start chatting with {{name}}",
   },
   common: {
+    cannotUndo: "This cannot be undone.",
     loadFailed: "Could not load this page",
     contentUnavailable: "This content is unavailable",
     loadMore: "Load more",
@@ -845,6 +848,7 @@ export default {
     "levels.10.petName": "♡",
   },
   selfie: {
+    invalidCoupleImage: "Choose a JPG, PNG or WebP image up to 10MB.",
     askForAPhoto: "Take a photo",
     unlockPosesAsYouGrowCloserTextIn:
       "Intimacy unlocks poses. Add a scene in the message box.",

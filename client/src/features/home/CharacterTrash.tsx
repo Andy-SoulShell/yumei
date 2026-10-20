@@ -1,3 +1,4 @@
+import { DeleteConfirmation } from "@/components/DeleteConfirmation";
 import { PageError } from "@/components/PageError";
 import { Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -103,16 +104,21 @@ export function CharacterTrash({
                         <Undo2 className="w-3 h-3 mr-1" />
                         {t("home:restore")}
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs text-destructive hover:text-destructive border-destructive/30"
-                        onClick={() => permanentDelete.mutate({ id: gf.id })}
+                      <DeleteConfirmation
+                        subject={gf.name}
+                        onConfirm={() => permanentDelete.mutate({ id: gf.id })}
                         disabled={permanentDelete.isPending}
                       >
-                        <Trash2 className="w-3 h-3 mr-1" />
-                        {t("home:deletePermanently")}
-                      </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs text-destructive hover:text-destructive border-destructive/30"
+                          disabled={permanentDelete.isPending}
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          {t("home:deletePermanently")}
+                        </Button>
+                      </DeleteConfirmation>
                     </div>
                   </div>
                 );

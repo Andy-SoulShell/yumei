@@ -28,12 +28,10 @@ it("uses the actual image extension and releases the blob after initiating downl
   vi.useFakeTimers();
   vi.stubGlobal(
     "fetch",
-    vi
-      .fn()
-      .mockResolvedValue({
-        ok: true,
-        blob: async () => new Blob(["image"], { type: "image/jpeg" }),
-      })
+    vi.fn().mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(["image"], { type: "image/jpeg" }),
+    })
   );
   const revoke = vi.fn();
   Object.defineProperty(URL, "createObjectURL", {
@@ -45,12 +43,12 @@ it("uses the actual image extension and releases the blob after initiating downl
     configurable: true,
   });
   let filename = "";
-  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(
-    function () {
-      filename = this.download;
-      expect(this.isConnected).toBe(true);
-    }
-  );
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+    this: HTMLAnchorElement
+  ) {
+    filename = this.download;
+    expect(this.isConnected).toBe(true);
+  });
   await downloadImage("/photo", 9);
   expect(filename).toBe("selfie-9.jpg");
   expect(document.querySelector("a[download]")).toBeNull();

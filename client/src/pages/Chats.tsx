@@ -1,5 +1,5 @@
 /** 最近会话列表，直接进入原有聊天页并保留历史消息。 */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ArrowUpRight, Loader2, MessageCircle, Search } from "lucide-react";
 import { trpc } from "@/lib/trpc";
@@ -12,9 +12,15 @@ import { Button } from "@/components/ui/button";
 export default function Chats() {
   const { t, locale } = useI18n();
   const [search, setSearch] = useState("");
+  const [keyword, setKeyword] = useState("");
+  useEffect(() => {
+    const timer = window.setTimeout(() => setKeyword(search.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [search]);
   const query = trpc.conversation.listWithDetails.useInfiniteQuery(
-    { limit: 50, search: search.trim() || undefined },
+    { limit: 50, search: keyword || undefined },
     {
+      placeholderData: previous => previous,
       getNextPageParam: page =>
         page.length === 50
           ? {
@@ -96,7 +102,9 @@ export default function Chats() {
         <div className="explore-empty">
           <MessageCircle size={34} />
           <h2>
-            {search ? t("explore:emptyTitle") : t("home:noConversationsYet")}
+            {keyword
+              ? t("home:searchEmpty", { query: keyword })
+              : t("home:noConversationsYet")}
           </h2>
           <Button asChild>
             <Link href="/explore">{t("explore:heroAction")}</Link>

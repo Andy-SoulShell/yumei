@@ -101,92 +101,84 @@ export function usePullToRefresh(options: {
   const [isPulling, setIsPulling] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const touchStartY = useRef(0);
-  const isPullingRef = useRef(false);
 
+  const refreshRef = useRef(onRefresh);
+  useEffect(() => {
+    refreshRef.current = onRefresh;
+  }, [onRefresh]);
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      await onRefresh();
+      await refreshRef.current();
     } finally {
       setIsRefreshing(false);
       setPullDistance(0);
       setIsPulling(false);
     }
-  }, [onRefresh]);
+  }, []);
 
   useEffect(() => {
     if (!enabled) return;
-
-    const handleTouchStart = (e: TouchEvent) => {
-      // 只在滚动到顶部时才触发下拉刷新
-      const scrollTop = containerRef?.current
-        ? containerRef.current.scrollTop
-        : window.scrollY || document.documentElement.scrollTop;
-
-      if (scrollTop <= 0 && !isRefreshing) {
-        touchStartY.current = e.touches[0].clientY;
-        isPullingRef.current = true;
-      }
+    const target =
+      containerRef?.current || document.querySelector(".app-main") || document;
+    let start: { x: number; y: number } | null = null;
+    let distance = 0;
+    const reset = () => {
+      start = null;
+      distance = 0;
+      setPullDistance(0);
+      setIsPulling(false);
     };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!isPullingRef.current || isRefreshing) return;
-
-      const deltaY = e.touches[0].clientY - touchStartY.current;
-
-      if (deltaY > 0) {
-        // 使用阻尼效果
-        const dampedDistance = Math.min(deltaY * 0.4, threshold * 1.5);
-        setPullDistance(dampedDistance);
-        setIsPulling(true);
-      } else {
-        isPullingRef.current = false;
-        setPullDistance(0);
-        setIsPulling(false);
-      }
+    const onStart = (event: Event) => {
+      reset();
+      const e = event as TouchEvent;
+      const element = e.target as Element;
+      const top = target instanceof Element ? target.scrollTop : window.scrollY;
+      if (
+        top > 0 ||
+        isRefreshing ||
+        e.touches.length !== 1 ||
+        document.querySelector('[role="dialog"], [role="alertdialog"]') ||
+        element.closest(
+          'button,a,input,textarea,select,[contenteditable="true"]'
+        )
+      )
+        return;
+      start = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     };
-
-    const handleTouchEnd = () => {
-      if (!isPullingRef.current) return;
-
-      if (pullDistance >= threshold) {
-        handleRefresh();
-      } else {
-        setPullDistance(0);
-        setIsPulling(false);
+    const onMove = (event: Event) => {
+      if (!start || isRefreshing) return;
+      const e = event as TouchEvent;
+      if (e.touches.length !== 1) {
+        reset();
+        return;
       }
-
-      isPullingRef.current = false;
+      const dy = e.touches[0].clientY - start.y;
+      if (dy <= 0 || Math.abs(e.touches[0].clientX - start.x) > dy) {
+        reset();
+        return;
+      }
+      distance = Math.min(dy * 0.4, threshold * 1.5);
+      setPullDistance(distance);
+      setIsPulling(true);
     };
-
-    const target = containerRef?.current || document;
-    target.addEventListener("touchstart", handleTouchStart as EventListener, {
-      passive: true,
-    });
-    target.addEventListener("touchmove", handleTouchMove as EventListener, {
-      passive: true,
-    });
-    target.addEventListener("touchend", handleTouchEnd as EventListener, {
-      passive: true,
-    });
-
+    const onEnd = () => {
+      if (!start) return;
+      const refresh = distance >= threshold;
+      reset();
+      if (refresh) void handleRefresh();
+    };
+    target.addEventListener("touchstart", onStart, { passive: true });
+    target.addEventListener("touchmove", onMove, { passive: true });
+    target.addEventListener("touchend", onEnd, { passive: true });
+    target.addEventListener("touchcancel", reset, { passive: true });
     return () => {
-      target.removeEventListener(
-        "touchstart",
-        handleTouchStart as EventListener
-      );
-      target.removeEventListener("touchmove", handleTouchMove as EventListener);
-      target.removeEventListener("touchend", handleTouchEnd as EventListener);
+      target.removeEventListener("touchstart", onStart);
+      target.removeEventListener("touchmove", onMove);
+      target.removeEventListener("touchend", onEnd);
+      target.removeEventListener("touchcancel", reset);
     };
-  }, [
-    enabled,
-    threshold,
-    isRefreshing,
-    pullDistance,
-    handleRefresh,
-    containerRef,
-  ]);
+  }, [enabled, threshold, isRefreshing, handleRefresh, containerRef]);
 
   return { isPulling, pullDistance, isRefreshing };
 }

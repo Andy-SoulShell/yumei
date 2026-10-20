@@ -1,3 +1,4 @@
+import { DeleteConfirmation } from "@/components/DeleteConfirmation";
 import { usePageBack } from "@/hooks/usePageBack";
 import { PageError } from "@/components/PageError";
 import { memoryMessages } from "@/locales/domain";
@@ -211,17 +212,22 @@ export default function Memories() {
                           <Pin className="w-4 h-4" />
                         )}
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="w-8 h-8 shrink-0 text-muted-foreground hover:text-destructive"
-                        aria-label={t("memories:deleteMemory")}
+                      <DeleteConfirmation
+                        subject={memory.content}
+                        onConfirm={() => deleteMemory.mutate({ id: memory.id })}
                         disabled={deleteMemory.isPending}
-                        title={t("memories:deleteMemory")}
-                        onClick={() => deleteMemory.mutate({ id: memory.id })}
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="w-8 h-8 shrink-0 text-muted-foreground hover:text-destructive"
+                          aria-label={t("memories:deleteMemory")}
+                          disabled={deleteMemory.isPending}
+                          title={t("memories:deleteMemory")}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </DeleteConfirmation>
                     </CardContent>
                   </Card>
                 ))}

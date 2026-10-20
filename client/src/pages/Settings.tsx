@@ -1,3 +1,4 @@
+import { SavedProviderKeys } from "@/features/settings/SavedProviderKeys";
 import { usePageBack } from "@/hooks/usePageBack";
 import { PageError } from "@/components/PageError";
 import { AppearanceSettings } from "@/components/AppearanceSettings";
@@ -98,6 +99,10 @@ export default function Settings() {
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="px-3 pb-3 space-y-4">
+                <SavedProviderKeys
+                  keys={apiConfig?.keys}
+                  disabled={isSavingKeys || updatePreferences.isPending}
+                />
                 <TranscriptionSettings {...state} />
                 <ImageSettings {...state} />
                 <ChatModelSettings {...state} />

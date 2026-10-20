@@ -48,13 +48,20 @@ export function SelfiePoseDialog({
 }) {
   const { t } = useI18n();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadError, setUploadError] = useState("");
   const [generationMode, setGenerationMode] = useState<"reference" | "text">(
     "reference"
   );
   const selectedMode = supportsTextToImage ? generationMode : "reference";
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={value => {
+        setUploadError("");
+        onOpenChange(value);
+      }}
+    >
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{t("selfie:askForAPhoto")}</DialogTitle>
@@ -144,13 +151,30 @@ export function SelfiePoseDialog({
             className="hidden"
             onChange={e => {
               const file = e.target.files?.[0];
+              e.target.value = "";
               if (file) {
+                if (
+                  !["image/jpeg", "image/png", "image/webp"].includes(
+                    file.type
+                  ) ||
+                  !file.size ||
+                  file.size > 10 * 1024 * 1024
+                ) {
+                  setUploadError(t("selfie:invalidCoupleImage"));
+                  return;
+                }
+                setUploadError("");
                 onCouplePhoto(file);
                 onOpenChange(false);
               }
               e.target.value = "";
             }}
           />
+          {uploadError && (
+            <p role="alert" className="mb-2 text-sm text-destructive">
+              {uploadError}
+            </p>
+          )}
           <Button
             variant="outline"
             className="w-full"

@@ -318,6 +318,8 @@ export default {
       "선택한 동반자 {{count}}명을 삭제할까요? 7일 안에 휴지통에서 복원할 수 있어요.",
   },
   settings: {
+    savedApiKeys: "저장된 API 키",
+    removeApiKey: "{{name}} 키 삭제",
     advancedServices: "고급 서비스 설정",
     favorites: "즐겨찾기",
     everydayCompanionship: "🏠 일상 동행",
@@ -523,6 +525,7 @@ export default {
     "empty.start": "{{name}} 님과 대화를 시작해 보세요",
   },
   common: {
+    cannotUndo: "이 작업은 되돌릴 수 없습니다.",
     loadFailed: "불러오지 못했어요",
     contentUnavailable: "콘텐츠를 찾을 수 없어요",
     loadMore: "더 보기",
@@ -831,6 +834,7 @@ export default {
     "levels.10.petName": "♡",
   },
   selfie: {
+    invalidCoupleImage: "10MB 이하의 JPG, PNG 또는 WebP 이미지를 선택하세요.",
     askForAPhoto: "사진 찍기",
     unlockPosesAsYouGrowCloserTextIn:
       "친밀도에 따라 포즈가 열려요. 입력창에 장면을 적을 수 있어요.",

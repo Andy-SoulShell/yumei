@@ -329,6 +329,8 @@ export default {
       "選択した{{count}}人を削除しますか？ゴミ箱から7日以内なら復元できます。",
   },
   settings: {
+    savedApiKeys: "保存済みAPIキー",
+    removeApiKey: "{{name}}キーを削除",
     advancedServices: "高度なサービス設定",
     favorites: "お気に入り",
     everydayCompanionship: "🏠 日々の寄り添い",
@@ -535,6 +537,7 @@ export default {
     "empty.start": "{{name}}と話してみましょう",
   },
   common: {
+    cannotUndo: "この操作は取り消せません。",
     loadFailed: "読み込めませんでした",
     contentUnavailable: "コンテンツが見つかりません",
     loadMore: "もっと見る",
@@ -842,6 +845,7 @@ export default {
     "levels.10.petName": "♡",
   },
   selfie: {
+    invalidCoupleImage: "10MB以下のJPG、PNG、WebP画像を選んでください。",
     askForAPhoto: "写真を撮る",
     unlockPosesAsYouGrowCloserTextIn:
       "親密度でポーズが解放されます。入力欄で場面を指定できます。",

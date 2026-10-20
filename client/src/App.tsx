@@ -5,10 +5,11 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useSwipeBack } from "@/hooks/useGestures";
 import { useKeyboardViewport } from "@/hooks/useKeyboardViewport";
+import { trackAppHistory } from "@/lib/app-history";
 import { loginUrl } from "@/lib/navigation";
 import { authModeForPath } from "@/lib/auth-navigation";
 import { Loader2 } from "lucide-react";
-import { lazy, Suspense, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { Redirect, Route, Switch, useLocation, useSearch } from "wouter";
 import { AppShell } from "./components/AppShell";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -131,6 +132,7 @@ function Router() {
 /** 应用级组件树，提供错误边界、主题、悬浮提示与消息提示容器。 */
 function App() {
   useKeyboardViewport();
+  useEffect(trackAppHistory, []);
   return (
     <ErrorBoundary>
       <PreferencesProvider>

@@ -548,6 +548,10 @@ export default {
     lv: "Lv.",
   },
   gallery: {
+    photoPosition: "第 {{current}} / {{total}} 张",
+    previousPhoto: "上一张",
+    nextPhoto: "下一张",
+
     deleted: "删除成功",
     downloaded: "下载成功",
     downloadFailed: "下载失败",

@@ -1,9 +1,12 @@
+import { PhotoViewer } from "@/components/PhotoViewer";
+import { downloadImage } from "@/lib/downloadImage";
+import { toast } from "sonner";
 import { PageError } from "@/components/PageError";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { detectSelfieRequest } from "@shared/selfieRequest";
 import { Heart, Loader2, Volume2 } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useChatScrollAnchor } from "@/hooks/useChatScrollAnchor";
 
 import type { ChatController } from "./useChatController";
@@ -49,6 +52,15 @@ export function ChatMessages({
   generateCouple,
   messagesEndRef,
 }: Props) {
+  const [viewing, setViewing] = useState<number | null>(null);
+  const opener = useRef<HTMLButtonElement>(null);
+  const photos = (chatMessages ?? [])
+    .filter(msg => msg.imageUrl)
+    .map(msg => ({
+      id: msg.id,
+      imageUrl: msg.imageUrl!,
+      caption: msg.content === "[自拍照片]" ? null : msg.content,
+    }));
   const contentRef = useRef<HTMLDivElement>(null);
   useChatScrollAnchor(messageListRef, contentRef);
   return (
@@ -117,23 +129,22 @@ export function ChatMessages({
                     {msg.imageUrl ? (
                       <div className="space-y-2">
                         <Button
-                          asChild
                           variant="plain"
                           size="none"
-                          className="block h-auto max-w-full rounded-lg"
+                          className="block h-auto max-w-full rounded-lg cursor-zoom-in"
+                          aria-label={t("chat:selfie")}
+                          onClick={event => {
+                            opener.current = event.currentTarget;
+                            setViewing(
+                              photos.findIndex(photo => photo.id === msg.id)
+                            );
+                          }}
                         >
-                          <a
-                            href={msg.imageUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label={t("chat:selfie")}
-                          >
-                            <img
-                              src={msg.imageUrl}
-                              alt={t("chat:selfie")}
-                              className="rounded-lg max-w-full max-h-[65vh] w-auto h-auto object-contain"
-                            />
-                          </a>
+                          <img
+                            src={msg.imageUrl}
+                            alt={t("chat:selfie")}
+                            className="rounded-lg max-w-full max-h-[65vh] w-auto h-auto object-contain"
+                          />
                         </Button>
                         {msg.content && msg.content !== "[自拍照片]" && (
                           <p className="text-sm">{msg.content}</p>
@@ -290,6 +301,19 @@ export function ChatMessages({
 
         <div ref={messagesEndRef} />
       </div>
+      <PhotoViewer
+        photos={photos}
+        index={viewing}
+        onIndexChange={setViewing}
+        returnFocus={opener}
+        onDownload={async photo => {
+          try {
+            await downloadImage(photo.imageUrl, photo.id);
+          } catch {
+            toast.error(t("gallery:downloadFailed"));
+          }
+        }}
+      />
     </div>
   );
 }

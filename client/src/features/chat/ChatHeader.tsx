@@ -1,3 +1,4 @@
+import { usePageBack } from "@/hooks/usePageBack";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -76,6 +77,7 @@ export function ChatHeader({
   toggleTheme,
   theme,
 }: Props) {
+  const goBack = usePageBack("/chats");
   const newConversationDisabled =
     !currentConversationId ||
     createConversation.isPending ||
@@ -104,7 +106,7 @@ export function ChatHeader({
         variant="ghost"
         size="icon"
         aria-label={t("explore:navChats")}
-        onClick={() => setLocation("/chats")}
+        onClick={goBack}
       >
         <ArrowLeft className="w-5 h-5" />
       </Button>

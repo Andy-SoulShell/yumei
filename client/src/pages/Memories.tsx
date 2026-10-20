@@ -1,3 +1,4 @@
+import { usePageBack } from "@/hooks/usePageBack";
 import { PageError } from "@/components/PageError";
 import { memoryMessages } from "@/locales/domain";
 /** 指定角色的长期记忆列表与用户管理入口。 */
@@ -23,6 +24,7 @@ import { toast } from "sonner";
 
 /** 读取角色记忆，并提供置顶、取消置顶和删除操作。 */
 export default function Memories() {
+  const goBack = usePageBack("/characters");
   const { t, locale } = useI18n();
   const params = useParams<{ id: string }>();
   const girlfriendId = Number(params.id);
@@ -112,7 +114,7 @@ export default function Memories() {
           variant="ghost"
           size="icon"
           aria-label={t("setup:back")}
-          onClick={() => history.back()}
+          onClick={goBack}
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>

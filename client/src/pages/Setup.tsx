@@ -1,3 +1,4 @@
+import { usePageBack } from "@/hooks/usePageBack";
 import { PageError } from "@/components/PageError";
 import { CharacterPresetPicker } from "@/components/CharacterPresetPicker";
 import {
@@ -22,6 +23,7 @@ import { ReferenceUpload } from "@/features/setup/ReferenceUpload";
 import { useSetupController } from "@/features/setup/useSetupController";
 import { ArrowLeft, Loader2, Trash2 } from "lucide-react";
 export default function Setup() {
+  const goBack = usePageBack("/characters");
   const state = useSetupController();
   const {
     setLocation,
@@ -71,11 +73,7 @@ export default function Setup() {
   return (
     <div className="min-h-full bg-background app-surface p-3 sm:p-4">
       <div className="max-w-2xl mx-auto py-4 sm:py-8">
-        <Button
-          variant="ghost"
-          className="mb-4"
-          onClick={() => setLocation("/characters")}
-        >
+        <Button variant="ghost" className="mb-4" onClick={goBack}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           {t("setup:back")}
         </Button>

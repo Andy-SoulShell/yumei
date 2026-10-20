@@ -583,6 +583,10 @@ export default {
     lv: "Lv.",
   },
   gallery: {
+    photoPosition: "{{current}} / {{total}} 枚",
+    previousPhoto: "前の写真",
+    nextPhoto: "次の写真",
+
     deleted: "削除しました",
     downloaded: "ダウンロードしました",
     downloadFailed: "ダウンロードに失敗しました",

@@ -269,3 +269,75 @@
     transparent 65%
   );
 }
+
+.swipe-back-indicator {
+  position: fixed;
+  top: 50%;
+  left: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  transform: translate(-100%, -50%);
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 2px 10px #0003;
+}
+
+/* 图片预览保留聊天上下文，横屏也给图片留出独立的可用空间。 */
+.photo-viewer[data-slot="dialog-content"] {
+  width: min(960px, calc(100vw - 24px));
+  max-width: none;
+  max-height: calc(100dvh - 24px);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+.photo-viewer-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  height: min(65dvh, 720px);
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--muted);
+  touch-action: pan-y pinch-zoom;
+}
+.photo-viewer-stage > img {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+  user-select: none;
+}
+.photo-viewer-stage > [role="alert"] {
+  gap: 8px;
+  padding: 8px 50px;
+}
+.photo-viewer-stage > [role="alert"] > svg {
+  display: none;
+}
+.photo-viewer-previous,
+.photo-viewer-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  box-shadow: 0 1px 6px #0003;
+}
+.photo-viewer-previous {
+  left: 8px;
+}
+.photo-viewer-next {
+  right: 8px;
+}
+@media (max-height: 480px) {
+  .photo-viewer-stage {
+    height: max(80px, calc(100dvh - 160px));
+  }
+  .photo-viewer [data-slot="dialog-description"] {
+    display: none;
+  }
+}

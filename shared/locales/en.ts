@@ -579,6 +579,10 @@ export default {
     lv: "Lv.",
   },
   gallery: {
+    photoPosition: "Photo {{current}} of {{total}}",
+    previousPhoto: "Previous photo",
+    nextPhoto: "Next photo",
+
     deleted: "Deleted",
     downloaded: "Downloaded",
     downloadFailed: "Download failed",

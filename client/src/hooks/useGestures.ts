@@ -1,7 +1,7 @@
 /** 移动端边缘返回与下拉刷新手势，负责注册和移除 DOM 监听器。 */
 
 import { useEffect, useRef, useCallback, useState } from "react";
-import { useLocation } from "wouter";
+import { usePageBack } from "./usePageBack";
 
 /**
  * 监听从左边缘向右滑动的手势，达到阈值后调用浏览器历史返回。
@@ -15,123 +15,73 @@ export function useSwipeBack(options?: {
   threshold?: number;
 }) {
   const { enabled = true, threshold = 80 } = options ?? {};
-  const [, navigate] = useLocation();
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
-  const touchCurrentX = useRef(0);
-  const isSwipingBack = useRef(false);
-  const indicatorRef = useRef<HTMLDivElement | null>(null);
-
+  const goBack = usePageBack("/");
   useEffect(() => {
-    if (!enabled) return;
-
-    // 创建滑动指示器
+    // iOS 已有系统边缘返回；网页重复处理会一次返回两层。
+    if (!enabled || window.CSS?.supports("-webkit-touch-callout", "none"))
+      return;
+    let start: { x: number; y: number } | null = null;
+    let distance = 0;
     const indicator = document.createElement("div");
-    indicator.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 0;
-      transform: translateY(-50%) translateX(-100%);
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #ec4899, #a855f7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      transition: opacity 0.15s ease;
-      opacity: 0;
-      pointer-events: none;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-    `;
-    indicator.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>`;
+    indicator.setAttribute("aria-hidden", "true");
+    indicator.className = "swipe-back-indicator";
+    indicator.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>`;
     document.body.appendChild(indicator);
-    indicatorRef.current = indicator;
-
-    const handleTouchStart = (e: TouchEvent) => {
-      const touch = e.touches[0];
-      // 只在屏幕左边缘 30px 内开始的触摸才触发
-      if (touch.clientX <= 30) {
-        touchStartX.current = touch.clientX;
-        touchStartY.current = touch.clientY;
-        isSwipingBack.current = true;
-      }
+    const reset = () => {
+      start = null;
+      distance = 0;
+      indicator.style.opacity = "0";
+      indicator.style.transform = "translate(-100%, -50%)";
     };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!isSwipingBack.current) return;
-
-      const touch = e.touches[0];
-      touchCurrentX.current = touch.clientX;
-      const deltaX = touch.clientX - touchStartX.current;
-      const deltaY = Math.abs(touch.clientY - touchStartY.current);
-
-      // 如果纵向滑动大于横向，取消返回手势
-      if (deltaY > deltaX * 1.5) {
-        isSwipingBack.current = false;
-        if (indicatorRef.current) {
-          indicatorRef.current.style.opacity = "0";
-          indicatorRef.current.style.transform =
-            "translateY(-50%) translateX(-100%)";
-        }
+    const onStart = (event: TouchEvent) => {
+      reset();
+      const target = event.target as Element;
+      if (
+        event.touches.length !== 1 ||
+        document.querySelector('[role="dialog"], [role="alertdialog"]') ||
+        target.closest(
+          'button,a,input,textarea,select,[role="slider"],[contenteditable="true"]'
+        )
+      )
+        return;
+      const touch = event.touches[0];
+      if (touch.clientX <= 24) start = { x: touch.clientX, y: touch.clientY };
+    };
+    const onMove = (event: TouchEvent) => {
+      if (!start) return;
+      if (event.touches.length !== 1) {
+        reset();
         return;
       }
-
-      if (deltaX > 10 && indicatorRef.current) {
-        const progress = Math.min(deltaX / threshold, 1);
-        const translateX = Math.min(deltaX - 20, 30);
-        indicatorRef.current.style.opacity = String(progress);
-        indicatorRef.current.style.transform = `translateY(-50%) translateX(${translateX}px) scale(${0.6 + progress * 0.4})`;
-
-        if (progress >= 1) {
-          indicatorRef.current.style.background =
-            "linear-gradient(135deg, #22c55e, #10b981)";
-        } else {
-          indicatorRef.current.style.background =
-            "linear-gradient(135deg, #ec4899, #a855f7)";
-        }
+      const touch = event.touches[0];
+      distance = touch.clientX - start.x;
+      if (
+        distance < 0 ||
+        Math.abs(touch.clientY - start.y) > Math.max(12, distance)
+      ) {
+        reset();
+        return;
       }
+      indicator.style.opacity = String(Math.min(distance / threshold, 1));
+      indicator.style.transform = `translate(${Math.min(distance - 40, 12)}px, -50%)`;
     };
-
-    const handleTouchEnd = () => {
-      if (!isSwipingBack.current) return;
-
-      const deltaX = touchCurrentX.current - touchStartX.current;
-
-      if (deltaX >= threshold) {
-        // 触发返回
-        window.history.back();
-      }
-
-      // 重置指示器
-      if (indicatorRef.current) {
-        indicatorRef.current.style.opacity = "0";
-        indicatorRef.current.style.transform =
-          "translateY(-50%) translateX(-100%)";
-      }
-
-      isSwipingBack.current = false;
-      touchStartX.current = 0;
-      touchStartY.current = 0;
-      touchCurrentX.current = 0;
+    const onEnd = () => {
+      const shouldGoBack = !!start && distance >= threshold;
+      reset();
+      if (shouldGoBack) goBack();
     };
-
-    document.addEventListener("touchstart", handleTouchStart, {
-      passive: true,
-    });
-    document.addEventListener("touchmove", handleTouchMove, { passive: true });
-    document.addEventListener("touchend", handleTouchEnd, { passive: true });
-
+    document.addEventListener("touchstart", onStart, { passive: true });
+    document.addEventListener("touchmove", onMove, { passive: true });
+    document.addEventListener("touchend", onEnd, { passive: true });
+    document.addEventListener("touchcancel", reset, { passive: true });
     return () => {
-      document.removeEventListener("touchstart", handleTouchStart);
-      document.removeEventListener("touchmove", handleTouchMove);
-      document.removeEventListener("touchend", handleTouchEnd);
-      if (indicatorRef.current && indicatorRef.current.parentNode) {
-        indicatorRef.current.parentNode.removeChild(indicatorRef.current);
-      }
+      document.removeEventListener("touchstart", onStart);
+      document.removeEventListener("touchmove", onMove);
+      document.removeEventListener("touchend", onEnd);
+      document.removeEventListener("touchcancel", reset);
+      indicator.remove();
     };
-  }, [enabled, threshold, navigate]);
+  }, [enabled, threshold, goBack]);
 }
 
 /**

@@ -1,3 +1,5 @@
+import { downloadImage } from "@/lib/downloadImage";
+import { usePageBack } from "@/hooks/usePageBack";
 /** 用户相册页面，支持角色筛选、图片下载与记录删除。 */
 
 import { PageError } from "@/components/PageError";
@@ -18,6 +20,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 
 /** 读取当前用户自拍并展示相册网格，将下载与删除反馈同步到查询缓存。 */
 export default function Gallery() {
+  const goBack = usePageBack("/generate");
   const { t } = useI18n();
   const [, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
@@ -39,16 +42,7 @@ export default function Gallery() {
 
   const handleDownload = async (imageUrl: string, id: number) => {
     try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `selfie-${id}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      await downloadImage(imageUrl, id);
       toast.success(t("gallery:downloaded"));
     } catch (error) {
       toast.error(t("gallery:downloadFailed"));
@@ -63,7 +57,7 @@ export default function Gallery() {
           variant="ghost"
           size="icon"
           aria-label={t("setup:back")}
-          onClick={() => setLocation("/generate")}
+          onClick={goBack}
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>

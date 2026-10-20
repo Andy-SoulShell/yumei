@@ -571,6 +571,10 @@ export default {
     lv: "Lv.",
   },
   gallery: {
+    photoPosition: "{{current}} / {{total}}장",
+    previousPhoto: "이전 사진",
+    nextPhoto: "다음 사진",
+
     deleted: "삭제했어요",
     downloaded: "다운로드했어요",
     downloadFailed: "다운로드하지 못했어요",

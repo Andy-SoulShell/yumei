@@ -1,3 +1,4 @@
+import { usePageBack } from "@/hooks/usePageBack";
 import { PageError } from "@/components/PageError";
 import { AppearanceSettings } from "@/components/AppearanceSettings";
 import { BillingCard } from "@/components/BillingCard";
@@ -17,9 +18,9 @@ import { VoiceSettings } from "@/features/settings/VoiceSettings";
 import { PasswordSettings } from "@/features/settings/PasswordSettings";
 import { ArrowLeft, ChevronDown, Loader2, Moon, Save, Sun } from "lucide-react";
 export default function Settings() {
+  const goBack = usePageBack("/characters");
   const state = useSettingsController();
   const {
-    setLocation,
     t,
     toggleTheme,
     theme,
@@ -40,7 +41,7 @@ export default function Settings() {
           variant="ghost"
           size="icon"
           aria-label={t("setup:back")}
-          onClick={() => setLocation("/characters")}
+          onClick={goBack}
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>

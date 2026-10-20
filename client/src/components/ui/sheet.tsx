@@ -58,17 +58,40 @@ function SheetContent({
   className,
   children,
   side = "right",
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left";
 }) {
   const { t } = useI18n();
+  const openerRef = React.useRef<HTMLElement | null>(null);
   return (
     <SheetPortal>
       <SheetOverlay />
       <SheetPrimitive.Content
         data-slot="sheet-content"
         data-side={side}
+        onOpenAutoFocus={event => {
+          const active = document.activeElement;
+          openerRef.current =
+            active instanceof HTMLElement && active !== document.body
+              ? active
+              : null;
+          onOpenAutoFocus?.(event);
+        }}
+        onCloseAutoFocus={event => {
+          onCloseAutoFocus?.(event);
+          const opener = openerRef.current;
+          if (
+            !event.defaultPrevented &&
+            opener?.isConnected &&
+            !opener.matches(":disabled")
+          ) {
+            event.preventDefault();
+            opener.focus({ preventScroll: true });
+          }
+        }}
         className={cn(
           "sheet-panel floating-surface bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex max-w-full flex-col gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
           side === "right" &&

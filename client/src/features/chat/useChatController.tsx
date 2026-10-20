@@ -2,6 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useTTS } from "@/hooks/useTTS";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import { useChatInputDraft } from "@/hooks/useChatInputDraft";
 import { apiErrorMessage } from "@/lib/errors";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
@@ -82,7 +83,7 @@ export function useChatController() {
     updateSpeed,
   } = useTTS();
 
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useChatInputDraft(user?.id, conversationId);
   const [failedMessages, setFailedMessages] = useState<FailedChatMessage[]>([]);
 
   const [inputMode, setInputMode] = useState<"text" | "voice">(() => {

@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SearchSelect } from "./search-select";
 import { DatePicker } from "./date-picker";
 import { Button } from "./button";
+import { Dialog, DialogContent, DialogTitle } from "./dialog";
+import { Sheet, SheetContent, SheetTitle } from "./sheet";
 import { VoiceRecordButton } from "../VoiceRecordButton";
 
 let root: Root;
@@ -57,6 +59,35 @@ async function key(node: Element, value: string) {
 
 const choose = vi.fn();
 const action = vi.fn();
+it.each(["dialog", "sheet"])(
+  "returns focus to a programmatic %s opener without a Trigger",
+  async kind => {
+    const Root = kind === "dialog" ? Dialog : Sheet;
+    const Content = kind === "dialog" ? DialogContent : SheetContent;
+    const Title = kind === "dialog" ? DialogTitle : SheetTitle;
+    function Panel() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <Button onClick={() => setOpen(true)}>查看详情</Button>
+          <Root open={open} onOpenChange={setOpen}>
+            <Content aria-describedby={undefined}>
+              <Title>详情</Title>
+            </Content>
+          </Root>
+        </>
+      );
+    }
+    await render(<Panel />);
+    const opener = container.querySelector<HTMLButtonElement>("button")!;
+    opener.focus();
+    await settle(() => opener.click());
+    expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+    await key(document.activeElement!, "Escape");
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(opener);
+  }
+);
 /** 搜索由外层控制，模拟设置页面在筛选后仍保留业务标识。 */
 function Picker() {
   const [search, setSearch] = useState("");

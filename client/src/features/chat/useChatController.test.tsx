@@ -164,6 +164,7 @@ beforeEach(async () => {
   vi.useFakeTimers();
   vi.clearAllMocks();
   localStorage.clear();
+  sessionStorage.clear();
   mock.pending = false;
   mock.imagePending = false;
   mock.generating = false;

@@ -104,12 +104,15 @@ function DialogContent({
   children,
   showCloseButton = true,
   onEscapeKeyDown,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
 }) {
   const { t } = useI18n();
   const { isComposing } = useDialogComposition();
+  const openerRef = React.useRef<HTMLElement | null>(null);
 
   const handleEscapeKeyDown = React.useCallback(
     (e: KeyboardEvent) => {
@@ -138,6 +141,26 @@ function DialogContent({
           className
         )}
         onEscapeKeyDown={handleEscapeKeyDown}
+        onOpenAutoFocus={event => {
+          const active = document.activeElement;
+          openerRef.current =
+            active instanceof HTMLElement && active !== document.body
+              ? active
+              : null;
+          onOpenAutoFocus?.(event);
+        }}
+        onCloseAutoFocus={event => {
+          onCloseAutoFocus?.(event);
+          const opener = openerRef.current;
+          if (
+            !event.defaultPrevented &&
+            opener?.isConnected &&
+            !opener.matches(":disabled")
+          ) {
+            event.preventDefault();
+            opener.focus({ preventScroll: true });
+          }
+        }}
         {...props}
       >
         {children}

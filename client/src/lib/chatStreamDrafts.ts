@@ -7,6 +7,35 @@ export type StoredChatSubmission = {
 };
 
 const DRAFT_PREFIX = "yumei:chat-pending:";
+const INPUT_PREFIX = "yumei:chat-input:";
+
+/** 未发送输入仅保留在当前标签页，账号和会话之间不共享。 */
+export function chatInputDraftKey(
+  accountId: string | undefined,
+  conversationId: number | null
+) {
+  return accountId && conversationId
+    ? `${INPUT_PREFIX}${accountId}:${conversationId}`
+    : null;
+}
+
+export function readChatInputDraft(key: string | null) {
+  try {
+    return key ? (sessionStorage.getItem(key) || "").slice(0, 8000) : "";
+  } catch {
+    return "";
+  }
+}
+
+export function writeChatInputDraft(key: string | null, text: string) {
+  if (!key) return;
+  try {
+    if (text) sessionStorage.setItem(key, text.slice(0, 8000));
+    else sessionStorage.removeItem(key);
+  } catch {
+    /* 存储不可用时仍可编辑和发送本次页面的输入。 */
+  }
+}
 
 /** 返回账号专属存储键，未登录时不持久化草稿。 */
 export function chatStreamDraftKey(
@@ -18,14 +47,15 @@ export function chatStreamDraftKey(
     : null;
 }
 
-/** 退出账号时清理本标签页的待核对消息，不保留私密聊天草稿。 */
+/** 退出账号时清理本标签页的待核对消息和未发送输入。 */
 export function clearChatStreamDrafts() {
   try {
     const keys = Array.from({ length: sessionStorage.length }, (_, index) =>
       sessionStorage.key(index)
     );
     for (const key of keys)
-      if (key?.startsWith(DRAFT_PREFIX)) sessionStorage.removeItem(key);
+      if (key?.startsWith(DRAFT_PREFIX) || key?.startsWith(INPUT_PREFIX))
+        sessionStorage.removeItem(key);
   } catch {
     /* 浏览器禁用存储时仍允许聊天。 */
   }

@@ -416,6 +416,27 @@ export type Memory = typeof memories.$inferSelect;
 /** 从 memories 表结构推导的新增记录输入，允许省略由数据库填充的字段。 */
 export type InsertMemory = typeof memories.$inferInsert;
 
+/** 仅保存遗忘记录的摘要与消息边界，阻止旧任务复活已删除的记忆。 */
+export const memorySuppressions = mysqlTable(
+  "memorySuppressions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: varchar("userId", { length: 255 }).notNull(),
+    girlfriendId: int("girlfriendId").notNull(),
+    contentHash: varchar("contentHash", { length: 64 }).notNull(),
+    sourceMessageId: int("sourceMessageId"),
+    throughMessageId: int("throughMessageId").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    byRoleAndHash: uniqueIndex("uniq_memory_suppression").on(
+      table.girlfriendId,
+      table.contentHash
+    ),
+    byUser: index("idx_memory_suppression_user").on(table.userId),
+  })
+);
+
 /** 每用户当前的外部订阅快照，由经验证的支付事件更新。 */
 export const subscriptions = mysqlTable("subscriptions", {
   id: int("id").autoincrement().primaryKey(),

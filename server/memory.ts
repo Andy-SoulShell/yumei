@@ -1,9 +1,17 @@
 /** 长期记忆的异步提取、去重存储、容量淘汰和聊天召回。 */
 
 import axios from "axios";
+import { createHash } from "node:crypto";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import { girlfriends, memories, type Memory } from "../drizzle/schema";
+import {
+  conversations,
+  girlfriends,
+  memories,
+  memorySuppressions,
+  messages,
+  type Memory,
+} from "../drizzle/schema";
 import {
   DUPLICATE_THRESHOLD,
   MEMORY_CATEGORIES,
@@ -283,11 +291,39 @@ export async function storeExtractedMemoriesInTransaction(
       and(eq(memories.userId, userId), eq(memories.girlfriendId, girlfriendId))
     )
     .for("update");
+  const suppressed = await tx
+    .select()
+    .from(memorySuppressions)
+    .where(
+      and(
+        eq(memorySuppressions.userId, userId),
+        eq(memorySuppressions.girlfriendId, girlfriendId)
+      )
+    );
   let inserted = 0;
   let reinforced = 0;
   let updated = 0;
   existing.sort((a, b) => (b.sourceMessageId ?? 0) - (a.sourceMessageId ?? 0));
   for (const candidate of candidates) {
+    const contentHash = createHash("sha256")
+      .update(normalizeMemoryText(candidate.content))
+      .digest("hex");
+    if (
+      suppressed.some(item => {
+        if (
+          candidate.sourceMessageId !== undefined &&
+          candidate.sourceMessageId > item.throughMessageId
+        )
+          return false;
+        return (
+          item.contentHash === contentHash ||
+          (candidate.sourceMessageId !== undefined &&
+            (item.sourceMessageId === null ||
+              candidate.sourceMessageId === item.sourceMessageId))
+        );
+      })
+    )
+      continue;
     const duplicate = existing.find(m => memoryMatch(candidate, m) !== null);
     if (duplicate) {
       if (
@@ -487,9 +523,50 @@ export async function listMemories(
 export async function deleteMemory(userId: string, id: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db
-    .delete(memories)
+  // 外来编号直接无操作，也避免为不属于当前用户的记录建立遗忘边界。
+  const [owned] = await db
+    .select()
+    .from(memories)
     .where(and(eq(memories.id, id), eq(memories.userId, userId)));
+  if (!owned) return;
+  await withUserTransaction(userId, async tx => {
+    const [current] = await tx
+      .select()
+      .from(memories)
+      .where(and(eq(memories.id, id), eq(memories.userId, userId)))
+      .for("update");
+    if (!current) return;
+    const [boundary] = await tx
+      .select({ id: sql<number>`COALESCE(MAX(${messages.id}), 0)` })
+      .from(messages)
+      .innerJoin(conversations, eq(conversations.id, messages.conversationId))
+      .where(
+        and(
+          eq(conversations.userId, userId),
+          eq(conversations.girlfriendId, current.girlfriendId)
+        )
+      );
+    const contentHash = createHash("sha256")
+      .update(normalizeMemoryText(current.content))
+      .digest("hex");
+    const throughMessageId = Math.max(
+      Number(boundary?.id ?? 0),
+      current.sourceMessageId ?? 0
+    );
+    await tx
+      .insert(memorySuppressions)
+      .values({
+        userId,
+        girlfriendId: current.girlfriendId,
+        contentHash,
+        sourceMessageId: current.sourceMessageId,
+        throughMessageId,
+      })
+      .onDuplicateKeyUpdate({
+        set: { throughMessageId, sourceMessageId: current.sourceMessageId },
+      });
+    await tx.delete(memories).where(eq(memories.id, id));
+  });
 }
 
 /** 按用户归属设置或取消记忆置顶。 */

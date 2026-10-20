@@ -17,6 +17,7 @@ import {
   mediaDeletions,
   memories,
   memoryExtractionJobs,
+  memorySuppressions,
   messages,
   notifications,
   selfies,
@@ -289,6 +290,14 @@ export async function permanentDeleteGirlfriend(
     await tx
       .delete(memories)
       .where(and(eq(memories.girlfriendId, id), eq(memories.userId, userId)));
+    await tx
+      .delete(memorySuppressions)
+      .where(
+        and(
+          eq(memorySuppressions.girlfriendId, id),
+          eq(memorySuppressions.userId, userId)
+        )
+      );
     await tx
       .delete(notifications)
       .where(

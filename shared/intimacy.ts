@@ -138,7 +138,6 @@ export const POINTS_RULES: Record<string, PointsRule> = {
     basePoints: 2,
     bonusCondition: "消息长度 > 50 字",
     bonusPoints: 3,
-    cooldownMinutes: 1,
     dailyLimit: 100,
   },
   voice_message: {
@@ -188,7 +187,7 @@ export const POINTS_RULES: Record<string, PointsRule> = {
 };
 
 // 每日经验值总上限
-/** 每用户每日经验计量的上限，单位为经验点。 */
+/** 用户与每个角色独立计算的每日经验上限，单位为经验点。 */
 export const DAILY_POINTS_LIMIT = 200;
 
 // 衰减规则

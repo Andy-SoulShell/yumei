@@ -54,7 +54,7 @@ export async function awardIntimacy(
     throw new Error("Invalid intimacy points");
   const now = new Date();
   const period = todayUTC();
-  const meter = METERS.intimacyReason(reason);
+  const meter = METERS.intimacyReason(girlfriendId, reason);
   const [previous] = await tx
     .select()
     .from(usageMeters)
@@ -81,7 +81,7 @@ export async function awardIntimacy(
   const total = await tryConsumeMeterInTransaction(
     tx,
     userId,
-    METERS.intimacyPoints,
+    METERS.intimacyPoints(girlfriendId),
     DAILY_POINTS_LIMIT,
     period,
     totalPoints

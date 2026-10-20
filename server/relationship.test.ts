@@ -58,6 +58,54 @@ async function seed() {
 afterEach(() => vi.useRealTimers());
 
 describe("server-owned relationship settlement", () => {
+  it("levels up through 50 committed text rounds without a minute-long pause and settles each request once", async () => {
+    const a = await seed();
+    let upgraded = false;
+    for (let i = 0; i < 50; i++) {
+      const saved = await a.send(
+        `这是第${i + 1}轮有效的文字聊天`,
+        "我在认真听"
+      );
+      upgraded ||= saved.relationship.leveledUp;
+    }
+    const info = await getIntimacyInfo(a.gf.id, a.userId);
+    expect(info.intimacyPoints).toBeGreaterThanOrEqual(100);
+    expect(info.intimacyLevel).toBeGreaterThan(1);
+    expect(upgraded).toBe(true);
+  });
+  it("keeps cooldowns and daily point limits independent for companions on the same account", async () => {
+    const a = await seed();
+    const second = await createTestGirlfriend({
+      userId: a.userId,
+      name: "Second",
+      personality: "自然",
+      appearance: "自然",
+      referenceImageKey: "test-ref-2",
+      referenceImageUrl: "https://example.test/ref2",
+    });
+    const bConversation = await createConversation({
+      userId: a.userId,
+      girlfriendId: second.id,
+    });
+    await a.send();
+    const id = await reserveGeneration({
+      userId: a.userId,
+      conversationId: bConversation.id,
+      kind: "chat",
+    });
+    await completeTextGeneration(
+      id,
+      a.userId,
+      "另一位角色也应该独立获得亲密度经验",
+      "我也很高兴"
+    );
+    expect(
+      (await getIntimacyInfo(a.gf.id, a.userId)).intimacyPoints
+    ).toBeGreaterThan(0);
+    expect(
+      (await getIntimacyInfo(second.id, a.userId)).intimacyPoints
+    ).toBeGreaterThan(0);
+  });
   it("returns null for a fresh role and rejects missing or foreign roles", async () => {
     const a = await seed(),
       b = await seed();

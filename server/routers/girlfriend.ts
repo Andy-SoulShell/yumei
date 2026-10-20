@@ -31,8 +31,19 @@ import {
 } from "../repositories/companions";
 import { getIntimacyInfo } from "../repositories/intimacy";
 import { createWithPortrait } from "../characterPortrait";
+import { generateCreatorProfile } from "../creatorProfile";
+import {
+  generateProfileInputSchema,
+  generatedProfileSchema,
+} from "../../shared/creatorProfile";
 
 export const girlfriendRouter = router({
+  /** 仅生成可编辑的人设草稿，角色与图片仍由创建操作保存。 */
+  generateProfile: protectedProcedure
+    .input(generateProfileInputSchema)
+    .output(generatedProfileSchema)
+    .mutation(({ ctx, input }) => generateCreatorProfile(ctx.user, input)),
+
   /** 校验角色数量；新建可按文字生成形象，兼容已有预设与上传入口。 */
   create: protectedProcedure
     .input(

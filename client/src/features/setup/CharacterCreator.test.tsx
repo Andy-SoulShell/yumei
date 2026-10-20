@@ -6,6 +6,10 @@ import { i18n, type Translator } from "@shared/i18n";
 import { LOCALES } from "@shared/locales";
 import Setup from "@/pages/Setup";
 import { CREATOR_IMAGE_GROUPS } from "./creatorAssets";
+import {
+  buildChatSystemPrompt,
+  buildPortraitPrompt,
+} from "@shared/characterPrompt";
 
 const mock = vi.hoisted(() => ({
   query: "",
@@ -14,6 +18,7 @@ const mock = vi.hoisted(() => ({
   navigate: vi.fn(),
   error: vi.fn(),
   fetch: vi.fn(),
+  generateProfile: vi.fn(),
 }));
 vi.mock("wouter", () => ({
   useLocation: () => ["/setup", mock.navigate],
@@ -32,6 +37,9 @@ vi.mock("@/lib/trpc", () => ({
     useUtils: () => ({ girlfriend: { invalidate: vi.fn() } }),
     apiConfig: { get: { useQuery: () => ({ data: undefined }) } },
     girlfriend: {
+      generateProfile: {
+        useMutation: () => ({ mutateAsync: mock.generateProfile }),
+      },
       list: { useQuery: () => ({ data: [] }) },
       create: {
         useMutation: () => ({ mutate: mock.create, isPending: false }),
@@ -187,7 +195,11 @@ describe("companion creation", () => {
     )!;
     await settle(() => male.click());
     await choose("风格", "动漫");
-    expect(container.textContent).toContain("从下一步开始");
+    expect(
+      container.querySelectorAll(
+        '[aria-label="模板"][role="radiogroup"] [role="radio"]'
+      )
+    ).toHaveLength(6);
     await click("从头自定义");
     expect(
       container.querySelectorAll(
@@ -236,6 +248,7 @@ describe("companion creation", () => {
     await click("从头自定义");
     await click("下一步");
     await click("下一步");
+    await fill("#name", "独立角色");
     await click("下一步");
     expect(mock.create).not.toHaveBeenCalled();
     expect(container.querySelectorAll(".creator-review img")).toHaveLength(0);
@@ -280,6 +293,137 @@ describe("companion creation", () => {
     expect(
       container.querySelector('nav [aria-current="step"]')?.textContent
     ).toContain("风格");
+    expect(mock.create).not.toHaveBeenCalled();
+  });
+
+  it.each(["female", "male"])(
+    "autofills an independent anime %s template and preserves its traits through the wizard",
+    async gender => {
+      await settle(() => root.render(<Setup />));
+      if (gender === "male")
+        await settle(() =>
+          container
+            .querySelector<HTMLButtonElement>('[role="radio"][value="male"]')!
+            .click()
+        );
+      await choose("风格", "动漫");
+      const label = gender === "male" ? "旧书店店主" : "森林草药师";
+      await choose("模板", label);
+      expect(
+        container.querySelectorAll('[aria-label="气质"] [data-state="checked"]')
+      ).toHaveLength(1);
+      await click("下一步");
+      await click("下一步");
+      expect(container.querySelector<HTMLInputElement>("#name")!.value).toBe(
+        gender === "male" ? "朝雾律" : "白芷"
+      );
+      expect(
+        container.querySelector<HTMLTextAreaElement>("#personality")!.value
+          .length
+      ).toBeGreaterThan(25);
+      expect(
+        container.querySelector<HTMLTextAreaElement>("#interests")!.value
+      ).toContain(gender === "male" ? "旧书修复" : "草药园艺");
+      const appearance =
+        container.querySelector<HTMLTextAreaElement>("#appearance")!.value;
+      expect(appearance).toContain(gender === "male" ? "男性" : "女性");
+      expect(appearance).toContain("动漫");
+      expect(appearance).not.toContain("模板：");
+    }
+  );
+
+  it("applies and undoes AI profile changes, keeps appearance fixed, and previews the prompts actually used", async () => {
+    mock.generateProfile.mockResolvedValue({
+      name: "星野遥",
+      personality: "沉静而好奇，喜欢分享植物见闻。",
+      interests: "植物绘图、木工、烘焙",
+    });
+    await settle(() => root.render(<Setup />));
+    await choose("风格", "动漫");
+    await choose("模板", "森林草药师");
+    await click("下一步");
+    await click("下一步");
+    const appearance =
+      container.querySelector<HTMLTextAreaElement>("#appearance")!.value;
+    await click("随机生成人设");
+    expect(mock.generateProfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: "random",
+        locale: "zh-CN",
+        gender: "female",
+        style: "anime",
+        name: "白芷",
+        appearance,
+      })
+    );
+    expect(container.querySelector<HTMLInputElement>("#name")!.value).toBe(
+      "星野遥"
+    );
+    expect(
+      container.querySelector<HTMLTextAreaElement>("#appearance")!.value
+    ).toBe(appearance);
+    expect(mock.create).not.toHaveBeenCalled();
+    await click("撤销 AI 修改");
+    expect(container.querySelector<HTMLInputElement>("#name")!.value).toBe(
+      "白芷"
+    );
+    await click("AI 润色");
+    expect(mock.generateProfile).toHaveBeenLastCalledWith(
+      expect.objectContaining({ mode: "polish", name: "白芷" })
+    );
+    await click("下一步");
+    await click("查看最终生效的提示词");
+    expect(
+      container.querySelector('[data-testid="chat-system-prompt"]')!.textContent
+    ).toBe(
+      buildChatSystemPrompt({
+        name: "星野遥",
+        personality: "沉静而好奇，喜欢分享植物见闻。",
+        interests: "植物绘图、木工、烘焙",
+        appearance,
+        customPrompt: "",
+      })
+    );
+    expect(
+      container.querySelector('[data-testid="portrait-prompt"]')!.textContent
+    ).toBe(buildPortraitPrompt(appearance));
+  });
+
+  it("locks the wizard during AI writing and preserves the draft on failure", async () => {
+    let rejectGeneration!: (reason: Error) => void;
+    mock.generateProfile.mockImplementation(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectGeneration = reject;
+        })
+    );
+    await settle(() => root.render(<Setup />));
+    await choose("风格", "动漫");
+    await choose("模板", "森林草药师");
+    await click("下一步");
+    await click("下一步");
+    const personality =
+      container.querySelector<HTMLTextAreaElement>("#personality")!.value;
+    await click("AI 润色");
+    expect(
+      container.querySelector<HTMLFieldSetElement>("fieldset")!.disabled
+    ).toBe(true);
+    expect(
+      Array.from(
+        container.querySelectorAll<HTMLButtonElement>("nav button")
+      ).every(button => button.disabled)
+    ).toBe(true);
+    await settle(() => rejectGeneration(new Error("Service unavailable")));
+    expect(container.querySelector<HTMLInputElement>("#name")!.value).toBe(
+      "白芷"
+    );
+    expect(
+      container.querySelector<HTMLTextAreaElement>("#personality")!.value
+    ).toBe(personality);
+    expect(
+      container.querySelector<HTMLFieldSetElement>("fieldset")!.disabled
+    ).toBe(false);
+    expect(mock.error).toHaveBeenCalled();
     expect(mock.create).not.toHaveBeenCalled();
   });
 

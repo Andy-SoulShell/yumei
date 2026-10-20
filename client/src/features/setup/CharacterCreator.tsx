@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupChoice } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { getCharacterPreset } from "@shared/characterPresets";
+import { getCreatorTemplate } from "./creatorTemplates";
+import { CharacterPromptPreview } from "./CharacterPrompt";
 import type { Translator } from "@shared/i18n";
 import {
   ArrowLeft,
@@ -151,6 +153,12 @@ export function CharacterCreator({ state }: { state: SetupController }) {
   };
   const changeBranch = (gender: CreatorGender, style: CreatorStyle) => {
     updateSelection(changeCreatorBranch(selection, gender, style));
+    if (gender !== selection.gender || style !== selection.style) {
+      state.setName("");
+      state.setPersonality("");
+      state.setInterests("");
+      state.clearProfileUndo();
+    }
   };
   const goTo = (next: number) => {
     cancelAutoAdvance();
@@ -199,23 +207,34 @@ export function CharacterCreator({ state }: { state: SetupController }) {
     advanceAfterChoice(next);
   };
   const pickOption = (category: CreatorCategory, option: CreatorOption) => {
+    if (category === "templates") {
+      const template = getCreatorTemplate(option.id);
+      if (!template) return;
+      updateSelection({
+        ...template.selection,
+        options: { ...template.selection.options },
+      });
+      state.setName(template.name);
+      state.setPersonality(template.personality);
+      state.setInterests(template.interests);
+      state.clearProfileUndo();
+      goTo(2);
+      focusAfterAdvance.current = true;
+      return;
+    }
     const next = {
       ...selection,
       options: { ...selection.options, [category]: option.id },
     };
     updateSelection(next);
-    if (category === "templates") {
-      const old = selection.options.templates;
-      if (!state.name || (old && state.name === creatorLabel(old, t)))
-        state.setName(creatorLabel(option.id, t));
-      goTo(2);
-      focusAfterAdvance.current = true;
-    } else advanceAfterChoice(next);
+    advanceAfterChoice(next);
   };
   const startFromScratch = () => {
-    const options = { ...selection.options };
-    delete options.templates;
-    updateSelection({ ...selection, options });
+    updateSelection({ ...selection, options: {}, details: undefined });
+    state.setName("");
+    state.setPersonality("");
+    state.setInterests("");
+    state.clearProfileUndo();
     goTo(2);
   };
   const tags = [
@@ -450,6 +469,9 @@ export function CharacterCreator({ state }: { state: SetupController }) {
                     state={state}
                     age={selection.age}
                     onAgeChange={age => updateSelection({ ...selection, age })}
+                    onGenerate={mode =>
+                      void state.generateProfile(mode, selection)
+                    }
                   />
                 </div>
               )}
@@ -482,6 +504,7 @@ export function CharacterCreator({ state }: { state: SetupController }) {
                       </div>
                     )}
                   </dl>
+                  <CharacterPromptPreview {...state} includePortrait />
                   {state.isPending && (
                     <p role="status" className="creator-generating">
                       <Loader2 size={16} className="animate-spin" />

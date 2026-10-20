@@ -141,7 +141,7 @@ export async function generateConversationSelfie(
 
   const imagePrompt =
     input.generationMode === "text"
-      ? `生成一张角色照片。角色外貌：${girlfriend.appearance}。场景与姿势：${combinedContext || "自然微笑，随手自拍"}。自然光线，画面清晰。`
+      ? `生成一张成年角色图像，遵循角色设定的性别与画风。角色外貌：${girlfriend.appearance}。场景与姿势：${combinedContext || "自然微笑，随手自拍"}。自然光线，画面清晰。`
       : promptResult.prompt;
 
   const fileKey = `selfie-${user.id}-${nanoid()}.png`;

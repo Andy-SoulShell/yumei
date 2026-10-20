@@ -9,6 +9,11 @@ export default defineConfig({
     include: [
       "server/characterPortrait.test.ts",
       "server/characterCreation.test.ts",
+      "server/creatorProfile.test.ts",
+      "server/prompt-system.test.ts",
+      "server/promptTemplates.test.ts",
+      "client/src/features/setup/creatorTemplates.test.ts",
+      "client/src/features/setup/CharacterCreator.test.tsx",
       "server/_core/portraitProvider.test.ts",
       "server/_core/comfyui.test.ts",
     ],

@@ -1,6 +1,10 @@
 import { apiErrorMessage } from "@/lib/errors";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
+import type {
+  GenerateProfileInput,
+  GeneratedProfile,
+} from "@shared/creatorProfile";
 import {
   getCharacterPreset,
   type CharacterPreset,
@@ -19,7 +23,7 @@ const ALLOWED_AVATAR_TYPES = [
 const MAX_AVATAR_SIZE = 10 * 1024 * 1024;
 /** 页面查询、草稿与操作流程；展示组件只消费此状态。 */
 export function useSetupController() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const [, setLocation] = useLocation();
 
@@ -60,6 +64,61 @@ export function useSetupController() {
   const [showCustomPrompt, setShowCustomPrompt] = useState(false);
 
   const [showPromptPreview, setShowPromptPreview] = useState(false);
+  const [profileGenerationMode, setProfileGenerationMode] = useState<
+    "polish" | "random" | null
+  >(null);
+  const [previousProfile, setPreviousProfile] =
+    useState<GeneratedProfile | null>(null);
+  const profileRequest = useRef(0);
+  useEffect(
+    () => () => {
+      profileRequest.current++;
+    },
+    []
+  );
+  const profileGenerator = trpc.girlfriend.generateProfile.useMutation();
+
+  /** AI 结果只回填当前草稿；请求期间锁定编辑，卸载后不再覆盖状态。 */
+  const generateProfile = async (
+    mode: "polish" | "random",
+    identity: Pick<GenerateProfileInput, "gender" | "style" | "age">
+  ) => {
+    if (profileGenerationMode) return;
+    const request = ++profileRequest.current;
+    const previous = { name, personality, interests };
+    setProfileGenerationMode(mode);
+    try {
+      const profile = await profileGenerator.mutateAsync({
+        ...identity,
+        ...previous,
+        appearance,
+        mode,
+        locale,
+      });
+      if (profileRequest.current !== request) return;
+      setPreviousProfile(previous);
+      setName(profile.name);
+      setPersonality(profile.personality);
+      setInterests(profile.interests);
+      toast.success(t("creator:profileReady"));
+    } catch (error) {
+      if (profileRequest.current === request)
+        toast.error(
+          t("creator:aiError", {
+            error: apiErrorMessage(error as { message: string }, t),
+          })
+        );
+    } finally {
+      if (profileRequest.current === request) setProfileGenerationMode(null);
+    }
+  };
+  const undoProfile = () => {
+    if (!previousProfile) return;
+    setName(previousProfile.name);
+    setPersonality(previousProfile.personality);
+    setInterests(previousProfile.interests);
+    setPreviousProfile(null);
+  };
 
   // 头像相关状态
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -260,6 +319,7 @@ export function useSetupController() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (profileGenerationMode) return;
 
     if (!name.trim() || !personality.trim() || !appearance.trim()) {
       toast.error(t("setup:fillInAllRequiredFields"));
@@ -290,7 +350,10 @@ export function useSetupController() {
 
   const isEditing = !!editId;
 
-  const isPending = createGirlfriend.isPending || updateGirlfriend.isPending;
+  const isPending =
+    createGirlfriend.isPending ||
+    updateGirlfriend.isPending ||
+    profileGenerationMode !== null;
 
   const displayImage =
     imagePreview ||
@@ -301,6 +364,11 @@ export function useSetupController() {
   return {
     setLocation,
     t,
+    generateProfile,
+    profileGenerationMode,
+    canUndoProfile: previousProfile !== null,
+    undoProfile,
+    clearProfileUndo: () => setPreviousProfile(null),
     isEditing,
     handleSubmit,
     presetId,

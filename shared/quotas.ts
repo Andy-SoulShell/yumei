@@ -72,9 +72,10 @@ export const TIER_PRICES = {
 /** OpenRouter 免费用户默认使用的聊天模型标识。 */
 export const FREE_TIER_DEFAULT_MODEL = "openai/gpt-4o-mini";
 
-/** 每用户每分钟的请求上限，在单个应用进程内执行。 */
+/** 每用户每分钟的请求上限，通过数据库在多个应用进程间共享。 */
 export const RATE_LIMITS_PER_MINUTE = {
   chat: 20,
+  profile: 5,
   selfie: 3,
   transcribe: 10,
   tts: 30,

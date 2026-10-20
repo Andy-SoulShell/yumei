@@ -43,6 +43,8 @@ describe("buildSmartPrompt", () => {
     expect(result.prompt).toContain("selfie");
     expect(result.prompt).toContain("at a cozy cafe");
     expect(result.prompt).toContain("phone held at arm's length");
+    expect(result.prompt).toContain("identity, gender and art style");
+    expect(result.prompt).not.toMatch(/herself|himself/);
   });
 
   it("should allow manual mode override", () => {

@@ -1,4 +1,5 @@
 /** 角色创建器的本地图片选项。 */
+import { CREATOR_TEMPLATES } from "./creatorTemplates";
 export const CREATOR_ASSET_VERSION = "studio-v2";
 export type CreatorGender = "female" | "male";
 export type CreatorStyle = "realistic" | "anime";
@@ -424,37 +425,6 @@ export const CREATOR_IMAGE_GROUPS: CreatorImageGroup[] = [
     ],
   },
   {
-    gender: "female",
-    style: "realistic",
-    category: "templates",
-    options: [
-      {
-        id: "campus-beauty",
-        imageUrl: "/character-options/creator/templates/campus-beauty.webp",
-      },
-      {
-        id: "chinese-beauty",
-        imageUrl: "/character-options/creator/templates/chinese-beauty.webp",
-      },
-      {
-        id: "cool-girl",
-        imageUrl: "/character-options/creator/templates/cool-girl.webp",
-      },
-      {
-        id: "girl-next-door",
-        imageUrl: "/character-options/creator/templates/girl-next-door.webp",
-      },
-      {
-        id: "mature-lady",
-        imageUrl: "/character-options/creator/templates/mature-lady.webp",
-      },
-      {
-        id: "spicy-girl",
-        imageUrl: "/character-options/creator/templates/spicy-girl.webp",
-      },
-    ],
-  },
-  {
     gender: "male",
     style: "anime",
     category: "bodytype",
@@ -713,37 +683,16 @@ export const CREATOR_IMAGE_GROUPS: CreatorImageGroup[] = [
       },
     ],
   },
-  {
-    gender: "male",
-    style: "realistic",
-    category: "templates",
-    options: [
-      {
-        id: "artist",
-        imageUrl: "/character-options/creator/templates/artist.webp",
-      },
-      {
-        id: "bad-boy",
-        imageUrl: "/character-options/creator/templates/bad-boy.webp",
-      },
-      {
-        id: "ceo",
-        imageUrl: "/character-options/creator/templates/ceo.webp",
-      },
-      {
-        id: "dark-prince",
-        imageUrl: "/character-options/creator/templates/dark-prince.webp",
-      },
-      {
-        id: "gentle-junior",
-        imageUrl: "/character-options/creator/templates/gentle-junior.webp",
-      },
-      {
-        id: "senior",
-        imageUrl: "/character-options/creator/templates/senior.webp",
-      },
-    ],
-  },
+  ...(["female", "male"] as const).flatMap(gender =>
+    (["realistic", "anime"] as const).map(style => ({
+      gender,
+      style,
+      category: "templates" as const,
+      options: CREATOR_TEMPLATES.filter(
+        template => template.gender === gender && template.style === style
+      ).map(({ id, imageUrl }) => ({ id, imageUrl })),
+    }))
+  ),
 ];
 
 export const CREATOR_COLORS = {

@@ -1,5 +1,6 @@
 /** 创建角色时只以文字生成形象，选项素材不参与模型输入。 */
 import { TRPCError } from "@trpc/server";
+import { buildPortraitPrompt } from "../shared/characterPrompt";
 import { METERS } from "../shared/quotas";
 import {
   generateProviderImage,
@@ -51,7 +52,7 @@ export async function createWithPortrait<T>(
     const image = await generateProviderImage(provider, {
       mode: "text",
       references: [],
-      prompt: `Create one original fictional adult character portrait, age 18 or older. Use these appearance preferences: ${appearance.slice(0, 6000)}. A single fully clothed adult, natural expression, face clearly visible, head and upper body composition, soft lighting, simple background, detailed image. No text, watermark or collage.`,
+      prompt: buildPortraitPrompt(appearance),
     });
     if (
       image.length > 25 * 1024 * 1024 ||

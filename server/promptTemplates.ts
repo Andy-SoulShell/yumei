@@ -64,7 +64,7 @@ export function buildMirrorPrompt(userContext: string): string {
 
 /** 将用户场景拼入直拍自拍模板。 */
 export function buildDirectPrompt(userContext: string): string {
-  return `a close-up selfie taken by herself at ${userContext}, direct eye contact with the camera, looking straight into the lens, eyes centered and clearly visible, not a mirror selfie, phone held at arm's length, face fully visible`;
+  return `a close-up selfie of this adult person. Scene: ${userContext}. Preserve the reference person's identity, gender and art style, direct eye contact with the camera, looking straight into the lens, eyes centered and clearly visible, not a mirror selfie, phone held at arm's length, face fully visible`;
 }
 
 // ============================================

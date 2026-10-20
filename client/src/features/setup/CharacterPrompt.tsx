@@ -1,3 +1,4 @@
+/** 编辑角色专属指令，并展示与后端共用生成器产出的实际提示词。 */
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,
@@ -6,37 +7,106 @@ import {
 } from "@/components/ui/collapsible";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  buildChatSystemPrompt,
+  buildPortraitPrompt,
+} from "@shared/characterPrompt";
 import { Brain, ChevronDown, ChevronUp, Eye } from "lucide-react";
 import type { SetupController } from "./useSetupController";
-type Props = Pick<
+
+type PreviewProps = Pick<
   SetupController,
-  | "showCustomPrompt"
-  | "setShowCustomPrompt"
   | "t"
-  | "customPrompt"
-  | "setCustomPrompt"
-  | "showPromptPreview"
-  | "setShowPromptPreview"
-  | "apiConfig"
+  | "name"
   | "personality"
   | "appearance"
   | "interests"
->;
+  | "customPrompt"
+  | "apiConfig"
+  | "showPromptPreview"
+  | "setShowPromptPreview"
+> & { includePortrait?: boolean };
 
-/** 编辑角色专属指令，折叠展示系统提示词预览。 */
-export function CharacterPrompt({
-  showCustomPrompt,
-  setShowCustomPrompt,
+/** 预览当前草稿实际使用的静态聊天提示词及 YUMEI 生图指令。 */
+export function CharacterPromptPreview({
   t,
-  customPrompt,
-  setCustomPrompt,
-  showPromptPreview,
-  setShowPromptPreview,
-  apiConfig,
+  name,
   personality,
   appearance,
   interests,
-}: Props) {
+  customPrompt,
+  apiConfig,
+  showPromptPreview,
+  setShowPromptPreview,
+  includePortrait = false,
+}: PreviewProps) {
+  const prompt = buildChatSystemPrompt(
+    { name, personality, appearance, interests, customPrompt },
+    apiConfig?.preferences ?? undefined
+  );
+  return (
+    <Collapsible
+      open={showPromptPreview}
+      onOpenChange={setShowPromptPreview}
+      className="space-y-2"
+    >
+      <CollapsibleTrigger asChild>
+        <Button
+          variant="plain"
+          size="none"
+          type="button"
+          className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+        >
+          <Eye className="size-3.5" />
+          {showPromptPreview
+            ? t("setup:hidePreview")
+            : t("setup:previewTheCombinedPrompt")}
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="rounded-lg border bg-muted/30 p-3 space-y-3 text-sm">
+        <p className="text-xs text-muted-foreground">
+          {t("creator:promptPreviewHint")}
+        </p>
+        <p className="text-xs font-medium">{t("creator:chatPromptLabel")}</p>
+        <pre
+          data-testid="chat-system-prompt"
+          className="max-h-80 overflow-y-auto whitespace-pre-wrap break-words font-sans text-xs leading-relaxed"
+        >
+          {prompt}
+        </pre>
+        {includePortrait && (
+          <details className="border-t pt-3">
+            <summary className="cursor-pointer text-xs font-medium">
+              {t("creator:portraitPromptLabel")}
+            </summary>
+            <pre
+              data-testid="portrait-prompt"
+              className="mt-2 max-h-64 overflow-y-auto whitespace-pre-wrap break-words font-sans text-xs leading-relaxed"
+            >
+              {buildPortraitPrompt(appearance)}
+            </pre>
+          </details>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+type Props = PreviewProps &
+  Pick<
+    SetupController,
+    "showCustomPrompt" | "setShowCustomPrompt" | "setCustomPrompt"
+  >;
+
+/** 编辑额外的角色行为偏好；预览与实际聊天共享角色资料、语言和长度要求。 */
+export function CharacterPrompt(props: Props) {
+  const {
+    t,
+    showCustomPrompt,
+    setShowCustomPrompt,
+    customPrompt,
+    setCustomPrompt,
+  } = props;
   return (
     <Collapsible
       open={showCustomPrompt}
@@ -51,18 +121,17 @@ export function CharacterPrompt({
           className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full"
         >
           {showCustomPrompt ? (
-            <ChevronUp className="w-4 h-4" />
+            <ChevronUp className="size-4" />
           ) : (
-            <ChevronDown className="w-4 h-4" />
+            <ChevronDown className="size-4" />
           )}
-          <Brain className="w-4 h-4" />
+          <Brain className="size-4" />
           {t("setup:advancedPrompt")}
           <span className="text-xs px-1.5 py-0.5 rounded bg-muted">
             {t("setup:optional")}
           </span>
         </Button>
       </CollapsibleTrigger>
-
       <CollapsibleContent className="mt-3 space-y-4">
         <div className="space-y-2">
           <Label htmlFor="customPrompt">
@@ -88,86 +157,7 @@ export function CharacterPrompt({
             </span>
           </div>
         </div>
-
-        {/* 提示词预览 */}
-        <Collapsible
-          open={showPromptPreview}
-          onOpenChange={setShowPromptPreview}
-          className="space-y-2"
-        >
-          <CollapsibleTrigger asChild>
-            <Button
-              variant="plain"
-              size="none"
-              type="button"
-              className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              {showPromptPreview
-                ? t("setup:hidePreview")
-                : t("setup:previewTheCombinedPrompt")}
-            </Button>
-          </CollapsibleTrigger>
-
-          <CollapsibleContent className="rounded-lg border bg-muted/30 p-3 space-y-2 text-sm">
-            <p className="text-xs font-medium text-muted-foreground mb-2">
-              {t("setup:previewOfThePromptSentToTheAI")}
-            </p>
-
-            {/* 全局提示词 */}
-            {apiConfig?.preferences?.globalPrompt ? (
-              <div className="rounded p-2 bg-blue-500/10 border border-blue-500/20">
-                <span className="text-[10px] font-semibold text-blue-500 uppercase">
-                  {t("setup:sharedPrompt")}
-                </span>
-                <p className="mt-1 text-foreground/80">
-                  {apiConfig.preferences?.globalPrompt}
-                </p>
-              </div>
-            ) : (
-              <div className="rounded p-2 bg-muted/50 border border-dashed">
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase">
-                  {t("setup:sharedPrompt")}
-                </span>
-                <p className="mt-1 text-muted-foreground italic">
-                  {t("setup:notSetConfigureItInSettings")}
-                </p>
-              </div>
-            )}
-
-            {/* 个体提示词 */}
-            {customPrompt ? (
-              <div className="rounded p-2 bg-primary/10 border border-primary/20">
-                <span className="text-[10px] font-semibold text-primary uppercase">
-                  {t("setup:companionPrompt")}
-                </span>
-                <p className="mt-1 text-foreground/80">{customPrompt}</p>
-              </div>
-            ) : (
-              <div className="rounded p-2 bg-muted/50 border border-dashed">
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase">
-                  {t("setup:companionPrompt")}
-                </span>
-                <p className="mt-1 text-muted-foreground italic">
-                  {t("setup:notSet")}
-                </p>
-              </div>
-            )}
-
-            {/* 性格 + 外貌结构化字段 */}
-            <div className="rounded p-2 bg-purple-500/10 border border-purple-500/20">
-              <span className="text-[10px] font-semibold text-purple-500 uppercase">
-                {t("setup:characterProfile")}
-              </span>
-              <p className="mt-1 text-foreground/80">
-                {t("setup:personality2")}
-                {personality || t("setup:notProvided")} {t("setup:appearance2")}
-                {appearance || t("setup:notProvided")}
-                {interests && t("setup:interests", { interests: interests })}
-              </p>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+        <CharacterPromptPreview {...props} />
       </CollapsibleContent>
     </Collapsible>
   );

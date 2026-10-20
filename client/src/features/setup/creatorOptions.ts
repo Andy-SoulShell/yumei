@@ -1,4 +1,4 @@
-import type { Translator } from "@shared/i18n";
+import type { StaticMessageKey, Translator } from "@shared/i18n";
 import { enCreator } from "@shared/locales/creator";
 import {
   CREATOR_ASSET_VERSION,
@@ -12,12 +12,14 @@ export type CreatorSelection = {
   gender: CreatorGender;
   style: CreatorStyle;
   age: number;
+  /** 模板提供的服装、配饰等补充外貌，不混入性格或系统指令。 */
+  details?: string;
   options: Partial<Record<CreatorCategory | "skin" | "eyes" | "hair", string>>;
 };
 
 /** 用稳定标识本地化图片与颜色标签。 */
 export function creatorLabel(id: string, t: Translator) {
-  return id in enCreator ? t(`creator:${id as keyof typeof enCreator}`) : id;
+  return id in enCreator ? t(`creator:${id}` as StaticMessageKey) : id;
 }
 
 export function creatorOptions(
@@ -44,10 +46,12 @@ export function describeCreator(selection: CreatorSelection, t: Translator) {
     t(
       selection.style === "anime" ? "characters:anime" : "characters:realistic"
     ),
-    `${selection.age} · ${t("creator:adult")} · ${t(`creator:${selection.gender}`)}`,
+    t("creator:appearanceIdentity", {
+      age: selection.age,
+      gender: t(`creator:${selection.gender}`),
+    }),
   ];
   for (const category of [
-    "templates",
     "ethnicity",
     "skin",
     "eyes",
@@ -65,10 +69,11 @@ export function describeCreator(selection: CreatorSelection, t: Translator) {
     const value = selection.options[category];
     if (value)
       descriptions.push(
-        `${t(`creator:${category === "templates" ? "templateStep" : category}`)}: ${creatorLabel(value, t)}`
+        `${t(`creator:${category}`)}：${creatorLabel(value, t)}`
       );
   }
-  return descriptions.join("; ");
+  if (selection.details) descriptions.push(selection.details);
+  return descriptions.join("；");
 }
 
 /** 分支切换清除不再适用的选项，保留成年年龄。 */

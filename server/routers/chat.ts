@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import axios from "axios";
 import { z } from "zod";
 import { FREE_TIER_DEFAULT_MODEL, METERS } from "../../shared/quotas";
-import { detectSelfHarm, SAFETY_SYSTEM_CLAUSE } from "../../shared/safety";
+import { detectSelfHarm } from "../../shared/safety";
 import { detectSelfieRequest } from "../../shared/selfieRequest";
 import { resolveChatProvider } from "../_core/chatProvider";
 import { log, providerErrorSummary } from "../_core/log";
@@ -119,13 +119,13 @@ export const chatRouter = router({
       // 4. 获取用户全局提示词配置
       const apiConfig = await getUserApiConfig(ctx.user.id);
 
-      // 5. 构建分层系统提示词
-      let systemPrompt = buildChatSystemPrompt(girlfriend, apiConfig);
+      // 5. 收集动态记忆，再由共用生成器组装实际提示词。
+      let memoryBlock = "";
 
       // 长期记忆注入：按相关性取 top-k，等级越高记得越多。
       // 失败不阻塞聊天。
       try {
-        systemPrompt += await buildMemoryPromptBlock(
+        memoryBlock = await buildMemoryPromptBlock(
           ctx.user.id,
           girlfriend.id,
           input.content,
@@ -138,9 +138,11 @@ export const chatRouter = router({
         );
       }
 
-      // 安全条款：常驻，且排在所有用户可控提示词之后，
-      // 避免被全局/个体提示词覆盖。
-      systemPrompt += `\n${SAFETY_SYSTEM_CLAUSE}`;
+      const systemPrompt = buildChatSystemPrompt(
+        girlfriend,
+        apiConfig,
+        memoryBlock
+      );
 
       // 自残/危机表达检测：命中时响应会带 safetyNotice，前端展示
       // 危机干预资源提示，由 shared/safety.ts 的检测结果触发。

@@ -380,7 +380,8 @@
     box-shadow: none;
   }
   :where(:root[data-glass="experimental"]) .page-toolbar.sticky {
-    top: var(--glass-header-space);
+    /* 滚动容器已用 padding 预留顶栏空间，sticky 不再重复偏移。 */
+    top: 0;
   }
   :where(:root[data-glass="experimental"]) :is(.page-toolbar, .chat-header) {
     margin-inline: 12px;
@@ -449,6 +450,10 @@
     backdrop-filter: none;
   }
   @media (max-width: 900px) {
+    /* 聊天页由角色栏承接导航，给玻璃留少量外边距即可。 */
+    :where(:root[data-glass="experimental"]) .app-main-chat {
+      padding-top: 8px;
+    }
     /* 缩减底部遮罩，保留流经胶囊导航下方的内容色彩。 */
     :where(:root[data-glass="experimental"]) .app-shell:not(.is-chat)::after {
       background: linear-gradient(

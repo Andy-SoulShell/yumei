@@ -523,6 +523,7 @@ export default {
     token: "/token",
   },
   chat: {
+    moreActions: "チャットのその他の操作",
     couldNotStartAConversation: "会話を開始できませんでした：{{error}}",
     selfieSentToThisConversation: "この会話に自撮りを送りました",
     selfieGenerationFailedNoQuotaWasChargedDetails:

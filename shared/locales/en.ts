@@ -524,6 +524,7 @@ export default {
     token: "/token",
   },
   chat: {
+    moreActions: "More chat actions",
     couldNotStartAConversation: "Could not start a conversation: {{error}}",
     selfieSentToThisConversation: "Selfie sent to this conversation",
     selfieGenerationFailedNoQuotaWasChargedDetails:

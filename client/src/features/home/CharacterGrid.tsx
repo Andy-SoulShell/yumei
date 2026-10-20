@@ -95,12 +95,12 @@ export function CharacterGrid({
         return (
           <Card
             key={gf.id}
-            className={`transition-all hover:shadow-md ${
+            className={`companion-card transition-all hover:shadow-md ${
               gf.isActive ? "ring-2 ring-primary" : ""
             } ${isSelected ? "ring-2 ring-destructive bg-destructive/5" : ""}`}
           >
             <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center gap-3 sm:gap-4">
+              <div className="companion-layout flex items-center gap-3 sm:gap-4">
                 {/* 批量选择复选框 */}
                 {batchMode && (
                   <div className="flex-shrink-0">
@@ -137,8 +137,8 @@ export function CharacterGrid({
                 </div>
 
                 {/* 信息 */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
+                <div className="companion-info flex-1 min-w-0">
+                  <div className="companion-name flex flex-wrap items-center gap-2 mb-1">
                     <h3 className="font-semibold text-lg truncate">
                       {gf.name}
                     </h3>
@@ -226,7 +226,7 @@ export function CharacterGrid({
 
                 {/* 操作按钮 */}
                 {!batchMode && (
-                  <div className="flex flex-col gap-1.5 sm:gap-2 flex-shrink-0">
+                  <div className="companion-actions flex flex-col gap-1.5 sm:gap-2 flex-shrink-0">
                     <Button
                       size="sm"
                       disabled={

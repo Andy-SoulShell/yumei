@@ -505,6 +505,7 @@ export default {
     token: "/token",
   },
   chat: {
+    moreActions: "채팅 추가 작업",
     couldNotStartAConversation: "대화를 시작하지 못했어요: {{error}}",
     selfieSentToThisConversation: "현재 대화에 셀카를 보냈어요",
     selfieGenerationFailedNoQuotaWasChargedDetails:

@@ -490,6 +490,7 @@ export default {
     token: "/token",
   },
   chat: {
+    moreActions: "更多聊天操作",
     couldNotStartAConversation: "新建对话失败：{{error}}",
     selfieSentToThisConversation: "自拍已发到当前对话",
     selfieGenerationFailedNoQuotaWasChargedDetails:

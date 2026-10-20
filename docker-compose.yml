@@ -51,6 +51,7 @@ services:
       COMFYUI_TIMEOUT_MS: ${COMFYUI_TIMEOUT_MS:-600000}
       # Operator AI keys (users on the free tier ride on these).
       LLM_PROVIDER: ${LLM_PROVIDER:-openrouter}
+      OPERATOR_CHAT_BASE_URL: ${OPERATOR_CHAT_BASE_URL:-}
       DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-flash}
       OPERATOR_DEEPSEEK_KEY: ${OPERATOR_DEEPSEEK_KEY:-}
       OPERATOR_OPENROUTER_KEY: ${OPERATOR_OPENROUTER_KEY:-}

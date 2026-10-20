@@ -18,7 +18,9 @@ export function getOperatorChatProvider(): ChatProvider {
   if (process.env.LLM_PROVIDER === "deepseek") {
     return {
       name: "deepseek",
-      baseUrl: "https://api.deepseek.com",
+      baseUrl:
+        process.env.OPERATOR_CHAT_BASE_URL?.replace(/\/$/, "") ||
+        "https://api.deepseek.com",
       model: process.env.DEEPSEEK_MODEL || "deepseek-flash",
       apiKey: process.env.OPERATOR_DEEPSEEK_KEY || null,
       isByok: false,
@@ -26,7 +28,9 @@ export function getOperatorChatProvider(): ChatProvider {
   }
   return {
     name: "openrouter",
-    baseUrl: "https://openrouter.ai/api/v1",
+    baseUrl:
+      process.env.OPERATOR_CHAT_BASE_URL?.replace(/\/$/, "") ||
+      "https://openrouter.ai/api/v1",
     model: FREE_TIER_DEFAULT_MODEL,
     apiKey: process.env.OPERATOR_OPENROUTER_KEY || null,
     isByok: false,
@@ -43,7 +47,7 @@ export async function resolveChatProvider(
 ): Promise<ChatProvider> {
   const operator = getOperatorChatProvider();
   const key = await keyProvider.resolve({ userId }, "openrouter");
-  if (operator.name === "deepseek" && key.source !== "user") return operator;
+  if (key.source !== "user") return operator;
   return {
     name: "openrouter",
     baseUrl: "https://openrouter.ai/api/v1",

@@ -472,6 +472,17 @@ export default {
     token: "/token",
   },
   chat: {
+    streamGenerating: "Replying…",
+    streamStopped: "Reply stopped. Text already received has been saved.",
+    streamFailed: "The reply could not finish. You can retry.",
+    streamStop: "Stop reply",
+    streamSupplementHint: "You can add a message while they reply.",
+    streamReconnecting: "Reconnecting… Your reply will continue to be saved.",
+    streamNetworkUnknown:
+      "Delivery could not be confirmed. Retry to check the same request.",
+    streamRequestFailed: "Could not start the reply. Please try again.",
+    streamRateLimited: "Too many requests. Please wait a moment and try again.",
+    streamSessionExpired: "Your session has expired. Please sign in again.",
     messageNotSent: "Not sent",
     sendMessage: "Send message",
     moreActions: "More chat actions",

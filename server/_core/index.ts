@@ -16,6 +16,8 @@ import { startProactivePushScheduler } from "../push";
 import { appRouter } from "../routers";
 import { auth } from "./auth";
 import { getOperatorChatProvider } from "./chatProvider";
+import { registerChatStreamRoutes } from "./chatStreamRoutes";
+import { startChatTurnScheduler } from "../chatStreaming";
 import { createContext } from "./context";
 import { csrfCookieMiddleware, csrfVerifyMiddleware } from "./csrf";
 import { ENV } from "./env";
@@ -123,6 +125,7 @@ async function startServer() {
   }
   // 媒体读取：本地文件流或 S3 预签名跳转。
   registerFileRoutes(app);
+  registerChatStreamRoutes(app);
   // tRPC 的写请求必须通过 CSRF 令牌校验。
   app.use(
     "/api/trpc",
@@ -160,12 +163,14 @@ async function startServer() {
   // 每小时检查主动消息推送；缺少配对 VAPID 密钥时不启动调度。
   const stopPush = startProactivePushScheduler();
   const stopMediaCleanup = startMediaCleanupScheduler();
+  const stopChatTurns = startChatTurnScheduler();
 
   // 收到退出信号后停止接收新连接，等待现有连接处理完毕。
   const shutdown = (signal: string) => {
     console.log(`[boot] ${signal} received, shutting down`);
     stopMediaCleanup();
     stopPush();
+    stopChatTurns();
     server.close(() => process.exit(0));
     // 最多等待十秒，避免挂起的上游请求阻止退出。
     setTimeout(() => process.exit(1), 10_000).unref();

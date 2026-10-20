@@ -3,14 +3,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { VoiceRecordButton } from "@/components/VoiceRecordButton";
 import { useAutosizeTextarea } from "@/hooks/useAutosizeTextarea";
 import { flushSync } from "react-dom";
-import { ArrowUp, Camera, Keyboard, Loader2, Mic } from "lucide-react";
+import { ArrowUp, Camera, Keyboard, Loader2, Mic, Square } from "lucide-react";
 
 import type { ChatController } from "./useChatController";
 type Props = Pick<
   ChatController,
   | "handleSendMessage"
   | "setShowPoseDialog"
-  | "sendMessage"
+  | "isAccepting"
+  | "chatStream"
+  | "handleStopGeneration"
   | "generateSelfie"
   | "generateCouple"
   | "isRecording"
@@ -34,7 +36,9 @@ type Props = Pick<
 export function ChatComposer({
   handleSendMessage,
   setShowPoseDialog,
-  sendMessage,
+  isAccepting,
+  chatStream,
+  handleStopGeneration,
   generateSelfie,
   generateCouple,
   isRecording,
@@ -56,7 +60,7 @@ export function ChatComposer({
 }: Props) {
   useAutosizeTextarea(inputRef, message, inputMode === "text");
   const busy =
-    sendMessage.isPending ||
+    isAccepting ||
     generateSelfie.isPending ||
     generateCouple.isPending ||
     isRecording ||
@@ -72,6 +76,34 @@ export function ChatComposer({
 
   return (
     <form onSubmit={handleSendMessage} className="chat-composer">
+      {(chatStream.isGenerating ||
+        chatStream.connection === "reconnecting") && (
+        <div className="mb-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span role="status">
+            {t(
+              chatStream.connection === "reconnecting"
+                ? "chat:streamReconnecting"
+                : "chat:streamSupplementHint"
+            )}
+          </span>
+          {chatStream.isGenerating && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={chatStream.isStopping || isAccepting}
+              onClick={() => void handleStopGeneration()}
+            >
+              {chatStream.isStopping ? (
+                <Loader2 className="mr-1 size-3 animate-spin" />
+              ) : (
+                <Square className="mr-1 size-3" />
+              )}
+              {t("chat:streamStop")}
+            </Button>
+          )}
+        </div>
+      )}
       <div className="chat-composer-surface">
         <Button
           type="button"
@@ -104,6 +136,7 @@ export function ChatComposer({
             <Textarea
               ref={inputRef}
               rows={1}
+              maxLength={8000}
               value={message}
               onChange={event => setMessage(event.target.value)}
               placeholder={t("chat:messagePlaceholder")}
@@ -127,7 +160,7 @@ export function ChatComposer({
                   event.currentTarget.form?.requestSubmit();
               }}
             />
-            {voiceSupported && !message.trim() && !sendMessage.isPending ? (
+            {voiceSupported && !message.trim() && !isAccepting ? (
               <Button
                 type="button"
                 variant="ghost"
@@ -153,7 +186,7 @@ export function ChatComposer({
                   if (event.button === 0) event.preventDefault();
                 }}
               >
-                {sendMessage.isPending ? (
+                {isAccepting ? (
                   <Loader2 className="animate-spin" />
                 ) : (
                   <ArrowUp />
@@ -171,7 +204,7 @@ export function ChatComposer({
               onEnd={handleRecordingComplete}
               onCancel={cancelRecording}
               disabled={
-                sendMessage.isPending ||
+                isAccepting ||
                 generateSelfie.isPending ||
                 generateCouple.isPending
               }

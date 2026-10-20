@@ -1,14 +1,11 @@
 /** 覆盖聊天触发自拍的意图、上下文与失败反馈。 */
 
-import axios from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as chat from "./_core/chatProvider";
 import * as providers from "./_core/imageProvider";
 import * as billing from "./billing";
 import * as generations from "./generations";
 import * as cleanup from "./mediaCleanup";
-import * as memory from "./memory";
-import * as apiConfigDb from "./repositories/apiConfig";
 import * as companionsDb from "./repositories/companions";
 import * as conversationsDb from "./repositories/conversations";
 import * as photosDb from "./repositories/photos";
@@ -28,13 +25,6 @@ beforeEach(() => {
   vi.spyOn(generations, "failGeneration").mockResolvedValue(undefined);
   vi.spyOn(cleanup, "flushMediaDeletions").mockResolvedValue(undefined);
   vi.spyOn(cleanup, "queueMediaDeletion").mockResolvedValue(undefined);
-  vi.spyOn(generations, "completeTextGeneration").mockImplementation(
-    async (_id, _userId, content, reply) =>
-      ({
-        userMessage: { id: 1, role: "user", content },
-        assistantMessage: { id: 2, role: "assistant", content: reply },
-      }) as any
-  );
   vi.spyOn(generations, "completeImageGeneration").mockImplementation(
     async (_id, _userId, image, content) =>
       ({
@@ -199,26 +189,16 @@ describe("chat-triggered selfies", () => {
     expect(photosDb.createSelfie).not.toHaveBeenCalled();
     expect(generations.failImageGeneration).toHaveBeenCalledTimes(1);
   });
-  it("leaves ordinary chat on the normal LLM path", async () => {
-    vi.spyOn(chat, "resolveChatProvider").mockResolvedValue({
-      name: "deepseek",
-      model: "deepseek-flash",
-      apiKey: "fake",
-      baseUrl: "https://api.deepseek.com",
-      isByok: false,
-    });
-    vi.spyOn(apiConfigDb, "getUserApiConfig").mockResolvedValue(undefined);
-    vi.spyOn(memory, "buildMemoryPromptBlock").mockResolvedValue("");
-    vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
-    vi.spyOn(axios, "post").mockResolvedValue({
-      data: { choices: [{ message: { content: "今天很开心" } }] },
-    });
-    const result = await caller().chat.sendMessage({
-      conversationId: 42,
-      content: "你现在穿什么",
-    });
-    expect(result.assistantMessage.content).toBe("今天很开心");
-    expect(result.imageGeneration).toBeNull();
-    expect(providers.generateProviderImage).not.toHaveBeenCalled();
-  });
+  it.each(["你现在穿什么", "我想自杀，发张自拍"])(
+    "rejects text before any provider or reservation: %s",
+    async content => {
+      const llm = vi.spyOn(chat, "resolveChatProvider");
+      await expect(
+        caller().chat.sendMessage({ conversationId: 42, content })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      expect(llm).not.toHaveBeenCalled();
+      expect(generations.reserveGeneration).not.toHaveBeenCalled();
+      expect(providers.generateProviderImage).not.toHaveBeenCalled();
+    }
+  );
 });

@@ -28,13 +28,6 @@ beforeEach(() => {
   vi.spyOn(generations, "failGeneration").mockResolvedValue(undefined);
   vi.spyOn(cleanup, "flushMediaDeletions").mockResolvedValue(undefined);
   vi.spyOn(cleanup, "queueMediaDeletion").mockResolvedValue(undefined);
-  vi.spyOn(generations, "completeTextGeneration").mockImplementation(
-    async (_id, _userId, content, reply) =>
-      ({
-        userMessage: { id: 1, role: "user", content },
-        assistantMessage: { id: 2, role: "assistant", content: reply },
-      }) as any
-  );
   vi.spyOn(generations, "completeImageGeneration").mockImplementation(
     async (_id, _userId, image, content) =>
       ({

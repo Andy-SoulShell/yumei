@@ -1,21 +1,25 @@
 /** 通过真实结算验证心情并发、奖励来源、失败回滚及一次性语音凭据。 */
 import { and, eq } from "drizzle-orm";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   girlfriendMoods,
   girlfriends,
   usageMeters,
+  users,
   voiceTranscriptions,
 } from "../drizzle/schema";
 import { METERS } from "../shared/quotas";
 import type { TrpcContext } from "./_core/context";
 import type { TranscriptionResponse } from "./_core/openaiWhisper";
-import { getDb } from "./database";
+import * as providers from "./_core/chatProvider";
 import {
-  completeImageGeneration,
-  completeTextGeneration,
-  reserveGeneration,
-} from "./generations";
+  getChatTurnSnapshot,
+  runChatTurns,
+  submitChatTurn,
+} from "./chatStreaming";
+import { getDb } from "./database";
+import { completeImageGeneration, reserveGeneration } from "./generations";
+import * as memory from "./memory";
 import { updateGirlfriend } from "./repositories/companions";
 import {
   createConversation,
@@ -26,6 +30,31 @@ import { getGirlfriendMood } from "./repositories/moods";
 import { appRouter } from "./routers";
 import { createTestGirlfriend } from "./testFixtures";
 import { saveTranscription } from "./transcriptions";
+
+const replies = new Map<string, string>();
+beforeEach(() => {
+  replies.clear();
+  vi.spyOn(providers, "resolveChatProvider").mockResolvedValue({
+    name: "deepseek",
+    baseUrl: "https://provider.example.test",
+    model: "relationship-test",
+    apiKey: "test-provider-key",
+    isByok: false,
+  });
+  vi.spyOn(memory, "buildMemoryPromptBlock").mockResolvedValue("");
+  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (_url: unknown, options: RequestInit) => {
+      const body = JSON.parse(options.body as string);
+      const reply = replies.get(body.messages.at(-1).content) ?? "我也喜欢你";
+      const frame = `data: ${JSON.stringify({ choices: [{ delta: { content: reply } }] })}\n\ndata: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }] })}\n\ndata: [DONE]\n\n`;
+      return new Response(frame, {
+        headers: { "content-type": "text/event-stream" },
+      });
+    })
+  );
+});
 
 async function seed() {
   const userId = `relationship-${crypto.randomUUID()}`;
@@ -41,27 +70,45 @@ async function seed() {
     userId,
     girlfriendId: gf.id,
   });
+  const [user] = await (await getDb())!
+    .select()
+    .from(users)
+    .where(eq(users.id, userId));
   const caller = appRouter.createCaller({
     user: { id: userId },
     req: {},
     res: {},
   } as TrpcContext);
+  const accept = (
+    content: string,
+    transcriptionId?: string,
+    targetConversationId = conversation.id
+  ) =>
+    submitChatTurn(user, {
+      clientRequestId: crypto.randomUUID(),
+      conversationId: targetConversationId,
+      content,
+      transcriptionId,
+    });
   const send = async (
     content = "你好，我今天好开心",
     reply = "我也喜欢你",
     transcriptionId?: string
   ) => {
-    const id = await reserveGeneration({
-      userId,
-      conversationId: conversation.id,
-      kind: "chat",
-      transcriptionId,
-    });
-    return completeTextGeneration(id, userId, content, reply);
+    replies.set(content, reply);
+    const accepted = await accept(content, transcriptionId);
+    await runChatTurns([user.id]);
+    const saved = await getChatTurnSnapshot(user.id, accepted.id);
+    expect(saved.status).toBe("succeeded");
+    return saved;
   };
-  return { userId, gf, conversation, caller, send };
+  return { userId, user, gf, conversation, caller, accept, send };
 }
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 describe("server-owned relationship settlement", () => {
   it.each(["short", "capped"])(
@@ -121,28 +168,36 @@ describe("server-owned relationship settlement", () => {
       );
       const first = await a.send(content);
       const second = await b.send(content);
-      expect(first.relationship.intimacyPoints).toBe(
-        content.length < 5 ? 1234 : 1236
-      );
+      const saved = await getIntimacyInfo(a.gf.id, a.userId);
+      expect(saved.intimacyPoints).toBe(content.length < 5 ? 1234 : 1236);
       expect(first.relationship).toEqual(second.relationship);
-      expect((await getIntimacyInfo(a.gf.id, a.userId)).decayed).toBe(0);
+      expect((await getIntimacyInfo(a.gf.id, a.userId)).intimacyPoints).toBe(
+        saved.intimacyPoints
+      );
     }
   );
-  it("levels up through 50 committed text rounds without a minute-long pause and settles each request once", async () => {
+  it("levels up through 50 committed rounds without a reward cooldown and settles each request once", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-20T12:00:00Z"));
     const a = await seed();
     let upgraded = false;
     for (let i = 0; i < 50; i++) {
+      vi.setSystemTime(new Date(Date.UTC(2026, 9, 20, 12, 0, i * 4)));
       const saved = await a.send(
         `这是第${i + 1}轮有效的文字聊天`,
         "我在认真听"
       );
-      upgraded ||= saved.relationship.leveledUp;
+      upgraded ||= saved.relationship?.leveledUp === true;
     }
     const info = await getIntimacyInfo(a.gf.id, a.userId);
     expect(info.intimacyPoints).toBeGreaterThanOrEqual(100);
     expect(info.intimacyLevel).toBeGreaterThan(1);
     expect(upgraded).toBe(true);
-  });
+    await runChatTurns([a.user.id]);
+    expect((await getIntimacyInfo(a.gf.id, a.userId)).intimacyPoints).toBe(
+      info.intimacyPoints
+    );
+  }, 20000);
   it("keeps cooldowns and daily point limits independent for companions on the same account", async () => {
     const a = await seed();
     const second = await createTestGirlfriend({
@@ -158,16 +213,14 @@ describe("server-owned relationship settlement", () => {
       girlfriendId: second.id,
     });
     await a.send();
-    const id = await reserveGeneration({
-      userId: a.userId,
-      conversationId: bConversation.id,
-      kind: "chat",
-    });
-    await completeTextGeneration(
-      id,
-      a.userId,
+    const accepted = await a.accept(
       "另一位角色也应该独立获得亲密度经验",
-      "我也很高兴"
+      undefined,
+      bConversation.id
+    );
+    await runChatTurns([a.user.id]);
+    expect((await getChatTurnSnapshot(a.user.id, accepted.id)).status).toBe(
+      "succeeded"
     );
     expect(
       (await getIntimacyInfo(a.gf.id, a.userId)).intimacyPoints
@@ -189,11 +242,31 @@ describe("server-owned relationship settlement", () => {
   });
   it("settles every committed user and assistant message once under concurrency", async () => {
     const a = await seed();
-    await Promise.all(Array.from({ length: 8 }, () => a.send()));
+    const conversations = await Promise.all(
+      Array.from({ length: 8 }, () =>
+        createConversation({ userId: a.userId, girlfriendId: a.gf.id })
+      )
+    );
+    // 单账号最多三条活动会话；每批仍并发提交和结算同一角色的心情。
+    for (let start = 0; start < conversations.length; start += 3) {
+      const accepted = await Promise.all(
+        conversations
+          .slice(start, start + 3)
+          .map(conversation =>
+            a.accept("你好，我今天好开心", undefined, conversation.id)
+          )
+      );
+      await runChatTurns([a.user.id]);
+      for (const turn of accepted)
+        expect((await getChatTurnSnapshot(a.user.id, turn.id)).status).toBe(
+          "succeeded"
+        );
+    }
     const mood = await getGirlfriendMood(a.userId, a.gf.id);
     expect(mood?.totalMessages).toBe(16);
     expect(mood?.todayMessages).toBe(16);
-    expect(mood?.moodScore).toBeGreaterThanOrEqual(70);
+    expect(mood?.moodScore).toBe(70);
+    expect(mood?.emotionState?.reason).toBe("steady");
     const db = (await getDb())!;
     expect(
       await db
@@ -210,12 +283,21 @@ describe("server-owned relationship settlement", () => {
       (await getIntimacyInfo(a.gf.id, a.userId)).intimacyPoints
     ).toBeGreaterThan(0);
   });
-  it("rolls back messages, mood and rewards if the assistant cannot be saved", async () => {
+  it("keeps accepted user text but grants no mood or rewards when output cannot be persisted", async () => {
     const a = await seed();
-    await expect(
-      a.send("这是一条足够长的测试消息", "x".repeat(70_000))
-    ).rejects.toThrow();
-    expect(await getConversationMessages(a.conversation.id)).toEqual([]);
+    const content = "这是一条足够长的测试消息";
+    replies.set(content, "x".repeat(70_000));
+    const accepted = await a.accept(content);
+    await runChatTurns([a.user.id]);
+    const saved = await getChatTurnSnapshot(a.user.id, accepted.id);
+    expect(saved.status).toBe("failed");
+    expect(saved.userMessage.content).toBe(content);
+    expect(saved.assistantMessage).toMatchObject({
+      content: "",
+      generationStatus: "failed",
+      segments: [],
+    });
+    expect(await getConversationMessages(a.conversation.id)).toHaveLength(2);
     expect(await getGirlfriendMood(a.userId, a.gf.id)).toBeNull();
     expect((await getIntimacyInfo(a.gf.id, a.userId)).intimacyPoints).toBe(0);
   });

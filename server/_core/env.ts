@@ -29,6 +29,24 @@ function loadEnv() {
   const issues: string[] = [];
   const env = process.env;
 
+  if (env.OPERATOR_CHAT_BASE_URL) {
+    try {
+      const base = new URL(env.OPERATOR_CHAT_BASE_URL);
+      if (
+        !["https:", "http:"].includes(base.protocol) ||
+        base.username ||
+        base.password ||
+        base.search ||
+        base.hash
+      )
+        throw new Error();
+    } catch {
+      issues.push(
+        "OPERATOR_CHAT_BASE_URL: use an HTTP(S) API base URL without credentials, query or fragment."
+      );
+    }
+  }
+
   if (
     env.LLM_PROVIDER &&
     !["openrouter", "deepseek"].includes(env.LLM_PROVIDER)

@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { PageError } from "@/components/PageError";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { detectSelfieRequest } from "@shared/selfieRequest";
 import { Heart, Loader2, Square, Volume2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useChatScrollAnchor } from "@/hooks/useChatScrollAnchor";
@@ -21,12 +20,16 @@ type Props = Pick<
   | "failedMessages"
   | "retryMessage"
   | "currentConversationId"
-  | "sendMessage"
+  | "sendMediaMessage"
+  | "isAccepting"
+  | "chatStream"
+  | "retryStreamSubmission"
+  | "retryFailedGeneration"
   | "handleSpeakMessage"
   | "isSpeaking"
   | "activeMessageId"
   | "user"
-  | "pendingMessageAfterId"
+  | "pendingMediaAfterId"
   | "generateSelfie"
   | "generateCouple"
   | "messagesEndRef"
@@ -43,13 +46,17 @@ export function ChatMessages({
   failedMessages,
   retryMessage,
   currentConversationId,
-  sendMessage,
+  sendMediaMessage,
+  isAccepting,
+  chatStream,
+  retryStreamSubmission,
+  retryFailedGeneration,
   girlfriend,
   handleSpeakMessage,
   isSpeaking,
   activeMessageId,
   user,
-  pendingMessageAfterId,
+  pendingMediaAfterId,
   generateSelfie,
   generateCouple,
   messagesEndRef,
@@ -97,7 +104,7 @@ export function ChatMessages({
         {!chatMessages || chatMessages.length === 0
           ? !messagesQuery.error &&
             !messagesQuery.isLoading &&
-            !sendMessage.isPending && (
+            !isAccepting && (
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <Heart className="w-12 h-12 text-primary mb-4" />
                 <p className="text-muted-foreground">
@@ -108,6 +115,7 @@ export function ChatMessages({
           : chatMessages.map(msg => (
               <div
                 key={msg.id}
+                data-message-id={msg.id}
                 className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "flex-row"}`}
               >
                 {msg.role === "assistant" && (
@@ -121,43 +129,94 @@ export function ChatMessages({
                 )}
 
                 <div className="flex flex-col gap-1 max-w-[80%] sm:max-w-[75%]">
-                  <div
-                    className={`rounded-2xl px-4 py-2 ${
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground"
-                    }`}
-                  >
-                    {msg.imageUrl ? (
-                      <div className="space-y-2">
-                        <Button
-                          variant="plain"
-                          size="none"
-                          className="block h-auto max-w-full rounded-lg cursor-zoom-in"
-                          aria-label={t("chat:selfie")}
-                          onClick={event => {
-                            opener.current = event.currentTarget;
-                            setViewing(
-                              photos.findIndex(photo => photo.id === msg.id)
-                            );
-                          }}
-                        >
-                          <img
-                            src={msg.imageUrl}
-                            alt={t("chat:selfie")}
-                            className="rounded-lg max-w-full max-h-[65vh] w-auto h-auto object-contain"
-                          />
-                        </Button>
-                        {msg.content && msg.content !== "[自拍照片]" && (
-                          <p className="text-sm">{msg.content}</p>
+                  {msg.role === "assistant" &&
+                    !msg.imageUrl &&
+                    msg.segments?.map(segment => (
+                      <div
+                        key={segment.id}
+                        data-segment-id={segment.id}
+                        className="rounded-2xl bg-muted px-4 py-2 text-foreground"
+                      >
+                        <p className="whitespace-pre-wrap break-words">
+                          {segment.content}
+                        </p>
+                      </div>
+                    ))}
+                  {(!msg.segments?.length ||
+                    msg.role === "user" ||
+                    msg.imageUrl) &&
+                    (msg.content || msg.imageUrl) && (
+                      <div
+                        className={`rounded-2xl px-4 py-2 ${
+                          msg.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-foreground"
+                        }`}
+                      >
+                        {msg.imageUrl ? (
+                          <div className="space-y-2">
+                            <Button
+                              variant="plain"
+                              size="none"
+                              className="block h-auto max-w-full rounded-lg cursor-zoom-in"
+                              aria-label={t("chat:selfie")}
+                              onClick={event => {
+                                opener.current = event.currentTarget;
+                                setViewing(
+                                  photos.findIndex(photo => photo.id === msg.id)
+                                );
+                              }}
+                            >
+                              <img
+                                src={msg.imageUrl}
+                                alt={t("chat:selfie")}
+                                className="rounded-lg max-w-full max-h-[65vh] w-auto h-auto object-contain"
+                              />
+                            </Button>
+                            {msg.content && msg.content !== "[自拍照片]" && (
+                              <p className="text-sm">{msg.content}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="whitespace-pre-wrap break-words">
+                            {msg.content}
+                          </p>
                         )}
                       </div>
-                    ) : (
-                      <p className="whitespace-pre-wrap break-words">
-                        {msg.content}
-                      </p>
                     )}
-                  </div>
+                  {msg.role === "assistant" &&
+                    msg.generationStatus &&
+                    msg.generationStatus !== "succeeded" && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span role="status">
+                          {t(
+                            msg.generationStatus === "stopped"
+                              ? "chat:streamStopped"
+                              : msg.generationStatus === "failed"
+                                ? "chat:streamFailed"
+                                : "chat:streamGenerating"
+                          )}
+                        </span>
+                        {msg.generationStatus === "failed" && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            disabled={
+                              isAccepting ||
+                              generateSelfie.isPending ||
+                              generateCouple.isPending ||
+                              !chatMessages.some(
+                                item => item.role === "user" && item.id < msg.id
+                              )
+                            }
+                            onClick={() => retryFailedGeneration(msg.id)}
+                          >
+                            {t("explore:retry")}
+                          </Button>
+                        )}
+                      </div>
+                    )}
 
                   {/* AI 消息的语音播放按钮 */}
                   {msg.role === "assistant" &&
@@ -209,8 +268,8 @@ export function ChatMessages({
             item =>
               item.conversationId === currentConversationId &&
               !(
-                sendMessage.isPending &&
-                sendMessage.variables?.content === item.content
+                sendMediaMessage.isPending &&
+                sendMediaMessage.variables?.content === item.content
               )
           )
           .map((item, index) => (
@@ -225,7 +284,7 @@ export function ChatMessages({
                   variant="ghost"
                   size="sm"
                   disabled={
-                    sendMessage.isPending ||
+                    isAccepting ||
                     generateSelfie.isPending ||
                     generateCouple.isPending
                   }
@@ -237,17 +296,66 @@ export function ChatMessages({
             </div>
           ))}
 
-        {sendMessage.isPending &&
-          sendMessage.variables &&
+        {chatStream.failures.map(item => (
+          <div
+            key={item.submission.clientRequestId}
+            className="flex flex-col items-end gap-1.5"
+          >
+            <div className="max-w-[80%] rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-2 whitespace-pre-wrap break-words">
+              {item.submission.content}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-destructive">
+              <span role="status">
+                {t(
+                  item.uncertain
+                    ? "chat:streamNetworkUnknown"
+                    : "chat:messageNotSent"
+                )}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={
+                  isAccepting ||
+                  generateSelfie.isPending ||
+                  generateCouple.isPending
+                }
+                onClick={() => retryStreamSubmission(item)}
+              >
+                {t("explore:retry")}
+              </Button>
+            </div>
+          </div>
+        ))}
+
+        {chatStream.pending &&
+          !chatStream.turns.some(
+            turn => turn.clientRequestId === chatStream.pending?.clientRequestId
+          ) && (
+            <div className="flex justify-end gap-3">
+              <div className="max-w-[80%] rounded-2xl bg-primary px-4 py-3 text-primary-foreground whitespace-pre-wrap">
+                {chatStream.pending.content}
+              </div>
+              <Avatar className="size-8 shrink-0">
+                <AvatarFallback>
+                  {user?.name?.[0] || t("chat:u")}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+          )}
+
+        {sendMediaMessage.isPending &&
+          sendMediaMessage.variables &&
           !chatMessages?.some(
             msg =>
-              msg.id > pendingMessageAfterId.current &&
+              msg.id > pendingMediaAfterId.current &&
               msg.role === "user" &&
-              msg.content === sendMessage.variables?.content
+              msg.content === sendMediaMessage.variables?.content
           ) && (
             <div className="flex justify-end gap-3">
               <div className="bg-primary text-primary-foreground rounded-2xl px-4 py-3 max-w-[80%] whitespace-pre-wrap">
-                {sendMessage.variables.content}
+                {sendMediaMessage.variables.content}
               </div>
               <Avatar className="w-8 h-8 flex-shrink-0">
                 <AvatarFallback>
@@ -257,7 +365,7 @@ export function ChatMessages({
             </div>
           )}
 
-        {sendMessage.isPending && (
+        {sendMediaMessage.isPending && (
           <div className="flex gap-3">
             <Avatar className="w-8 h-8 flex-shrink-0">
               <AvatarImage
@@ -267,30 +375,13 @@ export function ChatMessages({
               <AvatarFallback>{girlfriend.name[0]}</AvatarFallback>
             </Avatar>
             <div className="bg-muted rounded-2xl px-4 py-3">
-              {detectSelfieRequest(sendMessage.variables?.content || "") ? (
-                <div
-                  role="status"
-                  className="flex items-center gap-2 text-sm text-muted-foreground"
-                >
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {t("chat:yourSelfieIsQueuedOrBeingGeneratedPlease")}
-                </div>
-              ) : (
-                <div className="flex gap-1.5">
-                  <span
-                    className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce"
-                    style={{ animationDelay: "0ms" }}
-                  ></span>
-                  <span
-                    className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce"
-                    style={{ animationDelay: "150ms" }}
-                  ></span>
-                  <span
-                    className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce"
-                    style={{ animationDelay: "300ms" }}
-                  ></span>
-                </div>
-              )}
+              <div
+                role="status"
+                className="flex items-center gap-2 text-sm text-muted-foreground"
+              >
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {t("chat:yourSelfieIsQueuedOrBeingGeneratedPlease")}
+              </div>
             </div>
           </div>
         )}

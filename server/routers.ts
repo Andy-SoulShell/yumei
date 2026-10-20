@@ -15,8 +15,10 @@ import { pushRouter } from "./routers/push";
 import { selfieRouter } from "./routers/selfie";
 import { ttsRouter } from "./routers/tts";
 import { voiceRouter } from "./routers/voice";
+import { operationsRouter } from "./routers/operations";
 
 export const appRouter = router({
+  operations: operationsRouter,
   preferences: preferencesRouter,
   system: systemRouter,
   auth: authRouter,

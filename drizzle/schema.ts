@@ -122,8 +122,6 @@ export const girlfriends = mysqlTable(
     avatarKey: varchar("avatarKey", { length: 500 }), // 头像存储文件 key
     intimacyLevel: int("intimacyLevel").default(1).notNull(), // 亲密度等级 1-10
     intimacyPoints: int("intimacyPoints").default(0).notNull(), // 亲密度经验值
-    /** 历史结算时间；当前版本保留原数据但不再按离线时长扣除经验。 */
-    lastDecayAt: timestamp("lastDecayAt"),
     lastInteractionAt: timestamp("lastInteractionAt"), // 最后互动时间
     consecutiveDays: int("consecutiveDays").default(0).notNull(), // 连续互动天数
     isActive: boolean("isActive").default(true).notNull(), // 是否为当前激活的女友
@@ -180,7 +178,17 @@ export const messages = mysqlTable(
     imageKey: varchar("imageKey", { length: 500 }), // 存储文件 key
     /** 生成请求及结果状态，null 表示历史或非生成消息。 */
     generationRequestId: varchar("generationRequestId", { length: 36 }),
-    generationStatus: mysqlEnum("generationStatus", ["succeeded", "failed"]),
+    generationStatus: mysqlEnum("generationStatus", [
+      "pending",
+      "succeeded",
+      "failed",
+      "stopped",
+    ]),
+    /** 与消息正文同时持久化的展示片段，序号和 ID 在刷新后保持稳定。 */
+    segments:
+      json("segments").$type<
+        { id: string; sequence: number; content: string }[]
+      >(),
     selfieMode: mysqlEnum("selfieMode", ["mirror", "direct"]), // 自拍模式（如果是自拍）
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
@@ -529,11 +537,40 @@ export const generationRequests = mysqlTable(
     conversationId: int("conversationId").notNull(),
     transcriptionId: varchar("transcriptionId", { length: 36 }),
     kind: mysqlEnum("kind", ["chat", "selfie", "couple"]).notNull(),
-    status: mysqlEnum("status", ["pending", "succeeded", "failed"])
+    status: mysqlEnum("status", ["pending", "succeeded", "failed", "cancelled"])
       .default("pending")
       .notNull(),
     meterPeriod: varchar("meterPeriod", { length: 10 }),
     meterName: varchar("meterName", { length: 64 }),
+    /** 客户端请求键唯一绑定当前用户及请求负载，不随重连改变。 */
+    clientRequestId: varchar("clientRequestId", { length: 36 }),
+    chatInput: text("chatInput"),
+    /** 接受时固定非敏感路由，执行前复核服务及凭据来源，禁止后台静默换服务。 */
+    chatRouting: json("chatRouting").$type<{
+      provider: "openrouter" | "deepseek";
+      model: string;
+      isByok: boolean;
+      baseUrl: string;
+    }>(),
+    userMessageId: int("userMessageId"),
+    assistantMessageId: int("assistantMessageId"),
+    turnStatus: mysqlEnum("turnStatus", [
+      "queued",
+      "running",
+      "succeeded",
+      "stopped",
+      "failed",
+    ]),
+    cancelRequested: boolean("cancelRequested").default(false).notNull(),
+    leaseToken: varchar("leaseToken", { length: 36 }),
+    leaseUntil: timestamp("leaseUntil", { fsp: 3 }),
+    safetyNotice: boolean("safetyNotice").default(false).notNull(),
+    /** 每次持久片段或状态变更递增，用于忽略迟到的 SSE 快照。 */
+    revision: int("revision").default(0).notNull(),
+    turnRelationship: json("turnRelationship").$type<{
+      leveledUp: boolean;
+      intimacyLevel: number;
+    }>(),
     /** 只保存调用统计；未知用量和成本保持 null，不保存提示词、正文或密钥。 */
     telemetry: json("telemetry").$type<{
       promptVersion: string;
@@ -554,6 +591,14 @@ export const generationRequests = mysqlTable(
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
   table => ({
+    byClientRequest: uniqueIndex("uniq_generation_user_client").on(
+      table.userId,
+      table.clientRequestId
+    ),
+    byTurnLease: index("idx_generation_turn_lease").on(
+      table.turnStatus,
+      table.leaseUntil
+    ),
     byConversation: index("idx_generation_conversation").on(
       table.conversationId
     ),

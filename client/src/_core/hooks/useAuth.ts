@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback, useEffect, useMemo } from "react";
 import { clearPrivateMediaCaches } from "@/lib/privateMediaCache";
+import { clearChatStreamDrafts } from "@/lib/chatStreamDrafts";
 
 /** 认证 Hook 的跳转选项；默认仅返回状态，不主动改变页面。 */
 type UseAuthOptions = {
@@ -34,6 +35,7 @@ export function useAuth(options?: UseAuthOptions) {
     onSuccess: async () => {
       queryClient.clear();
       utils.auth.me.setData(undefined, null);
+      clearChatStreamDrafts();
       await clearPrivateMediaCaches().catch(() => {});
     },
   });
@@ -48,6 +50,7 @@ export function useAuth(options?: UseAuthOptions) {
       ) {
         queryClient.clear();
         utils.auth.me.setData(undefined, null);
+        clearChatStreamDrafts();
         await clearPrivateMediaCaches().catch(() => {});
         return;
       }

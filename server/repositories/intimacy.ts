@@ -19,6 +19,5 @@ export async function getIntimacyInfo(girlfriendId: number, userId: string) {
     intimacyPoints: gf.intimacyPoints,
     lastInteractionAt: gf.lastInteractionAt,
     consecutiveDays: gf.consecutiveDays,
-    decayed: 0,
   };
 }

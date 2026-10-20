@@ -1,17 +1,24 @@
 /** 用真实事务验证删除记忆与在途提取互斥、旧证据屏蔽和主动重新提起。 */
 import { eq } from "drizzle-orm";
 import { afterEach, expect, it, vi } from "vitest";
-import { memorySuppressions } from "../drizzle/schema";
+import { memorySuppressions, users } from "../drizzle/schema";
 import * as provider from "./_core/chatProvider";
 import { getDb } from "./database";
-import { completeTextGeneration, reserveGeneration } from "./generations";
+import {
+  getChatTurnSnapshot,
+  runChatTurns,
+  submitChatTurn,
+} from "./chatStreaming";
 import * as memory from "./memory";
 import { runMemoryExtractionJobs } from "./memoryJobs";
 import { createConversation } from "./repositories/conversations";
 import { permanentDeleteGirlfriend } from "./repositories/companions";
 import { createTestGirlfriend } from "./testFixtures";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 async function seed() {
   const userId = `forget-${crypto.randomUUID()}`;
   const gf = await createTestGirlfriend({
@@ -26,20 +33,10 @@ async function seed() {
     userId,
     girlfriendId: gf.id,
   });
-  const content = "我家的猫叫团团，喜欢晒太阳。";
-  const id = await reserveGeneration({
-    userId,
-    conversationId: conversation.id,
-    kind: "chat",
-  });
-  const saved = await completeTextGeneration(id, userId, content, "我记住了");
-  const candidate = {
-    category: "fact" as const,
-    content,
-    importance: 7,
-    sourceMessageId: saved.userMessage.id,
-  };
-  await memory.storeExtractedMemories(userId, gf.id, [candidate]);
+  const [user] = await (await getDb())!
+    .select()
+    .from(users)
+    .where(eq(users.id, userId));
   vi.spyOn(provider, "resolveChatProvider").mockResolvedValue({
     name: "deepseek",
     baseUrl: "https://example.test",
@@ -47,7 +44,39 @@ async function seed() {
     apiKey: "fake-key",
     isByok: false,
   });
-  return { userId, gf, conversation, candidate };
+  // 自动唤醒由测试接管；真实结算仍创建待提取任务，用显式 worker 验证遗忘互斥。
+  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(
+      async () =>
+        new Response(
+          `data: ${JSON.stringify({ choices: [{ delta: { content: "我记住了。" } }] })}\n\ndata: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }] })}\n\ndata: [DONE]\n\n`,
+          { headers: { "content-type": "text/event-stream" } }
+        )
+    )
+  );
+  const send = async (content: string) => {
+    const accepted = await submitChatTurn(user, {
+      clientRequestId: crypto.randomUUID(),
+      conversationId: conversation.id,
+      content,
+    });
+    await runChatTurns([user.id]);
+    const saved = await getChatTurnSnapshot(user.id, accepted.id);
+    expect(saved.status).toBe("succeeded");
+    return saved;
+  };
+  const content = "我家的猫叫团团，喜欢晒太阳。";
+  const saved = await send(content);
+  const candidate = {
+    category: "fact" as const,
+    content,
+    importance: 7,
+    sourceMessageId: saved.userMessage.id,
+  };
+  await memory.storeExtractedMemories(userId, gf.id, [candidate]);
+  return { userId, gf, conversation, candidate, send };
 }
 it("does not resurrect a deleted memory when an in-flight extraction commits afterward", async () => {
   const a = await seed();
@@ -89,17 +118,7 @@ it("blocks old evidence but accepts the user explicitly stating the fact again i
   vi.spyOn(memory, "callExtractionModel").mockResolvedValue([a.candidate]);
   await runMemoryExtractionJobs(a.userId);
   expect(await memory.listMemories(a.userId, a.gf.id)).toEqual([]);
-  const id = await reserveGeneration({
-    userId: a.userId,
-    conversationId: a.conversation.id,
-    kind: "chat",
-  });
-  const saved = await completeTextGeneration(
-    id,
-    a.userId,
-    `请记住，${a.candidate.content}`,
-    "好"
-  );
+  const saved = await a.send(`请记住，${a.candidate.content}`);
   await memory.storeExtractedMemories(a.userId, a.gf.id, [
     a.candidate,
     { ...a.candidate, sourceMessageId: saved.userMessage.id },

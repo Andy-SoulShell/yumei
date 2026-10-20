@@ -59,9 +59,7 @@ describe("intimacy persistence", () => {
     const reads = await Promise.all(
       Array.from({ length: 6 }, () => getIntimacyInfo(gf.id, userId))
     );
-    expect(reads.every(r => r.intimacyPoints === 1234 && r.decayed === 0)).toBe(
-      true
-    );
+    expect(reads.every(r => r.intimacyPoints === 1234)).toBe(true);
     vi.setSystemTime(new Date("2026-10-20T12:00:00Z"));
     expect((await getIntimacyInfo(gf.id, userId)).intimacyPoints).toBe(1234);
   });

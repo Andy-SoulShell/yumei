@@ -1,8 +1,7 @@
 /** 回归角色行为、情绪方向、真实保存与调用统计，不调用真实模型。 */
-import axios from "axios";
 import { eq } from "drizzle-orm";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { generationRequests } from "../drizzle/schema";
+import { generationRequests, users } from "../drizzle/schema";
 import {
   companionBehaviorSchema,
   resolveCompanionBehavior,
@@ -15,7 +14,11 @@ import { getPresetBehavior } from "../shared/presetBehavior";
 import { CHARACTER_PRESETS } from "../shared/characterPresets";
 import { buildChatSystemPrompt, CHAT_PROMPT_VERSION } from "./chatPrompt";
 import { getDb } from "./database";
-import { completeTextGeneration, reserveGeneration } from "./generations";
+import {
+  getChatTurnSnapshot,
+  runChatTurns,
+  submitChatTurn,
+} from "./chatStreaming";
 import { knownUsage, recordGenerationTelemetry } from "./generationTelemetry";
 import { getChatBehaviorContext } from "./companionContext";
 import { getActiveGirlfriend } from "./repositories/companions";
@@ -30,6 +33,7 @@ import { log } from "./_core/log";
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
 
@@ -52,15 +56,45 @@ async function seed() {
     req: {},
     res: {},
   } as never);
+  const [user] = await (await getDb())!
+    .select()
+    .from(users)
+    .where(eq(users.id, userId));
   const send = async (content: string, reply = "喜欢你，想你，love you") => {
-    const id = await reserveGeneration({
-      userId,
-      conversationId: conversation.id,
-      kind: "chat",
+    vi.stubEnv("BILLING_PROVIDER", "none");
+    vi.spyOn(provider, "resolveChatProvider").mockResolvedValue({
+      name: "openrouter",
+      baseUrl: "https://example.test",
+      model: "test",
+      apiKey: "fake",
+      isByok: true,
     });
-    return completeTextGeneration(id, userId, content, reply);
+    vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => streamReply(reply))
+    );
+    const accepted = await submitChatTurn(user, {
+      clientRequestId: crypto.randomUUID(),
+      conversationId: conversation.id,
+      content,
+    });
+    await runChatTurns([userId]);
+    return getChatTurnSnapshot(userId, accepted.id);
   };
-  return { userId, gf, conversation, caller, send };
+  return { userId, user, gf, conversation, caller, send };
+}
+
+function streamReply(content: string, usage?: object) {
+  const chunks = [
+    { choices: [{ delta: { content } }] },
+    { choices: [{ delta: {}, finish_reason: "stop" }], usage },
+  ]
+    .map(value => `data: ${JSON.stringify(value)}\n\n`)
+    .join("");
+  return new Response(chunks + "data: [DONE]\n\n", {
+    headers: { "Content-Type": "text/event-stream" },
+  });
 }
 
 describe("consumer companion behavior", () => {
@@ -247,26 +281,29 @@ describe("consumer companion behavior", () => {
         isByok: true,
       });
       vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
-      const upstream = vi.spyOn(axios, "post").mockResolvedValue({
-        data: {
-          choices: [
-            {
-              message: { content: mode === "empty-response" ? "" : "在听。" },
-            },
-          ],
-          usage: { prompt_tokens: 101, completion_tokens: 9, cost: 0.001 },
-        },
-      });
-      vi.spyOn(generations, "completeTextGeneration").mockRejectedValue(
-        new Error("storage failed")
-      );
-      await expect(
-        a.caller.chat.sendMessage({
-          conversationId: a.conversation.id,
-          content: "今天工作好烦",
+      const upstream = vi.fn(async (_url: unknown, _options: RequestInit) =>
+        streamReply(mode === "empty-response" ? "" : "在听。", {
+          prompt_tokens: 101,
+          completion_tokens: 9,
+          cost: 0.001,
         })
-      ).rejects.toMatchObject({ code: "BAD_GATEWAY" });
-      const sent = upstream.mock.calls[0][1] as {
+      );
+      vi.stubGlobal("fetch", upstream);
+      if (mode === "save-failure")
+        vi.spyOn(
+          generations,
+          "settleChatTurnInTransaction"
+        ).mockRejectedValueOnce(new Error("storage failed"));
+      const accepted = await submitChatTurn(a.user, {
+        clientRequestId: crypto.randomUUID(),
+        conversationId: a.conversation.id,
+        content: "今天工作好烦",
+      });
+      await runChatTurns([a.userId]);
+      expect((await getChatTurnSnapshot(a.userId, accepted.id)).status).toBe(
+        "failed"
+      );
+      const sent = JSON.parse(upstream.mock.calls[0][1].body as string) as {
         messages: { content: string }[];
       };
       expect(sent.messages[0].content).toContain("关注用户遇到的困难");
@@ -324,16 +361,21 @@ describe("consumer companion behavior", () => {
       isByok: true,
     });
     vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
-    vi.spyOn(axios, "post").mockResolvedValue({
-      data: { choices: [{ message: { content: "我在听。" } }] },
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => streamReply("我在听。"))
+    );
+    const accepted = await submitChatTurn(a.user, {
+      clientRequestId: crypto.randomUUID(),
+      conversationId: a.conversation.id,
+      content: "我今天想散步",
     });
     vi.spyOn(db, "update").mockImplementationOnce(() => {
       throw new Error("telemetry storage failed");
     });
-    const saved = await a.caller.chat.sendMessage({
-      conversationId: a.conversation.id,
-      content: "我今天想散步",
-    });
+    await runChatTurns([a.userId]);
+    const saved = await getChatTurnSnapshot(a.userId, accepted.id);
+    expect(saved.status).toBe("succeeded");
     expect(saved.assistantMessage.content).toBe("我在听。");
   });
 });

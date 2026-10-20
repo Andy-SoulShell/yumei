@@ -5,6 +5,15 @@ import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { apiErrorMessage } from "@/lib/errors";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
+import { detectSelfieRequest } from "@shared/selfieRequest";
+import { detectSelfHarm } from "@shared/safety";
+import { isChatTurnTerminal } from "@shared/chatStreaming";
+import {
+  ChatStreamRequestError,
+  useChatStream,
+  type ChatStreamDraft,
+  type FailedStreamSubmission,
+} from "./useChatStream";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useLocation, useParams, useSearch } from "wouter";
@@ -78,8 +87,7 @@ export function useChatController() {
   const currentConversationId = conversationId;
 
   const resumeAttemptRef = useRef<number | null>(null);
-
-  const pendingMessageAfterId = useRef(0);
+  const pendingMediaAfterId = useRef(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -161,12 +169,10 @@ export function useChatController() {
 
   const refetchMessages = messagesQuery.refetch;
 
-  const chatMessages = useMemo(
+  const historicalMessages = useMemo(
     () => messagesQuery.data?.pages.slice().reverse().flat(),
     [messagesQuery.data]
   );
-
-  const lastMessageId = chatMessages?.at(-1)?.id;
 
   const loadOlderMessages = async () => {
     const element = messageListRef.current;
@@ -225,9 +231,9 @@ export function useChatController() {
     ]);
   };
 
-  const sendMessage = trpc.chat.sendMessage.useMutation({
+  const sendMediaMessage = trpc.chat.sendMessage.useMutation({
     onMutate: variables => {
-      pendingMessageAfterId.current = chatMessages?.at(-1)?.id || 0;
+      pendingMediaAfterId.current = historicalMessages?.at(-1)?.id || 0;
       setMessage(current =>
         current.trim() === variables.content ? "" : current
       );
@@ -306,6 +312,94 @@ export function useChatController() {
       }
     },
   });
+
+  const chatStream = useChatStream(
+    invalidConversation ? null : currentConversationId,
+    {
+      accountId: user?.id,
+      onAccepted: () => {
+        void refetchMessages();
+      },
+      onComplete: (snapshot, draft) => {
+        showRelationship(snapshot);
+        if (snapshot.safetyNotice) setShowCrisisAlert(true);
+        void refreshConversation();
+        if (
+          snapshot.status === "succeeded" &&
+          (autoPlay || draft.transcriptionId) &&
+          snapshot.assistantMessage.content
+        ) {
+          speak(
+            snapshot.assistantMessage.content,
+            snapshot.assistantMessage.id
+          );
+        }
+        scrollToBottom();
+      },
+      onError: error => {
+        if (error instanceof ChatStreamRequestError) {
+          const reason = error.detail?.business;
+          if (reason?.reason === "UPGRADE_REQUIRED") {
+            toast.error(t("chat:yourPlanDoesNotIncludeThisFeatureView"), {
+              action: {
+                label: t("chat:openSettings"),
+                onClick: () => setLocation("/settings"),
+              },
+            });
+            return;
+          }
+          if (reason?.reason === "LEVEL_LOCKED") {
+            toast.error(
+              t("selfie:poseLocked", {
+                required: reason.requiredLevel ?? 1,
+                current: reason.currentLevel ?? 1,
+              })
+            );
+            return;
+          }
+          toast.error(
+            t(
+              error.status === 429
+                ? "chat:streamRateLimited"
+                : error.status === 401
+                  ? "chat:streamSessionExpired"
+                  : "chat:streamRequestFailed"
+            )
+          );
+          return;
+        }
+        toast.error(t("chat:streamNetworkUnknown"));
+      },
+    }
+  );
+
+  const chatMessages = useMemo(() => {
+    const messages = new Map(
+      (historicalMessages ?? []).map(item => [item.id, item])
+    );
+    for (const turn of chatStream.turns) {
+      for (const item of [turn.userMessage, turn.assistantMessage]) {
+        const saved = messages.get(item.id);
+        // 已刷新的历史终态优先于被补发后保留的旧运行快照。
+        if (
+          saved &&
+          saved.generationStatus !== "pending" &&
+          !isChatTurnTerminal(turn.status)
+        )
+          continue;
+        messages.set(item.id, { ...item, createdAt: new Date(item.createdAt) });
+      }
+    }
+    return Array.from(messages.values()).sort((a, b) => a.id - b.id);
+  }, [historicalMessages, chatStream.turns]);
+  const lastMessageId = chatMessages.at(-1)?.id;
+  const isAccepting = chatStream.isAccepting || sendMediaMessage.isPending;
+  const stopChatStream = chatStream.stop;
+  const submitStream = chatStream.submit;
+
+  useEffect(() => {
+    if (chatStream.snapshot?.safetyNotice) setShowCrisisAlert(true);
+  }, [chatStream.snapshot?.safetyNotice]);
 
   // 今日自拍额度（BYOK fal 用户无限制）
   const selfieQuota = trpc.selfie.quota.useQuery();
@@ -431,7 +525,7 @@ export function useChatController() {
     if (
       !message.trim() ||
       !currentConversationId ||
-      sendMessage.isPending ||
+      isAccepting ||
       generateSelfie.isPending ||
       generateCouple.isPending ||
       isRecording ||
@@ -440,22 +534,78 @@ export function useChatController() {
       return;
     inputRef.current?.focus({ preventScroll: true });
 
-    sendMessage.mutate({
-      conversationId: currentConversationId,
-      content: message.trim(),
-    });
+    const content = message.trim();
+    setMessage("");
+    void submitChat({ content });
   };
 
   const retryMessage = (failed: FailedChatMessage) => {
     if (
-      sendMessage.isPending ||
+      isAccepting ||
       generateSelfie.isPending ||
       generateCouple.isPending ||
       isRecording ||
       isTranscribing
     )
       return;
-    sendMessage.mutate(failed);
+    stop();
+    void chatStream.stop().then(stopped => {
+      if (stopped) sendMediaMessage.mutate(failed);
+    });
+  };
+
+  /** 自拍仍走媒体生成路径；补发文字由服务端原子停止上一轮并开始新轮。 */
+  const submitChat = useCallback(
+    async (draft: ChatStreamDraft) => {
+      if (!currentConversationId) return;
+      stop();
+      if (
+        detectSelfieRequest(draft.content) &&
+        !detectSelfHarm(draft.content)
+      ) {
+        if (await stopChatStream()) {
+          lastInputWasVoiceRef.current = !!draft.transcriptionId;
+          sendMediaMessage.mutate({
+            ...draft,
+            conversationId: currentConversationId,
+          });
+        } else {
+          setFailedMessages(current => [
+            ...current,
+            { ...draft, conversationId: currentConversationId },
+          ]);
+        }
+        return;
+      }
+      await submitStream(draft);
+      scrollToBottom();
+    },
+    [
+      currentConversationId,
+      stop,
+      stopChatStream,
+      submitStream,
+      sendMediaMessage,
+    ]
+  );
+  const handleStopGeneration = async () => {
+    stop();
+    if (await chatStream.stop()) await refreshConversation();
+  };
+  const retryStreamSubmission = (failed: FailedStreamSubmission) => {
+    if (isAccepting || generateSelfie.isPending || generateCouple.isPending)
+      return;
+    stop();
+    void chatStream.retry(failed);
+  };
+  const retryFailedGeneration = (messageId: number) => {
+    if (isAccepting || generateSelfie.isPending || generateCouple.isPending)
+      return;
+    const previous = chatMessages
+      .filter(item => item.id < messageId)
+      .reverse()
+      .find(item => item.role === "user");
+    if (previous) void submitChat({ content: previous.content });
   };
 
   const handleSpeakMessage = (text: string, messageId: number) => {
@@ -467,7 +617,7 @@ export function useChatController() {
   };
 
   // 相机按钮改为打开姿势选择器；姿势随亲密度解锁。
-  const handleSelectPose = (
+  const handleSelectPose = async (
     poseId: string,
     generationMode: "reference" | "text"
   ) => {
@@ -476,6 +626,8 @@ export function useChatController() {
       toast.error(t("chat:selfieQuotaReachedCheckYourPlanOrAdd"));
       return;
     }
+    stop();
+    if (!(await chatStream.stop())) return;
     generateSelfie.mutate({
       conversationId: currentConversationId,
       userContext: message.trim(),
@@ -488,9 +640,11 @@ export function useChatController() {
   const handleCouplePhoto = (file: File) => {
     if (!currentConversationId) return;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       const dataUrl = reader.result as string;
       const base64 = dataUrl.split(",")[1] ?? "";
+      stop();
+      if (!(await chatStream.stop())) return;
       generateCouple.mutate({
         conversationId: currentConversationId!,
         userPhotoBase64: base64,
@@ -540,8 +694,7 @@ export function useChatController() {
             if (data.text) {
               // 自动发送转写文字
               lastInputWasVoiceRef.current = true;
-              sendMessage.mutate({
-                conversationId: currentConversationId!,
+              void submitChat({
                 content: data.text,
                 transcriptionId: data.transcriptionId,
               });
@@ -572,7 +725,7 @@ export function useChatController() {
     currentConversationId,
     setIsTranscribing,
     transcribeMutation,
-    sendMessage,
+    submitChat,
   ]);
 
   // 注册最大时长回调
@@ -634,7 +787,13 @@ export function useChatController() {
     setShowIntimacyPanel,
     currentConversationId,
     createConversation,
-    sendMessage,
+    sendMediaMessage,
+    chatStream,
+    isAccepting,
+    handleStopGeneration,
+    retryStreamSubmission,
+    retryFailedGeneration,
+    pendingMediaAfterId,
     generateSelfie,
     generateCouple,
     isRecording,
@@ -655,7 +814,6 @@ export function useChatController() {
     isSpeaking,
     activeMessageId,
     user,
-    pendingMessageAfterId,
     messagesEndRef,
     showCrisisAlert,
     setShowCrisisAlert,
@@ -670,7 +828,10 @@ export function useChatController() {
     voiceSupported,
     switchInputMode,
     duration,
-    startRecording,
+    startRecording: () => {
+      stop();
+      startRecording();
+    },
     handleRecordingComplete,
     cancelRecording,
     showPoseDialog,

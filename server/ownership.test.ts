@@ -2,7 +2,7 @@ import * as photosDb from "./repositories/photos";
 /** 覆盖写操作之前的资源归属校验。 */
 
 import { TRPCError } from "@trpc/server";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { User } from "../drizzle/schema";
 
 import * as companionsDb from "./repositories/companions";
@@ -37,14 +37,6 @@ const callOrder: string[] = [];
 beforeEach(() => {
   callOrder.length = 0;
   vi.restoreAllMocks();
-  // chat.sendMessage resolves the LLM key before any reads/writes.
-  // Provide a fake operator key so these tests exercise the ownership
-  // path rather than failing at the key precondition.
-  process.env.OPERATOR_OPENROUTER_KEY = "sk-or-test-fake-operator-key";
-});
-
-afterEach(() => {
-  delete process.env.OPERATOR_OPENROUTER_KEY;
 });
 
 describe(": ownership-before-write", () => {
@@ -77,7 +69,7 @@ describe(": ownership-before-write", () => {
       try {
         await caller.chat.sendMessage({
           conversationId: 1,
-          content: "hi",
+          content: "发张自拍",
         });
       } catch {
         // ignore — we expect a downstream error since girlfriend is null,
@@ -111,7 +103,7 @@ describe(": ownership-before-write", () => {
 
       const caller = appRouter.createCaller(ctx as any);
       await expect(
-        caller.chat.sendMessage({ conversationId: 999, content: "hi" })
+        caller.chat.sendMessage({ conversationId: 999, content: "发张自拍" })
       ).rejects.toThrowError(TRPCError);
 
       expect(createMessageSpy).not.toHaveBeenCalled();

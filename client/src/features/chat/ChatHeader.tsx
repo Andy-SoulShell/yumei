@@ -41,7 +41,8 @@ type Props = Pick<
   | "setShowIntimacyPanel"
   | "currentConversationId"
   | "createConversation"
-  | "sendMessage"
+  | "isAccepting"
+  | "chatStream"
   | "generateSelfie"
   | "generateCouple"
   | "isRecording"
@@ -65,7 +66,8 @@ export function ChatHeader({
   setShowIntimacyPanel,
   currentConversationId,
   createConversation,
-  sendMessage,
+  isAccepting,
+  chatStream,
   generateSelfie,
   generateCouple,
   isRecording,
@@ -81,7 +83,8 @@ export function ChatHeader({
   const newConversationDisabled =
     !currentConversationId ||
     createConversation.isPending ||
-    sendMessage.isPending ||
+    isAccepting ||
+    chatStream.isGenerating ||
     generateSelfie.isPending ||
     generateCouple.isPending ||
     isRecording ||

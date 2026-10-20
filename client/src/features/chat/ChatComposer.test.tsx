@@ -11,6 +11,8 @@ let root: Root;
 let container: HTMLDivElement;
 let desktop = true;
 let busy = false;
+let generating = false;
+const stopped = vi.fn();
 const submitted = vi.fn();
 function Harness() {
   const [message, setMessage] = useState("");
@@ -22,7 +24,13 @@ function Harness() {
       submitted(message);
       setMessage("");
     },
-    sendMessage: { isPending: busy },
+    isAccepting: busy,
+    chatStream: {
+      isGenerating: generating,
+      isStopping: false,
+      connection: "connected",
+    },
+    handleStopGeneration: stopped,
     generateSelfie: { isPending: false },
     generateCouple: { isPending: false },
     setShowPoseDialog: vi.fn(),
@@ -49,6 +57,8 @@ beforeEach(async () => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   desktop = true;
   busy = false;
+  generating = false;
+  stopped.mockClear();
   submitted.mockClear();
   vi.stubGlobal(
     "matchMedia",
@@ -125,7 +135,7 @@ it("does not send while confirming an IME candidate or immediately after composi
   await key();
   expect(submitted).toHaveBeenCalledOnce();
 });
-it("allows the next draft while a reply is pending without submitting it", async () => {
+it("allows the next draft while acceptance is pending without submitting it", async () => {
   busy = true;
   await act(async () => root.render(<Harness />));
   await fill("下一条，继续写");
@@ -136,6 +146,21 @@ it("allows the next draft while a reply is pending without submitting it", async
   ).toBe(true);
   await key();
   expect(submitted).not.toHaveBeenCalled();
+});
+it("allows supplements during generation and provides an independent stop action", async () => {
+  generating = true;
+  await act(async () => root.render(<Harness />));
+  await fill("还有一件事");
+  expect(
+    container.querySelector<HTMLButtonElement>('[type="submit"]')!.disabled
+  ).toBe(false);
+  const stop = container.querySelector<HTMLButtonElement>('[type="button"]')!;
+  expect(stop.textContent).toContain("停止回复");
+  await act(async () => stop.click());
+  expect(stopped).toHaveBeenCalledOnce();
+  expect(input().value).toBe("还有一件事");
+  await key();
+  expect(submitted).toHaveBeenCalledWith("还有一件事");
 });
 it("keeps the text draft when switching to voice and back", async () => {
   await fill("  ");

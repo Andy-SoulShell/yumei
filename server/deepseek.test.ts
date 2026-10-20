@@ -1,16 +1,22 @@
 /** 覆盖DeepSeek 聊天、记忆及用户 BYOK 优先关系。 */
 
 import axios from "axios";
+import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { generationRequests, messages, users } from "../drizzle/schema";
 import { resolveChatProvider } from "./_core/chatProvider";
 import { keyProvider } from "./_core/keyProvider";
-import * as generations from "./generations";
-import * as cleanup from "./mediaCleanup";
+import {
+  getChatTurnSnapshot,
+  runChatTurns,
+  submitChatTurn,
+} from "./chatStreaming";
+import { getDb } from "./database";
 import * as memory from "./memory";
 import * as apiConfigDb from "./repositories/apiConfig";
-import * as companionsDb from "./repositories/companions";
-import * as conversationsDb from "./repositories/conversations";
+import { createConversation } from "./repositories/conversations";
 import { appRouter } from "./routers";
+import { createTestGirlfriend } from "./testFixtures";
 
 const userId = "deepseek-test-user";
 const caller = appRouter.createCaller({
@@ -20,39 +26,6 @@ const caller = appRouter.createCaller({
 } as any);
 
 beforeEach(() => {
-  vi.spyOn(generations, "reserveGeneration").mockResolvedValue("mock-request");
-  vi.spyOn(generations, "failGeneration").mockResolvedValue(undefined);
-  vi.spyOn(cleanup, "flushMediaDeletions").mockResolvedValue(undefined);
-  vi.spyOn(cleanup, "queueMediaDeletion").mockResolvedValue(undefined);
-  vi.spyOn(generations, "completeTextGeneration").mockImplementation(
-    async (_id, _userId, content, reply) =>
-      ({
-        userMessage: { id: 1, role: "user", content },
-        assistantMessage: { id: 2, role: "assistant", content: reply },
-      }) as any
-  );
-  vi.spyOn(generations, "completeImageGeneration").mockImplementation(
-    async (_id, _userId, image, content) =>
-      ({
-        selfie: { ...image, girlfriendId: 12 },
-        message: { ...image, content: "[自拍照片]" },
-        userMessage: content === undefined ? undefined : { content },
-        imageGeneration: "completed",
-      }) as any
-  );
-  vi.spyOn(generations, "failImageGeneration").mockImplementation(
-    async (_id, _userId, content) =>
-      ({
-        selfie: null,
-        message: {
-          content: "这次自拍没有生成成功，本次未扣额度",
-          generationStatus: "failed",
-        },
-        userMessage: { content },
-        imageGeneration: "failed",
-      }) as any
-  );
-
   vi.stubEnv("LLM_PROVIDER", "deepseek");
   vi.stubEnv("DEEPSEEK_MODEL", "deepseek-flash");
   vi.stubEnv("OPERATOR_DEEPSEEK_KEY", "deepseek-test-secret");
@@ -65,74 +38,100 @@ beforeEach(() => {
   vi.spyOn(keyProvider, "describeUserKeys").mockResolvedValue({
     openrouter: { isSet: false, lastFour: null, setAt: null },
   } as any);
+  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
 });
+
+async function seed() {
+  const userId = `deepseek-stream-${crypto.randomUUID()}`;
+  const gf = await createTestGirlfriend({
+    userId,
+    name: "测试",
+    personality: "温柔",
+    appearance: "自然",
+    referenceImageKey: "deepseek-ref",
+    referenceImageUrl: "https://example.test/ref",
+  });
+  const conversation = await createConversation({
+    userId,
+    girlfriendId: gf.id,
+  });
+  const db = (await getDb())!;
+  const [user] = await db.select().from(users).where(eq(users.id, userId));
+  return { userId, user, conversation, db };
+}
 
 describe("DeepSeek official API deployment", () => {
   it("sends chat to DeepSeek Flash and wakes persisted memory work for the same user", async () => {
-    vi.spyOn(conversationsDb, "getConversation").mockResolvedValue({
-      id: 1,
-      userId,
-    } as any);
-    vi.spyOn(companionsDb, "getActiveGirlfriend").mockResolvedValue({
-      id: 1,
-      name: "测试",
-      personality: "温柔",
-      appearance: "自然",
-      intimacyLevel: 1,
-    } as any);
-    vi.spyOn(conversationsDb, "createMessage").mockImplementation(
-      async input => input as any
-    );
-    vi.spyOn(conversationsDb, "getRecentMessages").mockResolvedValue([
-      { role: "user", content: "你好" },
-    ] as any);
+    const { userId, user, conversation } = await seed();
     // A previous OpenRouter preference must not be sent to the DeepSeek endpoint.
-    vi.spyOn(apiConfigDb, "getUserApiConfig").mockResolvedValue({
+    await apiConfigDb.upsertApiConfig({
+      userId,
       llmModel: "openai/gpt-4o-mini",
-    } as any);
-    vi.spyOn(memory, "buildMemoryPromptBlock").mockResolvedValue("");
-    const extraction = vi
-      .spyOn(memory, "maybeExtractMemories")
-      .mockImplementation(() => {});
-    const post = vi.spyOn(axios, "post").mockResolvedValue({
-      data: { choices: [{ message: { content: "你好呀" } }] },
     });
-
-    const result = await caller.chat.sendMessage({
-      conversationId: 1,
+    vi.spyOn(memory, "buildMemoryPromptBlock").mockResolvedValue("");
+    const extraction = vi.mocked(memory.maybeExtractMemories);
+    const fetchMock = vi.fn(
+      async (_url: unknown, _options: RequestInit) =>
+        new Response(
+          'data: {"choices":[{"delta":{"content":"你好呀"}}]}\n\ndata: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n',
+          { headers: { "Content-Type": "text/event-stream" } }
+        )
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const accepted = await submitChatTurn(user, {
+      clientRequestId: crypto.randomUUID(),
+      conversationId: conversation.id,
       content: "你好",
     });
+    await runChatTurns([userId]);
+    const result = await getChatTurnSnapshot(userId, accepted.id);
 
     expect(result.assistantMessage.content).toBe("你好呀");
-    expect(post).toHaveBeenCalledWith(
+    expect(fetchMock).toHaveBeenCalledWith(
       "https://api.deepseek.com/chat/completions",
-      expect.objectContaining({
-        model: "deepseek-flash",
-        thinking: { type: "disabled" },
-      }),
       expect.objectContaining({
         headers: expect.objectContaining({
           Authorization: "Bearer deepseek-test-secret",
         }),
       })
     );
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body as string)).toMatchObject(
+      { model: "deepseek-flash", thinking: { type: "disabled" }, stream: true }
+    );
     expect(extraction).toHaveBeenCalledWith({ userId });
   });
 
   it("rejects missing DeepSeek keys before writes, even when an OpenRouter key exists", async () => {
+    const { user, conversation, db } = await seed();
     vi.stubEnv("OPERATOR_DEEPSEEK_KEY", "");
-    const write = vi.spyOn(conversationsDb, "createMessage");
-    const post = vi.spyOn(axios, "post");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
     await expect(
-      caller.chat.sendMessage({ conversationId: 1, content: "你好" })
-    ).rejects.toThrow("OPERATOR_DEEPSEEK_KEY");
-    expect(write).not.toHaveBeenCalled();
-    expect(post).not.toHaveBeenCalled();
+      submitChatTurn(user, {
+        clientRequestId: crypto.randomUUID(),
+        conversationId: conversation.id,
+        content: "你好",
+      })
+    ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+    expect(
+      await db
+        .select()
+        .from(messages)
+        .where(eq(messages.conversationId, conversation.id))
+    ).toEqual([]);
+    expect(
+      await db
+        .select()
+        .from(generationRequests)
+        .where(eq(generationRequests.userId, user.id))
+    ).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("returns the configured model and readiness without exposing the server key", async () => {

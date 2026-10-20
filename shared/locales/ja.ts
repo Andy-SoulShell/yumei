@@ -474,6 +474,18 @@ export default {
     token: "/token",
   },
   chat: {
+    streamGenerating: "返信中…",
+    streamStopped: "返信を停止しました。受信済みの文章は保存されています。",
+    streamFailed: "返信を完了できませんでした。再試行できます。",
+    streamStop: "返信を停止",
+    streamSupplementHint: "返信中でもメッセージを追加できます。",
+    streamReconnecting: "再接続中… 返信は引き続き保存されます。",
+    streamNetworkUnknown:
+      "送信結果を確認できません。再試行すると同じリクエストを確認します。",
+    streamRequestFailed: "返信を開始できませんでした。もう一度お試しください。",
+    streamRateLimited: "リクエストが多すぎます。少し待ってからお試しください。",
+    streamSessionExpired:
+      "セッションの有効期限が切れました。再度ログインしてください。",
     messageNotSent: "未送信",
     sendMessage: "送信",
     moreActions: "チャットのその他の操作",

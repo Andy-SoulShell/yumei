@@ -1,12 +1,20 @@
 /** 验证任务随消息提交、独立执行者互斥、失败重试以及过期租约恢复。 */
 import { eq } from "drizzle-orm";
-import axios from "axios";
 import { afterEach, expect, it, vi } from "vitest";
-import { girlfriends, memories, memoryExtractionJobs } from "../drizzle/schema";
+import {
+  girlfriends,
+  memories,
+  memoryExtractionJobs,
+  users,
+  type User,
+} from "../drizzle/schema";
 import * as provider from "./_core/chatProvider";
-import type { TrpcContext } from "./_core/context";
 import { getDb, withUserTransaction } from "./database";
-import { completeTextGeneration, reserveGeneration } from "./generations";
+import {
+  getChatTurnSnapshot,
+  runChatTurns,
+  submitChatTurn,
+} from "./chatStreaming";
 import * as memory from "./memory";
 import { runMemoryExtractionJobs } from "./memoryJobs";
 import { permanentDeleteGirlfriend } from "./repositories/companions";
@@ -15,10 +23,38 @@ import {
   createMessage,
 } from "./repositories/conversations";
 import { createTestGirlfriend } from "./testFixtures";
-import { appRouter } from "./routers";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+});
+
+const streamReply = (text = "记住了") =>
+  new Response(
+    `data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n` +
+      'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n',
+    { headers: { "Content-Type": "text/event-stream" } }
+  );
+async function send(user: User, conversationId: number, content: string) {
+  const turn = await submitChatTurn(user, {
+    clientRequestId: crypto.randomUUID(),
+    conversationId,
+    content,
+  });
+  await runChatTurns([user.id]);
+  expect((await getChatTurnSnapshot(user.id, turn.id)).status).toBe(
+    "succeeded"
+  );
+  return turn;
+}
 async function seed(rounds = 1) {
+  vi.stubEnv("BILLING_PROVIDER", "none");
+  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => streamReply())
+  );
   const userId = `memory-job-${crypto.randomUUID()}`;
   const gf = await createTestGirlfriend({
     userId,
@@ -32,19 +68,6 @@ async function seed(rounds = 1) {
     userId,
     girlfriendId: gf.id,
   });
-  for (let index = 0; index < rounds; index++) {
-    const id = await reserveGeneration({
-      userId,
-      conversationId: conversation.id,
-      kind: "chat",
-    });
-    await completeTextGeneration(
-      id,
-      userId,
-      "用户喜欢猫和安静的咖啡馆",
-      "记住了"
-    );
-  }
   vi.spyOn(provider, "resolveChatProvider").mockResolvedValue({
     name: "openrouter",
     baseUrl: "https://example.test",
@@ -52,7 +75,11 @@ async function seed(rounds = 1) {
     isByok: false,
     model: "test",
   });
-  return { userId, gf, conversation, db: (await getDb())! };
+  const db = (await getDb())!;
+  const [user] = await db.select().from(users).where(eq(users.id, userId));
+  for (let index = 0; index < rounds; index++)
+    await send(user, conversation.id, "用户喜欢猫和安静的咖啡馆");
+  return { userId, user, gf, conversation, db };
 }
 it("persists a job after the first round and applies its result once across competing workers", async () => {
   const a = await seed();
@@ -95,22 +122,12 @@ it("keeps the five-round interval when a standalone image makes the message coun
     imageUrl: "https://example.test/photo",
     generationStatus: "succeeded",
   });
-  const id = await reserveGeneration({
-    userId: a.userId,
-    conversationId: a.conversation.id,
-    kind: "chat",
-  });
-  await completeTextGeneration(id, a.userId, "今天也很开心", "我也是");
+  await send(a.user, a.conversation.id, "今天也很开心");
   expect(await jobs()).toHaveLength(2);
 });
 it("queues an explicit memory request before the normal interval", async () => {
   const a = await seed();
-  const id = await reserveGeneration({
-    userId: a.userId,
-    conversationId: a.conversation.id,
-    kind: "chat",
-  });
-  await completeTextGeneration(id, a.userId, "请记住，我的猫叫团团", "好的");
+  await send(a.user, a.conversation.id, "请记住，我的猫叫团团");
   expect(
     await a.db
       .select()
@@ -118,7 +135,7 @@ it("queues an explicit memory request before the normal interval", async () => {
       .where(eq(memoryExtractionJobs.userId, a.userId))
   ).toHaveLength(2);
 });
-it("extracts legacy text while excluding images and failed messages, then recalls it in another conversation", async () => {
+it("extracts user source text while excluding images and failed messages, then recalls it in another conversation", async () => {
   const a = await seed(0);
   await createMessage({
     conversationId: a.conversation.id,
@@ -144,12 +161,7 @@ it("extracts legacy text while excluding images and failed messages, then recall
     content: "我最常喝手冲咖啡，别把我的偏好当成用户的",
     generationStatus: "succeeded",
   });
-  const id = await reserveGeneration({
-    userId: a.userId,
-    conversationId: a.conversation.id,
-    kind: "chat",
-  });
-  await completeTextGeneration(id, a.userId, "今天很开心", "我也是");
+  await send(a.user, a.conversation.id, "今天很开心");
   // The job's upper boundary must still exclude messages that arrived later.
   await createMessage({
     conversationId: a.conversation.id,
@@ -177,31 +189,19 @@ it("extracts legacy text while excluding images and failed messages, then recall
   expect(
     await memory.buildMemoryPromptBlock(a.userId, a.gf.id, "我喜欢什么", 1)
   ).toContain("用户喜欢猫");
-  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
-  const post = vi.spyOn(axios, "post").mockResolvedValue({
-    data: { choices: [{ message: { content: "你喜欢猫呀" } }] },
-  });
-  const caller = appRouter.createCaller({
-    user: { id: a.userId, birthDate: new Date("1990-01-01") },
-    req: {},
-    res: {},
-  } as TrpcContext);
-  await caller.chat.sendMessage({
-    conversationId: nextConversation.id,
-    content: "我喜欢什么",
-  });
-  expect(post).toHaveBeenCalledWith(
-    expect.any(String),
-    expect.objectContaining({
-      messages: expect.arrayContaining([
-        expect.objectContaining({
-          role: "system",
-          content: expect.stringContaining("用户喜欢猫"),
-        }),
-      ]),
-    }),
-    expect.any(Object)
+  const fetchMock = vi.fn(async (_url: unknown, _options: RequestInit) =>
+    streamReply("你喜欢猫呀")
   );
+  vi.stubGlobal("fetch", fetchMock);
+  await send(a.user, nextConversation.id, "我喜欢什么");
+  expect(JSON.parse(fetchMock.mock.calls[0][1].body as string)).toMatchObject({
+    messages: expect.arrayContaining([
+      expect.objectContaining({
+        role: "system",
+        content: expect.stringContaining("用户喜欢猫"),
+      }),
+    ]),
+  });
 });
 it("retains failed work and recovers an expired worker lease without losing the extraction", async () => {
   const a = await seed();

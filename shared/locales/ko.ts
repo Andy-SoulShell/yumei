@@ -464,6 +464,17 @@ export default {
     token: "/token",
   },
   chat: {
+    streamGenerating: "답변 중…",
+    streamStopped: "답변을 멈췄어요. 이미 받은 내용은 저장되었어요.",
+    streamFailed: "답변을 마치지 못했어요. 다시 시도할 수 있어요.",
+    streamStop: "답변 멈추기",
+    streamSupplementHint: "답변 중에도 메시지를 추가할 수 있어요.",
+    streamReconnecting: "다시 연결 중… 답변은 계속 저장돼요.",
+    streamNetworkUnknown:
+      "전달 여부를 확인하지 못했어요. 다시 시도하면 같은 요청을 확인해요.",
+    streamRequestFailed: "답변을 시작하지 못했어요. 다시 시도해 주세요.",
+    streamRateLimited: "요청이 너무 많아요. 잠시 후 다시 시도해 주세요.",
+    streamSessionExpired: "로그인이 만료되었어요. 다시 로그인해 주세요.",
     messageNotSent: "전송 안 됨",
     sendMessage: "메시지 보내기",
     moreActions: "채팅 추가 작업",

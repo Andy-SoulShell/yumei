@@ -1,1 +1,0 @@
-ALTER TABLE `generationRequests` ADD `turnRelationship` json;

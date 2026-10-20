@@ -15,6 +15,22 @@ CREATE TABLE `accounts` (
 	CONSTRAINT `accounts_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
+CREATE TABLE `aiTaskRuns` (
+	`id` varchar(36) NOT NULL,
+	`userId` varchar(255) NOT NULL,
+	`girlfriendId` int,
+	`kind` enum('memory_extract','memory_index','memory_query','summary','tts','transcription') NOT NULL,
+	`provider` varchar(32) NOT NULL,
+	`model` varchar(200) NOT NULL,
+	`isByok` boolean NOT NULL,
+	`promptVersion` varchar(100) NOT NULL,
+	`outcome` enum('pending','succeeded','failed') NOT NULL DEFAULT 'pending',
+	`durationMs` int,
+	`usage` json,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `aiTaskRuns_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
 CREATE TABLE `apiConfigs` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`userId` varchar(255) NOT NULL,
@@ -43,6 +59,32 @@ CREATE TABLE `billingEvents` (
 	CONSTRAINT `billingEvents_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
+CREATE TABLE `companionPreferences` (
+	`userId` varchar(255) NOT NULL,
+	`timeZone` varchar(64) NOT NULL DEFAULT 'UTC',
+	`proactiveEnabled` boolean NOT NULL DEFAULT false,
+	`proactiveMode` enum('events','daily') NOT NULL DEFAULT 'events',
+	`quietStart` int NOT NULL DEFAULT 1320,
+	`quietEnd` int NOT NULL DEFAULT 480,
+	`frequencyDays` int NOT NULL DEFAULT 1,
+	`hidePrivatePreview` boolean NOT NULL DEFAULT true,
+	`revision` int NOT NULL DEFAULT 0,
+	CONSTRAINT `companionPreferences_userId` PRIMARY KEY(`userId`)
+);
+--> statement-breakpoint
+CREATE TABLE `conversationSummaries` (
+	`conversationId` int NOT NULL,
+	`userId` varchar(255) NOT NULL,
+	`girlfriendId` int NOT NULL,
+	`memoryEpoch` int NOT NULL,
+	`throughMessageId` int NOT NULL,
+	`content` text NOT NULL,
+	`sources` json NOT NULL,
+	`topics` json NOT NULL,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `conversationSummaries_conversationId` PRIMARY KEY(`conversationId`)
+);
+--> statement-breakpoint
 CREATE TABLE `conversations` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`userId` varchar(255) NOT NULL,
@@ -59,15 +101,30 @@ CREATE TABLE `generationRequests` (
 	`conversationId` int NOT NULL,
 	`transcriptionId` varchar(36),
 	`kind` enum('chat','selfie','couple') NOT NULL,
-	`status` enum('pending','succeeded','failed') NOT NULL DEFAULT 'pending',
+	`contextEpoch` int,
+	`status` enum('pending','succeeded','failed','cancelled') NOT NULL DEFAULT 'pending',
 	`meterPeriod` varchar(10),
 	`meterName` varchar(64),
+	`clientRequestId` varchar(36),
+	`chatInput` text,
+	`chatRouting` json,
+	`userMessageId` int,
+	`assistantMessageId` int,
+	`turnStatus` enum('queued','running','succeeded','stopped','failed'),
+	`cancelRequested` boolean NOT NULL DEFAULT false,
+	`leaseToken` varchar(36),
+	`leaseUntil` timestamp(3),
+	`safetyNotice` boolean NOT NULL DEFAULT false,
+	`revision` int NOT NULL DEFAULT 0,
+	`turnRelationship` json,
+	`telemetry` json,
 	`outputKey` varchar(500),
 	`temporaryKey` varchar(500),
 	`expiresAt` timestamp NOT NULL,
 	`createdAt` timestamp NOT NULL DEFAULT (now()),
 	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
-	CONSTRAINT `generationRequests_id` PRIMARY KEY(`id`)
+	CONSTRAINT `generationRequests_id` PRIMARY KEY(`id`),
+	CONSTRAINT `uniq_generation_user_client` UNIQUE(`userId`,`clientRequestId`)
 );
 --> statement-breakpoint
 CREATE TABLE `girlfriendMoods` (
@@ -76,6 +133,7 @@ CREATE TABLE `girlfriendMoods` (
 	`girlfriendId` int NOT NULL,
 	`mood` enum('excited','happy','content','neutral','lonely','sad') NOT NULL DEFAULT 'happy',
 	`moodScore` int NOT NULL DEFAULT 70,
+	`emotionState` json,
 	`lastChatAt` timestamp,
 	`totalMessages` int NOT NULL DEFAULT 0,
 	`todayMessages` int NOT NULL DEFAULT 0,
@@ -96,11 +154,14 @@ CREATE TABLE `girlfriends` (
 	`referenceImageUrl` text NOT NULL,
 	`referenceImageKey` varchar(500) NOT NULL,
 	`customPrompt` text,
+	`behavior` json,
+	`memoryEnabled` boolean NOT NULL DEFAULT true,
+	`memoryEpoch` int NOT NULL DEFAULT 0,
+	`memoryForgottenThroughId` int NOT NULL DEFAULT 0,
 	`avatarUrl` text,
 	`avatarKey` varchar(500),
 	`intimacyLevel` int NOT NULL DEFAULT 1,
 	`intimacyPoints` int NOT NULL DEFAULT 0,
-	`lastDecayAt` timestamp,
 	`lastInteractionAt` timestamp,
 	`consecutiveDays` int NOT NULL DEFAULT 0,
 	`isActive` boolean NOT NULL DEFAULT true,
@@ -131,11 +192,34 @@ CREATE TABLE `memories` (
 	`weight` int NOT NULL DEFAULT 50,
 	`pinned` boolean NOT NULL DEFAULT false,
 	`sourceMessageId` int,
+	`contentVersion` int NOT NULL DEFAULT 1,
+	`factKey` varchar(64),
+	`sourceType` enum('user_message','user_edit') NOT NULL DEFAULT 'user_message',
+	`sourceCreatedAt` timestamp(3),
+	`sourceTimeZone` varchar(64) NOT NULL DEFAULT 'UTC',
+	`eventDay` varchar(10),
+	`eventStatus` enum('planned','completed','cancelled','unknown') NOT NULL DEFAULT 'unknown',
 	`lastRecalledAt` timestamp,
 	`createdAt` timestamp NOT NULL DEFAULT (now()),
 	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `memories_id` PRIMARY KEY(`id`),
 	CONSTRAINT `uniq_memory_dedupe` UNIQUE(`girlfriendId`,`content`)
+);
+--> statement-breakpoint
+CREATE TABLE `memoryEmbeddings` (
+	`memoryId` int NOT NULL,
+	`userId` varchar(255) NOT NULL,
+	`girlfriendId` int NOT NULL,
+	`contentVersion` int NOT NULL,
+	`memoryEpoch` int NOT NULL,
+	`provider` varchar(32) NOT NULL,
+	`model` varchar(200) NOT NULL,
+	`baseUrl` varchar(500) NOT NULL,
+	`isByok` boolean NOT NULL,
+	`dimensions` int NOT NULL,
+	`vector` json NOT NULL,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `memoryEmbeddings_memoryId` PRIMARY KEY(`memoryId`)
 );
 --> statement-breakpoint
 CREATE TABLE `memoryExtractionJobs` (
@@ -145,6 +229,7 @@ CREATE TABLE `memoryExtractionJobs` (
 	`conversationId` int NOT NULL,
 	`lastMessageId` int NOT NULL,
 	`intimacyLevel` int NOT NULL,
+	`memoryEpoch` int NOT NULL DEFAULT 0,
 	`attempts` int NOT NULL DEFAULT 0,
 	`status` enum('pending','failed') NOT NULL DEFAULT 'pending',
 	`leaseToken` varchar(36),
@@ -161,7 +246,8 @@ CREATE TABLE `messages` (
 	`imageUrl` text,
 	`imageKey` varchar(500),
 	`generationRequestId` varchar(36),
-	`generationStatus` enum('succeeded','failed'),
+	`generationStatus` enum('pending','succeeded','failed','stopped'),
+	`segments` json,
 	`selfieMode` enum('mirror','direct'),
 	`createdAt` timestamp NOT NULL DEFAULT (now()),
 	CONSTRAINT `messages_id` PRIMARY KEY(`id`)
@@ -169,6 +255,7 @@ CREATE TABLE `messages` (
 --> statement-breakpoint
 CREATE TABLE `notifications` (
 	`id` int AUTO_INCREMENT NOT NULL,
+	`contactId` varchar(36),
 	`userId` varchar(255) NOT NULL,
 	`girlfriendId` int NOT NULL,
 	`title` json NOT NULL,
@@ -176,7 +263,45 @@ CREATE TABLE `notifications` (
 	`type` enum('miss_you','good_morning','good_night','random','mood') NOT NULL DEFAULT 'random',
 	`isRead` boolean NOT NULL DEFAULT false,
 	`createdAt` timestamp NOT NULL DEFAULT (now()),
-	CONSTRAINT `notifications_id` PRIMARY KEY(`id`)
+	CONSTRAINT `notifications_id` PRIMARY KEY(`id`),
+	CONSTRAINT `notifications_contactId_unique` UNIQUE(`contactId`)
+);
+--> statement-breakpoint
+CREATE TABLE `proactiveContacts` (
+	`id` varchar(36) NOT NULL,
+	`userId` varchar(255) NOT NULL,
+	`girlfriendId` int NOT NULL,
+	`localDay` varchar(10) NOT NULL,
+	`reason` enum('event_upcoming','event_today','event_followup','daily') NOT NULL,
+	`memoryId` int,
+	`memoryVersion` int,
+	`memorySourceMessageId` int,
+	`eventDay` varchar(10),
+	`memoryEpoch` int NOT NULL,
+	`preferencesRevision` int NOT NULL,
+	`notificationId` int NOT NULL,
+	`status` enum('pending','delivering','sent','cancelled') NOT NULL DEFAULT 'pending',
+	`attempts` int NOT NULL DEFAULT 0,
+	`leaseToken` varchar(36),
+	`leaseUntil` timestamp(3),
+	`nextRunAt` timestamp(3) NOT NULL DEFAULT (now()),
+	`expiresAt` timestamp(3) NOT NULL,
+	`createdAt` timestamp(3) NOT NULL DEFAULT (now()),
+	CONSTRAINT `proactiveContacts_id` PRIMARY KEY(`id`),
+	CONSTRAINT `uniq_proactive_user_day` UNIQUE(`userId`,`localDay`)
+);
+--> statement-breakpoint
+CREATE TABLE `proactiveDeliveries` (
+	`id` varchar(36) NOT NULL,
+	`contactId` varchar(36) NOT NULL,
+	`userId` varchar(255) NOT NULL,
+	`subscriptionId` int NOT NULL,
+	`deviceHash` varchar(64) NOT NULL,
+	`status` enum('pending','sent','failed') NOT NULL DEFAULT 'pending',
+	`attempts` int NOT NULL DEFAULT 0,
+	`deliveredAt` timestamp(3),
+	CONSTRAINT `proactiveDeliveries_id` PRIMARY KEY(`id`),
+	CONSTRAINT `uniq_proactive_device` UNIQUE(`contactId`,`subscriptionId`,`deviceHash`)
 );
 --> statement-breakpoint
 CREATE TABLE `pushSubscriptions` (
@@ -310,7 +435,9 @@ CREATE TABLE `voiceTranscriptions` (
 	CONSTRAINT `voiceTranscriptions_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
+CREATE INDEX `idx_ai_task_user_day` ON `aiTaskRuns` (`userId`,`createdAt`);--> statement-breakpoint
 CREATE INDEX `idx_conversations_user_role` ON `conversations` (`userId`,`girlfriendId`);--> statement-breakpoint
+CREATE INDEX `idx_generation_turn_lease` ON `generationRequests` (`turnStatus`,`leaseUntil`);--> statement-breakpoint
 CREATE INDEX `idx_generation_conversation` ON `generationRequests` (`conversationId`);--> statement-breakpoint
 CREATE INDEX `idx_generation_expiry` ON `generationRequests` (`status`,`expiresAt`);--> statement-breakpoint
 CREATE INDEX `idx_girlfriends_user_deleted` ON `girlfriends` (`userId`,`deletedAt`);--> statement-breakpoint
@@ -321,6 +448,7 @@ CREATE INDEX `idx_messages_conversation_id` ON `messages` (`conversationId`,`id`
 CREATE INDEX `idx_messages_image_key` ON `messages` (`imageKey`);--> statement-breakpoint
 CREATE INDEX `idx_notifications_user_created` ON `notifications` (`userId`,`createdAt`);--> statement-breakpoint
 CREATE INDEX `idx_notifications_user_role` ON `notifications` (`userId`,`girlfriendId`);--> statement-breakpoint
+CREATE INDEX `idx_proactive_next` ON `proactiveContacts` (`status`,`nextRunAt`);--> statement-breakpoint
 CREATE INDEX `idx_rate_updated` ON `rateWindows` (`updatedAt`);--> statement-breakpoint
 CREATE INDEX `idx_selfies_user_role` ON `selfies` (`userId`,`girlfriendId`);--> statement-breakpoint
 CREATE INDEX `idx_selfies_image_key` ON `selfies` (`imageKey`);--> statement-breakpoint

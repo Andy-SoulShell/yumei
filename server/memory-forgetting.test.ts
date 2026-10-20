@@ -1,7 +1,12 @@
 /** 用真实事务验证删除记忆与在途提取互斥、旧证据屏蔽和主动重新提起。 */
 import { eq } from "drizzle-orm";
 import { afterEach, expect, it, vi } from "vitest";
-import { girlfriends, memorySuppressions, users } from "../drizzle/schema";
+import {
+  girlfriends,
+  memories,
+  memoryExtractionJobs,
+  users,
+} from "../drizzle/schema";
 import * as provider from "./_core/chatProvider";
 import { getDb } from "./database";
 import {
@@ -153,10 +158,14 @@ it("rejects memories without a real source and removes forgotten metadata with t
     )
   ).toBe(false);
   await permanentDeleteGirlfriend(a.gf.id, a.userId);
+  const db = (await getDb())!;
   expect(
-    await (await getDb())!
+    await db.select().from(memories).where(eq(memories.girlfriendId, a.gf.id))
+  ).toEqual([]);
+  expect(
+    await db
       .select()
-      .from(memorySuppressions)
-      .where(eq(memorySuppressions.girlfriendId, a.gf.id))
+      .from(memoryExtractionJobs)
+      .where(eq(memoryExtractionJobs.girlfriendId, a.gf.id))
   ).toEqual([]);
 });

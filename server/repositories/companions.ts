@@ -20,7 +20,6 @@ import {
   memoryEmbeddings,
   aiTaskRuns,
   memoryExtractionJobs,
-  memorySuppressions,
   messages,
   notifications,
   proactiveContacts,
@@ -388,14 +387,6 @@ export async function permanentDeleteGirlfriend(
       .set({ girlfriendId: null })
       .where(
         and(eq(aiTaskRuns.girlfriendId, id), eq(aiTaskRuns.userId, userId))
-      );
-    await tx
-      .delete(memorySuppressions)
-      .where(
-        and(
-          eq(memorySuppressions.girlfriendId, id),
-          eq(memorySuppressions.userId, userId)
-        )
       );
     await tx
       .delete(notifications)

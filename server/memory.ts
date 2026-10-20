@@ -12,7 +12,6 @@ import {
   conversations,
   girlfriends,
   memories,
-  memorySuppressions,
   companionPreferences,
   conversationSummaries,
   memoryEmbeddings,
@@ -905,14 +904,6 @@ export async function clearMemories(userId: string, girlfriendId: number) {
         and(
           eq(memories.userId, userId),
           eq(memories.girlfriendId, girlfriendId)
-        )
-      );
-    await tx
-      .delete(memorySuppressions)
-      .where(
-        and(
-          eq(memorySuppressions.userId, userId),
-          eq(memorySuppressions.girlfriendId, girlfriendId)
         )
       );
   });

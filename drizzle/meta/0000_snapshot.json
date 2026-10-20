@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "69b39370-1b1d-4ab1-933b-4456b288db90",
+  "id": "44bc037f-b4c9-4731-bd3e-714aef49ede2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "accounts": {
@@ -107,6 +107,118 @@
       "compositePrimaryKeys": {
         "accounts_id": {
           "name": "accounts_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "aiTaskRuns": {
+      "name": "aiTaskRuns",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "girlfriendId": {
+          "name": "girlfriendId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "enum('memory_extract','memory_index','memory_query','summary','tts','transcription')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "provider": {
+          "name": "provider",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "model": {
+          "name": "model",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "isByok": {
+          "name": "isByok",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "promptVersion": {
+          "name": "promptVersion",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "outcome": {
+          "name": "outcome",
+          "type": "enum('pending','succeeded','failed')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "durationMs": {
+          "name": "durationMs",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "usage": {
+          "name": "usage",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {
+        "idx_ai_task_user_day": {
+          "name": "idx_ai_task_user_day",
+          "columns": [
+            "userId",
+            "createdAt"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "aiTaskRuns_id": {
+          "name": "aiTaskRuns_id",
           "columns": [
             "id"
           ]
@@ -296,6 +408,175 @@
       "uniqueConstraints": {},
       "checkConstraint": {}
     },
+    "companionPreferences": {
+      "name": "companionPreferences",
+      "columns": {
+        "userId": {
+          "name": "userId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "timeZone": {
+          "name": "timeZone",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'UTC'"
+        },
+        "proactiveEnabled": {
+          "name": "proactiveEnabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "proactiveMode": {
+          "name": "proactiveMode",
+          "type": "enum('events','daily')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'events'"
+        },
+        "quietStart": {
+          "name": "quietStart",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1320
+        },
+        "quietEnd": {
+          "name": "quietEnd",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 480
+        },
+        "frequencyDays": {
+          "name": "frequencyDays",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "hidePrivatePreview": {
+          "name": "hidePrivatePreview",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "revision": {
+          "name": "revision",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "companionPreferences_userId": {
+          "name": "companionPreferences_userId",
+          "columns": [
+            "userId"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "conversationSummaries": {
+      "name": "conversationSummaries",
+      "columns": {
+        "conversationId": {
+          "name": "conversationId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "girlfriendId": {
+          "name": "girlfriendId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "memoryEpoch": {
+          "name": "memoryEpoch",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "throughMessageId": {
+          "name": "throughMessageId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sources": {
+          "name": "sources",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "topics": {
+          "name": "topics",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "conversationSummaries_conversationId": {
+          "name": "conversationSummaries_conversationId",
+          "columns": [
+            "conversationId"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
     "conversations": {
       "name": "conversations",
       "columns": {
@@ -405,9 +686,16 @@
           "notNull": true,
           "autoincrement": false
         },
+        "contextEpoch": {
+          "name": "contextEpoch",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "status": {
           "name": "status",
-          "type": "enum('pending','succeeded','failed')",
+          "type": "enum('pending','succeeded','failed','cancelled')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
@@ -423,6 +711,100 @@
         "meterName": {
           "name": "meterName",
           "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "clientRequestId": {
+          "name": "clientRequestId",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "chatInput": {
+          "name": "chatInput",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "chatRouting": {
+          "name": "chatRouting",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "userMessageId": {
+          "name": "userMessageId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "assistantMessageId": {
+          "name": "assistantMessageId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "turnStatus": {
+          "name": "turnStatus",
+          "type": "enum('queued','running','succeeded','stopped','failed')",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "cancelRequested": {
+          "name": "cancelRequested",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "leaseToken": {
+          "name": "leaseToken",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "leaseUntil": {
+          "name": "leaseUntil",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "safetyNotice": {
+          "name": "safetyNotice",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "turnRelationship": {
+          "name": "turnRelationship",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "telemetry": {
+          "name": "telemetry",
+          "type": "json",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -467,6 +849,22 @@
         }
       },
       "indexes": {
+        "uniq_generation_user_client": {
+          "name": "uniq_generation_user_client",
+          "columns": [
+            "userId",
+            "clientRequestId"
+          ],
+          "isUnique": true
+        },
+        "idx_generation_turn_lease": {
+          "name": "idx_generation_turn_lease",
+          "columns": [
+            "turnStatus",
+            "leaseUntil"
+          ],
+          "isUnique": false
+        },
         "idx_generation_conversation": {
           "name": "idx_generation_conversation",
           "columns": [
@@ -534,6 +932,13 @@
           "notNull": true,
           "autoincrement": false,
           "default": 70
+        },
+        "emotionState": {
+          "name": "emotionState",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "lastChatAt": {
           "name": "lastChatAt",
@@ -672,6 +1077,37 @@
           "notNull": false,
           "autoincrement": false
         },
+        "behavior": {
+          "name": "behavior",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "memoryEnabled": {
+          "name": "memoryEnabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "memoryEpoch": {
+          "name": "memoryEpoch",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "memoryForgottenThroughId": {
+          "name": "memoryForgottenThroughId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
         "avatarUrl": {
           "name": "avatarUrl",
           "type": "text",
@@ -701,13 +1137,6 @@
           "notNull": true,
           "autoincrement": false,
           "default": 0
-        },
-        "lastDecayAt": {
-          "name": "lastDecayAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
         },
         "lastInteractionAt": {
           "name": "lastInteractionAt",
@@ -928,6 +1357,59 @@
           "notNull": false,
           "autoincrement": false
         },
+        "contentVersion": {
+          "name": "contentVersion",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "factKey": {
+          "name": "factKey",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sourceType": {
+          "name": "sourceType",
+          "type": "enum('user_message','user_edit')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'user_message'"
+        },
+        "sourceCreatedAt": {
+          "name": "sourceCreatedAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sourceTimeZone": {
+          "name": "sourceTimeZone",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'UTC'"
+        },
+        "eventDay": {
+          "name": "eventDay",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "eventStatus": {
+          "name": "eventStatus",
+          "type": "enum('planned','completed','cancelled','unknown')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'unknown'"
+        },
         "lastRecalledAt": {
           "name": "lastRecalledAt",
           "type": "timestamp",
@@ -969,6 +1451,108 @@
           "name": "memories_id",
           "columns": [
             "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "memoryEmbeddings": {
+      "name": "memoryEmbeddings",
+      "columns": {
+        "memoryId": {
+          "name": "memoryId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "girlfriendId": {
+          "name": "girlfriendId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "contentVersion": {
+          "name": "contentVersion",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "memoryEpoch": {
+          "name": "memoryEpoch",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "provider": {
+          "name": "provider",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "model": {
+          "name": "model",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "baseUrl": {
+          "name": "baseUrl",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "isByok": {
+          "name": "isByok",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dimensions": {
+          "name": "dimensions",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "vector": {
+          "name": "vector",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "memoryEmbeddings_memoryId": {
+          "name": "memoryEmbeddings_memoryId",
+          "columns": [
+            "memoryId"
           ]
         }
       },
@@ -1019,6 +1603,14 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "memoryEpoch": {
+          "name": "memoryEpoch",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         },
         "attempts": {
           "name": "attempts",
@@ -1142,7 +1734,14 @@
         },
         "generationStatus": {
           "name": "generationStatus",
-          "type": "enum('succeeded','failed')",
+          "type": "enum('pending','succeeded','failed','stopped')",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "segments": {
+          "name": "segments",
+          "type": "json",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -1201,6 +1800,13 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": true
+        },
+        "contactId": {
+          "name": "contactId",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "userId": {
           "name": "userId",
@@ -1277,6 +1883,269 @@
       "compositePrimaryKeys": {
         "notifications_id": {
           "name": "notifications_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "notifications_contactId_unique": {
+          "name": "notifications_contactId_unique",
+          "columns": [
+            "contactId"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "proactiveContacts": {
+      "name": "proactiveContacts",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "girlfriendId": {
+          "name": "girlfriendId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "localDay": {
+          "name": "localDay",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "enum('event_upcoming','event_today','event_followup','daily')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "memoryId": {
+          "name": "memoryId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "memoryVersion": {
+          "name": "memoryVersion",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "memorySourceMessageId": {
+          "name": "memorySourceMessageId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "eventDay": {
+          "name": "eventDay",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "memoryEpoch": {
+          "name": "memoryEpoch",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "preferencesRevision": {
+          "name": "preferencesRevision",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "notificationId": {
+          "name": "notificationId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "enum('pending','delivering','sent','cancelled')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "leaseToken": {
+          "name": "leaseToken",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "leaseUntil": {
+          "name": "leaseUntil",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "nextRunAt": {
+          "name": "nextRunAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        },
+        "expiresAt": {
+          "name": "expiresAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {
+        "uniq_proactive_user_day": {
+          "name": "uniq_proactive_user_day",
+          "columns": [
+            "userId",
+            "localDay"
+          ],
+          "isUnique": true
+        },
+        "idx_proactive_next": {
+          "name": "idx_proactive_next",
+          "columns": [
+            "status",
+            "nextRunAt"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "proactiveContacts_id": {
+          "name": "proactiveContacts_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "proactiveDeliveries": {
+      "name": "proactiveDeliveries",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "contactId": {
+          "name": "contactId",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "subscriptionId": {
+          "name": "subscriptionId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "deviceHash": {
+          "name": "deviceHash",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "enum('pending','sent','failed')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "deliveredAt": {
+          "name": "deliveredAt",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "uniq_proactive_device": {
+          "name": "uniq_proactive_device",
+          "columns": [
+            "contactId",
+            "subscriptionId",
+            "deviceHash"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "proactiveDeliveries_id": {
+          "name": "proactiveDeliveries_id",
           "columns": [
             "id"
           ]

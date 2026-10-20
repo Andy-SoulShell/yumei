@@ -353,6 +353,7 @@ export const notifications = mysqlTable(
   "notifications",
   {
     id: int("id").autoincrement().primaryKey(),
+    contactId: varchar("contactId", { length: 36 }).unique(),
     userId: varchar("userId", { length: 255 }).notNull(),
     girlfriendId: int("girlfriendId").notNull(),
     title: json("title").$type<LocalizedMessage>().notNull(),
@@ -385,6 +386,70 @@ export const notifications = mysqlTable(
 export type Notification = typeof notifications.$inferSelect;
 /** 从 notifications 表结构推导的新增记录输入，允许省略由数据库填充的字段。 */
 export type InsertNotification = typeof notifications.$inferInsert;
+
+/** 主动联系持久任务，站内消息和任务在同一用户事务内创建。 */
+export const proactiveContacts = mysqlTable(
+  "proactiveContacts",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    userId: varchar("userId", { length: 255 }).notNull(),
+    girlfriendId: int("girlfriendId").notNull(),
+    localDay: varchar("localDay", { length: 10 }).notNull(),
+    reason: mysqlEnum("reason", [
+      "event_upcoming",
+      "event_today",
+      "event_followup",
+      "daily",
+    ]).notNull(),
+    memoryId: int("memoryId"),
+    memoryVersion: int("memoryVersion"),
+    memorySourceMessageId: int("memorySourceMessageId"),
+    eventDay: varchar("eventDay", { length: 10 }),
+    memoryEpoch: int("memoryEpoch").notNull(),
+    preferencesRevision: int("preferencesRevision").notNull(),
+    notificationId: int("notificationId").notNull(),
+    status: mysqlEnum("status", ["pending", "delivering", "sent", "cancelled"])
+      .default("pending")
+      .notNull(),
+    attempts: int("attempts").default(0).notNull(),
+    leaseToken: varchar("leaseToken", { length: 36 }),
+    leaseUntil: timestamp("leaseUntil", { fsp: 3 }),
+    nextRunAt: timestamp("nextRunAt", { fsp: 3 }).defaultNow().notNull(),
+    expiresAt: timestamp("expiresAt", { fsp: 3 }).notNull(),
+    createdAt: timestamp("createdAt", { fsp: 3 }).defaultNow().notNull(),
+  },
+  table => ({
+    perUserDay: uniqueIndex("uniq_proactive_user_day").on(
+      table.userId,
+      table.localDay
+    ),
+    byNext: index("idx_proactive_next").on(table.status, table.nextRunAt),
+  })
+);
+
+/** 每设备投递确认，端点和密钥只保存不可逆指纹，不复制凭据。 */
+export const proactiveDeliveries = mysqlTable(
+  "proactiveDeliveries",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    contactId: varchar("contactId", { length: 36 }).notNull(),
+    userId: varchar("userId", { length: 255 }).notNull(),
+    subscriptionId: int("subscriptionId").notNull(),
+    deviceHash: varchar("deviceHash", { length: 64 }).notNull(),
+    status: mysqlEnum("status", ["pending", "sent", "failed"])
+      .default("pending")
+      .notNull(),
+    attempts: int("attempts").default(0).notNull(),
+    deliveredAt: timestamp("deliveredAt", { fsp: 3 }),
+  },
+  table => ({
+    perDevice: uniqueIndex("uniq_proactive_device").on(
+      table.contactId,
+      table.subscriptionId,
+      table.deviceHash
+    ),
+  })
+);
 
 /** 按用户、UTC 周期和计量名称唯一保存的消费计数。 */
 export const usageMeters = mysqlTable(
@@ -524,6 +589,8 @@ export const aiTaskRuns = mysqlTable(
       "memory_index",
       "memory_query",
       "summary",
+      "tts",
+      "transcription",
     ]).notNull(),
     provider: varchar("provider", { length: 32 }).notNull(),
     model: varchar("model", { length: 200 }).notNull(),
@@ -654,6 +721,7 @@ export const generationRequests = mysqlTable(
     conversationId: int("conversationId").notNull(),
     transcriptionId: varchar("transcriptionId", { length: 36 }),
     kind: mysqlEnum("kind", ["chat", "selfie", "couple"]).notNull(),
+    contextEpoch: int("contextEpoch"),
     status: mysqlEnum("status", ["pending", "succeeded", "failed", "cancelled"])
       .default("pending")
       .notNull(),

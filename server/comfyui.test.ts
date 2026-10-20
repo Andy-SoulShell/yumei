@@ -74,11 +74,15 @@ describe("ComfyUI selfie integration", () => {
     } as any);
     vi.spyOn(companionsDb, "getActiveGirlfriend").mockResolvedValue({
       id: 2,
+      name: "小桃",
       appearance: "黑色长发",
       intimacyLevel: 1,
+      memoryEpoch: 0,
+      memoryForgottenThroughId: 0,
       referenceImageKey: "ref.png",
       referenceImageUrl: "http://localhost:3000/files/ref.png",
     } as any);
+    vi.spyOn(conversationsDb, "getRecentMessages").mockResolvedValue([]);
     vi.spyOn(storage, "storagePut").mockResolvedValue({
       key: "generated.png",
       url: "http://localhost:3000/files/generated.png",

@@ -12,7 +12,7 @@ import path from "node:path";
 import { registerBillingRoutes } from "../billing";
 import { getDb } from "../database";
 import { startMediaCleanupScheduler } from "../mediaCleanup";
-import { startProactivePushScheduler } from "../push";
+import { startProactiveScheduler } from "../proactive";
 import { appRouter } from "../routers";
 import { auth } from "./auth";
 import { getOperatorChatProvider } from "./chatProvider";
@@ -160,8 +160,8 @@ async function startServer() {
     console.log(`Server running on http://localhost:${port}/`);
   });
 
-  // 每小时检查主动消息推送；缺少配对 VAPID 密钥时不启动调度。
-  const stopPush = startProactivePushScheduler();
+  // 先规划显式同意的站内联系，再恢复持久投递；无需依赖设备是否订阅推送。
+  const stopPush = startProactiveScheduler();
   const stopMediaCleanup = startMediaCleanupScheduler();
   const stopChatTurns = startChatTurnScheduler();
 

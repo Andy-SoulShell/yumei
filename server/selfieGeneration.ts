@@ -7,11 +7,17 @@ import { METERS } from "../shared/quotas";
 import { getPose } from "../shared/selfiePoses";
 import {
   generateProviderImage,
+  imageGenerationModel,
   resolveImageProvider,
 } from "./_core/imageProvider";
 import { log, providerErrorSummary } from "./_core/log";
 import { checkRateLimit } from "./_core/quota";
 import { getTierLimits, isBillingEnforced, upsellHint } from "./billing";
+import {
+  buildCompanionMediaContext,
+  getChatBehaviorContext,
+} from "./companionContext";
+import { recordGenerationTelemetry } from "./generationTelemetry";
 import {
   completeImageGeneration,
   failGeneration,
@@ -118,16 +124,27 @@ export async function generateConversationSelfie(
   }
 
   const selfieTier = await getTierLimits(user.id);
-  let sceneContext = input.userContext;
-  if (chatContent !== undefined) {
-    // Only recent visual context is supplied; the current request takes precedence.
-    const recent = await getRecentMessages(input.conversationId, 4);
-    const context = recent
-      .filter(message => !message.imageUrl)
-      .map(message => `${message.role}: ${message.content.slice(0, 200)}`)
-      .join("\n");
-    sceneContext = `保持参考图中的人物身份与画风。角色外貌：${girlfriend.appearance}。近期对话仅供提取地点、服装等画面细节：\n${context}\n当前拍摄要求（优先）：${input.userContext}`;
+  const recent = await getRecentMessages(input.conversationId, 4);
+  let behaviorContext;
+  try {
+    behaviorContext = await getChatBehaviorContext(
+      user.id,
+      girlfriend.id,
+      input.userContext
+    );
+  } catch {
+    /* 图片仍可使用已校验角色资料，状态读取失败不额外调用其它服务。 */
   }
+  const sceneContext = buildCompanionMediaContext(
+    girlfriend,
+    behaviorContext,
+    recent.filter(
+      message =>
+        !message.imageUrl &&
+        message.id > (girlfriend.memoryForgottenThroughId ?? 0)
+    ),
+    input.userContext
+  );
   // 3. 使用 自拍提示词模板生成提示词
   const combinedContext = pose
     ? sceneContext.trim()
@@ -169,11 +186,14 @@ export async function generateConversationSelfie(
     userId: user.id,
     conversationId: input.conversationId,
     kind: "selfie",
+    contextEpoch: girlfriend.memoryEpoch,
     transcriptionId: input.transcriptionId,
     meter,
     outputKey: fileKey,
     timeoutMs: Number(process.env.COMFYUI_TIMEOUT_MS || 600_000) + 180_000,
   });
+  const started = Date.now();
+  let providerCompleted = false;
   try {
     const imageBuffer = await generateProviderImage(imageProvider, {
       prompt: imagePrompt,
@@ -185,6 +205,7 @@ export async function generateConversationSelfie(
         },
       ],
     });
+    providerCompleted = true;
     const { url } = await storagePut(fileKey, imageBuffer, "image/png");
     return await completeImageGeneration(
       requestId,
@@ -232,6 +253,17 @@ export async function generateConversationSelfie(
       message: "自拍生成失败，请稍后重试；失败请求不计入用量。",
     });
   } finally {
+    await recordGenerationTelemetry(requestId, user.id, {
+      promptVersion: "companion-media/1",
+      provider: imageProvider.name,
+      model: imageGenerationModel(imageProvider.name, input.generationMode, 1),
+      isByok: imageProvider.isByok,
+      durationMs: Date.now() - started,
+      inputTokens: null,
+      outputTokens: null,
+      costUsd: null,
+      outcome: providerCompleted ? "succeeded" : "failed",
+    });
     await flushMediaDeletions(user.id).catch(error =>
       log.error(
         "[selfie] media cleanup will retry",

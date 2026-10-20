@@ -57,6 +57,13 @@
       "when": 1792509092667,
       "tag": "0007_trusted_memories",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1792510623960,
+      "tag": "0008_proactive_outbox",
+      "breakpoints": true
     }
   ]
 }

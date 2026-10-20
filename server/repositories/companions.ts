@@ -23,6 +23,8 @@ import {
   memorySuppressions,
   messages,
   notifications,
+  proactiveContacts,
+  proactiveDeliveries,
   selfies,
   type Girlfriend,
   type InsertGirlfriend,
@@ -229,6 +231,24 @@ export async function softDeleteGirlfriend(
           eq(conversationSummaries.userId, userId)
         )
       );
+    await tx
+      .update(proactiveContacts)
+      .set({ status: "cancelled", leaseToken: null, leaseUntil: null })
+      .where(
+        and(
+          eq(proactiveContacts.userId, userId),
+          eq(proactiveContacts.girlfriendId, id),
+          inArray(proactiveContacts.status, ["pending", "delivering"])
+        )
+      );
+    await tx
+      .delete(notifications)
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          eq(notifications.girlfriendId, id)
+        )
+      );
   });
 }
 
@@ -272,6 +292,34 @@ export async function permanentDeleteGirlfriend(
       .where(and(eq(girlfriends.id, id), eq(girlfriends.userId, userId)))
       .for("update");
     if (!gf) return;
+    const contacts = await tx
+      .select({ id: proactiveContacts.id })
+      .from(proactiveContacts)
+      .where(
+        and(
+          eq(proactiveContacts.userId, userId),
+          eq(proactiveContacts.girlfriendId, id)
+        )
+      )
+      .for("update");
+    if (contacts.length)
+      await tx.delete(proactiveDeliveries).where(
+        and(
+          eq(proactiveDeliveries.userId, userId),
+          inArray(
+            proactiveDeliveries.contactId,
+            contacts.map(contact => contact.id)
+          )
+        )
+      );
+    await tx
+      .delete(proactiveContacts)
+      .where(
+        and(
+          eq(proactiveContacts.userId, userId),
+          eq(proactiveContacts.girlfriendId, id)
+        )
+      );
     const convos = await tx
       .select({ id: conversations.id })
       .from(conversations)

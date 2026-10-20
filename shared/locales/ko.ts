@@ -181,6 +181,17 @@ export default {
     linkSent: "{{email}}로 로그인 링크를 보냈어요.",
   },
   notifications: {
+    privatePreview: "새 메시지가 있어요",
+    eventUpcoming:
+      "{{name}}: 내일({{eventDay}})의 ‘{{memory}}’ 이야기를 했었죠. 함께 준비해 볼까요?",
+    eventToday:
+      "{{name}}: 오늘({{eventDay}})의 ‘{{memory}}’에 대해 지금 기분이 어떤가요?",
+    eventFollowUp:
+      "{{name}}: 어제({{eventDay}})의 ‘{{memory}}’ 이후 어떻게 지내는지 이야기해 줄래요?",
+    dailyCompanion:
+      "{{name}}: {{eventDay}}, 문득 당신이 생각났어요. {{memory}} 이야기하고 싶을 때 오늘 얘기를 들려주세요.",
+    clickFeedbackFailed:
+      "이 알림을 읽음으로 확인하지 못했어요. 여기에서 다시 시도할 수 있어요.",
     markAsRead: "읽음으로 표시",
     notifications: "알림",
     markAllAsRead: "모두 읽음으로 표시",
@@ -191,9 +202,9 @@ export default {
     couldNotEnableNotifications: "알림을 켜지 못했어요: {{error}}",
     pushNotificationsDisabled: "푸시 알림을 껐어요",
     couldNotDisableNotifications: "알림을 끄지 못했어요: {{error}}",
-    pushNotifications: "푸시 알림",
+    pushNotifications: "이 기기의 푸시 알림",
     receiveProactiveMessagesOnThisDeviceSuchAs:
-      "이 기기에서 캐릭터 메시지를 하루 최대 1건 받아요.",
+      "허용한 메시지를 이 기기에서 받아요. 캐릭터의 먼저 연락은 위에서 별도로 켜 주세요.",
     disablePushOnThisDevice: "이 기기의 푸시 알림 끄기",
     enablePush: "푸시 알림 켜기",
     whatAreYouUpToItSBeen: "뭐 해? 한동안 못 봤네. 보고 싶어~ 💕",
@@ -318,6 +329,44 @@ export default {
       "선택한 동반자 {{count}}명을 삭제할까요? 7일 안에 휴지통에서 복원할 수 있어요.",
   },
   settings: {
+    proactiveTitle: "캐릭터의 먼저 연락",
+    proactiveDescription:
+      "캐릭터가 먼저 안부를 물어도 되는지 선택하세요. 기본값은 꺼짐이에요.",
+    proactiveEnabled: "먼저 연락 허용",
+    proactiveConsentHelp:
+      "켜고 저장해야 연락을 허용해요. 변경은 저장 후 적용되며 언제든 끌 수 있어요.",
+    proactiveMode: "연락할 주제",
+    proactiveEvents: "공유한 일정만",
+    proactiveDaily: "일정과 가끔의 일상 안부",
+    proactiveEventsHelp:
+      "공유한 최근 일정이나 일을 중심으로 안부를 물어요. 관련 일정이 없으면 메시지를 보내지 않아요.",
+    proactiveDailyHelp:
+      "관련 일정이 없어도 가끔 일상 이야기나 안부를 전할 수 있어요.",
+    proactiveFrequency: "연락 사이의 최소 일수",
+    proactiveFrequencyHelp:
+      "1~14일로 선택하세요. 답변하지 않은 메시지가 쌓이면 연락 빈도가 줄어들 수 있어요.",
+    proactiveQuietStart: "방해 금지 시작",
+    proactiveQuietEnd: "방해 금지 종료",
+    proactiveQuietHelp:
+      "이 시간대에는 현지 시각을 기준으로 먼저 연락하지 않아요. 시작과 종료가 같으면 방해 금지를 사용하지 않아요.",
+    proactiveQuietOff: "시작과 종료가 같아 방해 금지를 사용하지 않아요.",
+    proactiveTimeZone: "계정 시간대",
+    proactiveTimeZoneHelp:
+      "Asia/Seoul 같은 IANA 시간대를 선택하거나 입력하세요. 기억에도 이 시간대가 사용돼요.",
+    proactivePrivatePreview: "푸시 알림에서 사적인 내용 숨기기",
+    proactivePrivatePreviewHelp:
+      "이름이나 대화 내용 없이 ‘새 메시지가 있어요’만 표시해요. 전체 메시지는 앱 안에서 볼 수 있어요.",
+    proactiveInvalidTimeZone:
+      "Asia/Seoul 또는 Europe/London 같은 올바른 IANA 시간대를 입력하세요.",
+    proactiveInvalidFrequency: "1~14 사이의 정수 일수를 선택하세요.",
+    proactiveInvalidQuiet: "올바른 시작 시각과 종료 시각을 입력하세요.",
+    proactiveSaveFailed:
+      "연락 설정을 저장하지 못했어요. 작성한 내용은 남아 있으니 다시 시도해 주세요.",
+    proactiveConflict:
+      "다른 세션에서 설정이 바뀌었어요. 작성한 내용은 남아 있어요. 저장된 버전을 불러와 초안을 바꾼 다음 확인하고 다시 수정해서 저장하세요.",
+    proactiveReloadSaved: "저장된 버전 불러오기",
+    proactiveSave: "연락 설정 저장",
+    proactiveSaved: "연락 설정을 저장했어요",
     savedApiKeys: "저장된 API 키",
     removeApiKey: "{{name}} 키 삭제",
     advancedServices: "고급 서비스 설정",
@@ -447,7 +496,7 @@ export default {
     forExampleUnder50Words23Sentences: "예: 50자 이내, 2~3문장, 제한 없음",
     youHaveUnsavedAIBehaviorSettingsSaveChanges:
       "저장하지 않은 변경 사항이 있어요",
-    saveAllSettings: "모두 저장",
+    saveAllSettings: "답변 및 서비스 설정 저장",
 
     modelAddedToFavorites: "모델을 즐겨찾기에 추가했어요",
     modelRemovedFromFavorites: "모델의 즐겨찾기를 해제했어요",

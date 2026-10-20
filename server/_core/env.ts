@@ -37,6 +37,8 @@ function loadEnv() {
     ["CHAT_REPLY_TIMEOUT_MS", 5000, 300000],
     ["CHAT_STREAM_CONCURRENCY", 1, 32],
     ["CHAT_USER_CONCURRENCY", 1, 10],
+    ["PROACTIVE_TICK_MS", 1000, 3600000],
+    ["PROACTIVE_PUSH_TIMEOUT_MS", 100, 20000],
   ] as const) {
     if (
       env[name] &&

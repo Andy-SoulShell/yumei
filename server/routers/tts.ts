@@ -9,6 +9,8 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { getTierLimits, isBillingEnforced } from "../billing";
 import { putStagedMedia } from "../managedMedia";
 import { getUserApiConfig } from "../repositories/apiConfig";
+import { runMeteredAiTask } from "../aiTaskRuntime";
+import { ensureAgeConfirmed } from "./guards";
 
 export const ttsRouter = router({
   /** 检查请求频率、套餐与文本长度后生成语音，并保存可播放文件。 */
@@ -19,6 +21,7 @@ export const ttsRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      ensureAgeConfirmed(ctx.user);
       // 服务端限流。
       await checkRateLimit(ctx.user.id, "tts");
 
@@ -67,21 +70,34 @@ export const ttsRouter = router({
         }
 
         try {
-          const response = await axios.post(
-            `https://api.elevenlabs.io/v1/text-to-speech/${apiConfig.elevenlabsVoiceId}`,
+          const response = await runMeteredAiTask(
             {
-              text: input.text,
-              model_id: "eleven_multilingual_v2",
+              userId: ctx.user.id,
+              kind: "tts",
+              provider: "elevenlabs",
+              model: "eleven_multilingual_v2",
+              isByok: ttsKey?.source === "user",
+              promptVersion: "companion-voice/1",
             },
-            {
-              headers: {
-                "xi-api-key": elevenKey,
-                "Content-Type": "application/json",
-                Accept: "audio/mpeg",
-              },
-              responseType: "arraybuffer",
-              timeout: 60_000,
-            }
+            async signal => ({
+              value: await axios.post(
+                `https://api.elevenlabs.io/v1/text-to-speech/${apiConfig.elevenlabsVoiceId}`,
+                {
+                  text: input.text,
+                  model_id: "eleven_multilingual_v2",
+                },
+                {
+                  headers: {
+                    "xi-api-key": elevenKey,
+                    "Content-Type": "application/json",
+                    Accept: "audio/mpeg",
+                  },
+                  responseType: "arraybuffer",
+                  signal,
+                  timeout: 60_000,
+                }
+              ),
+            })
           );
 
           // 上传音频到 S3
@@ -112,22 +128,35 @@ export const ttsRouter = router({
         }
 
         try {
-          const response = await axios.post(
-            "https://api.fish.audio/v1/tts",
+          const response = await runMeteredAiTask(
             {
-              text: input.text,
-              reference_id: apiConfig.fishAudioModelId,
-              format: "mp3",
+              userId: ctx.user.id,
+              kind: "tts",
+              provider: "fishaudio",
+              model: "s1",
+              isByok: ttsKey?.source === "user",
+              promptVersion: "companion-voice/1",
             },
-            {
-              headers: {
-                Authorization: `Bearer ${fishKey}`,
-                "Content-Type": "application/json",
-                model: "s1",
-              },
-              responseType: "arraybuffer",
-              timeout: 60_000,
-            }
+            async signal => ({
+              value: await axios.post(
+                "https://api.fish.audio/v1/tts",
+                {
+                  text: input.text,
+                  reference_id: apiConfig.fishAudioModelId,
+                  format: "mp3",
+                },
+                {
+                  headers: {
+                    Authorization: `Bearer ${fishKey}`,
+                    "Content-Type": "application/json",
+                    model: "s1",
+                  },
+                  responseType: "arraybuffer",
+                  signal,
+                  timeout: 60_000,
+                }
+              ),
+            })
           );
 
           // 上传音频到 S3

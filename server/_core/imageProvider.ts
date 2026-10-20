@@ -38,6 +38,21 @@ export async function resolveImageProvider(
 /** 角色或用户参考图的存储键与外部服务可读取的地址。 */
 type Reference = { key: string; url: string };
 
+/** 调用与统计共用相同模型/工作流身份，避免运营记录占位名。 */
+export function imageGenerationModel(
+  provider: ImageProvider["name"],
+  mode: ImageGenerationMode,
+  referenceCount: number
+) {
+  if (provider === "comfyui")
+    return mode === "text"
+      ? "workflow:qwen-image-text"
+      : "workflow:qwen-image-edit";
+  return referenceCount > 1
+    ? process.env.FAL_COUPLE_MODEL || "fal-ai/nano-banana/edit"
+    : "fal-ai/grok-imagine-image-edit";
+}
+
 /** 按存储键读取参考图，并根据文件头识别受支持的图片类型。 */
 async function readReference(reference: Reference): Promise<ImageInput> {
   const data = await storageRead(reference.key);
@@ -82,9 +97,11 @@ export async function generateProviderImage(
     }).generate({ prompt: params.prompt, mode: params.mode, references });
   }
   const couple = params.references.length > 1;
-  const model = couple
-    ? process.env.FAL_COUPLE_MODEL || "fal-ai/nano-banana/edit"
-    : "fal-ai/grok-imagine-image-edit";
+  const model = imageGenerationModel(
+    provider.name,
+    params.mode,
+    params.references.length
+  );
   const response = await axios.post(
     `https://fal.run/${model}`,
     {

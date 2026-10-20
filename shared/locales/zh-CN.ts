@@ -177,6 +177,16 @@ export default {
     linkSent: "登录链接已发送至 {{email}}，请查收。",
   },
   notifications: {
+    privatePreview: "你有一条新的消息",
+    eventUpcoming:
+      "{{name}}：你提过明天（{{eventDay}}）的“{{memory}}”，想一起准备一下吗？",
+    eventToday:
+      "{{name}}：你提过今天（{{eventDay}}）的“{{memory}}”，现在心情怎么样？",
+    eventFollowUp:
+      "{{name}}：你提过昨天（{{eventDay}}）的“{{memory}}”，愿意聊聊现在的进展吗？",
+    dailyCompanion:
+      "{{name}}：{{eventDay}}，想起了你。{{memory}} 有空时，可以聊聊今天。",
+    clickFeedbackFailed: "暂时无法确认这条通知已读，可以在这里重试。",
     markAsRead: "标记已读",
     notifications: "通知",
     markAllAsRead: "全部已读",
@@ -187,9 +197,9 @@ export default {
     couldNotEnableNotifications: "开启推送失败：{{error}}",
     pushNotificationsDisabled: "推送已关闭",
     couldNotDisableNotifications: "关闭推送失败：{{error}}",
-    pushNotifications: "推送通知",
+    pushNotifications: "此设备的推送",
     receiveProactiveMessagesOnThisDeviceSuchAs:
-      "在这台设备接收角色消息，每天最多 1 条。",
+      "让此设备接收你已授权的消息。主动联系需要在上方单独开启。",
     disablePushOnThisDevice: "关闭本设备推送",
     enablePush: "开启推送",
     whatAreYouUpToItSBeen: "在干嘛呀？好久没聊天了，人家想你了~ 💕",
@@ -307,6 +317,40 @@ export default {
       "确定要删除选中的 {{count}} 位女友吗？她们将被移入回收站，7 天内可以恢复。",
   },
   settings: {
+    proactiveTitle: "主动联系",
+    proactiveDescription: "选择是否允许角色主动关心你，默认关闭。",
+    proactiveEnabled: "允许主动联系",
+    proactiveConsentHelp:
+      "开启并保存后才允许联系，修改也需保存后生效。随时可以关闭。",
+    proactiveMode: "联系内容",
+    proactiveEvents: "仅围绕提过的事件",
+    proactiveDaily: "事件与偶尔的日常问候",
+    proactiveEventsHelp:
+      "围绕你分享过的近期事件关心你，没有相关事件时不发消息。",
+    proactiveDailyHelp: "没有相关事件时，也可以偶尔分享日常、问候近况。",
+    proactiveFrequency: "两次联系至少间隔几天",
+    proactiveFrequencyHelp: "可选 1～14 天。连续未回应时，会减少联系频率。",
+    proactiveQuietStart: "免打扰开始",
+    proactiveQuietEnd: "免打扰结束",
+    proactiveQuietHelp:
+      "按本地时区，在此时段内不主动联系。起止时间相同表示关闭免打扰。",
+    proactiveQuietOff: "起止时间相同，免打扰已关闭。",
+    proactiveTimeZone: "账号时区",
+    proactiveTimeZoneHelp:
+      "请选择或输入 IANA 时区，例如 Asia/Shanghai。记忆也会使用这个时区。",
+    proactivePrivatePreview: "推送时隐藏私密详情",
+    proactivePrivatePreviewHelp:
+      "只显示“你有一条新的消息”，不显示姓名或聊天详情。完整消息仍可在应用内查看。",
+    proactiveInvalidTimeZone:
+      "请输入有效的 IANA 时区，例如 Asia/Shanghai 或 Europe/London。",
+    proactiveInvalidFrequency: "请选择 1～14 的整数天数。",
+    proactiveInvalidQuiet: "请填写有效的免打扰起止时间。",
+    proactiveSaveFailed: "联系偏好未能保存，草稿已保留，请重试。",
+    proactiveConflict:
+      "这些偏好已在其他会话中更新，当前草稿仍保留。可载入已保存版本来替换草稿，检查后重新修改并保存。",
+    proactiveReloadSaved: "载入已保存版本",
+    proactiveSave: "保存联系偏好",
+    proactiveSaved: "联系偏好已保存",
     savedApiKeys: "已保存的密钥",
     removeApiKey: "移除 {{name}} 密钥",
     advancedServices: "高级服务设置",
@@ -430,7 +474,7 @@ export default {
     replyLength: "回复长度限制",
     forExampleUnder50Words23Sentences: "例如：50字以内、2-3句话、不限制",
     youHaveUnsavedAIBehaviorSettingsSaveChanges: "有未保存的更改",
-    saveAllSettings: "保存全部",
+    saveAllSettings: "保存回复与服务设置",
 
     modelAddedToFavorites: "已收藏模型",
     modelRemovedFromFavorites: "已取消收藏",

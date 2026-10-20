@@ -80,6 +80,7 @@ export type ReserveGenerationInput = {
   outputKey?: string;
   temporaryKey?: string;
   transcriptionId?: string;
+  contextEpoch?: number;
 };
 
 /** 在已有用户事务中预留额度，让接收消息与转写消费共享原子边界。 */
@@ -88,7 +89,16 @@ export async function reserveGenerationInTransaction(
   input: ReserveGenerationInput,
   id = crypto.randomUUID()
 ): Promise<string> {
-  await requireGenerationConversation(tx, input.userId, input.conversationId);
+  const role = await requireGenerationConversation(
+    tx,
+    input.userId,
+    input.conversationId
+  );
+  if (
+    input.contextEpoch !== undefined &&
+    input.contextEpoch !== role.memoryEpoch
+  )
+    throw new Error("Generation context changed before acceptance");
   const period = input.meter
     ? input.meter.period === "day"
       ? todayUTC()
@@ -113,6 +123,7 @@ export async function reserveGenerationInTransaction(
     userId: input.userId,
     conversationId: input.conversationId,
     kind: input.kind,
+    contextEpoch: input.contextEpoch,
     meterPeriod: period,
     meterName: input.meter?.name ?? null,
     outputKey: input.outputKey,
@@ -395,6 +406,11 @@ export async function completeImageGeneration(
       userId,
       request.conversationId
     );
+    if (
+      request.contextEpoch !== null &&
+      request.contextEpoch !== role.memoryEpoch
+    )
+      throw new Error("Image context changed during generation");
     const transcription =
       request.transcriptionId && chatContent !== undefined
         ? await consumeTranscription(
@@ -480,7 +496,16 @@ export async function failImageGeneration(
 ) {
   return withUserTransaction(userId, async tx => {
     const request = await pendingRequest(tx, id, userId);
-    await requireGenerationConversation(tx, userId, request.conversationId);
+    const role = await requireGenerationConversation(
+      tx,
+      userId,
+      request.conversationId
+    );
+    if (
+      request.contextEpoch !== null &&
+      request.contextEpoch !== role.memoryEpoch
+    )
+      throw new Error("Image context changed before failure settlement");
     const common = {
       conversationId: request.conversationId,
       generationRequestId: id,

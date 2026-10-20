@@ -9,6 +9,7 @@ import { decodeBase64Upload } from "../_core/uploads";
 import { getTierLimits, isBillingEnforced } from "../billing";
 import { saveTranscription } from "../transcriptions";
 import { ensureAgeConfirmed } from "./guards";
+import { runMeteredAiTask } from "../aiTaskRuntime";
 
 export const voiceRouter = router({
   /** 校验成年状态、套餐及上传大小后保存录音，再调用 OpenAI Whisper 转写。 */
@@ -62,22 +63,33 @@ export const voiceRouter = router({
             "Voice transcription is not configured yet: no OpenAI key available.",
         });
 
-      const result = await transcribeWithOpenAI(
+      const result = await runMeteredAiTask(
         {
-          audio: { data: audioBuffer, mimeType: input.mimeType },
-          language: input.language,
-          prompt: "这是一段与 AI 女友的日常对话语音消息",
+          userId: ctx.user.id,
+          kind: "transcription",
+          provider: "openai",
+          model: "whisper-1",
+          isByok: sttKey.source === "user",
+          promptVersion: "companion-transcription/1",
         },
-        whisperApiKey
+        async signal => {
+          const response = await transcribeWithOpenAI(
+            {
+              signal,
+              audio: { data: audioBuffer, mimeType: input.mimeType },
+              language: input.language,
+              prompt: "这是一段与 AI 女友的日常对话语音消息",
+            },
+            whisperApiKey
+          );
+          if ("error" in response)
+            throw new TRPCError({
+              code: "BAD_GATEWAY",
+              message: "Voice transcription failed. Please try again.",
+            });
+          return { value: response };
+        }
       );
-
-      // 6. 错误处理
-      if ("error" in result) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: result.error,
-        });
-      }
 
       const transcriptionId = await saveTranscription(ctx.user.id, result);
       // 7. 返回转写结果及仅由服务端签发的一次性行为凭据。

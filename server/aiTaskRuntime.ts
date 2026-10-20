@@ -8,6 +8,7 @@ import {
 import { getDb, withUserTransaction } from "./database";
 import { knownUsage } from "./generationTelemetry";
 import { log } from "./_core/log";
+import { DEFAULT_PROACTIVE_PREFERENCES } from "../shared/proactiveContact";
 
 export function runtimeInteger(
   name: string,
@@ -32,19 +33,7 @@ export async function getCompanionPreferences(userId: string) {
     .select()
     .from(companionPreferences)
     .where(eq(companionPreferences.userId, userId));
-  return (
-    row ?? {
-      userId,
-      timeZone: "UTC",
-      proactiveEnabled: false,
-      proactiveMode: "events" as const,
-      quietStart: 1320,
-      quietEnd: 480,
-      frequencyDays: 1,
-      hidePrivatePreview: true,
-      revision: 0,
-    }
-  );
+  return row ?? { userId, ...DEFAULT_PROACTIVE_PREFERENCES, revision: 0 };
 }
 
 export type AiTaskContext = {
@@ -88,7 +77,10 @@ export async function runMeteredAiTask<T>(
   const since = new Date();
   since.setUTCHours(0, 0, 0, 0);
   await withUserTransaction(context.userId, async tx => {
-    if (context.girlfriendId !== undefined) {
+    if (
+      context.girlfriendId !== undefined &&
+      (context.kind.startsWith("memory_") || context.kind === "summary")
+    ) {
       const [role] = await tx
         .select({
           epoch: girlfriends.memoryEpoch,

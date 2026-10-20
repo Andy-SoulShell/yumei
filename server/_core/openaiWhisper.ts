@@ -9,6 +9,7 @@ export type TranscribeOptions = {
   language?: string;
   /** 辅助识别专有词或语境的可选文本。 */
   prompt?: string;
+  signal?: AbortSignal;
 };
 
 /** Whisper 分段文本及时间与置信度字段，起止时间单位为秒。 */
@@ -111,28 +112,16 @@ export async function transcribeWithOpenAI(
           Authorization: `Bearer ${apiKey}`,
         },
         body: formData,
-        signal: AbortSignal.timeout(60_000),
+        signal: options.signal
+          ? AbortSignal.any([options.signal, AbortSignal.timeout(60_000)])
+          : AbortSignal.timeout(60_000),
       }
     );
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
-      let errorMessage = "OpenAI Whisper API request failed";
-
-      // 尝试读取上游错误信息。
-      try {
-        const errorJson = JSON.parse(errorText);
-        if (errorJson.error?.message) {
-          errorMessage = errorJson.error.message;
-        }
-      } catch {
-        // 无法解析时保留默认错误信息。
-      }
-
       return {
-        error: errorMessage,
+        error: "Voice transcription failed. Please try again.",
         code: "TRANSCRIPTION_FAILED",
-        details: `${response.status} ${response.statusText}${errorText ? `: ${errorText}` : ""}`,
       };
     }
 

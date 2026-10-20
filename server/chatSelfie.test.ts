@@ -61,7 +61,7 @@ beforeEach(() => {
     referenceImageUrl: "http://app/files/misaki.jpg",
   } as any);
   vi.spyOn(conversationsDb, "getRecentMessages").mockResolvedValue([
-    { role: "assistant", content: "我在咖啡馆，穿着蓝色衬衫。" },
+    { id: 1, role: "assistant", content: "我在咖啡馆，穿着蓝色衬衫。" },
   ] as any);
   let id = 1;
   vi.spyOn(conversationsDb, "createMessage").mockImplementation(

@@ -17,6 +17,7 @@ import {
   memoryExtractionJobs,
   messages,
   notifications,
+  proactiveContacts,
   type Memory,
 } from "../drizzle/schema";
 import { resolveChatProvider, type ChatProvider } from "./_core/chatProvider";
@@ -115,6 +116,16 @@ export async function invalidateMemoryDerived(
       and(
         eq(notifications.userId, userId),
         eq(notifications.girlfriendId, girlfriendId)
+      )
+    );
+  await tx
+    .update(proactiveContacts)
+    .set({ status: "cancelled", leaseToken: null, leaseUntil: null })
+    .where(
+      and(
+        eq(proactiveContacts.userId, userId),
+        eq(proactiveContacts.girlfriendId, girlfriendId),
+        inArray(proactiveContacts.status, ["pending", "delivering"])
       )
     );
 }

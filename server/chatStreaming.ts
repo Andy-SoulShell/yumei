@@ -290,6 +290,7 @@ export async function submitChatTurn(
       userId: user.id,
       conversationId: input.conversationId,
       kind: "chat",
+      contextEpoch: role.memoryEpoch,
       transcriptionId: input.transcriptionId,
       timeoutMs: 5 * 60_000,
       meter:
@@ -725,6 +726,11 @@ async function executeChatTurn(request: Request, leaseToken: string) {
       conversation.girlfriendId
     );
     if (!girlfriend) throw new Error("Companion is unavailable");
+    if (
+      request.contextEpoch !== null &&
+      request.contextEpoch !== girlfriend.memoryEpoch
+    )
+      throw new Error("Accepted companion context changed");
     if (
       !request.userMessageId ||
       request.userMessageId <= girlfriend.memoryForgottenThroughId

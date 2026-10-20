@@ -1,13 +1,64 @@
-import type { Notification } from "../drizzle/schema";
-import { renderMessage } from "../shared/i18n";
-import { resolveLocale } from "../shared/preferences";
-import { getInterfacePreferences } from "./preferences";
-/** Web Push 订阅管理、通知投递及每小时主动消息调度。 */
+/** Web Push 订阅管理和有时限的通知传输。 */
 
 import { and, eq } from "drizzle-orm";
-import { pushSubscriptions } from "../drizzle/schema";
+import { pushSubscriptions, type PushSubscription } from "../drizzle/schema";
 import { log } from "./_core/log";
 import { getDb } from "./database";
+import { runtimeInteger } from "./aiTaskRuntime";
+
+/** 外推仅包含已经本地化的有限内容和稳定投递身份。 */
+export type PushPayload = {
+  title: string;
+  body: string;
+  url?: string;
+  tag?: string;
+  expiresAt?: string;
+  notificationId?: number;
+};
+
+/** 先完成库初始化，调用方随后在发送前核对共享租约和设备凭据指纹。 */
+export async function createPushSender() {
+  const webpush = await getWebPush();
+  const timeoutMs = runtimeInteger(
+    "PROACTIVE_PUSH_TIMEOUT_MS",
+    8_000,
+    100,
+    20_000
+  );
+  return async (
+    subscription: Pick<PushSubscription, "endpoint" | "p256dh" | "auth">,
+    payload: PushPayload,
+    expiresAt: Date
+  ) => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        webpush.sendNotification(
+          {
+            endpoint: subscription.endpoint,
+            keys: { p256dh: subscription.p256dh, auth: subscription.auth },
+          },
+          JSON.stringify(payload),
+          {
+            timeout: timeoutMs,
+            TTL: Math.max(
+              0,
+              Math.floor((expiresAt.getTime() - Date.now()) / 1000)
+            ),
+          }
+        ),
+        new Promise<never>((_resolve, reject) => {
+          timer = setTimeout(
+            () => reject(new Error("Push attempt timed out")),
+            timeoutMs
+          );
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+}
 
 /** 判断 VAPID 公钥与私钥是否同时配置，不验证其格式或外部网络。 */
 export function isPushConfigured(): boolean {
@@ -149,78 +200,11 @@ export async function sendPushToUser(
             )
           );
       } else {
-        log.error("[push] delivery failed (non-blocking)", error);
+        log.warn("[push] delivery failed", {
+          statusCode: typeof status === "number" ? status : null,
+        });
       }
     }
   }
   return delivered;
-}
-
-// ---------------------------------------------------------------------------
-// 主动消息推送调度。
-// ---------------------------------------------------------------------------
-
-let schedulerTimer: NodeJS.Timeout | null = null;
-
-/**
- * 配置 VAPID 后启动单进程每小时调度，只在服务器本地时间 08:00 至 22:00 执行。
- *
- * @remarks 首轮在一个小时后触发；跨进程去重及用户独立时区尚未实现。
- */
-export function startProactivePushScheduler(): () => void {
-  if (!isPushConfigured() || schedulerTimer) return () => {};
-  let running = false;
-
-  const tick = async () => {
-    if (running) return;
-    running = true;
-    try {
-      const hour = new Date().getHours();
-      if (hour < 8 || hour >= 22) return;
-
-      const { checkAndCreateProactiveNotification } =
-        await import("./repositories/notifications");
-      const userIds = await listPushUserIds();
-      for (const userId of userIds) {
-        try {
-          const notification =
-            await checkAndCreateProactiveNotification(userId);
-          if (notification) {
-            await sendNotificationPush(userId, notification);
-          }
-        } catch (error) {
-          log.error(
-            "[push] proactive tick failed for user (non-blocking)",
-            error
-          );
-        }
-      }
-    } catch (error) {
-      log.error("[push] scheduler tick failed", error);
-    } finally {
-      running = false;
-    }
-  };
-
-  schedulerTimer = setInterval(tick, 60 * 60 * 1000);
-  schedulerTimer.unref();
-  console.log("[boot] proactive push scheduler started (hourly)");
-  return () => {
-    if (schedulerTimer) clearInterval(schedulerTimer);
-    schedulerTimer = null;
-  };
-}
-
-/** 推送离开应用前，按账号语言把结构化系统通知渲染为文本。 */
-export async function sendNotificationPush(
-  userId: string,
-  notification: Notification
-) {
-  const preferences = await getInterfacePreferences(userId);
-  const locale = resolveLocale(preferences.language, []);
-  return sendPushToUser(userId, {
-    title: renderMessage(notification.title, locale),
-    body: renderMessage(notification.content, locale),
-    url: "/",
-  });
 }

@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
-import { sendNotificationPush } from "../push";
+import { getCompanionPreferences } from "../aiTaskRuntime";
+import { saveCompanionPreferences } from "../companionPreferences";
+import { proactivePreferencesSchema } from "../../shared/proactiveContact";
 import {
   checkAndCreateProactiveNotification,
   getUnreadNotificationCount,
@@ -10,6 +12,23 @@ import {
 } from "../repositories/notifications";
 
 export const notificationRouter = router({
+  preferences: protectedProcedure.query(({ ctx }) =>
+    getCompanionPreferences(ctx.user.id)
+  ),
+  updatePreferences: protectedProcedure
+    .input(
+      z.object({
+        expectedRevision: z.number().int().nonnegative(),
+        preferences: proactivePreferencesSchema,
+      })
+    )
+    .mutation(({ ctx, input }) =>
+      saveCompanionPreferences(
+        ctx.user.id,
+        input.expectedRevision,
+        input.preferences
+      )
+    ),
   /** 读取当前用户最近的站内通知。 */
   list: protectedProcedure.query(async ({ ctx }) => {
     return await getUserNotifications(ctx.user.id);
@@ -34,12 +53,9 @@ export const notificationRouter = router({
     return { success: true };
   }),
 
-  /** 尝试生成主动站内通知，成功后异步向已订阅端点投递。 */
+  /** 规划站内消息与持久任务，外部投递仅由共享 outbox 执行。 */
   checkProactive: protectedProcedure.mutation(async ({ ctx }) => {
     const notification = await checkAndCreateProactiveNotification(ctx.user.id);
-    if (notification) {
-      void sendNotificationPush(ctx.user.id, notification).catch(() => {});
-    }
     return notification;
   }),
 });

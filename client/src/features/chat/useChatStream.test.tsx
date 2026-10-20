@@ -301,6 +301,96 @@ it("ignores an in-flight acceptance after switching conversations", async () => 
   expect(complete).not.toHaveBeenCalled();
 });
 
+it.each(["conversation", "account", "roundtrip"])(
+  "rejects saved submit/retry/stop closures invoked after a %s switch",
+  async mode => {
+    accountId = "account-a";
+    await render();
+    const oldSubmit = hook.submit,
+      oldRetry = hook.retry,
+      oldStop = hook.stop;
+    if (mode === "account") accountId = "account-b";
+    else conversationId = 43;
+    await render();
+    if (mode === "roundtrip") {
+      conversationId = 42;
+      await render();
+    }
+    await act(async () => {
+      expect(await oldSubmit({ content: "A 私密语音" })).toBeNull();
+      expect(
+        await oldRetry({
+          uncertain: true,
+          submission: {
+            clientRequestId: crypto.randomUUID(),
+            conversationId: 42,
+            content: "A 私密重试",
+          },
+        })
+      ).toBeNull();
+      expect(await oldStop()).toBe(false);
+    });
+    expect(transport.create).not.toHaveBeenCalled();
+    expect(transport.stop).not.toHaveBeenCalled();
+    expect(hook.snapshot).toBeNull();
+    expect(hook.failures).toHaveLength(0);
+    expect(sessionStorage.length).toBe(0);
+    expect(complete).not.toHaveBeenCalled();
+  }
+);
+
+it("does not let an old stop closure cancel the current conversation's active turn", async () => {
+  await render();
+  const oldStop = hook.stop;
+  conversationId = 43;
+  await render();
+  vi.mocked(transport.create).mockImplementation(async input =>
+    snapshot({
+      conversationId: 43,
+      clientRequestId: input.clientRequestId,
+      userMessage: { ...snapshot().userMessage, id: 20, conversationId: 43 },
+      assistantMessage: {
+        ...snapshot().assistantMessage,
+        id: 21,
+        conversationId: 43,
+      },
+    })
+  );
+  await act(async () => {
+    await hook.submit({ content: "B 问题" });
+  });
+  await act(async () => {
+    expect(await oldStop()).toBe(false);
+  });
+  expect(transport.stop).not.toHaveBeenCalled();
+  expect(hook.snapshot?.conversationId).toBe(43);
+  expect(hook.isGenerating).toBe(true);
+});
+
+it("ignores an in-flight acceptance after switching accounts on the same route", async () => {
+  accountId = "account-a";
+  let accept!: (value: ChatTurnSnapshot) => void;
+  vi.mocked(transport.create).mockReturnValue(
+    new Promise(resolve => {
+      accept = resolve;
+    })
+  );
+  await render();
+  let request!: Promise<ChatTurnSnapshot | null>;
+  await act(async () => {
+    request = hook.submit({ content: "A 私密问题" });
+  });
+  accountId = "account-b";
+  await render();
+  await act(async () => {
+    accept(snapshot({ status: "succeeded" }));
+    await request;
+  });
+  expect(hook.snapshot).toBeNull();
+  expect(hook.turns).toHaveLength(0);
+  expect(complete).not.toHaveBeenCalled();
+});
+
 it("confirms an uncertain stop with discovery before allowing subsequent work", async () => {
   await render();
   await act(async () => {

@@ -21,18 +21,30 @@ function worker() {
     open: vi.fn().mockResolvedValue(cache),
   };
   const fetch = vi.fn().mockResolvedValue(new Response("fresh static bytes"));
+  const showNotification = vi.fn().mockResolvedValue(undefined);
+  const client = {
+    navigate: vi.fn().mockResolvedValue(undefined),
+    focus: vi.fn().mockResolvedValue(undefined),
+  };
+  const clients = {
+    claim: vi.fn(),
+    matchAll: vi.fn().mockResolvedValue([client]),
+    openWindow: vi.fn().mockResolvedValue(undefined),
+  };
   runInNewContext(readFileSync("client/public/sw.js", "utf8"), {
     self: {
       addEventListener: (name: string, handler: any) =>
         handlers.set(name, handler),
       location: { origin: "https://yumei.test" },
-      clients: { claim: vi.fn() },
+      clients,
+      registration: { showNotification },
     },
     caches,
     fetch,
     URL,
+    clients,
   });
-  return { handlers, caches, cache, fetch };
+  return { handlers, caches, cache, fetch, showNotification, clients, client };
 }
 
 describe("private media cache policy", () => {
@@ -72,7 +84,56 @@ describe("private media cache policy", () => {
       ["yumei-v1"],
       ["yumei-static-v2"],
       ["yumei-static-v3"],
+      ["yumei-static-v4"],
     ]);
+  });
+  it("drops expired pushes and uses the same visible tag on retry", async () => {
+    const w = worker();
+    let pending: Promise<unknown> | undefined;
+    const emit = (payload: object) =>
+      w.handlers.get("push")!({
+        data: { json: () => payload },
+        waitUntil: (value: Promise<unknown>) => {
+          pending = value;
+        },
+      });
+    emit({ title: "expired", expiresAt: "2000-01-01T00:00:00Z" });
+    expect(w.showNotification).not.toHaveBeenCalled();
+    for (let i = 0; i < 2; i++) {
+      emit({
+        title: "YUMEI",
+        body: "new message",
+        tag: "proactive:test-id",
+        expiresAt: "2099-01-01T00:00:00Z",
+        notificationId: 123,
+        url: "/chats?notification=123",
+      });
+      await pending;
+    }
+    expect(
+      w.showNotification.mock.calls.every(
+        call =>
+          call[1].tag === "proactive:test-id" && call[1].renotify === false
+      )
+    ).toBe(true);
+    expect(w.showNotification.mock.calls[0][1].data.url).toBe(
+      "/chats?notification=123"
+    );
+  });
+  it("keeps notification navigation on the app origin", async () => {
+    const w = worker();
+    let pending!: Promise<unknown>;
+    w.handlers.get("notificationclick")!({
+      notification: {
+        close: vi.fn(),
+        data: { url: "https://other.test/private" },
+      },
+      waitUntil: (value: Promise<unknown>) => {
+        pending = value;
+      },
+    });
+    await pending;
+    expect(w.client.navigate).toHaveBeenCalledWith("/");
   });
 
   it("keeps bundled static resources available from cache", async () => {

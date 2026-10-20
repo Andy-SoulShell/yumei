@@ -3,7 +3,7 @@
  *
  * @remarks 只缓存应用静态资源；私人媒体、API 和跨来源请求始终走网络。
  */
-const CACHE_NAME = "yumei-static-v4";
+const CACHE_NAME = "yumei-static-v5";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",
@@ -103,33 +103,61 @@ self.addEventListener("fetch", event => {
 });
 
 // 推送载荷包含标题、正文及可选的点击跳转地址。
+function safeNotificationUrl(value) {
+  try {
+    const target = new URL(
+      typeof value === "string" ? value : "/",
+      self.location.origin
+    );
+    return target.origin === self.location.origin
+      ? target.pathname + target.search + target.hash
+      : "/";
+  } catch {
+    return "/";
+  }
+}
+
 self.addEventListener("push", event => {
   let data;
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: "YUMEI", body: event.data ? event.data.text() : "" };
+    data = {};
   }
+  if (!data || typeof data !== "object") return;
+  if (
+    data.expiresAt &&
+    (!Number.isFinite(Date.parse(data.expiresAt)) ||
+      Date.parse(data.expiresAt) <= Date.now())
+  )
+    return;
   event.waitUntil(
     self.registration.showNotification(data.title || "YUMEI", {
       body: data.body || "",
+      tag: typeof data.tag === "string" ? data.tag : undefined,
+      renotify: false,
       icon: "/icon-192.png",
       badge: "/icon-192.png",
-      data: { url: data.url || "/" },
+      data: {
+        url: safeNotificationUrl(data.url),
+        notificationId: data.notificationId,
+      },
     })
   );
 });
 
 self.addEventListener("notificationclick", event => {
   event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || "/";
+  const url = safeNotificationUrl(
+    event.notification.data && event.notification.data.url
+  );
   event.waitUntil(
     clients
       .matchAll({ type: "window", includeUncontrolled: true })
-      .then(list => {
+      .then(async list => {
         for (const client of list) {
           if ("focus" in client) {
-            client.navigate(url);
+            await client.navigate(url);
             return client.focus();
           }
         }

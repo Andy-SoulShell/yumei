@@ -125,13 +125,31 @@ export function useChatStream(
   const accepting = useRef(false);
   const mounted = useRef(false);
   const scope = useRef(0);
+  const currentIdentity = useRef({
+    conversationId,
+    accountId: options.accountId,
+  });
+  if (
+    currentIdentity.current.conversationId !== conversationId ||
+    currentIdentity.current.accountId !== options.accountId
+  )
+    currentIdentity.current = { conversationId, accountId: options.accountId };
+  const identity = currentIdentity.current;
+  const readyIdentity = useRef(identity);
+  const isCurrent = useCallback(
+    () =>
+      mounted.current &&
+      currentIdentity.current === identity &&
+      readyIdentity.current === identity,
+    [identity]
+  );
   const liveRequests = useRef(new Map<string, ChatStreamDraft>());
   const notified = useRef(new Set<string>());
   const stoppingRequest = useRef<Promise<boolean> | null>(null);
 
   const receive = useCallback(
     (candidate: ChatTurnSnapshot) => {
-      if (!mounted.current || candidate.conversationId !== conversationId)
+      if (!isCurrent() || candidate.conversationId !== conversationId)
         return false;
       const previous = latest.current;
       if (
@@ -173,12 +191,13 @@ export function useChatStream(
       }
       return true;
     },
-    [conversationId, storageKey]
+    [conversationId, storageKey, isCurrent]
   );
 
   useEffect(() => {
     mounted.current = true;
     const epoch = ++scope.current;
+    readyIdentity.current = identity;
     latest.current = null;
     accepting.current = false;
     stoppingRequest.current = null;
@@ -199,14 +218,14 @@ export function useChatStream(
     let timer: ReturnType<typeof setTimeout> | undefined;
     let attempt = 0;
     const discover = async () => {
-      if (!conversationId) return;
+      if (!conversationId || !isCurrent()) return;
       try {
         const result = await transport.discover(conversationId);
-        if (cancelled || scope.current !== epoch) return;
+        if (cancelled || scope.current !== epoch || !isCurrent()) return;
         if (result) receive(result);
         setConnection("connected");
       } catch {
-        if (cancelled || scope.current !== epoch) return;
+        if (cancelled || scope.current !== epoch || !isCurrent()) return;
         setConnection("reconnecting");
         timer = setTimeout(
           () => void discover(),
@@ -221,7 +240,7 @@ export function useChatStream(
       if (timer) clearTimeout(timer);
       // 不停止生成，离开和网络中断均允许随后恢复。
     };
-  }, [conversationId, transport, receive, storageKey]);
+  }, [conversationId, transport, receive, storageKey, isCurrent, identity]);
 
   const turnId = snapshot?.id;
   const terminal = snapshot ? isChatTurnTerminal(snapshot.status) : true;
@@ -232,16 +251,16 @@ export function useChatStream(
     let timer: ReturnType<typeof setTimeout> | undefined;
     let attempt = 0;
     const reconnect = () => {
-      if (cancelled) return;
+      if (cancelled || !isCurrent()) return;
       unsubscribe?.();
       if (timer) clearTimeout(timer);
       setConnection("reconnecting");
       timer = setTimeout(
         async () => {
-          if (cancelled) return;
+          if (cancelled || !isCurrent()) return;
           try {
             const resumed = await transport.discover(conversationId);
-            if (cancelled) return;
+            if (cancelled || !isCurrent()) return;
             if (resumed) receive(resumed);
             if (
               latest.current?.id !== turnId ||
@@ -257,11 +276,11 @@ export function useChatStream(
       );
     };
     const connect = () => {
-      if (cancelled) return;
+      if (cancelled || !isCurrent()) return;
       unsubscribe = transport.subscribe(
         turnId,
         value => {
-          if (cancelled) return;
+          if (cancelled || !isCurrent()) return;
           attempt = 0;
           setConnection("connected");
           receive(value);
@@ -275,11 +294,12 @@ export function useChatStream(
       unsubscribe?.();
       if (timer) clearTimeout(timer);
     };
-  }, [conversationId, turnId, terminal, transport, receive]);
+  }, [conversationId, turnId, terminal, transport, receive, isCurrent]);
 
   const create = useCallback(
     async (submission: ChatStreamSubmission) => {
       if (
+        !isCurrent() ||
         accepting.current ||
         !conversationId ||
         submission.conversationId !== conversationId
@@ -299,7 +319,7 @@ export function useChatStream(
       );
       try {
         const result = await transport.create(submission);
-        if (!mounted.current || scope.current !== epoch) return null;
+        if (!isCurrent() || scope.current !== epoch) return null;
         updateChatStreamDrafts(
           storageKey,
           conversationId,
@@ -309,7 +329,7 @@ export function useChatStream(
         callbacks.current.onAccepted?.(result);
         return result;
       } catch (error) {
-        if (!mounted.current || scope.current !== epoch) return null;
+        if (!isCurrent() || scope.current !== epoch) return null;
         const uncertain =
           !(error instanceof ChatStreamRequestError) || error.status >= 500;
         setFailures(current => [...current, { submission, uncertain }]);
@@ -324,29 +344,29 @@ export function useChatStream(
         callbacks.current.onError?.(error);
         return null;
       } finally {
-        if (mounted.current && scope.current === epoch) {
+        if (isCurrent() && scope.current === epoch) {
           accepting.current = false;
           setPending(null);
         }
       }
     },
-    [conversationId, transport, receive, storageKey]
+    [conversationId, transport, receive, storageKey, isCurrent]
   );
 
   const submit = useCallback(
     (draft: ChatStreamDraft) => {
-      if (!conversationId) return Promise.resolve(null);
+      if (!conversationId || !isCurrent()) return Promise.resolve(null);
       return create({
         ...draft,
         conversationId,
         clientRequestId: crypto.randomUUID(),
       });
     },
-    [conversationId, create]
+    [conversationId, create, isCurrent]
   );
   const retry = useCallback(
     (failure: FailedStreamSubmission) => {
-      if (accepting.current) return Promise.resolve(null);
+      if (!isCurrent() || accepting.current) return Promise.resolve(null);
       setFailures(current =>
         current.filter(
           item =>
@@ -358,13 +378,14 @@ export function useChatStream(
         ? create(failure.submission)
         : submit(failure.submission);
     },
-    [create, submit]
+    [create, submit, isCurrent]
   );
   const retryTurn = useCallback(
     (turn: ChatTurnSnapshot) => submit({ content: turn.userMessage.content }),
     [submit]
   );
   const stop = useCallback((): Promise<boolean> => {
+    if (!isCurrent()) return Promise.resolve(false);
     if (stoppingRequest.current) return stoppingRequest.current;
     const current = latest.current;
     if (!current || isChatTurnTerminal(current.status))
@@ -375,15 +396,15 @@ export function useChatStream(
     const operation = (async () => {
       try {
         const result = await transport.stop(current.id);
-        if (!mounted.current || scope.current !== epoch) return false;
+        if (!isCurrent() || scope.current !== epoch) return false;
         receive(result);
         return true;
       } catch (error) {
-        if (!mounted.current || scope.current !== epoch) return false;
+        if (!isCurrent() || scope.current !== epoch) return false;
         if (!(error instanceof ChatStreamRequestError) || error.status >= 500) {
           try {
             const recovered = await transport.discover(current.conversationId);
-            if (!mounted.current || scope.current !== epoch) return false;
+            if (!isCurrent() || scope.current !== epoch) return false;
             if (recovered) receive(recovered);
             // 停止请求可能已经成功，仅在确认原轮终态后允许后续媒体任务。
             if (
@@ -395,10 +416,11 @@ export function useChatStream(
             /* 无法核实时保留当前轮次，连接恢复后继续发现。 */
           }
         }
+        if (!isCurrent() || scope.current !== epoch) return false;
         callbacks.current.onError?.(error);
         return false;
       } finally {
-        if (mounted.current && scope.current === epoch) {
+        if (isCurrent() && scope.current === epoch) {
           setIsStopping(false);
           stoppingRequest.current = null;
         }
@@ -406,17 +428,18 @@ export function useChatStream(
     })();
     stoppingRequest.current = operation;
     return operation;
-  }, [transport, receive]);
+  }, [transport, receive, isCurrent]);
 
+  const visible = readyIdentity.current === identity;
   return {
-    snapshot,
-    turns,
-    pending,
-    failures,
-    connection,
-    isAccepting: !!pending,
-    isGenerating: !!snapshot && !isChatTurnTerminal(snapshot.status),
-    isStopping,
+    snapshot: visible ? snapshot : null,
+    turns: visible ? turns : [],
+    pending: visible ? pending : null,
+    failures: visible ? failures : [],
+    connection: visible ? connection : ("connecting" as const),
+    isAccepting: visible && !!pending,
+    isGenerating: visible && !!snapshot && !isChatTurnTerminal(snapshot.status),
+    isStopping: visible && isStopping,
     submit,
     retry,
     retryTurn,

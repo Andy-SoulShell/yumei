@@ -42,6 +42,31 @@ export function useChatController() {
       !conversationId ||
       conversationId < 0);
 
+  // 闭包绑定本次账号和会话；即使旧回调在切换后才开始执行，也不能发起旧请求。
+  const currentScope = useRef({ accountId: user?.id, conversationId });
+  if (
+    currentScope.current.accountId !== user?.id ||
+    currentScope.current.conversationId !== conversationId
+  )
+    currentScope.current = { accountId: user?.id, conversationId };
+  const identity = currentScope.current;
+  const mountedScope = useRef(false);
+  useEffect(() => {
+    mountedScope.current = true;
+    return () => {
+      mountedScope.current = false;
+    };
+  }, []);
+  const isCurrentScope = useCallback(
+    () => mountedScope.current && currentScope.current === identity,
+    [identity]
+  );
+  const recordingScope = useRef<{
+    identity: typeof identity;
+    token: symbol;
+  } | null>(null);
+  const startingRecording = useRef(false);
+
   const { theme, toggleTheme } = useTheme();
 
   const {
@@ -107,6 +132,17 @@ export function useChatController() {
     cancelRecording,
     setOnMaxDuration,
   } = useVoiceRecorder();
+  const voiceLifecycle = useRef({ cancelRecording, setIsTranscribing, stop });
+  voiceLifecycle.current = { cancelRecording, setIsTranscribing, stop };
+  useEffect(
+    () => () => {
+      recordingScope.current = null;
+      voiceLifecycle.current.cancelRecording();
+      voiceLifecycle.current.setIsTranscribing(false);
+      voiceLifecycle.current.stop();
+    },
+    [identity]
+  );
 
   const transcribeMutation = trpc.voice.transcribe.useMutation();
 
@@ -523,6 +559,7 @@ export function useChatController() {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (
+      !isCurrentScope() ||
       !message.trim() ||
       !currentConversationId ||
       isAccepting ||
@@ -541,6 +578,7 @@ export function useChatController() {
 
   const retryMessage = (failed: FailedChatMessage) => {
     if (
+      !isCurrentScope() ||
       isAccepting ||
       generateSelfie.isPending ||
       generateCouple.isPending ||
@@ -550,20 +588,22 @@ export function useChatController() {
       return;
     stop();
     void chatStream.stop().then(stopped => {
-      if (stopped) sendMediaMessage.mutate(failed);
+      if (stopped && isCurrentScope()) sendMediaMessage.mutate(failed);
     });
   };
 
   /** 自拍仍走媒体生成路径；补发文字由服务端原子停止上一轮并开始新轮。 */
   const submitChat = useCallback(
     async (draft: ChatStreamDraft) => {
-      if (!currentConversationId) return;
+      if (!currentConversationId || !isCurrentScope()) return;
       stop();
       if (
         detectSelfieRequest(draft.content) &&
         !detectSelfHarm(draft.content)
       ) {
-        if (await stopChatStream()) {
+        const stopped = await stopChatStream();
+        if (!isCurrentScope()) return;
+        if (stopped) {
           lastInputWasVoiceRef.current = !!draft.transcriptionId;
           sendMediaMessage.mutate({
             ...draft,
@@ -578,7 +618,7 @@ export function useChatController() {
         return;
       }
       await submitStream(draft);
-      scrollToBottom();
+      if (isCurrentScope()) scrollToBottom();
     },
     [
       currentConversationId,
@@ -586,20 +626,33 @@ export function useChatController() {
       stopChatStream,
       submitStream,
       sendMediaMessage,
+      isCurrentScope,
     ]
   );
   const handleStopGeneration = async () => {
+    if (!isCurrentScope()) return;
     stop();
-    if (await chatStream.stop()) await refreshConversation();
+    if ((await chatStream.stop()) && isCurrentScope())
+      await refreshConversation();
   };
   const retryStreamSubmission = (failed: FailedStreamSubmission) => {
-    if (isAccepting || generateSelfie.isPending || generateCouple.isPending)
+    if (
+      !isCurrentScope() ||
+      isAccepting ||
+      generateSelfie.isPending ||
+      generateCouple.isPending
+    )
       return;
     stop();
     void chatStream.retry(failed);
   };
   const retryFailedGeneration = (messageId: number) => {
-    if (isAccepting || generateSelfie.isPending || generateCouple.isPending)
+    if (
+      !isCurrentScope() ||
+      isAccepting ||
+      generateSelfie.isPending ||
+      generateCouple.isPending
+    )
       return;
     const previous = chatMessages
       .filter(item => item.id < messageId)
@@ -609,6 +662,7 @@ export function useChatController() {
   };
 
   const handleSpeakMessage = (text: string, messageId: number) => {
+    if (!isCurrentScope()) return;
     if (isSpeaking && activeMessageId === messageId) {
       stop();
     } else {
@@ -621,13 +675,13 @@ export function useChatController() {
     poseId: string,
     generationMode: "reference" | "text"
   ) => {
-    if (!currentConversationId) return;
+    if (!currentConversationId || !isCurrentScope()) return;
     if (selfieRemaining !== null && selfieRemaining <= 0) {
       toast.error(t("chat:selfieQuotaReachedCheckYourPlanOrAdd"));
       return;
     }
     stop();
-    if (!(await chatStream.stop())) return;
+    if (!(await chatStream.stop()) || !isCurrentScope()) return;
     generateSelfie.mutate({
       conversationId: currentConversationId,
       userContext: message.trim(),
@@ -638,13 +692,14 @@ export function useChatController() {
 
   // 合照 —— 用户照片转 base64 后与她同框。
   const handleCouplePhoto = (file: File) => {
-    if (!currentConversationId) return;
+    if (!currentConversationId || !isCurrentScope()) return;
     const reader = new FileReader();
     reader.onload = async () => {
+      if (!isCurrentScope()) return;
       const dataUrl = reader.result as string;
       const base64 = dataUrl.split(",")[1] ?? "";
       stop();
-      if (!(await chatStream.stop())) return;
+      if (!(await chatStream.stop()) || !isCurrentScope()) return;
       generateCouple.mutate({
         conversationId: currentConversationId!,
         userPhotoBase64: base64,
@@ -652,7 +707,9 @@ export function useChatController() {
         userContext: message.trim() || undefined,
       });
     };
-    reader.onerror = () => toast.error(t("setup:couldNotReadImage"));
+    reader.onerror = () => {
+      if (isCurrentScope()) toast.error(t("setup:couldNotReadImage"));
+    };
     reader.readAsDataURL(file);
   };
 
@@ -664,9 +721,14 @@ export function useChatController() {
 
   // 处理录音完成
   const handleRecordingComplete = useCallback(async () => {
+    const recording = recordingScope.current;
+    if (!isCurrentScope() || !recording || recording.identity !== identity)
+      return;
+    const recordingIsCurrent = () =>
+      isCurrentScope() && recordingScope.current === recording;
     const currentDuration = recordingDurationRef.current;
     const result = await stopRecording();
-    if (!result || !currentConversationId) return;
+    if (!recordingIsCurrent() || !result || !currentConversationId) return;
 
     // 最短录音时长检查
     if (currentDuration < 1) {
@@ -679,6 +741,7 @@ export function useChatController() {
     // Blob → Base64
     const reader = new FileReader();
     reader.onloadend = () => {
+      if (!recordingIsCurrent()) return;
       const base64 = (reader.result as string).split(",")[1];
       if (!base64) {
         setIsTranscribing(false);
@@ -690,6 +753,8 @@ export function useChatController() {
         { audioBase64: base64, mimeType: result.mimeType },
         {
           onSuccess: data => {
+            if (!recordingIsCurrent()) return;
+            recordingScope.current = null;
             setIsTranscribing(false);
             if (data.text) {
               // 自动发送转写文字
@@ -704,6 +769,8 @@ export function useChatController() {
             }
           },
           onError: error => {
+            if (!recordingIsCurrent()) return;
+            recordingScope.current = null;
             setIsTranscribing(false);
             toast.error(
               t("chat:transcriptionFailed", {
@@ -715,6 +782,8 @@ export function useChatController() {
       );
     };
     reader.onerror = () => {
+      if (!recordingIsCurrent()) return;
+      recordingScope.current = null;
       setIsTranscribing(false);
       toast.error(t("chat:couldNotReadTheAudio"));
     };
@@ -726,6 +795,8 @@ export function useChatController() {
     setIsTranscribing,
     transcribeMutation,
     submitChat,
+    isCurrentScope,
+    identity,
   ]);
 
   // 注册最大时长回调
@@ -828,12 +899,27 @@ export function useChatController() {
     voiceSupported,
     switchInputMode,
     duration,
-    startRecording: () => {
+    startRecording: async () => {
+      if (!isCurrentScope() || startingRecording.current) return;
+      startingRecording.current = true;
+      const recording = { identity, token: Symbol() };
+      recordingScope.current = recording;
       stop();
-      startRecording();
+      try {
+        await startRecording();
+      } finally {
+        startingRecording.current = false;
+        if (!isCurrentScope() || recordingScope.current !== recording)
+          cancelRecording();
+      }
     },
     handleRecordingComplete,
-    cancelRecording,
+    cancelRecording: () => {
+      if (!isCurrentScope()) return;
+      recordingScope.current = null;
+      cancelRecording();
+      setIsTranscribing(false);
+    },
     showPoseDialog,
     billingInfo,
     handleSelectPose,

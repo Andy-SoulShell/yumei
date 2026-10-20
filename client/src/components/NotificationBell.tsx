@@ -6,7 +6,8 @@ import { renderMessage } from "@shared/i18n";
 /** 站内通知入口，轮询未读数并定时请求生成主动通知。 */
 
 import { useI18n } from "@/lib/i18n";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
 import {
   Bell,
@@ -45,6 +46,17 @@ export function NotificationBell() {
   const { t, locale } = useI18n();
   const [open, setOpen] = useState(false);
   const { open: openChat, pending } = useCompanionChat();
+  const search = useSearch();
+  const [, navigate] = useLocation();
+  const [linkedFailure, setLinkedFailure] = useState<number | null>(null);
+  const attemptedLink = useRef<number | null>(null);
+  const linkedValues = new URLSearchParams(search).getAll("notification");
+  const linkedId =
+    linkedValues.length === 1 &&
+    /^[1-9]\d*$/.test(linkedValues[0]) &&
+    Number.isSafeInteger(Number(linkedValues[0]))
+      ? Number(linkedValues[0])
+      : null;
 
   // 获取未读数量
   const { data: unreadCount = 0, refetch: refetchCount } =
@@ -68,35 +80,28 @@ export function NotificationBell() {
       if (data) {
         refetchCount();
         if (open) refetchList();
-        // 尝试浏览器通知
-        if ("Notification" in window && Notification.permission === "granted") {
-          new Notification(renderMessage(data.title, locale), {
-            body: renderMessage(data.content, locale),
-            icon: "/icon-192x192.png",
-            tag: `notification-${data.id}`,
-          });
-        }
       }
     },
   });
+  const checkForProactive = checkProactive.mutate;
 
   // 定时触发主动通知检查
   useEffect(() => {
     // 首次延迟 60 秒后检查
     const initialTimer = setTimeout(() => {
-      checkProactive.mutate();
+      checkForProactive();
     }, 60000);
 
     // 之后每 5 分钟检查一次
     const interval = setInterval(() => {
-      checkProactive.mutate();
+      checkForProactive();
     }, 300000);
 
     return () => {
       clearTimeout(initialTimer);
       clearInterval(interval);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [checkForProactive]);
 
   // 标记已读
   const markRead = trpc.notification.markRead.useMutation({
@@ -114,6 +119,49 @@ export function NotificationBell() {
       refetchList();
     },
   });
+
+  // 推送点击只确认本站归属的通知；成功后才移除 URL 参数，失败保留以便重试。
+  const markLinkedRead = trpc.notification.markRead.useMutation({
+    onSuccess: (_data, variables) => {
+      void refetchCount();
+      void refetchList();
+      setLinkedFailure(current => (current === variables.id ? null : current));
+      const current = new URL(window.location.href);
+      const ids = current.searchParams.getAll("notification");
+      if (
+        ids.length !== 1 ||
+        !/^[1-9]\d*$/.test(ids[0]) ||
+        Number(ids[0]) !== variables.id
+      )
+        return;
+      current.searchParams.delete("notification");
+      const query = current.searchParams.toString();
+      navigate(
+        `${current.pathname}${query ? `?${query}` : ""}${current.hash}`,
+        { replace: true }
+      );
+    },
+    onError: (_error, variables) => {
+      const ids = new URLSearchParams(window.location.search).getAll(
+        "notification"
+      );
+      if (ids.length !== 1 || Number(ids[0]) !== variables.id) return;
+      setLinkedFailure(variables.id);
+      toast.error(t("notifications:clickFeedbackFailed"));
+    },
+  });
+  const acknowledgeLink = markLinkedRead.mutate;
+  useEffect(() => {
+    if (linkedId === null) {
+      attemptedLink.current = null;
+      setLinkedFailure(null);
+      return;
+    }
+    if (attemptedLink.current === linkedId) return;
+    setLinkedFailure(current => (current === linkedId ? current : null));
+    attemptedLink.current = linkedId;
+    acknowledgeLink({ id: linkedId });
+  }, [linkedId, acknowledgeLink]);
 
   const handleNotificationClick = useCallback(
     async (notif: { id: number; isRead: boolean; girlfriendId: number }) => {
@@ -167,6 +215,24 @@ export function NotificationBell() {
             )}
           </div>
         </SheetHeader>
+
+        {linkedFailure !== null && (
+          <div
+            role="alert"
+            className="mx-4 mb-3 space-y-2 rounded-lg border border-destructive/40 p-3 text-sm"
+          >
+            <p>{t("notifications:clickFeedbackFailed")}</p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={markLinkedRead.isPending}
+              onClick={() => acknowledgeLink({ id: linkedFailure })}
+            >
+              {t("explore:retry")}
+            </Button>
+          </div>
+        )}
 
         <ScrollArea className="min-h-0 flex-1">
           {notificationsLoading ? (

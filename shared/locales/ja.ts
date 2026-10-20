@@ -187,6 +187,17 @@ export default {
     linkSent: "{{email}} にログインリンクを送りました。",
   },
   notifications: {
+    privatePreview: "新しいメッセージがあります",
+    eventUpcoming:
+      "{{name}}：明日（{{eventDay}}）の「{{memory}}」について話していましたね。一緒に準備しますか？",
+    eventToday:
+      "{{name}}：今日（{{eventDay}}）の「{{memory}}」について、今はどんな気持ちですか？",
+    eventFollowUp:
+      "{{name}}：昨日（{{eventDay}}）の「{{memory}}」について、その後の様子を話しませんか？",
+    dailyCompanion:
+      "{{name}}：{{eventDay}}、ふとあなたを思い出しました。{{memory}} 話したくなったら、今日のことを聞かせてください。",
+    clickFeedbackFailed:
+      "この通知を既読にできませんでした。ここから再試行できます。",
     markAsRead: "既読にする",
     notifications: "通知",
     markAllAsRead: "すべて既読にする",
@@ -197,9 +208,9 @@ export default {
     couldNotEnableNotifications: "通知をオンにできませんでした：{{error}}",
     pushNotificationsDisabled: "プッシュ通知をオフにしました",
     couldNotDisableNotifications: "通知をオフにできませんでした：{{error}}",
-    pushNotifications: "プッシュ通知",
+    pushNotifications: "この端末へのプッシュ通知",
     receiveProactiveMessagesOnThisDeviceSuchAs:
-      "この端末でキャラクターからの通知を受け取ります。1 日最大 1 件。",
+      "許可したメッセージをこの端末で受け取ります。キャラクターからの連絡は上で別途有効にしてください。",
     disablePushOnThisDevice: "この端末のプッシュ通知をオフにする",
     enablePush: "プッシュ通知をオンにする",
     whatAreYouUpToItSBeen: "何してるの？しばらく話してないね。会いたいな〜 💕",
@@ -329,6 +340,44 @@ export default {
       "選択した{{count}}人を削除しますか？ゴミ箱から7日以内なら復元できます。",
   },
   settings: {
+    proactiveTitle: "キャラクターからの連絡",
+    proactiveDescription:
+      "キャラクターからの連絡を許可するか選べます。初期設定はオフです。",
+    proactiveEnabled: "連絡を許可する",
+    proactiveConsentHelp:
+      "オンにして保存すると連絡を許可します。変更は保存後に反映され、いつでもオフにできます。",
+    proactiveMode: "連絡する話題",
+    proactiveEvents: "共有した出来事のみ",
+    proactiveDaily: "出来事と、ときどきの挨拶",
+    proactiveEventsHelp:
+      "共有した最近の予定や出来事について連絡します。関連する出来事がなければ送りません。",
+    proactiveDailyHelp:
+      "関連する出来事がなくても、ときどき日常の話題や挨拶を送れます。",
+    proactiveFrequency: "連絡の最短間隔（日数）",
+    proactiveFrequencyHelp:
+      "1〜14日から選べます。返信がない場合は連絡の頻度が下がることがあります。",
+    proactiveQuietStart: "通知休止の開始",
+    proactiveQuietEnd: "通知休止の終了",
+    proactiveQuietHelp:
+      "現地時間のこの時間帯は連絡しません。開始と終了が同じなら休止時間を設けません。",
+    proactiveQuietOff: "開始と終了が同じため、通知休止時間はありません。",
+    proactiveTimeZone: "アカウントのタイムゾーン",
+    proactiveTimeZoneHelp:
+      "Asia/Tokyo などの IANA タイムゾーンを選ぶか入力してください。記憶でもこのタイムゾーンを使います。",
+    proactivePrivatePreview: "プッシュ通知の私的な詳細を隠す",
+    proactivePrivatePreviewHelp:
+      "名前や会話内容は表示せず、「新しいメッセージがあります」のみ表示します。全文はアプリ内で確認できます。",
+    proactiveInvalidTimeZone:
+      "Asia/Tokyo や Europe/London など、有効な IANA タイムゾーンを入力してください。",
+    proactiveInvalidFrequency: "1から14までの整数の日数を選んでください。",
+    proactiveInvalidQuiet: "有効な開始時刻と終了時刻を入力してください。",
+    proactiveSaveFailed:
+      "連絡設定を保存できませんでした。下書きは残っています。もう一度お試しください。",
+    proactiveConflict:
+      "別のセッションで設定が変更されました。下書きは残っています。保存済みの版を読み込んで下書きを置き換え、確認してから再度変更・保存してください。",
+    proactiveReloadSaved: "保存済みの版を読み込む",
+    proactiveSave: "連絡設定を保存",
+    proactiveSaved: "連絡設定を保存しました",
     savedApiKeys: "保存済みAPIキー",
     removeApiKey: "{{name}}キーを削除",
     advancedServices: "高度なサービス設定",
@@ -457,7 +506,7 @@ export default {
     replyLength: "返答の長さ",
     forExampleUnder50Words23Sentences: "例：50文字以内、2〜3文、制限なし",
     youHaveUnsavedAIBehaviorSettingsSaveChanges: "未保存の変更があります",
-    saveAllSettings: "すべて保存",
+    saveAllSettings: "返信とサービス設定を保存",
 
     modelAddedToFavorites: "モデルをお気に入りに追加しました",
     modelRemovedFromFavorites: "モデルをお気に入りから削除しました",

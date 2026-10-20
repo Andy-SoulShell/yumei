@@ -9,6 +9,9 @@ const mock = vi.hoisted(() => ({
   pending: false,
   imagePending: false,
   generating: false,
+  userId: "qa",
+  conversationId: "42",
+  duration: 0,
   history: [] as any[],
   streamTurns: [] as any[],
   options: {} as Record<string, any>,
@@ -19,13 +22,19 @@ const mock = vi.hoisted(() => ({
   speak: vi.fn(),
   stopAudio: vi.fn(),
   selfie: vi.fn(),
+  couple: vi.fn(),
+  transcribe: vi.fn(),
+  startRecording: vi.fn(),
+  stopRecording: vi.fn(),
+  cancelRecording: vi.fn(),
+  setIsTranscribing: vi.fn(),
   refresh: vi.fn(),
   success: vi.fn(),
   info: vi.fn(),
   error: vi.fn(),
 }));
 vi.mock("@/_core/hooks/useAuth", () => ({
-  useAuth: () => ({ user: { id: "qa", name: "Test" } }),
+  useAuth: () => ({ user: { id: mock.userId, name: "Test" } }),
 }));
 vi.mock("@/lib/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 vi.mock("@/contexts/ThemeContext", () => ({
@@ -33,7 +42,7 @@ vi.mock("@/contexts/ThemeContext", () => ({
 }));
 vi.mock("wouter", () => ({
   useLocation: () => ["/chat/42", vi.fn()],
-  useParams: () => ({ id: "42" }),
+  useParams: () => ({ id: mock.conversationId }),
   useSearch: () => "",
 }));
 vi.mock("sonner", () => ({
@@ -72,12 +81,12 @@ vi.mock("@/hooks/useVoiceRecorder", () => ({
   useVoiceRecorder: () => ({
     isRecording: false,
     isTranscribing: false,
-    setIsTranscribing: vi.fn(),
-    duration: 0,
+    setIsTranscribing: mock.setIsTranscribing,
+    duration: mock.duration,
     isSupported: false,
-    startRecording: vi.fn(),
-    stopRecording: vi.fn(),
-    cancelRecording: vi.fn(),
+    startRecording: mock.startRecording,
+    stopRecording: mock.stopRecording,
+    cancelRecording: mock.cancelRecording,
     setOnMaxDuration: vi.fn(),
   }),
 }));
@@ -94,7 +103,7 @@ vi.mock("@/lib/trpc", () => {
   return {
     trpc: {
       apiConfig: { get: query({ imageProvider: { configured: true } }) },
-      voice: { transcribe: mutation("transcribe") },
+      voice: { transcribe: mutation("transcribe", mock.transcribe) },
       girlfriend: {
         getActive: query(null),
         list: query([{ id: 1, name: "小雨" }]),
@@ -127,7 +136,7 @@ vi.mock("@/lib/trpc", () => {
             return { mutate: mock.selfie, isPending: mock.imagePending };
           },
         },
-        generateCouple: mutation("couple"),
+        generateCouple: mutation("couple", mock.couple),
       },
       billing: { getInfo: query({ mode: "none" }) },
       useUtils: () => ({
@@ -144,6 +153,12 @@ vi.mock("@/lib/trpc", () => {
 let controller: ReturnType<typeof useChatController>;
 let unmount: () => Promise<void>;
 let render: () => Promise<void>;
+let readers: {
+  result: string | null;
+  onload: (() => Promise<void> | void) | null;
+  onloadend: (() => void) | null;
+  onerror: (() => void) | null;
+}[];
 beforeEach(async () => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   vi.useFakeTimers();
@@ -152,6 +167,25 @@ beforeEach(async () => {
   mock.pending = false;
   mock.imagePending = false;
   mock.generating = false;
+  mock.userId = "qa";
+  mock.conversationId = "42";
+  mock.duration = 0;
+  mock.startRecording.mockResolvedValue(undefined);
+  mock.stopRecording.mockResolvedValue(null);
+  readers = [];
+  vi.stubGlobal(
+    "FileReader",
+    class {
+      result: string | null = null;
+      onload: (() => Promise<void> | void) | null = null;
+      onloadend: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      constructor() {
+        readers.push(this);
+      }
+      readAsDataURL() {}
+    }
+  );
   mock.history = [];
   mock.streamTurns = [];
   mock.streamStop.mockResolvedValue(true);
@@ -173,6 +207,7 @@ afterEach(async () => {
   await unmount();
   vi.clearAllTimers();
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 const variables = { conversationId: 42, content: "第一条" };
 async function sendFirst(content = variables.content) {
@@ -336,4 +371,195 @@ it("uses chat content for photo progress and success without success popups", as
   });
   expect(mock.success).not.toHaveBeenCalled();
   expect(mock.info).not.toHaveBeenCalled();
+});
+
+async function prepareVoiceRead() {
+  mock.duration = 2;
+  mock.stopRecording.mockResolvedValue({
+    blob: new Blob(["private voice"]),
+    mimeType: "audio/webm",
+  });
+  await render();
+  await act(async () => {
+    await controller.startRecording();
+  });
+  await act(async () => {
+    await controller.handleRecordingComplete();
+  });
+  expect(readers).toHaveLength(1);
+  readers[0].result = "data:audio/webm;base64,cHJpdmF0ZSB2b2ljZQ==";
+  return readers[0];
+}
+async function leaveVoiceScope(mode: string) {
+  if (mode === "account") mock.userId = "other-account";
+  else if (mode === "conversation") mock.conversationId = "43";
+  else {
+    await unmount();
+    unmount = async () => {};
+    return;
+  }
+  await render();
+}
+
+it("submits a current recording transcription exactly once", async () => {
+  const reader = await prepareVoiceRead();
+  await act(async () => reader.onloadend?.());
+  const callbacks = mock.transcribe.mock.calls[0][1];
+  const response = {
+    text: "当前会话语音",
+    transcriptionId: crypto.randomUUID(),
+  };
+  await act(async () => {
+    callbacks.onSuccess(response);
+    callbacks.onSuccess(response);
+  });
+  expect(mock.streamSubmit).toHaveBeenCalledOnce();
+  expect(mock.streamSubmit).toHaveBeenCalledWith({
+    content: response.text,
+    transcriptionId: response.transcriptionId,
+  });
+});
+it("waits for an earlier microphone request to settle before starting in a new scope", async () => {
+  let finish!: () => void;
+  mock.startRecording.mockReturnValueOnce(
+    new Promise<void>(resolve => {
+      finish = resolve;
+    })
+  );
+  let operation!: Promise<void>;
+  await act(async () => {
+    operation = controller.startRecording();
+  });
+  mock.conversationId = "43";
+  await render();
+  await act(async () => {
+    await controller.startRecording();
+  });
+  expect(mock.startRecording).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    finish();
+    await operation;
+  });
+  expect(mock.cancelRecording).toHaveBeenCalled();
+  await act(async () => {
+    await controller.startRecording();
+  });
+  expect(mock.startRecording).toHaveBeenCalledTimes(2);
+});
+
+it.each(["conversation", "account", "unmount"])(
+  "drops late transcription callbacks after %s",
+  async mode => {
+    const reader = await prepareVoiceRead();
+    await act(async () => reader.onloadend?.());
+    expect(mock.transcribe).toHaveBeenCalledOnce();
+    const callbacks = mock.transcribe.mock.calls[0][1];
+    await leaveVoiceScope(mode);
+    const stateUpdates = mock.setIsTranscribing.mock.calls.length;
+    await act(async () => {
+      callbacks.onSuccess({
+        text: "A 的私密语音",
+        transcriptionId: crypto.randomUUID(),
+      });
+      callbacks.onError({ message: "late error" });
+    });
+    expect(mock.streamSubmit).not.toHaveBeenCalled();
+    expect(mock.send).not.toHaveBeenCalled();
+    expect(mock.setIsTranscribing).toHaveBeenCalledTimes(stateUpdates);
+    expect(mock.error).not.toHaveBeenCalled();
+  }
+);
+it.each(["conversation", "account", "unmount"])(
+  "drops late voice FileReader results after %s",
+  async mode => {
+    const reader = await prepareVoiceRead();
+    await leaveVoiceScope(mode);
+    await act(async () => {
+      reader.onloadend?.();
+      reader.onerror?.();
+    });
+    expect(mock.transcribe).not.toHaveBeenCalled();
+    expect(mock.streamSubmit).not.toHaveBeenCalled();
+    expect(mock.error).not.toHaveBeenCalled();
+  }
+);
+it.each(["conversation", "account", "unmount"])(
+  "drops late private photo FileReader callbacks after %s",
+  async mode => {
+    await act(async () =>
+      controller.handleCouplePhoto(
+        new File(["private"], "private.png", { type: "image/png" })
+      )
+    );
+    const reader = readers[0];
+    reader.result = "data:image/png;base64,cHJpdmF0ZQ==";
+    await leaveVoiceScope(mode);
+    await act(async () => {
+      await reader.onload?.();
+      reader.onerror?.();
+    });
+    expect(mock.couple).not.toHaveBeenCalled();
+    expect(mock.streamStop).not.toHaveBeenCalled();
+    expect(mock.error).not.toHaveBeenCalled();
+  }
+);
+it("drops an old recorder completion closure invoked only after changing conversation", async () => {
+  mock.duration = 2;
+  await render();
+  await act(async () => {
+    await controller.startRecording();
+  });
+  const complete = controller.handleRecordingComplete;
+  mock.conversationId = "43";
+  await render();
+  await act(async () => {
+    await complete();
+  });
+  expect(mock.stopRecording).not.toHaveBeenCalled();
+  expect(readers).toHaveLength(0);
+  expect(mock.transcribe).not.toHaveBeenCalled();
+});
+it("does not dispatch media after a pending stop returns in another conversation", async () => {
+  let finish!: (value: boolean) => void;
+  mock.streamStop.mockReturnValue(
+    new Promise(resolve => {
+      finish = resolve;
+    })
+  );
+  let operation!: Promise<void>;
+  await act(async () => {
+    operation = controller.handleSelectPose("casual", "reference");
+  });
+  mock.conversationId = "43";
+  await render();
+  await act(async () => {
+    finish(true);
+    await operation;
+  });
+  expect(mock.selfie).not.toHaveBeenCalled();
+});
+it("discards recording bytes resolved after changing account", async () => {
+  mock.duration = 2;
+  await render();
+  await act(async () => {
+    await controller.startRecording();
+  });
+  let finish!: (value: unknown) => void;
+  mock.stopRecording.mockReturnValue(
+    new Promise(resolve => {
+      finish = resolve;
+    })
+  );
+  let operation!: Promise<void>;
+  await act(async () => {
+    operation = controller.handleRecordingComplete();
+  });
+  mock.userId = "other-account";
+  await render();
+  await act(async () => {
+    finish({ blob: new Blob(["private"]), mimeType: "audio/webm" });
+    await operation;
+  });
+  expect(readers).toHaveLength(0);
+  expect(mock.transcribe).not.toHaveBeenCalled();
 });

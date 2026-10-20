@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { conversations, messages } from "../drizzle/schema";
 import { renderMessage } from "../shared/i18n";
+import { DEFAULT_PROACTIVE_PREFERENCES } from "../shared/proactiveContact";
 import {
   bigramOverlap,
   memoryCapacity,
@@ -15,6 +16,7 @@ import {
   timeDecayFactor,
 } from "../shared/memory";
 import { getDb } from "./database";
+import { saveCompanionPreferences } from "./companionPreferences";
 import * as providers from "./_core/chatProvider";
 import {
   buildMemoryPromptBlock,
@@ -623,13 +625,43 @@ describe("memory storage (DB)", () => {
 });
 
 describe("proactive notifications reference memories", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
   it("mentions a fresh event memory in the notification", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-20T00:00:00Z"));
+    vi.stubEnv("COMPANION_PROACTIVE_ENABLED", "1");
     if (!(await getDb())) throw new Error("DATABASE_URL required");
     const userId = `mem-user-${nanoid(8)}`;
     const gf = await makeGirlfriend(userId);
-    await storeExtractedMemories(userId, gf.id, [
-      { category: "event", content: "用户明天要参加朋友的婚礼", importance: 7 },
+    const conversation = await createConversation({
+      userId,
+      girlfriendId: gf.id,
+    });
+    const source = await createMessage({
+      conversationId: conversation.id,
+      role: "user",
+      generationStatus: "succeeded",
+      content: "用户明天要参加朋友的婚礼",
+      createdAt: new Date(),
+    });
+    await persistExtractedMemories(userId, gf.id, [
+      {
+        category: "event",
+        content: source.content,
+        sourceMessageId: source.id,
+        importance: 7,
+      },
     ]);
+    await saveCompanionPreferences(userId, 0, {
+      ...DEFAULT_PROACTIVE_PREFERENCES,
+      proactiveEnabled: true,
+      quietStart: 0,
+      quietEnd: 0,
+    });
+    vi.setSystemTime(new Date("2026-10-20T12:00:00Z"));
 
     const fresh = await getFreshEventMemory(userId, gf.id);
     expect(fresh?.content).toContain("婚礼");
@@ -637,8 +669,12 @@ describe("proactive notifications reference memories", () => {
     const notification = await checkAndCreateProactiveNotification(userId);
     expect(notification).toBeTruthy();
     expect(notification!.content).toEqual({
-      key: "notifications:memoryFollowUp",
-      values: { memory: "用户明天要参加朋友的婚礼" },
+      key: "notifications:eventUpcoming",
+      values: {
+        name: gf.name,
+        memory: "用户明天要参加朋友的婚礼",
+        eventDay: "2026-10-21",
+      },
     });
     expect(renderMessage(notification!.content, "zh-CN")).toContain("婚礼");
 

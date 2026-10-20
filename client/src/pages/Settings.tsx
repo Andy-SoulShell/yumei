@@ -17,6 +17,7 @@ import { TranscriptionSettings } from "@/features/settings/TranscriptionSettings
 import { useSettingsController } from "@/features/settings/useSettingsController";
 import { VoiceSettings } from "@/features/settings/VoiceSettings";
 import { PasswordSettings } from "@/features/settings/PasswordSettings";
+import { ProactivePreferences } from "@/features/settings/ProactivePreferences";
 import { ArrowLeft, ChevronDown, Loader2, Moon, Save, Sun } from "lucide-react";
 export default function Settings() {
   const goBack = usePageBack("/characters");
@@ -78,6 +79,7 @@ export default function Settings() {
             <BillingCard />
 
             {/* ========== 推送通知 ========== */}
+            <ProactivePreferences />
             <PushCard />
 
             {/* ========== 语音设置 ========== */}

@@ -180,6 +180,17 @@ export default {
     linkSent: "Check {{email}} for your sign-in link.",
   },
   notifications: {
+    privatePreview: "You have a new message",
+    eventUpcoming:
+      "{{name}}: You mentioned “{{memory}}” for tomorrow ({{eventDay}}). Would you like to prepare together?",
+    eventToday:
+      "{{name}}: You mentioned “{{memory}}” for today ({{eventDay}}). How are you feeling about it?",
+    eventFollowUp:
+      "{{name}}: You mentioned “{{memory}}” for yesterday ({{eventDay}}). Would you like to share how things are going?",
+    dailyCompanion:
+      "{{name}}: Thinking of you on {{eventDay}}. {{memory}} If you feel like chatting, I'm here.",
+    clickFeedbackFailed:
+      "Could not confirm this notification as read. You can retry here.",
     markAsRead: "Mark as read",
     notifications: "Notifications",
     markAllAsRead: "Mark all as read",
@@ -190,9 +201,9 @@ export default {
     couldNotEnableNotifications: "Could not enable notifications: {{error}}",
     pushNotificationsDisabled: "Push notifications disabled",
     couldNotDisableNotifications: "Could not disable notifications: {{error}}",
-    pushNotifications: "Push notifications",
+    pushNotifications: "Push on this device",
     receiveProactiveMessagesOnThisDeviceSuchAs:
-      "Receive character messages on this device, up to once a day.",
+      "Lets this device receive messages you have authorized. Proactive contact is enabled separately above.",
     disablePushOnThisDevice: "Disable push on this device",
     enablePush: "Enable push",
     whatAreYouUpToItSBeen:
@@ -328,6 +339,45 @@ export default {
       "Delete the {{count}} selected companions? You can restore them from trash within 7 days.",
   },
   settings: {
+    proactiveTitle: "Proactive contact",
+    proactiveDescription:
+      "Choose whether your characters may check in with you. This is off by default.",
+    proactiveEnabled: "Allow proactive contact",
+    proactiveConsentHelp:
+      "Turn this on and save to allow contact. Changes take effect only when saved. You can turn it off at any time.",
+    proactiveMode: "What to contact you about",
+    proactiveEvents: "Shared events only",
+    proactiveDaily: "Events and occasional check-ins",
+    proactiveEventsHelp:
+      "Checks in around upcoming or recent events you have shared. No relevant event means no message.",
+    proactiveDailyHelp:
+      "Can also send an occasional everyday check-in when there is no relevant event.",
+    proactiveFrequency: "Minimum days between contacts",
+    proactiveFrequencyHelp:
+      "Choose 1–14 days. Contacts may become less frequent when you leave messages unanswered.",
+    proactiveQuietStart: "Quiet hours start",
+    proactiveQuietEnd: "Quiet hours end",
+    proactiveQuietHelp:
+      "No proactive contact during these local hours. Equal start and end times turn quiet hours off.",
+    proactiveQuietOff:
+      "Quiet hours are off because the start and end times are the same.",
+    proactiveTimeZone: "Account time zone",
+    proactiveTimeZoneHelp:
+      "Choose or enter an IANA time zone, such as Europe/London. This also sets the time zone used by memory.",
+    proactivePrivatePreview: "Hide private details in device notifications",
+    proactivePrivatePreviewHelp:
+      "Shows only “You have a new message”, without names or chat details. Full messages remain inside the app.",
+    proactiveInvalidTimeZone:
+      "Enter a valid IANA time zone, such as Europe/London or Asia/Shanghai.",
+    proactiveInvalidFrequency: "Choose a whole number of days from 1 to 14.",
+    proactiveInvalidQuiet: "Enter valid start and end times for quiet hours.",
+    proactiveSaveFailed:
+      "Could not save contact preferences. Your draft has been kept. Please try again.",
+    proactiveConflict:
+      "These preferences changed in another session. Your draft is kept here. Load the saved version to replace your draft, then review and make your changes again.",
+    proactiveReloadSaved: "Load saved version",
+    proactiveSave: "Save contact preferences",
+    proactiveSaved: "Contact preferences saved",
     savedApiKeys: "Saved API keys",
     removeApiKey: "Remove {{name}} key",
     advancedServices: "Advanced services",
@@ -455,7 +505,7 @@ export default {
     forExampleUnder50Words23Sentences:
       "For example: under 50 words, 2–3 sentences, or unlimited",
     youHaveUnsavedAIBehaviorSettingsSaveChanges: "Unsaved changes",
-    saveAllSettings: "Save all",
+    saveAllSettings: "Save reply and service settings",
 
     modelAddedToFavorites: "Model added to favorites",
     modelRemovedFromFavorites: "Model removed from favorites",

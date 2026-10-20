@@ -1,10 +1,16 @@
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import {
+  buildCompanionMediaContext,
+  getChatBehaviorContext,
+} from "../companionContext";
+import { recordGenerationTelemetry } from "../generationTelemetry";
 import { METERS } from "../../shared/quotas";
 import { BusinessRuleError } from "../_core/businessError";
 import {
   generateProviderImage,
+  imageGenerationModel,
   resolveImageProvider,
 } from "../_core/imageProvider";
 import { keyProvider } from "../_core/keyProvider";
@@ -21,7 +27,10 @@ import {
 } from "../generations";
 import { flushMediaDeletions, queueMediaDeletion } from "../mediaCleanup";
 import { getActiveGirlfriend } from "../repositories/companions";
-import { getConversation } from "../repositories/conversations";
+import {
+  getConversation,
+  getRecentMessages,
+} from "../repositories/conversations";
 import {
   deleteSelfie,
   getGirlfriendSelfies,
@@ -120,13 +129,31 @@ export const selfieRouter = router({
       const ext = input.userPhotoMimeType.split("/")[1];
       const photoKey = `couple-input-${ctx.user.id}-${nanoid()}.${ext}`;
 
-      const scene = input.userContext?.trim()
-        ? `, ${input.userContext.trim()}`
-        : ", in a cozy warm setting";
+      let behaviorContext;
+      try {
+        behaviorContext = await getChatBehaviorContext(
+          ctx.user.id,
+          girlfriend.id,
+          input.userContext || "合照"
+        );
+      } catch {
+        /* 角色资料已验证，状态读取失败仍可使用有限资料。 */
+      }
+      const recent = await getRecentMessages(input.conversationId, 4);
+      const scene = buildCompanionMediaContext(
+        girlfriend,
+        behaviorContext,
+        recent.filter(
+          message =>
+            !message.imageUrl &&
+            message.id > (girlfriend.memoryForgottenThroughId ?? 0)
+        ),
+        input.userContext?.trim() || "自然合照"
+      );
       const prompt =
         imageProvider.name === "comfyui"
-          ? `Create a natural couple photo of the people from <image1> and <image2> together, standing close and happy, looking at the camera${scene}. Use each image as an identity reference and preserve both faces.`
-          : `a natural couple photo of these two people together, standing close and happy, looking at the camera${scene}. keep both faces consistent with the source images`;
+          ? `Create a natural couple photo of the people from <image1> and <image2> together. Use each image as an identity reference and preserve both faces. ${scene}`
+          : `A natural couple photo of these two people together. Keep both faces consistent with the source images. ${scene}`;
 
       const fileKey = `couple-${ctx.user.id}-${nanoid()}.png`;
       const meter: GenerationMeter | undefined =
@@ -153,11 +180,14 @@ export const selfieRouter = router({
         userId: ctx.user.id,
         conversationId: input.conversationId,
         kind: "couple",
+        contextEpoch: girlfriend.memoryEpoch,
         meter,
         outputKey: fileKey,
         temporaryKey: photoKey,
         timeoutMs: Number(process.env.COMFYUI_TIMEOUT_MS || 600_000) + 180_000,
       });
+      const started = Date.now();
+      let providerCompleted = false;
       try {
         const { url: userPhotoUrl } = await storagePut(
           photoKey,
@@ -175,6 +205,7 @@ export const selfieRouter = router({
             { key: photoKey, url: userPhotoUrl },
           ],
         });
+        providerCompleted = true;
         const { url: storedUrl } = await storagePut(
           fileKey,
           imageBuffer,
@@ -219,6 +250,17 @@ export const selfieRouter = router({
           message: "合照生成失败，请稍后重试；失败请求不计入用量。",
         });
       } finally {
+        await recordGenerationTelemetry(requestId, ctx.user.id, {
+          promptVersion: "companion-media/1",
+          provider: imageProvider.name,
+          model: imageGenerationModel(imageProvider.name, "reference", 2),
+          isByok: imageProvider.isByok,
+          durationMs: Date.now() - started,
+          inputTokens: null,
+          outputTokens: null,
+          costUsd: null,
+          outcome: providerCompleted ? "succeeded" : "failed",
+        });
         await flushMediaDeletions(ctx.user.id).catch(error =>
           log.error(
             "[couple] media cleanup will retry",

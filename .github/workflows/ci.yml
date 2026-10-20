@@ -37,5 +37,5 @@ jobs:
       - run: pnpm check
       - run: pnpm db:migrate
       - run: pnpm test
-      - run: TZ=Asia/Shanghai pnpm test server/notification-frequency.test.ts
+      - run: TZ=Asia/Shanghai pnpm test server/notification-frequency.test.ts server/proactiveContact.test.ts server/memorySemantics.test.ts
       - run: pnpm build

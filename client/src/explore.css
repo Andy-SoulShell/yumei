@@ -1703,7 +1703,26 @@
 }
 
 /* 键盘展开时只保留聊天导航，让小屏仍能看到消息。 */
+/* Portal 浮层也使用视觉视口，避免抽屉搜索和弹框按钮落到键盘后面。 */
+:root[data-keyboard-open] [data-slot="dialog-content"],
+:root[data-keyboard-open] [data-slot="alert-dialog-content"] {
+  top: calc(var(--app-height) / 2);
+  max-height: calc(var(--app-height) - 32px);
+}
+:root[data-keyboard-open] .sheet-panel[data-side="left"],
+:root[data-keyboard-open] .sheet-panel[data-side="right"] {
+  height: var(--app-height);
+  bottom: auto;
+}
 @media (max-width: 900px), (pointer: coarse) {
+  :root[data-keyboard-open] .app-bottom-nav,
+  :root[data-keyboard-open] .app-shell::after {
+    display: none;
+  }
+  :root[data-keyboard-open] .app-shell:not(.is-chat) .app-main {
+    padding-bottom: 16px;
+    scroll-padding-bottom: 16px;
+  }
   :root[data-keyboard-open] .app-shell.is-chat > .app-header {
     display: none;
   }

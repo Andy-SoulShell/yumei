@@ -19,6 +19,7 @@ import {
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { useI18n } from "@/lib/i18n";
 import { ThemeOption } from "./ThemeOption";
+import { ExperimentalGlassToggle } from "./ExperimentalGlassToggle";
 import {
   Card,
   CardContent,
@@ -147,6 +148,7 @@ export function SidebarPreferences({
           </SelectContent>
         </Select>
       ))}
+      <ExperimentalGlassToggle compact collapsed={collapsed} />
       {saveError && (
         <div className="sidebar-preferences-error" role="status">
           {!collapsed && (
@@ -218,6 +220,7 @@ export function AppearanceSettings() {
           </div>
           <LanguagePicker />
         </div>
+        <ExperimentalGlassToggle />
         <fieldset>
           <legend className="mb-3 text-sm font-medium">
             {t("appearance:displayMode")}

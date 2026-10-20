@@ -23,6 +23,8 @@ type PreferencesContextValue = {
   preferences: InterfacePreferences;
   locale: Locale;
   resolvedMode: "light" | "dark";
+  experimentalGlass: boolean;
+  setExperimentalGlass: (enabled: boolean) => void;
   saving: boolean;
   saveError: boolean;
   update: (patch: Partial<InterfacePreferences>) => void;
@@ -31,6 +33,16 @@ type PreferencesContextValue = {
 const PreferencesContext = createContext<PreferencesContextValue | null>(null);
 const storageKey = (userId: string | null) =>
   `yumei:interface:${userId ?? "guest"}`;
+const glassStorageKey = "yumei:experimental-glass";
+
+/** 实验材质只保存在当前设备，不随账号同步或改变现有主题偏好。 */
+function readExperimentalGlass() {
+  try {
+    return localStorage.getItem(glassStorageKey) === "true";
+  } catch {
+    return false;
+  }
+}
 
 /** 浏览器禁止存储或数据损坏时仍可使用默认偏好。 */
 function readLocal(userId: string | null) {
@@ -55,6 +67,31 @@ function writeLocal(userId: string | null, value: InterfacePreferences) {
 
 /** 同步系统显示模式、账号偏好、文档语言和语义主题色。 */
 export function PreferencesProvider({ children }: { children: ReactNode }) {
+  const [experimentalGlass, setGlassState] = useState(readExperimentalGlass);
+  const setExperimentalGlass = useCallback((enabled: boolean) => {
+    setGlassState(enabled);
+    try {
+      localStorage.setItem(glassStorageKey, String(enabled));
+    } catch {
+      /* 存储受限时仍可在当前会话体验和关闭。 */
+    }
+  }, []);
+  useEffect(() => {
+    document.documentElement.dataset.glass = experimentalGlass
+      ? "experimental"
+      : "standard";
+    return () => {
+      delete document.documentElement.dataset.glass;
+    };
+  }, [experimentalGlass]);
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === glassStorageKey || event.key === null)
+        setGlassState(readExperimentalGlass());
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
   const me = trpc.auth.me.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
@@ -237,6 +274,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
         preferences: value,
         locale,
         resolvedMode,
+        experimentalGlass,
+        setExperimentalGlass,
         saving,
         saveError: saveError || (!!userId && remote.isError),
         update,
@@ -258,6 +297,8 @@ export function usePreferences(): PreferencesContextValue {
       preferences: DEFAULT_PREFERENCES,
       locale: "zh-CN",
       resolvedMode: "light",
+      experimentalGlass: false,
+      setExperimentalGlass: () => {},
       saving: false,
       saveError: false,
       update: () => {},

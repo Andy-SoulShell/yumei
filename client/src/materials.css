@@ -6,6 +6,7 @@
   --glass-toolbar-fill: color-mix(in oklch, var(--card) 94%, transparent);
   --glass-nav-fill: color-mix(in oklch, var(--card) 96%, transparent);
   --glass-blur: 24px;
+  --glass-saturation: 1.15;
   --glass-separator: color-mix(in oklch, var(--foreground) 10%, transparent);
   --glass-highlight: #ffffffb3;
   --scroll-edge-depth: 24px;
@@ -86,6 +87,19 @@
 .sidebar-preference-trigger:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: -2px;
+}
+.sidebar-glass-control {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 44px;
+  padding: 12px 14px;
+  color: var(--foreground);
+}
+.sidebar-glass-control > svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
 }
 .is-sidebar-collapsed .app-sidebar {
   -webkit-backdrop-filter: none;
@@ -254,8 +268,9 @@
   .is-sidebar-collapsed .app-sidebar .sidebar-panel,
   .chat-composer-surface {
     background: var(--glass-fill);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.15);
-    backdrop-filter: blur(var(--glass-blur)) saturate(1.15);
+    -webkit-backdrop-filter: blur(var(--glass-blur))
+      saturate(var(--glass-saturation));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
   }
   /* 标题和输入文字需要稳定底色，保留少量透色即可。 */
   .app-header,
@@ -307,6 +322,148 @@
   .app-shell:not(.is-chat) .app-main {
     padding-bottom: calc(90px + var(--safe-area-bottom));
     scroll-padding-bottom: calc(90px + var(--safe-area-bottom));
+  }
+}
+/* 实验模式只强化导航平面，独立菜单和内容卡片仍保持稳定的实色。 */
+@supports (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  :root[data-glass="experimental"] {
+    --glass-fill: color-mix(in oklch, var(--card) 52%, transparent);
+    --glass-toolbar-fill: color-mix(in oklch, var(--card) 68%, transparent);
+    --glass-header-fill: color-mix(in oklch, var(--card) 56%, transparent);
+    --glass-nav-fill: color-mix(in oklch, var(--card) 58%, transparent);
+    --glass-blur: 20px;
+    --glass-saturation: 1.35;
+    --glass-header-space: calc(84px + var(--safe-area-top));
+    --canvas-glow:
+      radial-gradient(
+        ellipse at 0% 40%,
+        color-mix(in oklch, var(--primary) 16%, transparent),
+        transparent 60%
+      ),
+      radial-gradient(
+        ellipse at 100% 0%,
+        color-mix(in oklch, var(--theme-secondary) 14%, transparent),
+        transparent 65%
+      );
+  }
+  :root[data-glass="experimental"].dark {
+    --glass-fill: color-mix(in oklch, var(--card) 68%, transparent);
+    --glass-toolbar-fill: color-mix(in oklch, var(--card) 78%, transparent);
+    --glass-header-fill: color-mix(in oklch, var(--card) 72%, transparent);
+    --glass-nav-fill: color-mix(in oklch, var(--card) 72%, transparent);
+  }
+  /* 低特异性让下方的系统无障碍规则始终可以回退为实色。 */
+  :where(:root[data-glass="experimental"]) .app-header {
+    position: absolute;
+    top: calc(8px + var(--safe-area-top));
+    left: max(12px, var(--safe-area-left));
+    right: max(12px, var(--safe-area-right));
+    min-height: 64px;
+    padding: 8px 16px;
+    border-radius: 24px;
+    background: var(--glass-header-fill);
+  }
+  /* 内容真实地从顶部导航下方滚过，首屏保留完整的操作空间。 */
+  :where(:root[data-glass="experimental"]) .app-main {
+    padding-top: var(--glass-header-space);
+    scroll-padding-top: calc(var(--glass-header-space) + 72px);
+  }
+  :where(:root[data-glass="experimental"]) .app-sidebar {
+    margin: var(--glass-header-space) 0 16px 12px;
+    padding-block: 16px;
+    border-radius: 28px;
+    box-shadow: var(--shadow-glass);
+  }
+  :where(:root[data-glass="experimental"]) .is-sidebar-collapsed .app-sidebar {
+    box-shadow: none;
+  }
+  :where(:root[data-glass="experimental"]) .page-toolbar.sticky {
+    top: var(--glass-header-space);
+  }
+  :where(:root[data-glass="experimental"]) :is(.page-toolbar, .chat-header) {
+    margin-inline: 12px;
+    border-radius: 20px;
+  }
+  :where(:root[data-glass="experimental"]) .page-toolbar.sticky::after {
+    background: linear-gradient(
+      to bottom,
+      color-mix(in oklch, var(--background) 64%, transparent),
+      transparent
+    );
+  }
+  :where(:root[data-glass="experimental"])
+    :is(
+      .app-header,
+      .app-sidebar,
+      .chat-header,
+      .page-toolbar,
+      .app-bottom-nav
+    ) {
+    box-shadow:
+      var(--shadow-glass),
+      inset 0 0 0 1px color-mix(in oklch, var(--foreground) 8%, transparent);
+  }
+  :where(:root[data-glass="experimental"]) .account-controls {
+    background: color-mix(in oklch, var(--card) 30%, transparent);
+  }
+  :where(:root[data-glass="experimental"]) .account-signout {
+    background: transparent;
+  }
+  /* 窄抽屉是导航平面；它打开的选择菜单仍是上面的实色 floating-surface。 */
+  :where(:root[data-glass="experimental"]) .mobile-sidebar {
+    background: var(--glass-toolbar-fill);
+    -webkit-backdrop-filter: blur(var(--glass-blur))
+      saturate(var(--glass-saturation));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  }
+  :where(:root[data-glass="experimental"])
+    :is(.app-sidebar, .mobile-sidebar)
+    .app-nav-link:not(.is-active),
+  :where(:root[data-glass="experimental"]) .sidebar-preference-trigger,
+  :where(:root[data-glass="experimental"])
+    :is(.mobile-menu-toggle, .sidebar-toggle),
+  :where(:root[data-glass="experimental"]) .app-bottom-nav .app-nav-icon {
+    color: var(--foreground);
+  }
+  :where(:root[data-glass="experimental"])
+    .app-bottom-nav
+    .is-active
+    .app-nav-icon {
+    color: var(--primary);
+    background: color-mix(in oklab, var(--primary) 12%, var(--card));
+  }
+  :where(:root[data-glass="experimental"])
+    :is(.app-sidebar, .mobile-sidebar)
+    .app-nav-link.is-active {
+    background: color-mix(in oklab, var(--primary) 12%, var(--card));
+  }
+  /* 抽屉覆盖导航时，让后方导航退回实色，避免两层背景模糊相交。 */
+  :where(
+      :root[data-glass="experimental"]:has(.mobile-sidebar[data-state="open"])
+    )
+    :is(.app-header, .app-bottom-nav) {
+    background: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  @media (max-width: 900px) {
+    /* 缩减底部遮罩，保留流经胶囊导航下方的内容色彩。 */
+    :where(:root[data-glass="experimental"]) .app-shell:not(.is-chat)::after {
+      background: linear-gradient(
+        to bottom,
+        transparent,
+        color-mix(in oklch, var(--background) 35%, transparent)
+      );
+    }
+  }
+  @media (max-width: 900px), (pointer: coarse) {
+    /* 软键盘展开时沿用紧凑聊天布局，不为隐藏的全局顶栏预留空间。 */
+    :where(:root[data-glass="experimental"][data-keyboard-open])
+      .app-main-chat {
+      padding-top: 0;
+    }
   }
 }
 /* 系统要求降低透明度或提高对比度时，材质回到清晰的实色。 */

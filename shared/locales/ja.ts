@@ -1040,6 +1040,10 @@ export default {
     holdToTalk: "長押しして話す",
   },
   appearance: {
+    experimentalGlass: "透けるガラス",
+    experimentalBadge: "実験的",
+    experimentalGlassDescription:
+      "ナビゲーションの透明感を高め、背後のコンテンツの色を映します。この端末にのみ保存されます。",
     appearanceLanguage: "外観と言語",
     theme: "テーマ",
     interfaceLanguage: "表示言語",

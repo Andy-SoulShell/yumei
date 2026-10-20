@@ -88,6 +88,52 @@ afterEach(async () => {
 });
 
 describe("interface preference lifecycle", () => {
+  it("keeps experimental glass off by default and restores the device choice without a server write", async () => {
+    await render();
+    expect(current.experimentalGlass).toBe(false);
+    expect(document.documentElement.dataset.glass).toBe("standard");
+    await act(async () => current.setExperimentalGlass(true));
+    expect(document.documentElement.dataset.glass).toBe("experimental");
+    expect(localStorage.getItem("yumei:experimental-glass")).toBe("true");
+    await act(async () => root.unmount());
+    root = createRoot(container);
+    await render();
+    expect(current.experimentalGlass).toBe(true);
+    mocks.user = { id: "a" };
+    mocks.remote = { userId: "a", initialized: true, ...DEFAULT_PREFERENCES };
+    await render();
+    expect(current.experimentalGlass).toBe(true);
+    expect(mocks.save).not.toHaveBeenCalled();
+    await act(async () => current.setExperimentalGlass(false));
+    expect(document.documentElement.dataset.glass).toBe("standard");
+    expect(localStorage.getItem("yumei:experimental-glass")).toBe("false");
+  });
+  it("ignores malformed experimental flags and updates when another tab clears the choice", async () => {
+    localStorage.setItem("yumei:experimental-glass", "enabled");
+    await render();
+    expect(current.experimentalGlass).toBe(false);
+    await act(async () => current.setExperimentalGlass(true));
+    await act(async () => {
+      localStorage.removeItem("yumei:experimental-glass");
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: "yumei:experimental-glass" })
+      );
+    });
+    expect(current.experimentalGlass).toBe(false);
+  });
+  it("can enable and disable experimental glass when device storage is unavailable", async () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    await render();
+    await act(async () => current.setExperimentalGlass(true));
+    expect(document.documentElement.dataset.glass).toBe("experimental");
+    await act(async () => current.setExperimentalGlass(false));
+    expect(document.documentElement.dataset.glass).toBe("standard");
+  });
   it("keeps the page and browser chrome on the same theme background in both modes", async () => {
     const metas = ["light", "dark"].map(mode => {
       const meta = document.createElement("meta");

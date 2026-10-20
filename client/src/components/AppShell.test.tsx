@@ -27,6 +27,8 @@ const mock = vi.hoisted(() => ({
   logout: vi.fn(),
   preferences: {} as InterfacePreferences,
   update: vi.fn(),
+  experimentalGlass: false,
+  setExperimentalGlass: vi.fn(),
   toastError: vi.fn(),
 }));
 vi.mock("wouter", async importOriginal => ({
@@ -44,6 +46,8 @@ vi.mock("@/contexts/PreferencesContext", () => ({
   usePreferences: () => ({
     preferences: mock.preferences,
     update: mock.update,
+    experimentalGlass: mock.experimentalGlass,
+    setExperimentalGlass: mock.setExperimentalGlass,
   }),
 }));
 vi.mock("@/lib/i18n", () => ({
@@ -68,6 +72,7 @@ beforeEach(() => {
   mock.user = null;
   mock.loading = false;
   mock.preferences = { ...DEFAULT_PREFERENCES };
+  mock.experimentalGlass = false;
   mock.logout.mockResolvedValue(undefined);
   vi.stubGlobal(
     "ResizeObserver",
@@ -324,6 +329,31 @@ describe("header account actions", () => {
 });
 
 describe("desktop navigation modes", () => {
+  it("offers the same device experiment in the sidebar and settings, with a compact collapsed control", async () => {
+    await render();
+    const toggle = container.querySelector<HTMLButtonElement>(
+      '.app-sidebar [role="switch"]'
+    )!;
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+    await act(async () => toggle.click());
+    expect(mock.setExperimentalGlass).toHaveBeenCalledWith(true);
+    expect(mock.update).not.toHaveBeenCalled();
+    mock.experimentalGlass = true;
+    await render(<AppearanceSettings />);
+    const switches = container.querySelectorAll('[role="switch"]');
+    expect(switches).toHaveLength(2);
+    for (const control of Array.from(switches))
+      expect(control.getAttribute("aria-checked")).toBe("true");
+    await act(async () =>
+      container.querySelector<HTMLButtonElement>(".sidebar-toggle")!.click()
+    );
+    const collapsed = container.querySelector<HTMLButtonElement>(
+      '.app-sidebar button[aria-label="通透玻璃"]'
+    )!;
+    expect(collapsed.getAttribute("aria-pressed")).toBe("true");
+    await act(async () => collapsed.click());
+    expect(mock.setExperimentalGlass).toHaveBeenLastCalledWith(false);
+  });
   it("starts expanded and only changes when its toggle is activated", async () => {
     await render();
     const toggle =

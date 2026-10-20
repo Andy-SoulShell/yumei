@@ -212,10 +212,15 @@ export function useChatController() {
 
   const loadOlderMessages = async () => {
     const element = messageListRef.current;
-    const before = element?.scrollHeight ?? 0;
+    if (!element) return;
+    const beforeHeight = element.scrollHeight;
+    const beforeTop = element.scrollTop;
     await messagesQuery.fetchNextPage();
+    if (!isCurrentScope() || messageListRef.current !== element) return;
     requestAnimationFrame(() => {
-      if (element) element.scrollTop += element.scrollHeight - before;
+      if (!isCurrentScope() || messageListRef.current !== element) return;
+      // 浏览器可能已经补偿过前插内容；从原位置计算，避免重复叠加。
+      element.scrollTop = beforeTop + element.scrollHeight - beforeHeight;
     });
   };
 
@@ -406,10 +411,18 @@ export function useChatController() {
   );
 
   const chatMessages = useMemo(() => {
+    const oldestLoadedId = historicalMessages?.[0]?.id;
     const messages = new Map(
       (historicalMessages ?? []).map(item => [item.id, item])
     );
     for (const turn of chatStream.turns) {
+      // 恢复接口也返回旧终态轮次；只在翻到对应历史页后合并，避免跨页断层。
+      if (
+        oldestLoadedId !== undefined &&
+        turn.assistantMessage.id < oldestLoadedId &&
+        isChatTurnTerminal(turn.status)
+      )
+        continue;
       for (const item of [turn.userMessage, turn.assistantMessage]) {
         const saved = messages.get(item.id);
         // 已刷新的历史终态优先于被补发后保留的旧运行快照。

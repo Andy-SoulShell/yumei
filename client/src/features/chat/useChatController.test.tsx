@@ -29,6 +29,7 @@ const mock = vi.hoisted(() => ({
   cancelRecording: vi.fn(),
   setIsTranscribing: vi.fn(),
   refresh: vi.fn(),
+  fetchNextPage: vi.fn(),
   success: vi.fn(),
   info: vi.fn(),
   error: vi.fn(),
@@ -114,6 +115,7 @@ vi.mock("@/lib/trpc", () => {
           useInfiniteQuery: () => ({
             data: { pages: [mock.history] },
             refetch: mock.refresh,
+            fetchNextPage: mock.fetchNextPage,
           }),
         },
         create: mutation("create"),
@@ -192,6 +194,7 @@ beforeEach(async () => {
   mock.streamStop.mockResolvedValue(true);
   mock.streamSubmit.mockResolvedValue(null);
   mock.refresh.mockResolvedValue(undefined);
+  mock.fetchNextPage.mockResolvedValue(undefined);
   mock.send.mockImplementation(variables =>
     mock.options.send.onMutate(variables)
   );
@@ -250,6 +253,78 @@ it("does not interrupt history reading when messages arrive or a reply completes
     await vi.runOnlyPendingTimersAsync();
   });
   expect(scroll).not.toHaveBeenCalled();
+});
+
+it.each([false, true])(
+  "加载更早消息时只补偿一次高度，兼容浏览器自动锚定=%s",
+  async nativeAnchoring => {
+    const viewport = document.createElement("div");
+    let height = 1200;
+    Object.defineProperty(viewport, "scrollHeight", { get: () => height });
+    viewport.scrollTop = 120;
+    controller.messageListRef.current = viewport;
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      callback(0);
+      return 1;
+    });
+    mock.fetchNextPage.mockImplementation(async () => {
+      height += 900;
+      if (nativeAnchoring) viewport.scrollTop += 900;
+    });
+    await act(async () => controller.loadOlderMessages());
+    expect(viewport.scrollTop).toBe(1020);
+  }
+);
+
+it("加载历史期间切换会话后，不再调整旧阅读区域", async () => {
+  const viewport = document.createElement("div");
+  viewport.scrollTop = 120;
+  controller.messageListRef.current = viewport;
+  let finish!: () => void;
+  mock.fetchNextPage.mockReturnValueOnce(new Promise<void>(r => (finish = r)));
+  const requestFrame = vi.fn();
+  vi.stubGlobal("requestAnimationFrame", requestFrame);
+  const loading = controller.loadOlderMessages();
+  mock.conversationId = "43";
+  await render();
+  finish();
+  await loading;
+  expect(requestFrame).not.toHaveBeenCalled();
+});
+
+it("流式历史快照不在分页记录前插入未加载的旧轮次", async () => {
+  const item = (id: number) => ({
+    id,
+    content: `消息 ${id}`,
+    createdAt: new Date().toISOString(),
+  });
+  const oldTurn = {
+    status: "succeeded",
+    userMessage: item(1),
+    assistantMessage: item(2),
+  };
+  mock.history = [{ ...item(100), createdAt: new Date() }];
+  mock.streamTurns = [
+    oldTurn,
+    { status: "running", userMessage: item(101), assistantMessage: item(102) },
+    {
+      status: "succeeded",
+      userMessage: item(103),
+      assistantMessage: item(104),
+    },
+  ];
+  await render();
+  expect(controller.chatMessages.map(item => item.id)).toEqual([
+    100, 101, 102, 103, 104,
+  ]);
+  mock.history = [
+    { ...item(1), createdAt: new Date() },
+    { ...item(100), createdAt: new Date() },
+  ];
+  await render();
+  expect(controller.chatMessages.map(item => item.id)).toEqual([
+    1, 2, 100, 101, 102, 103, 104,
+  ]);
 });
 it("scrolls on send and cancels delayed scrolling after switching conversations", async () => {
   const scroll = vi.fn();

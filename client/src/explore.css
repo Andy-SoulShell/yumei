@@ -1700,6 +1700,20 @@
   }
 }
 
+/* 宽屏手机横放时仍只保留角色导航，避免切回桌面侧栏挤压长聊天。 */
+@media (pointer: coarse) and (min-width: 901px) and (max-height: 500px) {
+  .app-shell.is-chat > .app-header,
+  .app-shell.is-chat .app-sidebar {
+    display: none;
+  }
+  .app-shell.is-chat .app-main-chat {
+    padding-top: 0;
+  }
+  .app-shell.is-chat .chat-header {
+    padding-top: calc(8px + var(--safe-area-top));
+  }
+}
+
 /* iOS 聚焦输入时还可能平移视觉视口，根布局与 Portal 共用同一可见区域。 */
 :root[data-keyboard-open] {
   /* 键盘已经遮住主屏指示条，不再为它重复保留底部空白。 */

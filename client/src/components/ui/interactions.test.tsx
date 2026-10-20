@@ -9,6 +9,8 @@ import { Button } from "./button";
 import { Dialog, DialogContent, DialogTitle } from "./dialog";
 import { Sheet, SheetContent, SheetTitle } from "./sheet";
 import { VoiceRecordButton } from "../VoiceRecordButton";
+import { Toaster } from "./sonner";
+import { toast } from "sonner";
 
 let root: Root;
 let container: HTMLDivElement;
@@ -59,6 +61,38 @@ async function key(node: Element, value: string) {
 
 const choose = vi.fn();
 const action = vi.fn();
+it("弹窗内的反馈提示可以单独关闭，不触发弹窗的外部点击关闭", async () => {
+  const changed = vi.fn();
+  await render(
+    <>
+      <Toaster duration={Infinity} />
+      <Dialog defaultOpen onOpenChange={changed}>
+        <DialogContent>
+          <DialogTitle>编辑内容</DialogTitle>
+          <Button onClick={() => toast.error("保存失败，请重试")}>保存</Button>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+  await settle(() => {
+    document.querySelector<HTMLButtonElement>("[role=dialog] button")!.click();
+  });
+  const notification = document.querySelector<HTMLElement>(
+    "[data-sonner-toast]"
+  )!;
+  expect(notification.textContent).toContain("保存失败，请重试");
+  expect(container.contains(notification)).toBe(false);
+  const close = notification.querySelector<HTMLButtonElement>(
+    "[data-close-button]"
+  )!;
+  await settle(() => {
+    close.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));
+    close.click();
+  });
+  expect(notification.dataset.removed).toBe("true");
+  expect(document.querySelector("[role=dialog]")).not.toBeNull();
+  expect(changed).not.toHaveBeenCalled();
+});
 it.each(["dialog", "sheet"])(
   "returns focus to a programmatic %s opener without a Trigger",
   async kind => {

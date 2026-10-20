@@ -546,6 +546,10 @@
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+.toaster [data-sonner-toast][data-visible="true"] {
+  /* 弹窗会禁用 body 的指针事件，独立提示仍需允许关闭和操作。 */
+  pointer-events: auto;
+}
 .gallery-photo-card {
   container-type: inline-size;
 }

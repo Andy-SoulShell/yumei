@@ -1,7 +1,7 @@
 /** 当前浏览器的 Web Push 订阅开关与授权提示。 */
 
 import { useI18n } from "@/lib/i18n";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,7 +28,14 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
 export function PushCard() {
   const { t } = useI18n();
   const utils = trpc.useUtils();
-  const { data: status } = trpc.push.status.useQuery();
+  const [device, setDevice] = useState<{
+    endpoint: string | null;
+    loaded: boolean;
+  }>({ endpoint: null, loaded: false });
+  const { data: status } = trpc.push.status.useQuery(
+    { endpoint: device.endpoint },
+    { enabled: device.loaded }
+  );
   const { data: keyData } = trpc.push.publicKey.useQuery();
   const subscribeMutation = trpc.push.subscribe.useMutation();
   const unsubscribeMutation = trpc.push.unsubscribe.useMutation();
@@ -37,7 +44,25 @@ export function PushCard() {
   const supported =
     typeof window !== "undefined" &&
     "serviceWorker" in navigator &&
-    "PushManager" in window;
+    "PushManager" in window &&
+    "Notification" in window;
+
+  useEffect(() => {
+    if (!supported) return;
+    let active = true;
+    void navigator.serviceWorker.ready
+      .then(registration => registration.pushManager.getSubscription())
+      .then(subscription => {
+        if (active)
+          setDevice({ endpoint: subscription?.endpoint ?? null, loaded: true });
+      })
+      .catch(() => {
+        if (active) setDevice({ endpoint: null, loaded: true });
+      });
+    return () => {
+      active = false;
+    };
+  }, [supported]);
 
   if (!keyData?.key || !supported) return null;
 
@@ -61,6 +86,7 @@ export function PushCard() {
         endpoint: subscription.endpoint,
         keys: { p256dh: json.keys!.p256dh, auth: json.keys!.auth },
       });
+      setDevice({ endpoint: subscription.endpoint, loaded: true });
       await utils.push.status.invalidate();
       toast.success(t("notifications:pushNotificationsEnabled"));
     } catch (e: any) {
@@ -85,6 +111,7 @@ export function PushCard() {
         });
         await subscription.unsubscribe();
       }
+      setDevice({ endpoint: null, loaded: true });
       await utils.push.status.invalidate();
       toast.success(t("notifications:pushNotificationsDisabled"));
     } catch (e: any) {
@@ -111,7 +138,11 @@ export function PushCard() {
       </CardHeader>
       <CardContent>
         {status?.subscribed ? (
-          <Button variant="outline" onClick={disable} disabled={busy}>
+          <Button
+            variant="outline"
+            onClick={disable}
+            disabled={busy || !device.loaded}
+          >
             {busy ? (
               <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
             ) : (
@@ -120,7 +151,7 @@ export function PushCard() {
             {t("notifications:disablePushOnThisDevice")}
           </Button>
         ) : (
-          <Button onClick={enable} disabled={busy}>
+          <Button onClick={enable} disabled={busy || !device.loaded}>
             {busy ? (
               <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
             ) : (

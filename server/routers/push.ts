@@ -3,6 +3,7 @@ import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import {
   getVapidPublicKey,
   hasPushSubscription,
+  isPushConfigured,
   removePushSubscription,
   savePushSubscription,
 } from "../push";
@@ -34,9 +35,13 @@ export const pushRouter = router({
       return { success: true };
     }),
 
-  /** 返回当前用户是否有订阅及推送功能是否配置。 */
-  status: protectedProcedure.query(async ({ ctx }) => ({
-    subscribed: await hasPushSubscription(ctx.user.id),
-    configured: getVapidPublicKey() !== null,
-  })),
+  /** 检查当前浏览器端点是否属于登录用户，不能以其他设备的订阅代替。 */
+  status: protectedProcedure
+    .input(z.object({ endpoint: z.string().url().max(500).nullable() }))
+    .query(async ({ ctx, input }) => ({
+      subscribed: input.endpoint
+        ? await hasPushSubscription(ctx.user.id, input.endpoint)
+        : false,
+      configured: isPushConfigured(),
+    })),
 });

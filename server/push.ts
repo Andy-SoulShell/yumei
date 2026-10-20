@@ -14,9 +14,9 @@ export function isPushConfigured(): boolean {
   return Boolean(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
 }
 
-/** 读取前端订阅推送所需的公开密钥，未配置时返回 null。 */
+/** 读取前端订阅所需的公开密钥，公私钥未同时配置时返回 null。 */
 export function getVapidPublicKey(): string | null {
-  return process.env.VAPID_PUBLIC_KEY || null;
+  return isPushConfigured() ? process.env.VAPID_PUBLIC_KEY! : null;
 }
 
 /** 加载推送库并应用当前运营方的 VAPID 联系信息与密钥。 */
@@ -71,14 +71,22 @@ export async function removePushSubscription(
     );
 }
 
-/** 判断用户是否至少保存了一个推送端点。 */
-export async function hasPushSubscription(userId: string): Promise<boolean> {
+/** 判断用户是否保存了指定推送端点；省略端点时查询该账号任意设备。 */
+export async function hasPushSubscription(
+  userId: string,
+  endpoint?: string
+): Promise<boolean> {
   const db = await getDb();
   if (!db) return false;
   const rows = await db
     .select({ id: pushSubscriptions.id })
     .from(pushSubscriptions)
-    .where(eq(pushSubscriptions.userId, userId))
+    .where(
+      and(
+        eq(pushSubscriptions.userId, userId),
+        endpoint ? eq(pushSubscriptions.endpoint, endpoint) : undefined
+      )
+    )
     .limit(1);
   return rows.length > 0;
 }

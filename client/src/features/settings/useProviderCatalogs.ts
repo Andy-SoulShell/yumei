@@ -44,6 +44,7 @@ export function useProviderCatalogs(
     data: modelsData,
     isLoading: modelsLoading,
     error: modelsError,
+    refetch: retryModels,
   } = trpc.apiConfig.listModels.useQuery(undefined, {
     enabled: openRouterReady && !usesDeepSeek,
     retry: false,
@@ -56,6 +57,7 @@ export function useProviderCatalogs(
     data: elevenLabsData,
     isLoading: elevenLabsLoading,
     error: elevenLabsError,
+    refetch: retryElevenLabs,
   } = trpc.apiConfig.listElevenLabsVoices.useQuery(undefined, {
     enabled: elevenLabsReady,
     retry: false,
@@ -68,6 +70,7 @@ export function useProviderCatalogs(
     data: fishAudioData,
     isLoading: fishAudioLoading,
     error: fishAudioError,
+    refetch: retryFishAudio,
   } = trpc.apiConfig.listFishAudioModels.useQuery(
     { search: fishAudioSearch || undefined },
     {
@@ -153,12 +156,15 @@ export function useProviderCatalogs(
     modelsData,
     modelsLoading,
     modelsError,
+    retryModels,
     elevenLabsData,
     elevenLabsLoading,
     elevenLabsError,
+    retryElevenLabs,
     fishAudioData,
     fishAudioLoading,
     fishAudioError,
+    retryFishAudio,
     filteredModels,
     groupedElevenLabsVoices,
     filteredFishAudioModels,

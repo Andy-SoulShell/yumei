@@ -1,4 +1,5 @@
 import { KeyStatusIndicator } from "@/components/KeyStatusIndicator";
+import { PageError } from "@/components/PageError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +15,7 @@ type Props = Pick<
   | "setFishAudioApiKey"
   | "fishAudioLoading"
   | "fishAudioError"
+  | "retryFishAudio"
   | "fishAudioData"
   | "fishAudioModelId"
   | "fishAudioSearch"
@@ -32,6 +34,7 @@ export function FishVoiceSettings({
   setFishAudioApiKey,
   fishAudioLoading,
   fishAudioError,
+  retryFishAudio,
   fishAudioData,
   fishAudioModelId,
   fishAudioSearch,
@@ -90,11 +93,7 @@ export function FishVoiceSettings({
       )}
 
       {/* 错误提示 */}
-      {fishAudioError && (
-        <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-          {fishAudioError.message}
-        </div>
-      )}
+      {fishAudioError && <PageError onRetry={() => void retryFishAudio()} />}
 
       {fishAudioData && (
         <SearchSelect

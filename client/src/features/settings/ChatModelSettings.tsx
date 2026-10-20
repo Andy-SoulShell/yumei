@@ -1,4 +1,5 @@
 import { KeyStatusIndicator } from "@/components/KeyStatusIndicator";
+import { PageError } from "@/components/PageError";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -22,6 +23,7 @@ type Props = Pick<
   | "setOpenRouterKey"
   | "modelsLoading"
   | "modelsError"
+  | "retryModels"
   | "selectedModel"
   | "selectedModelInfo"
   | "modelsData"
@@ -46,6 +48,7 @@ export function ChatModelSettings({
   setOpenRouterKey,
   modelsLoading,
   modelsError,
+  retryModels,
   selectedModel,
   selectedModelInfo,
   modelsData,
@@ -137,11 +140,7 @@ export function ChatModelSettings({
           </div>
         )}
 
-        {modelsError && (
-          <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-            {modelsError.message}
-          </div>
-        )}
+        {modelsError && <PageError onRetry={() => void retryModels()} />}
 
         {selectedModel && (
           <div className="p-3 rounded-lg border bg-primary/5 border-primary/20">

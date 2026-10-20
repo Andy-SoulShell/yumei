@@ -1,7 +1,13 @@
 /** 通过真实结算验证心情并发、奖励来源、失败回滚及一次性语音凭据。 */
 import { and, eq } from "drizzle-orm";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { girlfriendMoods, voiceTranscriptions } from "../drizzle/schema";
+import {
+  girlfriendMoods,
+  girlfriends,
+  usageMeters,
+  voiceTranscriptions,
+} from "../drizzle/schema";
+import { METERS } from "../shared/quotas";
 import type { TrpcContext } from "./_core/context";
 import type { TranscriptionResponse } from "./_core/openaiWhisper";
 import { getDb } from "./database";
@@ -58,6 +64,70 @@ async function seed() {
 afterEach(() => vi.useRealTimers());
 
 describe("server-owned relationship settlement", () => {
+  it.each(["short", "capped"])(
+    "records committed %s messages as interaction without granting extra experience",
+    async mode => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-10-18T12:00:00Z"));
+      const a = await seed();
+      const db = (await getDb())!;
+      await db
+        .update(girlfriends)
+        .set({
+          intimacyPoints: 1234,
+          intimacyLevel: 7,
+          consecutiveDays: 3,
+          lastInteractionAt: new Date(),
+        })
+        .where(eq(girlfriends.id, a.gf.id));
+      for (const day of [19, 20]) {
+        vi.setSystemTime(new Date(`2026-10-${day}T12:00:00Z`));
+        if (mode === "capped")
+          await db.insert(usageMeters).values({
+            userId: a.userId,
+            period: `2026-10-${day}`,
+            meter: METERS.intimacyPoints(a.gf.id),
+            count: 200,
+          });
+        await a.send(
+          mode === "short" ? "你好" : "这是一条已经达到奖励上限的消息"
+        );
+      }
+      const state = await getIntimacyInfo(a.gf.id, a.userId);
+      expect(state.intimacyPoints).toBe(1234);
+      expect(state.lastInteractionAt).toEqual(new Date("2026-10-20T12:00:00Z"));
+      expect(state.consecutiveDays).toBe(5);
+    }
+  );
+  it.each(["你好", "很久不见，我回来了，今天想继续和你聊聊"])(
+    "settles overdue decay before a returning message, regardless of prior reads: %s",
+    async content => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-10-19T12:00:00Z"));
+      const a = await seed();
+      const b = await seed();
+      const db = (await getDb())!;
+      for (const target of [a, b])
+        await db
+          .update(girlfriends)
+          .set({
+            intimacyPoints: 1234,
+            intimacyLevel: 7,
+            lastInteractionAt: new Date("2026-10-09T12:00:00Z"),
+          })
+          .where(eq(girlfriends.id, target.gf.id));
+      expect((await getIntimacyInfo(b.gf.id, b.userId)).intimacyPoints).toBe(
+        1219
+      );
+      const first = await a.send(content);
+      const second = await b.send(content);
+      expect(first.relationship.intimacyPoints).toBe(
+        content.length < 5 ? 1219 : 1221
+      );
+      expect(first.relationship).toEqual(second.relationship);
+      expect((await getIntimacyInfo(a.gf.id, a.userId)).decayed).toBe(0);
+    }
+  );
   it("levels up through 50 committed text rounds without a minute-long pause and settles each request once", async () => {
     const a = await seed();
     let upgraded = false;

@@ -8,6 +8,7 @@ import {
   type Message,
 } from "../drizzle/schema";
 import {
+  calculateDecay,
   DAILY_POINTS_LIMIT,
   getLevelByPoints,
   isNightTime,
@@ -29,13 +30,12 @@ function skippedPoints(gf: Girlfriend, reason: string) {
   };
 }
 
-/** 在调用方持有的用户事务锁内结算奖励；额度不足只跳过奖励，不回滚消息。 */
-export async function awardIntimacy(
+/** 在更新互动基准前结算未处理的衰减；短消息和奖励受限时也保留真实互动。 */
+async function recordInteraction(
   tx: DbTransaction,
   girlfriendId: number,
   userId: string,
-  points: number,
-  reason: string
+  now: Date
 ) {
   const [gf] = await tx
     .select()
@@ -49,10 +49,47 @@ export async function awardIntimacy(
     )
     .for("update");
   if (!gf) throw new Error("Girlfriend not found");
+  const decay = calculateDecay(
+    gf.intimacyPoints,
+    gf.lastInteractionAt,
+    gf.intimacyLevel,
+    gf.lastDecayAt
+  );
+  const period = now.toISOString().slice(0, 10);
+  const lastDay = gf.lastInteractionAt?.toISOString().slice(0, 10);
+  const yesterday = new Date(now.getTime() - 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const consecutiveDays =
+    lastDay === period
+      ? gf.consecutiveDays
+      : lastDay === yesterday
+        ? gf.consecutiveDays + 1
+        : 1;
+  const changes = {
+    intimacyPoints: decay.points,
+    intimacyLevel: getLevelByPoints(decay.points).level,
+    lastInteractionAt: now,
+    lastDecayAt: now,
+    consecutiveDays,
+  };
+  await tx.update(girlfriends).set(changes).where(eq(girlfriends.id, gf.id));
+  return { ...gf, ...changes };
+}
+
+/** 在调用方持有的用户事务锁内结算互动与奖励；额度不足只跳过奖励。 */
+export async function awardIntimacy(
+  tx: DbTransaction,
+  girlfriendId: number,
+  userId: string,
+  points: number,
+  reason: string
+) {
   const rule = POINTS_RULES[reason];
   if (!rule || !Number.isSafeInteger(points) || points <= 0)
     throw new Error("Invalid intimacy points");
   const now = new Date();
+  const gf = await recordInteraction(tx, girlfriendId, userId, now);
   const period = todayUTC();
   const meter = METERS.intimacyReason(girlfriendId, reason);
   const [previous] = await tx
@@ -95,16 +132,6 @@ export async function awardIntimacy(
     period
   );
   if (!perReason.allowed) return skippedPoints(gf, "该行为今日经验值已达上限");
-  const lastDay = gf.lastInteractionAt?.toISOString().slice(0, 10);
-  const yesterday = new Date(now.getTime() - 86_400_000)
-    .toISOString()
-    .slice(0, 10);
-  const consecutiveDays =
-    lastDay === period
-      ? gf.consecutiveDays
-      : lastDay === yesterday
-        ? gf.consecutiveDays + 1
-        : 1;
   const intimacyPoints = gf.intimacyPoints + totalPoints;
   const intimacyLevel = getLevelByPoints(intimacyPoints).level;
   await tx
@@ -112,9 +139,6 @@ export async function awardIntimacy(
     .set({
       intimacyPoints,
       intimacyLevel,
-      lastInteractionAt: now,
-      lastDecayAt: now,
-      consecutiveDays,
     })
     .where(eq(girlfriends.id, gf.id));
   return {
@@ -122,7 +146,7 @@ export async function awardIntimacy(
     intimacyPoints,
     previousLevel: gf.intimacyLevel,
     leveledUp: intimacyLevel > gf.intimacyLevel,
-    consecutiveDays,
+    consecutiveDays: gf.consecutiveDays,
     pointsAdded: totalPoints,
     skipped: false,
     skipReason: null,
@@ -296,6 +320,8 @@ export async function applyMessageRelationship(
         (message.content.trim().length > 50 ? (rule.bonusPoints ?? 0) : 0),
       "text_message"
     );
+  } else if (message.role === "user") {
+    await recordInteraction(tx, girlfriendId, userId, now);
   }
 }
 /** 返回事务完成后的真实关系状态，供前端刷新和升级反馈。 */

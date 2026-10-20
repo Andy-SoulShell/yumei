@@ -71,9 +71,11 @@ export default function MyCharacters() {
   // 已登录 - 女友列表
   return (
     <div className="min-h-full bg-background">
-      <header className="characters-toolbar flex items-center justify-between gap-3 border-b px-4 py-4 sm:px-8">
-        <h1 className="text-lg font-semibold">{t("explore:navCharacters")}</h1>
-        <div className="flex items-center gap-2">
+      <header className="characters-toolbar flex flex-wrap items-center justify-between gap-3 border-b px-4 py-4 sm:px-8">
+        <h1 className="min-w-0 flex-1 text-lg font-semibold">
+          {t("explore:navCharacters")}
+        </h1>
+        <div className="ml-auto flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
@@ -109,8 +111,8 @@ export default function MyCharacters() {
 
       <div className="p-4 sm:p-8 max-w-6xl mx-auto space-y-4 sm:space-y-6 pb-8">
         {/* 欢迎信息 + 批量操作 */}
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 basis-56 space-y-1">
             <h2 className="text-xl sm:text-2xl font-bold">
               {t("home:greeting", { name: user?.name || t("home:friend") })} 👋
             </h2>
@@ -144,7 +146,7 @@ export default function MyCharacters() {
 
         {/* 批量操作工具栏 */}
         {batchMode && girlfriends && girlfriends.length > 0 && (
-          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
+          <div className="flex flex-wrap items-center gap-3 p-3 bg-muted/50 rounded-lg border">
             <Button variant="outline" size="sm" onClick={selectAll}>
               {selectedIds.size === girlfriends.length ? (
                 <>

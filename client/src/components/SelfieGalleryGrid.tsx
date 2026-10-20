@@ -48,7 +48,7 @@ export function SelfieGalleryGrid({
       {selfies.map((selfie, index) => (
         <Card
           key={selfie.id}
-          className="mb-2 sm:mb-3 break-inside-avoid overflow-hidden gap-0 py-0"
+          className="gallery-photo-card mb-2 sm:mb-3 break-inside-avoid overflow-hidden gap-0 py-0"
         >
           <Button
             variant="plain"
@@ -82,8 +82,8 @@ export function SelfieGalleryGrid({
                   : t("gallery:direct")}
               </span>
             </div>
-            <div className="flex items-center justify-between gap-1">
-              <p className="text-[10px]">
+            <div className="gallery-photo-footer flex items-center justify-between gap-1">
+              <p className="gallery-photo-date text-[10px]">
                 {new Date(selfie.createdAt).toLocaleDateString(locale)}
               </p>
               <div className="flex items-center gap-0.5">

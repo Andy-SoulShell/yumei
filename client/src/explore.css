@@ -389,6 +389,19 @@
   flex: none;
   padding-bottom: max(8px, var(--safe-area-bottom));
 }
+.gallery-photo-card {
+  container-type: inline-size;
+}
+@container (max-width: 180px) {
+  .gallery-photo-footer {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .gallery-photo-date {
+    flex-basis: 100%;
+    white-space: nowrap;
+  }
+}
 .app-bottom-nav {
   display: none;
 }
@@ -1623,6 +1636,15 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  [data-slot="sheet-content"],
+  [data-slot="sheet-overlay"],
+  [data-slot="dialog-content"],
+  [data-slot="dialog-overlay"],
+  [data-slot="alert-dialog-content"],
+  [data-slot="alert-dialog-overlay"] {
+    animation-duration: 0.01ms;
+    transition-duration: 0.01ms;
+  }
   .app-sidebar {
     transition: none;
   }

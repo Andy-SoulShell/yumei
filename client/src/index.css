@@ -47,7 +47,7 @@
 :root {
   --viewport-height: 100vh;
   --viewport-large-height: 100vh;
-  --app-height: var(--viewport-height);
+  --app-height: var(--keyboard-viewport-height, var(--viewport-height));
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-right: env(safe-area-inset-right, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
@@ -100,11 +100,14 @@
  */
 @media (display-mode: standalone) {
   :root {
-    --app-height: max(
-      var(--viewport-height),
-      min(
-        var(--viewport-large-height),
-        calc(var(--viewport-height) + var(--safe-area-top))
+    --app-height: var(
+      --keyboard-viewport-height,
+      max(
+        var(--viewport-height),
+        min(
+          var(--viewport-large-height),
+          calc(var(--viewport-height) + var(--safe-area-top))
+        )
       )
     );
   }
@@ -187,7 +190,7 @@
     @apply cursor-pointer;
   }
   /* 移动端触摸优化：最小点击区域 44px */
-  @media (max-width: 768px) {
+  @media (max-width: 900px), (pointer: coarse) {
     button,
     [role="button"],
     a {
@@ -200,6 +203,31 @@
       min-height: auto;
       min-width: auto;
     }
+    [role="menuitem"],
+    [role="menuitemradio"],
+    [role="menuitemcheckbox"],
+    [role="option"] {
+      min-height: 44px;
+    }
+    input,
+    textarea,
+    select {
+      font-size: 16px;
+    }
+  }
+}
+
+/* 日历在最窄手机上平分七列，避免全局触控尺寸把浮层撑出屏幕。 */
+@media (max-width: 900px), (pointer: coarse) {
+  [data-slot="calendar"] {
+    --cell-size: clamp(32px, calc((100vw - 56px) / 7), 44px);
+  }
+  [data-slot="calendar"] button {
+    min-width: 0;
+    min-height: var(--cell-size);
+  }
+  .explore-search input {
+    font-size: 16px;
   }
 }
 

@@ -4,6 +4,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useSwipeBack } from "@/hooks/useGestures";
+import { useKeyboardViewport } from "@/hooks/useKeyboardViewport";
 import { loginUrl } from "@/lib/navigation";
 import { authModeForPath } from "@/lib/auth-navigation";
 import { Loader2 } from "lucide-react";
@@ -129,6 +130,7 @@ function Router() {
 
 /** 应用级组件树，提供错误边界、主题、悬浮提示与消息提示容器。 */
 function App() {
+  useKeyboardViewport();
   return (
     <ErrorBoundary>
       <PreferencesProvider>

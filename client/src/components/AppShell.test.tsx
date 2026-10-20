@@ -115,7 +115,7 @@ describe("grouped navigation and preferences", () => {
       )
     ).toEqual([
       ["/setup", "/chats"],
-      ["/", "/generate", "/characters"],
+      ["/explore", "/generate", "/characters"],
     ]);
     expect(
       Array.from(
@@ -124,6 +124,23 @@ describe("grouped navigation and preferences", () => {
         )
       ).map(control => control.getAttribute("aria-label"))
     ).toEqual(["界面语言", "显示模式", "主题"]);
+  });
+  it("returns home through the logo and activates explore only on its own route", async () => {
+    await render();
+    expect(container.querySelector(".app-brand")?.getAttribute("href")).toBe(
+      "/"
+    );
+    expect(container.querySelector(".app-sidebar a[href='/']")).toBeNull();
+    expect(
+      container.querySelector(".app-sidebar a[aria-current='page']")
+    ).toBeNull();
+    mock.location = "/explore";
+    await render();
+    expect(
+      container
+        .querySelector(".app-sidebar a[aria-current='page']")
+        ?.getAttribute("href")
+    ).toBe("/explore");
   });
 
   it.each([

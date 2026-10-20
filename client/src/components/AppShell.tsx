@@ -87,10 +87,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const inChat = /^\/chat(?:\/|$)/.test(location);
   const links = {
     explore: {
-      href: "/",
+      href: "/explore",
       label: t("explore:navExplore"),
       icon: Compass,
-      active: location === "/" || location === "/explore",
+      active: location === "/explore",
     },
     chats: {
       href: "/chats",

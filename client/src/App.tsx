@@ -12,9 +12,10 @@ import { Redirect, Route, Switch, useLocation, useSearch } from "wouter";
 import { AppShell } from "./components/AppShell";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { PreferencesProvider } from "./contexts/PreferencesContext";
-import Explore from "./pages/Explore";
+import Landing from "./pages/Landing";
 
-const Home = lazy(() => import("./pages/Home"));
+const MyCharacters = lazy(() => import("./pages/Home"));
+const Explore = lazy(() => import("./pages/Explore"));
 const Login = lazy(() => import("./pages/Login"));
 const Setup = lazy(() => import("./pages/Setup"));
 const Chat = lazy(() => import("./pages/Chat"));
@@ -66,11 +67,11 @@ function Router() {
     <AppShell>
       <Suspense fallback={<PageLoading />}>
         <Switch>
-          <Route path="/" component={Explore} />
+          <Route path="/" component={Landing} />
           <Route path="/explore" component={Explore} />
           <Route path="/characters">
             <Authenticated>
-              <Home />
+              <MyCharacters />
             </Authenticated>
           </Route>
           <Route path="/chats">

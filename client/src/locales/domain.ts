@@ -117,6 +117,54 @@ export const presetMessages: Record<
     label: "characters:presets.misaki.label",
     tagline: "characters:presets.misaki.tagline",
   },
+  shiyu: {
+    label: "characters:presets.shiyu.label",
+    tagline: "characters:presets.shiyu.tagline",
+  },
+  linxi: {
+    label: "characters:presets.linxi.label",
+    tagline: "characters:presets.linxi.tagline",
+  },
+  zhixia: {
+    label: "characters:presets.zhixia.label",
+    tagline: "characters:presets.zhixia.tagline",
+  },
+  yuehe: {
+    label: "characters:presets.yuehe.label",
+    tagline: "characters:presets.yuehe.tagline",
+  },
+  ningning: {
+    label: "characters:presets.ningning.label",
+    tagline: "characters:presets.ningning.tagline",
+  },
+  jiangyue: {
+    label: "characters:presets.jiangyue.label",
+    tagline: "characters:presets.jiangyue.tagline",
+  },
+  sakura: {
+    label: "characters:presets.sakura.label",
+    tagline: "characters:presets.sakura.tagline",
+  },
+  hikari: {
+    label: "characters:presets.hikari.label",
+    tagline: "characters:presets.hikari.tagline",
+  },
+  tsuki: {
+    label: "characters:presets.tsuki.label",
+    tagline: "characters:presets.tsuki.tagline",
+  },
+  yuna: {
+    label: "characters:presets.yuna.label",
+    tagline: "characters:presets.yuna.tagline",
+  },
+  kaede: {
+    label: "characters:presets.kaede.label",
+    tagline: "characters:presets.kaede.tagline",
+  },
+  shiori: {
+    label: "characters:presets.shiori.label",
+    tagline: "characters:presets.shiori.tagline",
+  },
 };
 export const themeMessages: Record<
   string,

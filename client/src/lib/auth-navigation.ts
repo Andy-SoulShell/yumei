@@ -23,6 +23,16 @@ export function authUrl(mode: AuthMode, returnTo: string) {
   return `${AUTH_PATHS[mode]}?next=${encodeURIComponent(safeReturnTo(returnTo))}`;
 }
 
+/**
+ * 取消认证时回到公开页面；受保护的回跳只在认证成功后使用。
+ * 避免关闭弹框后进入私有页，又被登录守卫立即送回认证入口。
+ */
+export function authDismissUrl(returnTo: string) {
+  const target = safeReturnTo(returnTo);
+  const path = target.split(/[?#]/)[0];
+  return path === "/" || path === "/explore" ? target : "/";
+}
+
 /** 邮件返回当前访问来源；服务端仍会检查来源是否受信任。 */
 export function authCallbackUrl(mode: "reset" | "verify", returnTo: string) {
   return new URL(authUrl(mode, returnTo), window.location.origin).href;

@@ -62,7 +62,7 @@ export default function Generate() {
           <h2>{t("chat:noCompanionYet")}</h2>
           <p>{t("chat:createYourCompanionFirst")}</p>
           <Button asChild>
-            <Link href="/">{t("explore:heroAction")}</Link>
+            <Link href="/explore">{t("explore:heroAction")}</Link>
           </Button>
         </div>
       )}

@@ -229,6 +229,31 @@ describe("email and password forms", () => {
 });
 
 describe("responsive sign-in entry", () => {
+  it("opens registration directly for a homepage call to action", async () => {
+    vi.spyOn(window, "matchMedia").mockReturnValue({
+      matches: true,
+    } as MediaQueryList);
+    await act(async () =>
+      root.render(
+        <SignInButton
+          returnTo="/explore"
+          initialMode="register"
+          label="免费注册，开启故事"
+        />
+      )
+    );
+    expect(container.querySelector("a")?.getAttribute("href")).toBe(
+      "/register?next=%2Fexplore"
+    );
+    await act(async () => {
+      container.querySelector<HTMLAnchorElement>("a")!.click();
+      await new Promise(resolve => setTimeout(resolve, 20));
+    });
+    expect(
+      document.querySelector('[role="dialog"] input[name="confirmPassword"]')
+    ).not.toBeNull();
+    expect(mock.signUp).not.toHaveBeenCalled();
+  });
   it("opens a desktop modal without leaving the page", async () => {
     window.history.replaceState(null, "", "/?character=char-cute");
     vi.spyOn(window, "matchMedia").mockReturnValue({

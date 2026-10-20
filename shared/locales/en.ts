@@ -1,6 +1,54 @@
 /** 英文基准语言包；key 与插值参数构成类型契约。 */
 export default {
+  landing: {
+    bannerLabel: "Meet YUMEI",
+    carousel: "carousel",
+    previousSlide: "Previous slide",
+    nextSlide: "Next slide",
+    goToSlide: "Go to slide {{count}}",
+    pauseSlides: "Pause slideshow",
+    playSlides: "Resume slideshow",
+    createTitle: "Imagine someone",
+    createHighlight: "entirely your own.",
+    createDescription:
+      "From looks to personality, write the first lines of your shared story.",
+    photosTitle: "Turn a shared moment",
+    photosHighlight: "into a picture.",
+    photosDescription:
+      "From a conversation to a scene, give your story a little more color.",
+    photosAction: "Create a moment",
+    allCharacters: "All characters",
+    catalogueDescription: "Say hello to a different little world.",
+    exploreAll: "Explore all characters",
+    faqEyebrow: "Before we meet",
+    faqTitle: "Frequently asked questions",
+    faqDescription: "A few things you might like to know.",
+    "faq.what.question": "What is YUMEI?",
+    "faq.what.answer":
+      "YUMEI is an AI companion app for adults. Choose a character to chat by text or voice, share everyday moments, create your own characters, and generate scene photos. All characters are fictional AI companions.",
+    "faq.free.question": "Can I start for free?",
+    "faq.free.answer":
+      "You can create an account and start for free. Messages, photo generation, and personal characters follow your current plan and service settings. Check your plan and usage in Settings after signing in.",
+    "faq.memory.question": "Will characters remember our conversations?",
+    "faq.memory.answer":
+      "YUMEI can extract long-term memories from conversations and use them in later chats. You can review and manage saved memories on your character's memory page.",
+    "faq.create.question": "Can I create my own character?",
+    "faq.create.answer":
+      "Yes. Customize a preset or upload a reference image and choose a name, appearance, personality, and interests. Your creations are saved in My characters.",
+    "faq.devices.question": "Does it work on phones and computers?",
+    "faq.devices.answer":
+      "Yes. YUMEI works in mobile and desktop browsers and can be added to your phone's home screen. Sign in to the same account to access your characters and conversations.",
+    signupTitle: "Who will you tell your story to?",
+    signupDescription:
+      "Find a companion you click with. Start with a simple hello.",
+    signupAction: "Sign up free",
+    signupNote: "Start free · Sign up with email",
+    welcomeBackTitle: "Your story is still unfolding.",
+    welcomeBackDescription:
+      "Meet someone new, or return to a familiar conversation.",
+  },
   explore: {
+    loadMore: "Load more",
     collapseSidebar: "Collapse navigation",
     expandSidebar: "Expand navigation",
     retry: "Try again",
@@ -741,7 +789,7 @@ export default {
     chooseAPresetToFillInAProfile:
       "Choose a preset to fill in a profile and reference photo, then make it your own. All characters are fictional AI adults.",
     characterStyle: "Character style",
-    all8: "All 8",
+    allCount: "All {{count}}",
     realistic: "Realistic",
     anime: "Anime",
     select: "Select {{name}}",
@@ -767,6 +815,36 @@ export default {
       "The clouds were beautiful today. I saved a photo for you.",
     "presets.misaki.label": "After-hours creative",
     "presets.misaki.tagline": "Work's done. What shall we cook tonight?",
+    "presets.shiyu.label": "Quiet bookshop friend",
+    "presets.shiyu.tagline": "I saved you a seat between the bookshelves.",
+    "presets.linxi.label": "Making everyday bloom",
+    "presets.linxi.tagline": "Today's flowers remind me of your mood.",
+    "presets.zhixia.label": "Record shop guitarist",
+    "presets.zhixia.tagline":
+      "Found a good song. Shall we share a pair of headphones?",
+    "presets.yuehe.label": "Patient ceramic artist",
+    "presets.yuehe.tagline":
+      "The cup is taking shape. We can take our time, too.",
+    "presets.ningning.label": "A thoughtful listener",
+    "presets.ningning.tagline": "The coffee is warm. How has your day been?",
+    "presets.jiangyue.label": "Traveler with stories",
+    "presets.jiangyue.tagline":
+      "So many travel stories, and you're who I want to tell.",
+    "presets.sakura.label": "Gentle tea-time company",
+    "presets.sakura.tagline": "The tea smells lovely. Stay and chat a little?",
+    "presets.hikari.label": "Your stargazing companion",
+    "presets.hikari.tagline":
+      "I'd like to save you a place on tonight's star map.",
+    "presets.tsuki.label": "The library's quiet wit",
+    "presets.tsuki.tagline": "Borrow a book, and lend me a story of your own.",
+    "presets.yuna.label": "Creative home cook",
+    "presets.yuna.tagline": "Recipe ready. Shall we try something new tonight?",
+    "presets.kaede.label": "A little autumn adventure",
+    "presets.kaede.tagline":
+      "I found a beautiful leaf on the trail and saved it for you.",
+    "presets.shiori.label": "A melody just for you",
+    "presets.shiori.tagline":
+      "This little tune is the one I wanted to play for you today.",
   },
   intimacy: {
     intimacy: "Intimacy",

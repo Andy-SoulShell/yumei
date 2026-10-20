@@ -6,20 +6,26 @@ import { Button } from "./ui/button";
 import { Dialog, DialogContent } from "./ui/dialog";
 import { AuthFlow } from "@/features/auth/AuthFlow";
 import { useI18n } from "@/lib/i18n";
-import { loginUrl, safeReturnTo } from "@/lib/navigation";
-import type { AuthMode } from "@/lib/auth-navigation";
+import { safeReturnTo } from "@/lib/navigation";
+import { authUrl, type AuthMode } from "@/lib/auth-navigation";
 
 /** 保留锚点的后备地址，桌面普通点击才切换为弹框。 */
 export function SignInButton({
   returnTo,
   disabled,
+  initialMode = "login",
+  label,
+  className = "header-signin",
 }: {
   returnTo: string;
   disabled?: boolean;
+  initialMode?: "login" | "register";
+  label?: string;
+  className?: string;
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<AuthMode>("login");
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const entry = useRef<HTMLAnchorElement>(null);
   const handleClick = (event: MouseEvent) => {
     if (disabled) {
@@ -39,15 +45,19 @@ export function SignInButton({
       window.innerWidth > 900
     ) {
       event.preventDefault();
-      setMode("login");
+      setMode(initialMode);
       setOpen(true);
     }
   };
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button asChild className="header-signin" disabled={disabled}>
-        <Link ref={entry} href={loginUrl(returnTo)} onClick={handleClick}>
-          {t("explore:signIn")}
+      <Button asChild className={className} disabled={disabled}>
+        <Link
+          ref={entry}
+          href={authUrl(initialMode, returnTo)}
+          onClick={handleClick}
+        >
+          {label ?? t("explore:signIn")}
           <ArrowRight />
         </Link>
       </Button>

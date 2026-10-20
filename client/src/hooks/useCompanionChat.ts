@@ -1,6 +1,6 @@
 /** 将已有或预设角色接入现有会话恢复接口，防止重复点击创建。 */
 import { useRef, useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { apiErrorMessage } from "@/lib/errors";
@@ -13,7 +13,8 @@ import type { CharacterPreset } from "@shared/characterPresets";
 export function useCompanionChat() {
   const { isAuthenticated } = useAuth();
   const { t } = useI18n();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+  const search = useSearch();
   const utils = trpc.useUtils();
   const {
     data: companions,
@@ -35,13 +36,17 @@ export function useCompanionChat() {
   const open = async (role: number | CharacterPreset, selfie = false) => {
     if (busy.current) return;
     if (!isAuthenticated) {
-      navigate(
-        loginUrl(
-          typeof role === "number"
-            ? "/characters"
-            : `/?character=${encodeURIComponent(role.id)}`
-        )
-      );
+      const params = new URLSearchParams(search);
+      if (typeof role !== "number") params.set("character", role.id);
+      const returnTo =
+        typeof role === "number"
+          ? "/characters"
+          : (location === "/" || location === "/explore"
+              ? location
+              : "/explore") +
+            "?" +
+            params.toString();
+      navigate(loginUrl(returnTo));
       return;
     }
     busy.current = true;

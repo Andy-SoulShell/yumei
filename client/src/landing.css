@@ -1,0 +1,307 @@
+/* 公开首页与独立探索目录，继承现有主题和应用导航。 */
+.landing-carousel {
+  min-height: 370px;
+  touch-action: pan-y;
+}
+.landing-carousel .hero-content {
+  padding-bottom: 82px;
+}
+.landing-carousel .hero-content p {
+  max-width: 365px;
+  color: #d3cbd8;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.carousel-controls {
+  position: absolute;
+  z-index: 2;
+  left: 32px;
+  bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #eee5f3;
+}
+.carousel-controls > button {
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 50%;
+}
+.carousel-controls > button:hover {
+  background: #ffffff1a;
+  color: white;
+}
+.carousel-dots {
+  display: flex;
+  align-items: center;
+}
+.carousel-dots button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 40px;
+  border-radius: 8px;
+}
+.carousel-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 10px;
+  background: #ffffff50;
+  transition:
+    width 0.2s,
+    background 0.2s;
+}
+.carousel-dots [aria-pressed="true"] span {
+  width: 20px;
+  background: #ead9f6;
+}
+.landing-page .featured-section {
+  margin-block: 32px 36px;
+}
+.landing-page .featured-grid {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 20px 12px;
+  overflow: visible;
+}
+.landing-page .featured-avatar {
+  width: min(var(--avatar-size), 100%);
+  height: auto;
+}
+.section-heading > a {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.section-description {
+  margin-top: 7px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted-foreground);
+}
+.landing-catalogue {
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+}
+.landing-count {
+  flex: none;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.catalogue-more {
+  display: flex;
+  justify-content: center;
+  padding: 28px 0 0;
+}
+.catalogue-more > a,
+.catalogue-more > button {
+  min-width: 180px;
+  min-height: 44px;
+  border-radius: 12px;
+}
+.landing-faq {
+  display: grid;
+  grid-template-columns: 1fr 1.8fr;
+  gap: 48px;
+  margin-top: 60px;
+  padding-block: 44px 50px;
+  border-top: 1px solid var(--border);
+}
+.landing-section-intro h2 {
+  margin-top: 12px;
+  font-size: clamp(24px, 2.4vw, 32px);
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+.landing-section-intro p {
+  margin-top: 12px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.8;
+}
+.faq-item {
+  border-bottom: 1px solid var(--border);
+}
+.faq-item:first-child {
+  border-top: 1px solid var(--border);
+}
+.faq-question {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100%;
+  min-height: 64px;
+  padding: 18px 4px;
+  border-radius: 6px;
+  color: var(--foreground);
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+.faq-question:hover {
+  color: var(--primary);
+}
+.faq-question svg {
+  flex: none;
+  color: var(--muted-foreground);
+  transition: transform 0.2s;
+}
+.faq-question[data-state="open"] svg {
+  transform: rotate(180deg);
+}
+.faq-answer {
+  padding: 0 30px 22px 4px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.9;
+}
+.landing-signup {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 48px 24px;
+  border: 1px solid color-mix(in oklch, var(--primary) 25%, var(--border));
+  border-radius: 22px;
+  background:
+    radial-gradient(
+      ellipse at 50% 0,
+      color-mix(in oklch, var(--primary) 12%, transparent),
+      transparent 75%
+    ),
+    var(--card);
+  text-align: center;
+}
+.signup-symbol {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 3px;
+  border: 1px solid color-mix(in oklch, var(--primary) 25%, var(--border));
+  border-radius: 19px;
+  background: color-mix(in oklch, var(--primary) 8%, var(--card));
+  color: var(--primary);
+  transform: rotate(-7deg);
+}
+.landing-signup h2 {
+  font-size: clamp(24px, 2.6vw, 36px);
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1.4;
+}
+.landing-signup p {
+  max-width: 440px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.9;
+}
+.landing-signup > a {
+  height: auto;
+  min-height: 46px;
+  margin-top: 8px;
+  padding: 12px 24px;
+  border-radius: 11px;
+  white-space: normal;
+}
+.signup-note {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.explore-directory .catalogue-intro {
+  flex-direction: column;
+  gap: 24px;
+  padding: 18px 0 30px;
+  border-top: 0;
+  text-align: center;
+}
+.explore-directory .catalogue-intro h1 {
+  margin-top: 10px;
+  font-size: clamp(26px, 2.8vw, 38px);
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1.4;
+}
+.explore-directory .explore-search {
+  flex: none;
+  width: min(100%, 680px);
+}
+@media (max-width: 900px) {
+  .landing-page .featured-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .landing-faq {
+    gap: 28px;
+    grid-template-columns: 1fr 1.6fr;
+  }
+}
+@media (max-width: 640px) {
+  .landing-page .featured-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .landing-carousel {
+    min-height: 340px;
+  }
+  .landing-carousel .hero-content {
+    width: 100%;
+    padding: 24px 20px 76px;
+  }
+  .landing-carousel .hero-content h1 {
+    max-width: 300px;
+    font-size: clamp(25px, 7.2vw, 31px);
+  }
+  .landing-carousel .hero-content p {
+    max-width: 260px;
+    font-size: 12px;
+  }
+  .landing-carousel .hero-primary {
+    min-height: 44px;
+    max-width: 100%;
+    white-space: normal;
+  }
+  .carousel-controls {
+    left: 12px;
+    bottom: 10px;
+  }
+  .carousel-controls > button,
+  .carousel-dots button {
+    min-width: 36px;
+    min-height: 44px;
+  }
+  .landing-page .featured-section {
+    margin-block: 26px;
+  }
+  .landing-page .section-heading {
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .landing-page .section-heading h2 {
+    font-size: 17px;
+  }
+  .landing-count {
+    padding-top: 4px;
+    font-size: 10px;
+  }
+  .landing-faq {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+    margin-top: 36px;
+    padding-block: 32px 36px;
+  }
+  .landing-signup {
+    padding: 36px 20px;
+    border-radius: 16px;
+  }
+  .explore-directory .catalogue-intro {
+    padding: 10px 0 24px;
+    gap: 20px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .carousel-dots span,
+  .faq-question svg {
+    transition: none;
+  }
+}

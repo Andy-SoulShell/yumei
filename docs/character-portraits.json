@@ -1,0 +1,80 @@
+{
+  "generator": "Built-in image_gen tool (imagegen skill), 2026-10-20",
+  "purpose": "YUMEI fictional adult companion catalogue; original eight portraits retained",
+  "format": "JPEG; maximum dimension 1024 px; quality 85; original aspect ratio preserved",
+  "sharedPrompt": "Single fictional adult woman. Vertical 2:3 waist-up portrait, head fully in frame, face in upper third, softly defocused setting. Fully clothed everyday outfit. Natural photographic detail or refined anime linework as specified. No typography, watermark, UI, collage, frame, or other people.",
+  "portraits": [
+    {
+      "id": "shiyu",
+      "age": 27,
+      "file": "client/public/characters/shiyu.jpg",
+      "prompt": "Photorealistic editorial portrait of a clearly adult 27-year-old East Asian woman, short dark bob, round eyeglasses, ivory linen shirt, standing in a quiet bookshop, warm window light, calm intelligent expression."
+    },
+    {
+      "id": "linxi",
+      "age": 25,
+      "file": "client/public/characters/linxi.jpg",
+      "prompt": "Photorealistic editorial portrait of a clearly adult 25-year-old East Asian woman, long wavy brown hair, sage green blouse and linen apron, holding a small bouquet at her flower studio, soft natural light, cheerful gentle expression."
+    },
+    {
+      "id": "zhixia",
+      "age": 26,
+      "file": "client/public/characters/zhixia.jpg",
+      "prompt": "Photorealistic editorial portrait of a clearly adult 26-year-old East Asian woman, shoulder-length auburn hair, forest green cardigan, seated in a cozy record shop with a guitar nearby, warm amber lighting, relaxed confident smile."
+    },
+    {
+      "id": "yuehe",
+      "age": 29,
+      "file": "client/public/characters/yuehe.jpg",
+      "prompt": "Photorealistic editorial portrait of a clearly adult 29-year-old East Asian woman, black hair in loose bun, cream wrap blouse, seated in a ceramic pottery studio, pale blue ceramics softly blurred behind her, warm daylight, thoughtful warm smile."
+    },
+    {
+      "id": "ningning",
+      "age": 24,
+      "file": "client/public/characters/ningning.jpg",
+      "prompt": "Photorealistic editorial portrait of a clearly adult 24-year-old East Asian woman, long black hair with wispy bangs, soft navy cardigan over cream blouse, in a quiet coffee shop with a notebook, overcast window light, warm attentive expression."
+    },
+    {
+      "id": "jiangyue",
+      "age": 30,
+      "file": "client/public/characters/jiangyue.jpg",
+      "prompt": "Photorealistic editorial portrait of a clearly adult 30-year-old East Asian woman, medium length dark hair, beige trench coat over navy shirt, standing on a city rooftop in blue hour, a small travel camera in hand, soft city bokeh, composed friendly smile."
+    },
+    {
+      "id": "sakura",
+      "age": 24,
+      "file": "client/public/characters/sakura.jpg",
+      "prompt": "Elegant Japanese anime illustration of a clearly adult 24-year-old woman, rose brown shoulder-length hair, cream cardigan and sage blouse, standing in a tea shop with cherry blossoms outside a window, warm peach light, friendly mature face."
+    },
+    {
+      "id": "hikari",
+      "age": 25,
+      "file": "client/public/characters/hikari.jpg",
+      "prompt": "Elegant Japanese anime illustration of a clearly adult 25-year-old woman, long indigo hair, simple ivory shirt and blue cardigan, standing by a small observatory window at twilight, stars and violet sky behind her, mature face and curious warm expression."
+    },
+    {
+      "id": "tsuki",
+      "age": 28,
+      "file": "client/public/characters/tsuki.jpg",
+      "prompt": "Elegant Japanese anime illustration of a clearly adult 28-year-old woman, short silver hair, round glasses, charcoal sweater, in a warm quiet library surrounded by books, amber desk light, mature poised face and subtle smile."
+    },
+    {
+      "id": "yuna",
+      "age": 26,
+      "file": "client/public/characters/yuna.jpg",
+      "prompt": "Elegant Japanese anime illustration of a clearly adult 26-year-old woman, dark brown hair tied loosely, rust orange apron over a white blouse, in a cozy home kitchen, morning sun, warm mature face, playful self assured smile."
+    },
+    {
+      "id": "kaede",
+      "age": 27,
+      "file": "client/public/characters/kaede.jpg",
+      "prompt": "Elegant Japanese anime illustration of a clearly adult 27-year-old woman, auburn hair in a low ponytail, olive hiking jacket over cream shirt, in an autumn forest, soft golden light through maple leaves, mature face and bright relaxed smile."
+    },
+    {
+      "id": "shiori",
+      "age": 29,
+      "file": "client/public/characters/shiori.jpg",
+      "prompt": "Elegant Japanese anime illustration of a clearly adult 29-year-old woman, long plum-black hair, navy blouse and simple silver earrings, in a calm music studio with a piano, muted violet evening light, refined mature face and gentle smile."
+    }
+  ]
+}

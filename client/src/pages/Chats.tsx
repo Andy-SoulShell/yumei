@@ -109,7 +109,7 @@ export default function Chats() {
               : t("home:chooseACompanionToStartChatting")}
           </p>
           <Button asChild>
-            <Link href="/">{t("explore:heroAction")}</Link>
+            <Link href="/explore">{t("explore:heroAction")}</Link>
           </Button>
         </div>
       )}

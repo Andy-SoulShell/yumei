@@ -1,7 +1,52 @@
 /** 与英文基准包保持相同 key 和插值参数。 */
 import type { MessageCatalog } from "./types";
 export default {
+  landing: {
+    bannerLabel: "YUMEI との出会い",
+    carousel: "カルーセル",
+    previousSlide: "前のスライド",
+    nextSlide: "次のスライド",
+    goToSlide: "{{count}} 枚目へ",
+    pauseSlides: "自動切り替えを停止",
+    playSlides: "自動切り替えを再開",
+    createTitle: "あなたの想像から、",
+    createHighlight: "かけがえのない存在へ。",
+    createDescription: "外見から性格まで、ふたりの物語の最初の一行を。",
+    photosTitle: "一緒に過ごした瞬間を、",
+    photosHighlight: "一枚の写真に。",
+    photosDescription: "何気ない会話からひとつの場面へ。物語に彩りを添えよう。",
+    photosAction: "思い出を形にする",
+    allCharacters: "すべてのキャラクター",
+    catalogueDescription: "「こんにちは」から、新しい世界に出会おう。",
+    exploreAll: "すべてのキャラクターを探す",
+    faqEyebrow: "出会う前に",
+    faqTitle: "よくある質問",
+    faqDescription: "知っておきたいことを、ここから。",
+    "faq.what.question": "YUMEI とは？",
+    "faq.what.answer":
+      "YUMEI は成人向けの AI コンパニオンアプリです。好きなキャラクターと文字や音声で話したり、日常を共有したり、オリジナルキャラクターや場面写真を作成できます。すべて架空の AI キャラクターです。",
+    "faq.free.question": "無料で始められますか？",
+    "faq.free.answer":
+      "無料で登録して体験できます。メッセージ、写真生成、個人キャラクター数にはプランとサービス設定に応じた制限があります。ログイン後、設定でプランと利用量をご確認ください。",
+    "faq.memory.question": "会話を覚えてくれますか？",
+    "faq.memory.answer":
+      "YUMEI は会話から長期記憶を抽出し、次の会話に活用できます。保存された記憶はキャラクターの記憶ページで確認・管理できます。",
+    "faq.create.question": "自分のキャラクターを作れますか？",
+    "faq.create.answer":
+      "はい。プリセットを編集したり、参考画像をアップロードして名前、外見、性格、興味を設定できます。作成したキャラクターは「マイキャラクター」に保存されます。",
+    "faq.devices.question": "スマホとパソコンで使えますか？",
+    "faq.devices.answer":
+      "はい。スマホとパソコンのブラウザに対応し、スマホのホーム画面にも追加できます。同じアカウントでログインすると、自分のキャラクターや会話にアクセスできます。",
+    signupTitle: "今日の話、誰に聞いてほしい？",
+    signupDescription:
+      "気の合う相手との出会いは、ひとことの「こんにちは」から。",
+    signupAction: "無料登録して始める",
+    signupNote: "無料でスタート · メールで登録",
+    welcomeBackTitle: "あなたの物語は、まだ続く。",
+    welcomeBackDescription: "新しい相手に出会う。いつもの会話に戻る。",
+  },
   explore: {
+    loadMore: "もっと見る",
     collapseSidebar: "ナビゲーションを折りたたむ",
     expandSidebar: "ナビゲーションを展開",
     retry: "再試行",
@@ -742,7 +787,7 @@ export default {
     chooseAPresetToFillInAProfile:
       "選ぶとプロフィールと参考写真が入力され、自由に編集できます。全キャラクターは成人の架空の AI 人物です。",
     characterStyle: "キャラクターの画風",
-    all8: "全8人",
+    allCount: "すべて（{{count}} 人）",
     realistic: "リアル",
     anime: "アニメ",
     select: "{{name}}を選択",
@@ -766,6 +811,33 @@ export default {
       "今日の雲が綺麗だったから、あなたに一枚撮っておいたよ。",
     "presets.misaki.label": "仕事終わりの暮らし上手",
     "presets.misaki.tagline": "お仕事おしまい！今夜は何を作ろうか？",
+    "presets.shiyu.label": "本屋の穏やかな友だち",
+    "presets.shiyu.tagline": "本棚の間に、あなたの席を空けておいたよ。",
+    "presets.linxi.label": "日々に花を添える人",
+    "presets.linxi.tagline": "今日の花束、あなたの気分に似た色だね。",
+    "presets.zhixia.label": "レコード店のギタリスト",
+    "presets.zhixia.tagline": "いい曲を見つけたよ。イヤホンを片方ずつ、どう？",
+    "presets.yuehe.label": "ゆったりした陶芸家",
+    "presets.yuehe.tagline": "器も少しずつ形になる。私たちも焦らなくていいね。",
+    "presets.ningning.label": "じっくり話を聴く人",
+    "presets.ningning.tagline":
+      "コーヒーがちょうどいい温かさ。今日はどんな日だった？",
+    "presets.jiangyue.label": "物語を持ち帰る旅人",
+    "presets.jiangyue.tagline":
+      "旅の話がたくさんあるけど、いちばんあなたに聞いてほしい。",
+    "presets.sakura.label": "お茶の香りと優しい時間",
+    "presets.sakura.tagline": "今日のお茶、いい香り。少しゆっくり話さない？",
+    "presets.hikari.label": "一緒に星を見上げる人",
+    "presets.hikari.tagline": "今夜の星図に、あなたの場所を残しておきたいな。",
+    "presets.tsuki.label": "図書館の静かなユーモア",
+    "presets.tsuki.tagline": "本を一冊貸すから、あなたの話も聞かせて。",
+    "presets.yuna.label": "台所のアイデアメーカー",
+    "presets.yuna.tagline": "レシピは決まったよ。今夜は新しい味を試さない？",
+    "presets.kaede.label": "秋を届ける自然ガイド",
+    "presets.kaede.tagline":
+      "道で見つけたきれいな葉っぱ、あなたに取っておいたよ。",
+    "presets.shiori.label": "あなたに贈るメロディー",
+    "presets.shiori.tagline": "この短い旋律、今日はあなたに弾きたくなったの。",
   },
   intimacy: {
     intimacy: "親密度",

@@ -13,7 +13,7 @@ const mock = vi.hoisted(() => ({
 }));
 vi.mock("wouter", async importOriginal => ({
   ...(await importOriginal<typeof import("wouter")>()),
-  useLocation: () => ["/", mock.navigate],
+  useLocation: () => ["/explore", mock.navigate],
   useSearch: () => mock.query,
 }));
 vi.mock("@/lib/i18n", () => ({
@@ -57,6 +57,10 @@ beforeEach(() => {
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
+  mock.navigate.mockImplementation((url: string) => {
+    mock.query = url.split("?")[1] ?? "";
+    root.render(<Explore />);
+  });
 });
 afterEach(async () => {
   await act(async () => root.unmount());
@@ -67,7 +71,10 @@ afterEach(async () => {
 describe("exploration", () => {
   it("filters the catalog by localized label and offers a useful empty state", async () => {
     await settle(() => root.render(<Explore />));
-    expect(container.querySelectorAll(".character-card")).toHaveLength(8);
+    expect(container.querySelectorAll(".character-card")).toHaveLength(20);
+    expect(
+      container.querySelector(".explore-hero, .featured-section")
+    ).toBeNull();
     const input = container.querySelector("input")!;
     const setValue = Object.getOwnPropertyDescriptor(
       HTMLInputElement.prototype,
@@ -91,7 +98,7 @@ describe("exploration", () => {
       ".explore-empty button"
     )!;
     await settle(() => reset.click());
-    expect(container.querySelectorAll(".character-card")).toHaveLength(8);
+    expect(container.querySelectorAll(".character-card")).toHaveLength(20);
   });
   it("uses one style selection and preserves a selected preset in the URL", async () => {
     await settle(() => root.render(<Explore />));
@@ -99,16 +106,52 @@ describe("exploration", () => {
       '[role="radio"][value="anime"]'
     )!;
     await settle(() => anime.click());
-    expect(container.querySelectorAll(".character-card")).toHaveLength(4);
+    expect(container.querySelectorAll(".character-card")).toHaveLength(10);
     expect(
       container.querySelectorAll('[role="radio"][aria-checked="true"]')
     ).toHaveLength(1);
     await settle(() =>
       container.querySelector<HTMLButtonElement>(".character-card")!.click()
     );
-    expect(mock.navigate).toHaveBeenCalledWith("/?character=momoka", {
-      replace: true,
-    });
+    expect(mock.navigate).toHaveBeenCalledWith(
+      "/explore?style=anime&character=momoka",
+      {
+        replace: true,
+      }
+    );
+  });
+  it("restores URL filters and closes details without losing the search or page", async () => {
+    mock.query = "q=策展&style=realistic&page=2";
+    await settle(() => root.render(<Explore />));
+    expect(container.querySelector("input")?.value).toBe("策展");
+    expect(container.querySelectorAll(".character-card")).toHaveLength(1);
+    const card = container.querySelector<HTMLButtonElement>(".character-card")!;
+    card.focus();
+    await settle(() => card.click());
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
+      "凛"
+    );
+    await settle(() =>
+      document
+        .querySelector<HTMLButtonElement>('[data-slot="dialog-close"]')!
+        .click()
+    );
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(new URLSearchParams(mock.query).get("q")).toBe("策展");
+    expect(new URLSearchParams(mock.query).get("style")).toBe("realistic");
+    expect(new URLSearchParams(mock.query).get("page")).toBe("2");
+    expect(new URLSearchParams(mock.query).has("character")).toBe(false);
+    expect(document.activeElement).toBe(card);
+  });
+  it("normalizes invalid filter and page values for a usable public directory", async () => {
+    mock.query = "style=unknown&page=Infinity";
+    await settle(() => root.render(<Explore />));
+    expect(container.querySelectorAll(".character-card")).toHaveLength(20);
+    expect(
+      container
+        .querySelector('[role="radio"][value="all"]')
+        ?.getAttribute("aria-checked")
+    ).toBe("true");
   });
   it("opens the selected character's existing chat flow from the detail dialog", async () => {
     mock.query = "character=rin";

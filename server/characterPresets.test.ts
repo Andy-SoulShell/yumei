@@ -29,7 +29,7 @@ afterEach(() => {
 });
 
 describe("character preset creation", () => {
-  it("creates all eight presets with bundled JPEG bytes in the user's storage, preserving edited fields", async () => {
+  it("creates every preset with bundled JPEG bytes in the user's storage, preserving edited fields", async () => {
     for (const preset of CHARACTER_PRESETS) {
       const result = await caller.girlfriend.create({
         ...profile,

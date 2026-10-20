@@ -8,6 +8,8 @@ import { useCompanionChat } from "./useCompanionChat";
 
 const mock = vi.hoisted(() => ({
   authenticated: true,
+  location: "/",
+  query: "",
   roles: [] as Array<{
     id: number;
     name: string;
@@ -21,7 +23,10 @@ const mock = vi.hoisted(() => ({
   invalidate: vi.fn(),
   toast: vi.fn(),
 }));
-vi.mock("wouter", () => ({ useLocation: () => ["/", mock.navigate] }));
+vi.mock("wouter", () => ({
+  useLocation: () => [mock.location, mock.navigate],
+  useSearch: () => mock.query,
+}));
 vi.mock("@/_core/hooks/useAuth", () => ({
   useAuth: () => ({ isAuthenticated: mock.authenticated }),
 }));
@@ -55,6 +60,8 @@ beforeEach(async () => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   vi.clearAllMocks();
   mock.authenticated = true;
+  mock.location = "/";
+  mock.query = "";
   mock.roles = [];
   mock.invalidate.mockResolvedValue(undefined);
   mock.fetch.mockImplementation(async () => mock.roles);
@@ -91,6 +98,17 @@ describe("companion chat entry", () => {
     expect(mock.create).not.toHaveBeenCalled();
     expect(mock.resume).toHaveBeenCalledWith({ girlfriendId: 7 });
     expect(mock.navigate).toHaveBeenCalledWith("/chat/42");
+  });
+  it("preserves the explore search, style and loaded page through login", async () => {
+    mock.authenticated = false;
+    mock.location = "/explore";
+    mock.query = "q=coffee&style=realistic&page=2";
+    await act(async () => root.render(<Harness />));
+    await act(async () => chat.open(preset));
+    expect(mock.navigate).toHaveBeenCalledWith(
+      "/login?next=%2Fexplore%3Fq%3Dcoffee%26style%3Drealistic%26page%3D2%26character%3Dxiaotao"
+    );
+    expect(mock.create).not.toHaveBeenCalled();
   });
   it("creates a preset using its canonical profile before resuming chat", async () => {
     await act(async () => chat.open(preset));

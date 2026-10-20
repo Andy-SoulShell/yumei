@@ -1,7 +1,52 @@
 /** 与英文基准包保持相同 key 和插值参数。 */
 import type { MessageCatalog } from "./types";
 export default {
+  landing: {
+    bannerLabel: "YUMEI 만나기",
+    carousel: "슬라이드",
+    previousSlide: "이전 슬라이드",
+    nextSlide: "다음 슬라이드",
+    goToSlide: "{{count}}번째 슬라이드로 이동",
+    pauseSlides: "자동 전환 일시 정지",
+    playSlides: "자동 전환 재개",
+    createTitle: "너의 상상으로,",
+    createHighlight: "단 하나뿐인 동행을.",
+    createDescription: "외모부터 성격까지, 함께할 이야기의 첫 줄을 써 보세요.",
+    photosTitle: "함께한 순간을,",
+    photosHighlight: "사진 한 장에.",
+    photosDescription:
+      "일상의 대화에서 하나의 장면으로, 이야기에 색을 더해 보세요.",
+    photosAction: "함께 장면 만들기",
+    allCharacters: "모든 캐릭터",
+    catalogueDescription: "안녕이라는 한마디로 새로운 세상을 만나세요.",
+    exploreAll: "모든 캐릭터 탐색",
+    faqEyebrow: "만나기 전에",
+    faqTitle: "자주 묻는 질문",
+    faqDescription: "궁금한 이야기는 여기서 시작해 보세요.",
+    "faq.what.question": "YUMEI는 무엇인가요?",
+    "faq.what.answer":
+      "YUMEI는 성인을 위한 AI 동행 앱입니다. 마음에 드는 캐릭터와 글이나 음성으로 대화하고, 일상을 나누고, 나만의 캐릭터와 장면 사진을 만들 수 있어요. 모든 캐릭터는 가상의 AI 인물입니다.",
+    "faq.free.question": "무료로 시작할 수 있나요?",
+    "faq.free.answer":
+      "무료로 가입하고 체험할 수 있어요. 메시지, 사진 생성, 개인 캐릭터 수는 현재 요금제와 서비스 설정에 따라 제한됩니다. 로그인 후 설정에서 요금제와 사용량을 확인하세요.",
+    "faq.memory.question": "캐릭터가 대화를 기억하나요?",
+    "faq.memory.answer":
+      "YUMEI는 대화에서 장기 기억을 추출해 이후 대화에 활용할 수 있어요. 저장된 기억은 캐릭터의 기억 페이지에서 확인하고 관리할 수 있어요.",
+    "faq.create.question": "나만의 캐릭터를 만들 수 있나요?",
+    "faq.create.answer":
+      "네. 기본 캐릭터를 수정하거나 참고 이미지를 업로드해 이름, 외모, 성격, 관심사를 설정할 수 있어요. 만든 캐릭터는 내 캐릭터에 저장돼요.",
+    "faq.devices.question": "휴대폰과 컴퓨터에서 모두 쓸 수 있나요?",
+    "faq.devices.answer":
+      "네. 휴대폰과 컴퓨터 브라우저에 맞춰져 있으며 휴대폰 홈 화면에도 추가할 수 있어요. 같은 계정으로 로그인하면 내 캐릭터와 대화 기록에 접근할 수 있어요.",
+    signupTitle: "오늘 이야기는 누구에게 들려줄까요?",
+    signupDescription: "마음이 맞는 동행과의 만남, 안녕이라는 한마디부터.",
+    signupAction: "무료로 가입하고 시작하기",
+    signupNote: "무료로 시작 · 이메일 가입",
+    welcomeBackTitle: "너의 이야기는 계속돼요.",
+    welcomeBackDescription: "새로운 동행을 만나거나, 익숙한 대화로 돌아가세요.",
+  },
   explore: {
+    loadMore: "더 보기",
     collapseSidebar: "메뉴 접기",
     expandSidebar: "메뉴 펼치기",
     retry: "다시 시도",
@@ -723,7 +768,7 @@ export default {
     chooseAPresetToFillInAProfile:
       "선택하면 프로필과 참고 사진이 입력되며 자유롭게 수정할 수 있어요. 모든 캐릭터는 가상의 성인 AI 인물이에요.",
     characterStyle: "캐릭터 스타일",
-    all8: "전체 8명",
+    allCount: "전체 {{count}}명",
     realistic: "실사",
     anime: "애니메이션",
     select: "{{name}} 선택",
@@ -747,6 +792,33 @@ export default {
       "오늘 구름이 예뻐서 너에게 보여 주려고 한 장 찍었어.",
     "presets.misaki.label": "퇴근 후의 생활 예술가",
     "presets.misaki.tagline": "퇴근했어! 오늘 저녁은 뭘 해 먹을까?",
+    "presets.shiyu.label": "서점의 차분한 친구",
+    "presets.shiyu.tagline": "책장 사이에 네 자리를 하나 남겨 뒀어.",
+    "presets.linxi.label": "일상에 꽃을 더하는 사람",
+    "presets.linxi.tagline": "오늘 꽃다발 색이 네 기분을 닮았어.",
+    "presets.zhixia.label": "레코드 가게의 기타리스트",
+    "presets.zhixia.tagline": "좋은 노래를 찾았어. 이어폰 하나씩 나눠 낄래?",
+    "presets.yuehe.label": "느긋한 도예가",
+    "presets.yuehe.tagline":
+      "잔이 천천히 모양을 잡고 있어. 우리도 서두르지 말자.",
+    "presets.ningning.label": "네 이야기를 듣는 사람",
+    "presets.ningning.tagline": "커피가 딱 따뜻해. 오늘 하루는 어땠어?",
+    "presets.jiangyue.label": "이야기를 가져오는 여행자",
+    "presets.jiangyue.tagline":
+      "여행 이야기가 많지만, 가장 들려주고 싶은 사람은 너야.",
+    "presets.sakura.label": "차 향기 속 다정한 동행",
+    "presets.sakura.tagline": "오늘 차 향이 참 좋아. 천천히 이야기할래?",
+    "presets.hikari.label": "함께 별을 보는 사람",
+    "presets.hikari.tagline": "오늘 밤 별 지도에 네 자리를 남겨 두고 싶어.",
+    "presets.tsuki.label": "도서관의 조용한 유머",
+    "presets.tsuki.tagline": "책 한 권 빌려줄게. 네 이야기도 들려줘.",
+    "presets.yuna.label": "부엌 속 아이디어 메이커",
+    "presets.yuna.tagline":
+      "레시피 골랐어. 오늘 저녁엔 새로운 맛을 시도해 볼까?",
+    "presets.kaede.label": "가을을 전하는 자연 안내자",
+    "presets.kaede.tagline": "길에서 예쁜 잎을 주웠어. 네 몫으로 남겨 뒀지.",
+    "presets.shiori.label": "너를 위한 짧은 선율",
+    "presets.shiori.tagline": "이 짧은 멜로디, 오늘은 너에게 들려주고 싶었어.",
   },
   intimacy: {
     intimacy: "친밀도",

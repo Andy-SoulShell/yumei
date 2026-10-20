@@ -1,8 +1,33 @@
 /** 认证地址保留安全回跳，邮件回调无法携带外站跳转。 */
 import { describe, expect, it } from "vitest";
-import { authModeForPath, authUrl } from "./auth-navigation";
+import { authDismissUrl, authModeForPath, authUrl } from "./auth-navigation";
 
 describe("authentication navigation", () => {
+  it.each([
+    "/generate",
+    "/setup?preset=rin",
+    "/characters",
+    "/chat/42",
+    "/settings",
+  ])(
+    "dismisses authentication for protected target %s to a public page",
+    target => {
+      expect(authDismissUrl(target)).toBe("/");
+      expect(
+        new URL(
+          authUrl("login", target),
+          "https://yumei.test"
+        ).searchParams.get("next")
+      ).toBe(target);
+    }
+  );
+  it.each([
+    "/",
+    "/?character=rin",
+    "/explore?q=coffee&style=realistic&character=shiyu",
+  ])("returns to the original public preview when dismissing %s", target =>
+    expect(authDismissUrl(target)).toBe(target)
+  );
   it("recognizes all authentication routes without consuming business routes", () => {
     expect(authModeForPath("/register")).toBe("register");
     expect(authModeForPath("/reset-password")).toBe("reset");

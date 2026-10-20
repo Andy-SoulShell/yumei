@@ -41,7 +41,10 @@ export function CharacterPresetPicker({
       >
         {(
           [
-            ["all", t("characters:all8")],
+            [
+              "all",
+              t("characters:allCount", { count: CHARACTER_PRESETS.length }),
+            ],
             ["realistic", t("characters:realistic")],
             ["anime", t("characters:anime")],
           ] as const

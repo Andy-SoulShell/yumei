@@ -127,16 +127,15 @@ export function BehaviorSettings({
                 size="none"
                 type="button"
                 key={tpl.label}
+                aria-pressed={globalPrompt === tpl.text}
                 onClick={() => {
                   setGlobalPrompt(tpl.text);
                   toast.success(
                     t("settings:templateApplied", { name: tpl.label })
                   );
                 }}
-                className={`text-left p-2.5 rounded-lg border text-sm transition-all hover:border-primary/40 hover:bg-primary/5 ${
-                  globalPrompt === tpl.text
-                    ? "border-primary bg-primary/10"
-                    : "border-border"
+                className={`text-left p-2.5 rounded-xl text-sm transition-colors hover:bg-primary/5 ${
+                  globalPrompt === tpl.text ? "bg-primary/10" : "bg-muted/40"
                 }`}
               >
                 <span className="font-medium">{tpl.label}</span>
@@ -149,7 +148,7 @@ export function BehaviorSettings({
         <Collapsible
           open={showAdvancedPrompt}
           onOpenChange={setShowAdvancedPrompt}
-          className="border-t pt-4"
+          className="pt-4"
         >
           <CollapsibleTrigger asChild>
             <Button
@@ -201,7 +200,7 @@ export function BehaviorSettings({
         </Collapsible>
 
         {/* AI 行为设定保存生效按钮 */}
-        <div className="pt-3 border-t">
+        <div className="pt-3">
           <Button
             className="w-full"
             onClick={handleSaveAiConfig}

@@ -110,10 +110,10 @@ export function SelfiePoseDialog({
                     ? t("selfie:unlocksAtIntimacyLv", { level: pose.minLevel })
                     : t(poseMessages[pose.id])
                 }
-                className={`flex flex-col items-center gap-1 rounded-lg border p-3 text-sm transition-colors ${
+                className={`flex flex-col items-center gap-1 rounded-2xl p-3 text-sm transition-colors ${
                   locked
                     ? "opacity-45 cursor-not-allowed bg-muted/40"
-                    : "hover:border-primary hover:bg-primary/5"
+                    : "bg-muted/40 hover:bg-primary/10"
                 }`}
                 onClick={() => {
                   onSelectPose(pose.id, selectedMode);
@@ -143,7 +143,7 @@ export function SelfiePoseDialog({
           })}
         </div>
 
-        <div className="border-t pt-3">
+        <div className="pt-3">
           <Input
             ref={fileInputRef}
             type="file"

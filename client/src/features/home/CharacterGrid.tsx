@@ -96,7 +96,7 @@ export function CharacterGrid({
           <Card
             key={gf.id}
             className={`companion-card transition-all hover:shadow-md ${
-              gf.isActive ? "ring-2 ring-primary" : ""
+              gf.isActive ? "is-active" : ""
             } ${isSelected ? "ring-2 ring-destructive bg-destructive/5" : ""}`}
           >
             <CardContent className="p-3 sm:p-4">

@@ -41,7 +41,7 @@ export function CharacterPrompt({
     <Collapsible
       open={showCustomPrompt}
       onOpenChange={setShowCustomPrompt}
-      className="border-t pt-4"
+      className="pt-4"
     >
       <CollapsibleTrigger asChild>
         <Button

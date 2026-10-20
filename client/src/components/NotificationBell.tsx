@@ -144,7 +144,7 @@ export function NotificationBell() {
         </Button>
       </SheetTrigger>
       <SheetContent side="right" className="w-[320px] sm:w-[380px] p-0">
-        <SheetHeader className="pl-4 pr-16 pt-4 pb-3 border-b border-border">
+        <SheetHeader className="pl-4 pr-16 pt-4 pb-3">
           <div className="flex items-center justify-between">
             <SheetTitle className="text-lg">
               {t("notifications:notifications")}
@@ -180,7 +180,7 @@ export function NotificationBell() {
               <p className="text-sm">{t("notifications:noNotificationsYet")}</p>
             </div>
           ) : (
-            <div className="divide-y divide-border">
+            <div className="space-y-2">
               {notifications.map((notif: any) => (
                 <div
                   key={notif.id}

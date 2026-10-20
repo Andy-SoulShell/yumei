@@ -57,10 +57,10 @@ function RadioGroupChoice({
     <RadioGroupPrimitive.Item
       data-slot="radio-group-choice"
       className={cn(
-        "min-w-0 rounded-lg border text-left transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50",
+        "min-w-0 rounded-xl text-left transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50",
         variant === "card"
-          ? "border-border hover:border-primary/40 data-[state=checked]:border-primary data-[state=checked]:bg-primary/5"
-          : "inline-flex h-9 items-center justify-center gap-2 border-input px-3 text-sm font-medium hover:bg-accent data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
+          ? "bg-muted/40 hover:bg-accent data-[state=checked]:bg-primary/10"
+          : "inline-flex h-9 items-center justify-center gap-2 bg-secondary/70 px-3 text-sm font-medium hover:bg-accent data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
         className
       )}
       {...props}

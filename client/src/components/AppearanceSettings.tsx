@@ -259,7 +259,7 @@ export function AppearanceSettings() {
                 <RadioGroupChoice
                   key={id}
                   value={id}
-                  className={`flex min-h-24 items-center gap-3 rounded-2xl border px-4 py-4 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${selected ? "border-primary/60 bg-primary/10" : "border-border bg-muted/30 hover:border-primary/40 hover:bg-muted/60"}`}
+                  className={`flex min-h-24 items-center gap-3 rounded-2xl px-4 py-4 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${selected ? "bg-primary/10" : "bg-muted/40 hover:bg-muted/70"}`}
                 >
                   <ThemeOption theme={id} />
                   {selected && (

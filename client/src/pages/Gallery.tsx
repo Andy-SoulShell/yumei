@@ -52,7 +52,7 @@ export default function Gallery() {
   return (
     <div className="min-h-full bg-background">
       {/* 顶部导航栏 */}
-      <header className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 border-b bg-card sticky top-0 z-10">
+      <header className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 page-toolbar sticky top-0 z-10">
         <Button
           variant="ghost"
           size="icon"

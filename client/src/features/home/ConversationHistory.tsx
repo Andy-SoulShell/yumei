@@ -65,7 +65,7 @@ export function ConversationHistory({
       }}
     >
       <SheetContent side="left" className="w-[85vw] max-w-[360px] p-0">
-        <SheetHeader className="p-4 pb-2 border-b">
+        <SheetHeader className="p-4 pb-2">
           <SheetTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-primary" />
             {t("home:chatHistory")}
@@ -153,7 +153,7 @@ export function ConversationHistory({
           {displayConversations && displayConversations.length > 0 && (
             <div>
               {isSearchMode && (
-                <div className="px-4 py-2 bg-muted/30 border-b">
+                <div className="px-4 py-2 bg-muted/30">
                   <p className="text-xs text-muted-foreground">
                     {t("home:searchCount", {
                       count: displayConversations.length,
@@ -161,7 +161,7 @@ export function ConversationHistory({
                   </p>
                 </div>
               )}
-              <div className="divide-y">
+              <div className="space-y-2">
                 {displayConversations.map(convo => (
                   <Button
                     variant="plain"

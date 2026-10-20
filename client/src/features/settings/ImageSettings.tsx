@@ -91,7 +91,7 @@ export function ImageSettings({
 
         {/* fal.ai 配置保存生效按钮 */}
         {falApiKey.length > 0 && (
-          <div className="pt-3 border-t">
+          <div className="pt-3">
             <Button
               className="w-full"
               onClick={handleSaveFalConfig}

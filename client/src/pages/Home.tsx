@@ -1,3 +1,4 @@
+import { Link } from "wouter";
 import { PageError } from "@/components/PageError";
 import { PullToRefreshIndicator } from "@/components/PullToRefreshIndicator";
 import {
@@ -67,7 +68,7 @@ export default function MyCharacters() {
   // 已登录 - 女友列表
   return (
     <div className="min-h-full bg-background">
-      <header className="characters-toolbar flex flex-wrap items-center justify-between gap-3 border-b px-4 py-4 sm:px-8">
+      <header className="characters-toolbar page-toolbar flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-8">
         <h1 className="min-w-0 flex-1 text-lg font-semibold">
           {t("explore:navCharacters")}
         </h1>
@@ -206,35 +207,18 @@ export default function MyCharacters() {
         {/* 快捷入口 */}
         {girlfriends && girlfriends.length > 0 && !batchMode && (
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            <Card
-              className="cursor-pointer hover:shadow-md transition-all"
-              onClick={() => setLocation("/gallery")}
-            >
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Image className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-sm">
-                    {t("common:photoGallery")}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card
-              className="cursor-pointer hover:shadow-md transition-all"
-              onClick={() => setLocation("/settings")}
-            >
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Settings className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-sm">{t("home:apiSettings")}</p>
-                </div>
-              </CardContent>
-            </Card>
+            <Link href="/gallery" className="surface-card quick-entry">
+              <span className="quick-entry-icon">
+                <Image className="size-5" />
+              </span>
+              <span>{t("common:photoGallery")}</span>
+            </Link>
+            <Link href="/settings" className="surface-card quick-entry">
+              <span className="quick-entry-icon">
+                <Settings className="size-5" />
+              </span>
+              <span>{t("home:apiSettings")}</span>
+            </Link>
           </div>
         )}
       </div>

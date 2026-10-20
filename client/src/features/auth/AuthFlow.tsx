@@ -327,7 +327,7 @@ export function AuthFlow(props: {
           )}
         </form>
       )}
-      <p className="border-t pt-4 text-xs leading-relaxed text-muted-foreground">
+      <p className="pt-4 text-xs leading-relaxed text-muted-foreground">
         {t("auth:guide18OnlyCompanionsOnYUMEIAreAIGenerated")}
       </p>
     </div>

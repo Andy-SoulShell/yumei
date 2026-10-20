@@ -43,7 +43,7 @@ export function CharacterTrash({
   return (
     <Sheet open={trashOpen} onOpenChange={setTrashOpen}>
       <SheetContent side="right" className="w-[85vw] max-w-[360px] p-0">
-        <SheetHeader className="p-4 pb-3 border-b">
+        <SheetHeader className="p-4 pb-3">
           <SheetTitle className="flex items-center gap-2">
             <Trash className="w-5 h-5 text-destructive" />
             {t("home:trash")}
@@ -71,7 +71,7 @@ export function CharacterTrash({
               </p>
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="space-y-2">
               {trashItems.map(gf => {
                 const remaining = getRemainingDays(gf.deletedAt);
                 return (

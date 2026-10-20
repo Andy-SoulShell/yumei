@@ -44,7 +44,7 @@ export function ElevenLabsVoiceSettings({
   ttsGenerate,
 }: Props) {
   return (
-    <div className="space-y-4 pt-2 border-t">
+    <div className="space-y-4 pt-2">
       <div className="space-y-2">
         <Label
           htmlFor="elevenlabsKey"

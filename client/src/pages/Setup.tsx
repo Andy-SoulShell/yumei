@@ -182,7 +182,7 @@ export default function Setup() {
 
                 {/* 删除按钮 - 仅编辑模式显示 */}
                 {isEditing && (
-                  <div className="pt-4 border-t">
+                  <div className="pt-4">
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button

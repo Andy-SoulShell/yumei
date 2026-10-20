@@ -126,10 +126,10 @@ export function VoiceSettings(state: Props) {
               <RadioGroupChoice
                 key={option.value}
                 value={option.value}
-                className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all ${
+                className={`flex items-center gap-3 p-3 rounded-xl text-left transition-all ${
                   ttsProvider === option.value
-                    ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                    : "border-border hover:border-primary/30 hover:bg-accent/30"
+                    ? "bg-primary/10"
+                    : "bg-muted/40 hover:bg-accent/60"
                 }`}
               >
                 <div
@@ -164,7 +164,7 @@ export function VoiceSettings(state: Props) {
 
         {/* ===== 浏览器内置语音配置 ===== */}
         {ttsProvider === "browser" && (
-          <div className="space-y-3 pt-2 border-t">
+          <div className="space-y-3 pt-2">
             <Button
               variant="outline"
               size="sm"
@@ -187,7 +187,7 @@ export function VoiceSettings(state: Props) {
 
         {/* 语音配置保存生效按钮 */}
         {ttsProvider !== "browser" && (
-          <div className="pt-3 border-t">
+          <div className="pt-3">
             <Button
               className="w-full"
               onClick={handleSaveVoiceConfig}

@@ -101,7 +101,7 @@ export function ChatHeader({
     ? t("chat:turnOffAutoRead")
     : t("chat:turnOnAutoRead");
   return (
-    <header className="chat-header border-b bg-card">
+    <header className="chat-header">
       <Button
         variant="ghost"
         size="icon"

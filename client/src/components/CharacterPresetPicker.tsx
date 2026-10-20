@@ -97,7 +97,7 @@ export function CharacterPresetPicker({
                   key={preset.id}
                   value={preset.id}
                   aria-label={t("characters:select", { name: preset.name })}
-                  className={`relative overflow-hidden rounded-xl border text-left transition-colors focus-visible:outline-2 focus-visible:outline-primary ${selectedId === preset.id ? "border-primary ring-2 ring-primary" : "border-border hover:border-primary/60"}`}
+                  className={`relative overflow-hidden rounded-2xl text-left transition-colors focus-visible:outline-2 focus-visible:outline-primary ${selectedId === preset.id ? "ring-2 ring-primary" : "bg-muted/30 hover:bg-muted/60"}`}
                 >
                   <img
                     src={preset.imageUrl}

@@ -226,7 +226,7 @@ export function ChatModelSettings({
         )}
         {/* LLM 配置保存生效按钮 */}
         {(openRouterKey.length > 0 || selectedModel) && (
-          <div className="pt-3 border-t">
+          <div className="pt-3">
             <Button
               className="w-full"
               onClick={handleSaveLlmConfig}

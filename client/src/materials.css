@@ -1,0 +1,270 @@
+/* 内容使用安静的实色表面，玻璃材质仅用于导航、输入托盘和浮层。 */
+:root {
+  --surface-panel: color-mix(in oklch, var(--card) 94%, var(--background));
+  --surface-field: color-mix(in oklch, var(--muted) 72%, var(--card));
+  --glass-fill: color-mix(in oklch, var(--card) 78%, transparent);
+  --glass-raised-fill: color-mix(in oklch, var(--card) 90%, transparent);
+  --glass-highlight: #ffffffb3;
+  --shadow-panel: 0 4px 24px
+    color-mix(in oklch, var(--foreground) 4%, transparent);
+  --shadow-glass:
+    0 8px 28px color-mix(in oklch, var(--foreground) 7%, transparent),
+    inset 0 1px 0 var(--glass-highlight);
+  --shadow-floating:
+    0 20px 64px #2018101c, inset 0 1px 0 var(--glass-highlight);
+  --canvas-glow:
+    radial-gradient(
+      ellipse at 95% 0%,
+      color-mix(in oklch, var(--primary) 6%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse at 0% 100%,
+      color-mix(
+        in oklch,
+        var(--theme-secondary, var(--primary)) 6%,
+        transparent
+      ),
+      transparent 60%
+    );
+}
+.dark {
+  --surface-panel: color-mix(in oklch, var(--card) 94%, var(--background));
+  --surface-field: color-mix(in oklch, var(--muted) 65%, var(--card));
+  --glass-fill: color-mix(in oklch, var(--card) 80%, transparent);
+  --glass-raised-fill: color-mix(in oklch, var(--card) 92%, transparent);
+  --glass-highlight: #ffffff0d;
+  --shadow-panel: 0 4px 24px #0000001a;
+  --shadow-glass: 0 8px 28px #00000026, inset 0 1px 0 var(--glass-highlight);
+  --shadow-floating:
+    0 20px 64px #00000059, inset 0 1px 0 var(--glass-highlight);
+}
+.app-shell {
+  position: relative;
+  background-image: var(--canvas-glow);
+}
+.app-main > .bg-background,
+.app-main > .app-surface {
+  background: transparent;
+}
+.app-header,
+.app-sidebar,
+.chat-header,
+.page-toolbar {
+  border: 0;
+  background: var(--card);
+}
+.app-header,
+.chat-header,
+.page-toolbar {
+  box-shadow: 0 3px 18px color-mix(in oklch, var(--foreground) 2%, transparent);
+}
+.app-sidebar {
+  background: var(--surface-panel);
+}
+.sidebar-nav-group + .sidebar-nav-group,
+.sidebar-preferences {
+  border: 0;
+}
+.sidebar-bottom::before {
+  display: none;
+}
+.account-controls,
+.account-signout {
+  border: 0;
+  background: var(--surface-field);
+}
+.account-controls {
+  border-radius: 999px;
+}
+.header-notifications > button {
+  background: transparent;
+}
+.is-sidebar-collapsed .app-sidebar .sidebar-panel {
+  border: 0;
+  border-radius: 24px;
+  background: var(--card);
+  box-shadow: var(--shadow-glass);
+}
+.surface-card,
+.conversation-card {
+  border: 0;
+  background: var(--surface-panel);
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+    var(--shadow-panel);
+}
+.companion-card.is-active {
+  background: color-mix(in oklch, var(--primary) 5%, var(--surface-panel));
+}
+.quick-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 18px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.quick-entry-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: color-mix(in oklch, var(--primary) 10%, transparent);
+  color: var(--primary);
+}
+.quick-entry:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+.quick-entry:hover,
+.conversation-card:hover {
+  background: color-mix(in oklch, var(--primary) 4%, var(--surface-panel));
+}
+.surface-field:not(.chat-composer-input) {
+  border-radius: 12px;
+  background: var(--surface-field);
+}
+.surface-field:not(.chat-composer-input):not([aria-invalid="true"]):not(
+    :focus-visible
+  ) {
+  border-color: transparent;
+  box-shadow: none;
+}
+.glass-surface {
+  border: 0;
+  border-radius: 22px;
+  background: var(--card);
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+    var(--shadow-floating);
+}
+.sheet-panel.glass-surface {
+  border-radius: 0;
+}
+.glass-surface [data-slot="calendar"] {
+  background: transparent;
+}
+.settings-services [data-slot="card"] {
+  background: transparent;
+  box-shadow: none;
+}
+.chat-composer {
+  background: transparent;
+}
+.chat-composer-surface {
+  border-color: transparent;
+  background: var(--card);
+  box-shadow: var(--shadow-glass);
+}
+.chat-composer-surface:focus-within {
+  border-color: transparent;
+  box-shadow:
+    var(--shadow-glass),
+    0 0 0 2px color-mix(in oklch, var(--primary) 25%, transparent);
+}
+.catalogue-intro,
+.explore-filter-bar,
+.explore-footer,
+.landing-catalogue,
+.landing-faq,
+.faq-item,
+.faq-item:first-child,
+.landing-signup,
+.signup-symbol,
+.catalogue-create,
+.app-bottom-nav .is-create .app-nav-icon {
+  border: 0;
+}
+.explore-filter {
+  border: 0;
+  background: var(--surface-field);
+}
+.explore-filter[data-state="checked"] {
+  background: var(--primary);
+}
+.catalogue-create {
+  background: var(--surface-field);
+}
+.faq-item + .faq-item {
+  margin-top: 4px;
+}
+.faq-question {
+  padding-inline: 16px;
+  border-radius: 16px;
+}
+.faq-question:hover,
+.faq-item[data-state="open"] {
+  background: color-mix(in oklch, var(--muted) 55%, transparent);
+  border-radius: 16px;
+}
+.faq-answer {
+  padding-left: 16px;
+}
+/* 不支持模糊时保留上面的实色底，避免透明文字直接落在图片上。 */
+@supports (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .app-header,
+  .app-sidebar,
+  .chat-header,
+  .page-toolbar,
+  .app-bottom-nav,
+  .is-sidebar-collapsed .app-sidebar .sidebar-panel,
+  .chat-composer-surface,
+  .glass-surface {
+    background: var(--glass-fill);
+    -webkit-backdrop-filter: blur(24px) saturate(1.25);
+    backdrop-filter: blur(24px) saturate(1.25);
+  }
+  .glass-surface {
+    background: var(--glass-raised-fill);
+  }
+}
+@media (max-width: 900px) {
+  .app-bottom-nav {
+    position: absolute;
+    left: max(10px, var(--safe-area-left));
+    right: max(10px, var(--safe-area-right));
+    bottom: calc(8px + var(--safe-area-bottom));
+    padding: 6px;
+    border: 0;
+    border-radius: 28px;
+    box-shadow: var(--shadow-glass);
+  }
+  .app-shell:not(.is-chat) .app-main {
+    padding-bottom: calc(90px + var(--safe-area-bottom));
+    scroll-padding-bottom: calc(90px + var(--safe-area-bottom));
+  }
+}
+/* 系统要求降低透明度或提高对比度时，材质回到清晰的实色。 */
+@media (prefers-reduced-transparency: reduce),
+  (prefers-contrast: more),
+  (forced-colors: active) {
+  .app-header,
+  .app-sidebar,
+  .chat-header,
+  .page-toolbar,
+  .app-bottom-nav,
+  .is-sidebar-collapsed .app-sidebar .sidebar-panel,
+  .chat-composer-surface,
+  .glass-surface {
+    background: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (forced-colors: active) {
+  .surface-card,
+  .glass-surface,
+  .surface-field,
+  .button-soft,
+  .app-bottom-nav {
+    border: 1px solid CanvasText;
+    box-shadow: none;
+  }
+}

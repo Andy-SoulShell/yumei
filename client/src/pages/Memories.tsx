@@ -56,7 +56,8 @@ export default function Memories() {
     refetch,
   } = trpc.memory.list.useQuery(
     { girlfriendId },
-    { enabled: isAuthenticated && validId }
+    // 后台提取可能在进入页面后才完成，定期刷新以展示新记忆。
+    { enabled: isAuthenticated && validId, refetchInterval: 5_000 }
   );
 
   const deleteMemory = trpc.memory.delete.useMutation({

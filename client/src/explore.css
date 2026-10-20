@@ -385,9 +385,143 @@
     margin: 0;
   }
 }
+.chat-messages-content {
+  width: 100%;
+  max-width: 840px;
+  margin-inline: auto;
+}
+.chat-messages-content > div,
+.chat-messages-content p {
+  overflow-wrap: anywhere;
+}
 .chat-composer {
   flex: none;
-  padding-bottom: max(8px, var(--safe-area-bottom));
+  padding: 10px 16px max(10px, var(--safe-area-bottom));
+  background: var(--background);
+}
+.chat-composer-surface {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  width: 100%;
+  max-width: 840px;
+  margin-inline: auto;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--card);
+  box-shadow: 0 2px 10px color-mix(in oklch, var(--foreground) 4%, transparent);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.chat-composer-surface:focus-within {
+  border-color: color-mix(in oklch, var(--primary) 50%, var(--border));
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--primary) 8%, transparent);
+}
+.chat-composer-input {
+  flex: 1;
+  field-sizing: fixed;
+  min-width: 0;
+  min-height: 44px;
+  max-height: max(
+    68px,
+    min(164px, calc(var(--keyboard-viewport-height, 100dvh) * 0.28))
+  );
+  resize: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 10px 6px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 16px;
+  line-height: 24px;
+  overflow-wrap: anywhere;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklch, var(--foreground) 20%, transparent)
+    transparent;
+}
+.chat-composer-input::-webkit-scrollbar {
+  width: 5px;
+}
+.chat-composer-input::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  background: color-mix(in oklch, var(--foreground) 20%, transparent);
+}
+.chat-composer-input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.chat-composer-tool,
+.chat-composer-send {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+.chat-composer-tool {
+  color: var(--muted-foreground);
+}
+.chat-composer-tool svg,
+.chat-composer-send svg {
+  width: 20px;
+  height: 20px;
+}
+.chat-photo-quota {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 16px;
+  padding-inline: 3px;
+  border-radius: 8px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 10px;
+  line-height: 16px;
+}
+.chat-level-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  padding: 0 12px 0 16px;
+  background: color-mix(in oklch, var(--primary) 5%, var(--background));
+  color: var(--primary);
+  font-size: 12px;
+}
+.chat-level-notice p {
+  flex: 1;
+  min-width: 0;
+}
+.chat-level-notice button {
+  width: 44px;
+  height: 44px;
+}
+@media (max-width: 640px) {
+  .chat-composer {
+    padding: 8px 10px max(8px, var(--safe-area-bottom));
+  }
+}
+.toaster [data-sonner-toast][data-styled="true"] [data-close-button] {
+  top: 8px;
+  right: 8px;
+  left: auto;
+  transform: none;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: 0;
+}
+.toaster [data-sonner-toast][data-styled="true"] {
+  min-height: 64px;
+  padding-right: 56px;
+}
+.toaster [data-sonner-toast] {
+  max-height: max(120px, 35dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .gallery-photo-card {
   container-type: inline-size;

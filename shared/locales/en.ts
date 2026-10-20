@@ -470,26 +470,22 @@ export default {
     token: "/token",
   },
   chat: {
+    messageNotSent: "Not sent",
+    sendMessage: "Send message",
     moreActions: "More chat actions",
     couldNotStartAConversation: "Could not start a conversation: {{error}}",
-    selfieSentToThisConversation: "Selfie sent to this conversation",
     selfieGenerationFailedNoQuotaWasChargedDetails:
       "Generation failed. No allowance charged; see the chat for details.",
     yourPlanDoesNotIncludeThisFeatureView:
       "Upgrade in Settings to use this feature.",
     openSettings: "Open Settings",
     couldNotSend: "Could not send: {{error}}",
-    selfieGenerated: "Selfie generated!",
     selfieQuotaReachedCheckYourPlanOrAdd:
       "Photo allowance reached. Check your plan or add your own fal.ai key in Settings.",
     selfieGenerationFailed: "Selfie generation failed: {{error}}",
-    couplePhotoGenerated: "Couple photo generated!",
-    generatingASelfie: "Generating a selfie…",
-    generatingACouplePhoto: "Generating a couple photo…",
     recordingIsTooShortPleaseTryAgain:
       "Recording is too short. Please try again.",
     couldNotReadTheAudio: "Could not read the audio",
-    audioTranscribedS: "Audio transcribed ({{count}}s)",
     noSpeechWasRecognizedPleaseTryAgain:
       "No speech was recognized. Please try again.",
     transcriptionFailed: "Transcription failed: {{error}}",
@@ -797,7 +793,6 @@ export default {
     upTo200XPPerDayDecaysAfter:
       "Up to 200 XP per day · Decays after 7 days without interaction · Very short messages do not count",
     intimacyLevelUp: "Intimacy level up!",
-    newlyUnlocked: "🎉 Newly unlocked",
     relationship: "Your relationship with {{name}}",
     nickname: "Your companion now calls you “{{name}}” 💕",
     lockedLevel: "Lv.{{level}} {{name}} ({{points}} XP)",

@@ -9,6 +9,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useLocation, useParams, useSearch } from "wouter";
 
+type FailedChatMessage = {
+  conversationId: number;
+  content: string;
+  transcriptionId?: string;
+};
+
 /** 页面查询、草稿与操作流程；展示组件只消费此状态。 */
 export function useChatController() {
   const { t } = useI18n();
@@ -35,6 +41,7 @@ export function useChatController() {
   } = useTTS();
 
   const [message, setMessage] = useState("");
+  const [failedMessages, setFailedMessages] = useState<FailedChatMessage[]>([]);
 
   const [inputMode, setInputMode] = useState<"text" | "voice">(() => {
     return (
@@ -69,7 +76,7 @@ export function useChatController() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const messageListRef = useRef<HTMLDivElement>(null);
 
@@ -198,19 +205,26 @@ export function useChatController() {
   };
 
   const sendMessage = trpc.chat.sendMessage.useMutation({
-    onMutate: () => {
+    onMutate: variables => {
       pendingMessageAfterId.current = chatMessages?.at(-1)?.id || 0;
-      setMessage("");
+      setMessage(current =>
+        current.trim() === variables.content ? "" : current
+      );
       scrollToBottom();
     },
-    onSuccess: async data => {
+    onSuccess: async (data, variables) => {
+      setFailedMessages(current =>
+        current.filter(
+          item =>
+            item.conversationId !== variables.conversationId ||
+            item.content !== variables.content
+        )
+      );
       showRelationship(data);
       await refreshConversation();
       if (data.imageGeneration) {
         await selfieQuota.refetch();
-        if (data.imageGeneration === "completed") {
-          toast.success(t("chat:selfieSentToThisConversation"));
-        } else {
+        if (data.imageGeneration !== "completed") {
           toast.error(t("chat:selfieGenerationFailedNoQuotaWasChargedDetails"));
           scrollToBottom();
           return;
@@ -234,11 +248,19 @@ export function useChatController() {
         setShowCrisisAlert(true);
       }
 
-      setMessage("");
       scrollToBottom();
     },
     onError: (error, variables) => {
-      setMessage(current => current || variables.content);
+      // 失败消息留在对话中，可单独重试；不覆盖用户正在写的下一条。
+      setFailedMessages(current =>
+        current.some(
+          item =>
+            item.conversationId === variables.conversationId &&
+            item.content === variables.content
+        )
+          ? current
+          : [...current, variables]
+      );
       void refetchMessages();
       if (error.data?.business?.reason === "LEVEL_LOCKED") {
         toast.error(
@@ -279,7 +301,6 @@ export function useChatController() {
       showRelationship(data);
       await refreshConversation();
       await selfieQuota.refetch();
-      toast.success(t("chat:selfieGenerated"));
       scrollToBottom();
       // 触发自拍亲密度经验值
     },
@@ -320,7 +341,6 @@ export function useChatController() {
       showRelationship(data);
       await refreshConversation();
       await selfieQuota.refetch();
-      toast.success(t("chat:couplePhotoGenerated"));
       scrollToBottom();
     },
     onError: error => {
@@ -387,12 +407,34 @@ export function useChatController() {
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || !currentConversationId) return;
+    if (
+      !message.trim() ||
+      !currentConversationId ||
+      sendMessage.isPending ||
+      generateSelfie.isPending ||
+      generateCouple.isPending ||
+      isRecording ||
+      isTranscribing
+    )
+      return;
+    inputRef.current?.focus({ preventScroll: true });
 
     sendMessage.mutate({
       conversationId: currentConversationId,
       content: message.trim(),
     });
+  };
+
+  const retryMessage = (failed: FailedChatMessage) => {
+    if (
+      sendMessage.isPending ||
+      generateSelfie.isPending ||
+      generateCouple.isPending ||
+      isRecording ||
+      isTranscribing
+    )
+      return;
+    sendMessage.mutate(failed);
   };
 
   const handleSpeakMessage = (text: string) => {
@@ -413,7 +455,6 @@ export function useChatController() {
       toast.error(t("chat:selfieQuotaReachedCheckYourPlanOrAdd"));
       return;
     }
-    toast.info(t("chat:generatingASelfie"));
     generateSelfie.mutate({
       conversationId: currentConversationId,
       userContext: message.trim(),
@@ -429,7 +470,6 @@ export function useChatController() {
     reader.onload = () => {
       const dataUrl = reader.result as string;
       const base64 = dataUrl.split(",")[1] ?? "";
-      toast.info(t("chat:generatingACouplePhoto"));
       generateCouple.mutate({
         conversationId: currentConversationId!,
         userPhotoBase64: base64,
@@ -483,11 +523,6 @@ export function useChatController() {
                 content: data.text,
                 transcriptionId: data.transcriptionId,
               });
-              toast.success(
-                t("chat:audioTranscribedS", {
-                  count: data.duration?.toFixed(1) || 0,
-                })
-              );
               // 触发语音消息亲密度经验值
             } else {
               toast.error(t("chat:noSpeechWasRecognizedPleaseTryAgain"));
@@ -578,6 +613,8 @@ export function useChatController() {
     messagesQuery,
     loadOlderMessages,
     chatMessages,
+    failedMessages,
+    retryMessage,
     handleSpeakMessage,
     isSpeaking,
     user,

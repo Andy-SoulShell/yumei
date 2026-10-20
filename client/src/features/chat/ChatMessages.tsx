@@ -14,6 +14,9 @@ type Props = Pick<
   | "loadOlderMessages"
   | "t"
   | "chatMessages"
+  | "failedMessages"
+  | "retryMessage"
+  | "currentConversationId"
   | "sendMessage"
   | "handleSpeakMessage"
   | "isSpeaking"
@@ -32,6 +35,9 @@ export function ChatMessages({
   loadOlderMessages,
   t,
   chatMessages,
+  failedMessages,
+  retryMessage,
+  currentConversationId,
   sendMessage,
   girlfriend,
   handleSpeakMessage,
@@ -45,8 +51,14 @@ export function ChatMessages({
   const contentRef = useRef<HTMLDivElement>(null);
   useChatScrollAnchor(messageListRef, contentRef);
   return (
-    <div ref={messageListRef} className="flex-1 overflow-y-auto p-3 sm:p-4">
-      <div ref={contentRef} className="space-y-3 sm:space-y-4">
+    <div
+      ref={messageListRef}
+      className="chat-messages flex-1 min-h-0 overflow-y-auto p-3 sm:p-4"
+    >
+      <div
+        ref={contentRef}
+        className="chat-messages-content space-y-3 sm:space-y-4"
+      >
         {messagesQuery.hasNextPage && (
           <Button
             variant="outline"
@@ -68,7 +80,7 @@ export function ChatMessages({
           : chatMessages.map(msg => (
               <div
                 key={msg.id}
-                className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
+                className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "flex-row"}`}
               >
                 {msg.role === "assistant" && (
                   <Avatar className="w-8 h-8 flex-shrink-0">
@@ -152,6 +164,39 @@ export function ChatMessages({
                 )}
               </div>
             ))}
+
+        {failedMessages
+          .filter(
+            item =>
+              item.conversationId === currentConversationId &&
+              !(
+                sendMessage.isPending &&
+                sendMessage.variables?.content === item.content
+              )
+          )
+          .map((item, index) => (
+            <div key={index} className="flex flex-col items-end gap-1.5">
+              <div className="max-w-[80%] rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-2 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                {item.content}
+              </div>
+              <div className="flex items-center gap-2 text-xs text-destructive">
+                <span role="status">{t("chat:messageNotSent")}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={
+                    sendMessage.isPending ||
+                    generateSelfie.isPending ||
+                    generateCouple.isPending
+                  }
+                  onClick={() => retryMessage(item)}
+                >
+                  {t("explore:retry")}
+                </Button>
+              </div>
+            </div>
+          ))}
 
         {sendMessage.isPending &&
           sendMessage.variables &&

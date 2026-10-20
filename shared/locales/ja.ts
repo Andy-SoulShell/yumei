@@ -472,26 +472,22 @@ export default {
     token: "/token",
   },
   chat: {
+    messageNotSent: "未送信",
+    sendMessage: "送信",
     moreActions: "チャットのその他の操作",
     couldNotStartAConversation: "会話を開始できませんでした：{{error}}",
-    selfieSentToThisConversation: "この会話に自撮りを送りました",
     selfieGenerationFailedNoQuotaWasChargedDetails:
       "生成に失敗しました。利用枠は消費していません。詳細は会話をご確認ください。",
     yourPlanDoesNotIncludeThisFeatureView:
       "この機能は設定からプランを変更すると使えます。",
     openSettings: "設定を開く",
     couldNotSend: "送信できませんでした：{{error}}",
-    selfieGenerated: "自撮りを生成しました！",
     selfieQuotaReachedCheckYourPlanOrAdd:
       "写真の利用枠に達しました。設定でプランを確認するか、自分の fal.ai キーを追加してください。",
     selfieGenerationFailed: "自撮りを生成できませんでした：{{error}}",
-    couplePhotoGenerated: "ツーショットを生成しました！",
-    generatingASelfie: "自撮りを生成中…",
-    generatingACouplePhoto: "ツーショットを生成中…",
     recordingIsTooShortPleaseTryAgain:
       "録音が短すぎます。もう一度お試しください。",
     couldNotReadTheAudio: "音声データを読み込めませんでした",
-    audioTranscribedS: "音声を書き起こしました（{{count}}秒）",
     noSpeechWasRecognizedPleaseTryAgain:
       "音声を認識できませんでした。もう一度お試しください。",
     transcriptionFailed: "音声の書き起こしに失敗しました：{{error}}",
@@ -794,7 +790,6 @@ export default {
     upTo200XPPerDayDecaysAfter:
       "1日最大200 XP · 7日以上交流がないと減衰 · 短すぎるメッセージは対象外",
     intimacyLevelUp: "親密度がレベルアップ！",
-    newlyUnlocked: "🎉 新しく解放された機能",
     relationship: "あなたと{{name}}の関係",
     nickname: "今の呼び名は「{{name}}」です 💕",
     lockedLevel: "Lv.{{level}} {{name}}（{{points}} XP）",

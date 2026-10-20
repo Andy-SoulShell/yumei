@@ -1,5 +1,5 @@
 import { IntimacyPanel } from "@/components/IntimacyPanel";
-import { LevelUpAnimation } from "@/components/LevelUpAnimation";
+import { LevelUpNotice } from "@/components/LevelUpNotice";
 import { SelfiePoseDialog } from "@/components/SelfiePoseDialog";
 import { Button } from "@/components/ui/button";
 import { Heart, Loader2 } from "lucide-react";
@@ -59,6 +59,13 @@ export default function Chat() {
     <div className="chat-page flex flex-col h-full bg-background">
       {/* 顶部导航栏 */}
       <ChatHeader {...state} girlfriend={girlfriend} />
+
+      {/* 升级提示 */}
+      <LevelUpNotice
+        show={showLevelUp}
+        newLevel={levelUpLevel}
+        onClose={() => setShowLevelUp(false)}
+      />
 
       {/* 消息列表 */}
       <ChatMessages {...state} girlfriend={girlfriend} />
@@ -124,13 +131,6 @@ export default function Chat() {
         intimacyPoints={girlfriend.intimacyPoints || 0}
         consecutiveDays={girlfriend.consecutiveDays || 0}
         girlfriendName={girlfriend.name}
-      />
-
-      {/* 升级动画 */}
-      <LevelUpAnimation
-        show={showLevelUp}
-        newLevel={levelUpLevel}
-        onClose={() => setShowLevelUp(false)}
       />
     </div>
   );

@@ -462,26 +462,22 @@ export default {
     token: "/token",
   },
   chat: {
+    messageNotSent: "전송 안 됨",
+    sendMessage: "메시지 보내기",
     moreActions: "채팅 추가 작업",
     couldNotStartAConversation: "대화를 시작하지 못했어요: {{error}}",
-    selfieSentToThisConversation: "현재 대화에 셀카를 보냈어요",
     selfieGenerationFailedNoQuotaWasChargedDetails:
       "생성에 실패했어요. 한도는 차감되지 않았으며 자세한 내용은 대화를 확인하세요.",
     yourPlanDoesNotIncludeThisFeatureView:
       "이 기능을 쓰려면 설정에서 요금제를 업그레이드하세요.",
     openSettings: "설정 열기",
     couldNotSend: "전송하지 못했어요: {{error}}",
-    selfieGenerated: "셀카를 생성했어요!",
     selfieQuotaReachedCheckYourPlanOrAdd:
       "사진 한도를 다 썼어요. 설정에서 요금제를 확인하거나 본인 fal.ai 키를 추가하세요.",
     selfieGenerationFailed: "셀카를 생성하지 못했어요: {{error}}",
-    couplePhotoGenerated: "함께 찍은 사진을 생성했어요!",
-    generatingASelfie: "셀카 생성 중…",
-    generatingACouplePhoto: "함께 찍은 사진 생성 중…",
     recordingIsTooShortPleaseTryAgain:
       "녹음이 너무 짧아요. 다시 시도해 주세요.",
     couldNotReadTheAudio: "오디오 데이터를 읽지 못했어요",
-    audioTranscribedS: "음성을 텍스트로 변환했어요({{count}}초)",
     noSpeechWasRecognizedPleaseTryAgain:
       "음성을 인식하지 못했어요. 다시 시도해 주세요.",
     transcriptionFailed: "음성 변환에 실패했어요: {{error}}",
@@ -783,7 +779,6 @@ export default {
     upTo200XPPerDayDecaysAfter:
       "하루 최대 200 XP · 7일 넘게 교류하지 않으면 감소 · 너무 짧은 메시지는 제외",
     intimacyLevelUp: "친밀도가 올랐어요!",
-    newlyUnlocked: "🎉 새로 해제된 기능",
     relationship: "{{name}} 님과 나의 관계",
     nickname: "이제 애칭은 “{{name}}”예요 💕",
     lockedLevel: "Lv.{{level}} {{name}}({{points}} XP)",

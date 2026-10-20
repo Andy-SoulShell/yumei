@@ -1,6 +1,6 @@
 /** 使用有期限的数据库租约执行记忆任务，提取结果与任务确认原子提交。 */
 import { and, desc, eq, isNull, lte, or, sql } from "drizzle-orm";
-import { memoryExtractionJobs, messages } from "../drizzle/schema";
+import { girlfriends, memoryExtractionJobs, messages } from "../drizzle/schema";
 import { EXTRACTION_EVERY_N_MESSAGES } from "../shared/memory";
 import { resolveChatProvider } from "./_core/chatProvider";
 import { log, providerErrorSummary } from "./_core/log";
@@ -78,18 +78,30 @@ export async function runMemoryExtractionJobs(userId?: string): Promise<void> {
           .where(eq(memoryExtractionJobs.id, job.id))
           .for("update");
         if (!current || current.leaseToken !== token) return;
-        await storeExtractedMemoriesInTransaction(
-          tx,
-          job.userId,
-          job.girlfriendId,
-          candidates
-        );
-        await enforceMemoryCapacity(
-          job.userId,
-          job.girlfriendId,
-          job.intimacyLevel,
-          tx
-        );
+        const [companion] = await tx
+          .select({ intimacyLevel: girlfriends.intimacyLevel })
+          .from(girlfriends)
+          .where(
+            and(
+              eq(girlfriends.id, job.girlfriendId),
+              eq(girlfriends.userId, job.userId)
+            )
+          )
+          .for("update");
+        if (companion) {
+          await storeExtractedMemoriesInTransaction(
+            tx,
+            job.userId,
+            job.girlfriendId,
+            candidates
+          );
+          await enforceMemoryCapacity(
+            job.userId,
+            job.girlfriendId,
+            companion.intimacyLevel,
+            tx
+          );
+        }
         await tx
           .delete(memoryExtractionJobs)
           .where(eq(memoryExtractionJobs.id, job.id));

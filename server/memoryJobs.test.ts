@@ -2,10 +2,10 @@
 import { eq } from "drizzle-orm";
 import axios from "axios";
 import { afterEach, expect, it, vi } from "vitest";
-import { memoryExtractionJobs } from "../drizzle/schema";
+import { girlfriends, memories, memoryExtractionJobs } from "../drizzle/schema";
 import * as provider from "./_core/chatProvider";
 import type { TrpcContext } from "./_core/context";
-import { getDb } from "./database";
+import { getDb, withUserTransaction } from "./database";
 import { completeTextGeneration, reserveGeneration } from "./generations";
 import * as memory from "./memory";
 import { runMemoryExtractionJobs } from "./memoryJobs";
@@ -239,4 +239,44 @@ it("removes pending jobs when the companion is permanently deleted", async () =>
       .from(memoryExtractionJobs)
       .where(eq(memoryExtractionJobs.userId, a.userId))
   ).toEqual([]);
+});
+
+it("uses the companion's current capacity when a delayed extraction finishes after a level-up", async () => {
+  const a = await seed();
+  await a.db.insert(memories).values(
+    Array.from({ length: 35 }, (_, index) => ({
+      userId: a.userId,
+      girlfriendId: a.gf.id,
+      category: "event" as const,
+      content: `不同日期的第 ${index + 1} 次旅行。`,
+      weight: 50,
+    }))
+  );
+  let release!: () => void;
+  const paused = new Promise<void>(resolve => {
+    release = resolve;
+  });
+  let started!: () => void;
+  const entered = new Promise<void>(resolve => {
+    started = resolve;
+  });
+  vi.spyOn(memory, "callExtractionModel").mockImplementation(async () => {
+    started();
+    await paused;
+    return [];
+  });
+  const worker = runMemoryExtractionJobs(a.userId);
+  await entered;
+  try {
+    await withUserTransaction(a.userId, tx =>
+      tx
+        .update(girlfriends)
+        .set({ intimacyLevel: 2, intimacyPoints: 50 })
+        .where(eq(girlfriends.id, a.gf.id))
+    );
+  } finally {
+    release();
+    await worker;
+  }
+  expect(await memory.listMemories(a.userId, a.gf.id)).toHaveLength(35);
 });

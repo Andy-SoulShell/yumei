@@ -215,6 +215,10 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     root.style.setProperty("--theme-hue", String(palette.hue));
     root.style.setProperty("--theme-primary", palette[resolvedMode]);
     root.style.setProperty(
+      "--theme-background",
+      palette.background[resolvedMode]
+    );
+    root.style.setProperty(
       "--theme-primary-foreground",
       resolvedMode === "dark" ? palette.foreground : "#ffffff"
     );
@@ -222,7 +226,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     document
       .querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
       .forEach(meta => {
-        meta.content = resolvedMode === "dark" ? "#141012" : "#fffaf5";
+        meta.content = palette.background[resolvedMode];
         meta.removeAttribute("media");
       });
   }, [locale, resolvedMode, value.theme]);

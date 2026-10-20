@@ -5,7 +5,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PreferencesProvider, usePreferences } from "./PreferencesContext";
 import { useI18n } from "@/lib/i18n";
-import { DEFAULT_PREFERENCES } from "@shared/preferences";
+import { DEFAULT_PREFERENCES, THEME_IDS } from "@shared/preferences";
+import { THEMES } from "@/lib/themes";
 
 const mocks = vi.hoisted(() => ({
   user: null as { id: string } | null,
@@ -87,6 +88,37 @@ afterEach(async () => {
 });
 
 describe("interface preference lifecycle", () => {
+  it("keeps the page and browser chrome on the same theme background in both modes", async () => {
+    const metas = ["light", "dark"].map(mode => {
+      const meta = document.createElement("meta");
+      meta.name = "theme-color";
+      meta.media = `(prefers-color-scheme: ${mode})`;
+      meta.content = "#ec4899";
+      document.head.append(meta);
+      return meta;
+    });
+    try {
+      await render();
+      for (const theme of THEME_IDS) {
+        for (const colorMode of ["light", "dark"] as const) {
+          await change({ theme, colorMode });
+          const expected = THEMES[theme].background[colorMode];
+          expect(
+            document.documentElement.style.getPropertyValue(
+              "--theme-background"
+            )
+          ).toBe(expected);
+          for (const meta of metas) {
+            expect(meta.content).toBe(expected);
+            expect(meta.hasAttribute("media")).toBe(false);
+          }
+        }
+      }
+    } finally {
+      metas.forEach(meta => meta.remove());
+    }
+  });
+
   it("switches Japanese and Korean text, fonts and wrapping immediately", async () => {
     await render();
     await change({ language: "ja" });

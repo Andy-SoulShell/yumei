@@ -30,12 +30,12 @@
     <!-- Android Chrome 适配 -->
     <meta
       name="theme-color"
-      content="#ec4899"
+      content="#fffbf9"
       media="(prefers-color-scheme: light)"
     />
     <meta
       name="theme-color"
-      content="#0f0a14"
+      content="#0f0706"
       media="(prefers-color-scheme: dark)"
     />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -49,6 +49,12 @@
       html {
         -webkit-text-size-adjust: 100%;
         text-size-adjust: 100%;
+        background-color: var(--background, #fffbf9);
+      }
+      @media (prefers-color-scheme: dark) {
+        html {
+          background-color: var(--background, #0f0706);
+        }
       }
       /* iOS 安全区域 padding */
       body {

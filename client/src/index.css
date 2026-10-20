@@ -54,7 +54,7 @@
   --chart-4: oklch(75% 0.12 30);
   --chart-5: oklch(68% 0.15 300);
   --radius: 0.65rem;
-  --background: oklch(0.99 0.005 var(--theme-hue, 35));
+  --background: var(--theme-background, #fffbf9);
   --foreground: oklch(0.235 0.015 var(--theme-hue, 35));
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.235 0.015 var(--theme-hue, 35));
@@ -87,7 +87,7 @@
   --primary-foreground: var(--theme-primary-foreground, #fff);
   --sidebar-primary: var(--theme-primary, #b94a0a);
   --sidebar-primary-foreground: var(--theme-primary-foreground, #fff);
-  --background: oklch(0.14 0.015 var(--theme-hue, 35));
+  --background: var(--theme-background, #0f0706);
   --foreground: oklch(0.92 0.01 var(--theme-hue, 35));
   --card: oklch(0.19 0.02 var(--theme-hue, 35));
   --card-foreground: oklch(0.92 0.01 var(--theme-hue, 35));
@@ -122,6 +122,7 @@
     @apply border-border outline-ring/50;
   }
   html {
+    background: var(--background);
     /* 防止 iOS 弹性滚动 */
     height: 100%;
     overflow: hidden;
@@ -137,6 +138,7 @@
     -webkit-tap-highlight-color: transparent;
   }
   #root {
+    background: var(--background);
     height: 100%;
     overflow: auto;
     -webkit-overflow-scrolling: touch;

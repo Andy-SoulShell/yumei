@@ -138,6 +138,8 @@ pnpm test:db:reset
 
 环境变量优先于 `.env.test.local`，CI 显式提供 `DATABASE_URL`。启动时检查库名、与应用库的隔离、连通性和迁移校验和，配置错误会直接失败。完整测试默认在 UTC 下运行；通知频控还会单独以 Asia/Shanghai 应用时区验证。数据库日期编解码和连接会话统一 UTC。CI 创建独立 MySQL，执行依赖审计、迁移、完整测试和构建。本地回归不调用真实 AI、支付或邮件服务。
 
+未配置供应商的本地端到端验收可使用[隔离服务 Lab](scripts/test-support/README.md)：独立数据库、合成邮件/支付/推送与可播放测试音频，支持失败和超时场景。20 项协议测试进入 CI，依赖 ffmpeg。真实模型、图片与页面复测结果见[本轮体验验收](docs/experience-test-2026-10-21.md)。
+
 ## 项目结构
 
 ```text

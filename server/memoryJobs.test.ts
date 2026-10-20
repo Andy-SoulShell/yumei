@@ -17,6 +17,7 @@ import {
 } from "./chatStreaming";
 import * as memory from "./memory";
 import { runMemoryExtractionJobs } from "./memoryJobs";
+import * as derived from "./memoryDerived";
 import { permanentDeleteGirlfriend } from "./repositories/companions";
 import {
   createConversation,
@@ -49,6 +50,7 @@ async function send(user: User, conversationId: number, content: string) {
   return turn;
 }
 async function seed(rounds = 1) {
+  vi.spyOn(derived, "refreshMemoryDerived").mockResolvedValue();
   vi.stubEnv("BILLING_PROVIDER", "none");
   vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
   vi.stubGlobal(
@@ -91,8 +93,13 @@ it("persists a job after the first round and applies its result once across comp
   ).toHaveLength(1);
   const extract = vi
     .spyOn(memory, "callExtractionModel")
-    .mockResolvedValue([
-      { category: "preference", content: "用户喜欢猫", importance: 5 },
+    .mockImplementation(async (_provider, sources) => [
+      {
+        category: "preference",
+        content: sources[0].content,
+        sourceMessageId: sources[0].id,
+        importance: 5,
+      },
     ]);
   await Promise.all([
     runMemoryExtractionJobs(a.userId),
@@ -170,8 +177,13 @@ it("extracts user source text while excluding images and failed messages, then r
   });
   const extract = vi
     .spyOn(memory, "callExtractionModel")
-    .mockResolvedValue([
-      { category: "preference", content: "用户喜欢猫", importance: 5 },
+    .mockImplementation(async (_provider, sources) => [
+      {
+        category: "preference",
+        content: sources[0].content,
+        sourceMessageId: sources[0].id,
+        importance: 5,
+      },
     ]);
   await runMemoryExtractionJobs(a.userId);
   const extractionInput = extract.mock.calls[0][1];
@@ -208,8 +220,13 @@ it("retains failed work and recovers an expired worker lease without losing the 
   const extract = vi
     .spyOn(memory, "callExtractionModel")
     .mockRejectedValueOnce(new Error("upstream unavailable"))
-    .mockResolvedValue([
-      { category: "fact", content: "用户喜欢咖啡", importance: 6 },
+    .mockImplementation(async (_provider, sources) => [
+      {
+        category: "fact",
+        content: sources[0].content,
+        sourceMessageId: sources[0].id,
+        importance: 6,
+      },
     ]);
   await runMemoryExtractionJobs(a.userId);
   const [job] = await a.db

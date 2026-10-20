@@ -1,12 +1,115 @@
 /** 管理员读取聚合调用质量与用量，不返回用户、聊天正文或凭据。 */
 import { gte, desc, sql } from "drizzle-orm";
 import { z } from "zod";
-import { generationRequests } from "../../drizzle/schema";
+import { aiTaskRuns, generationRequests } from "../../drizzle/schema";
 import { adminProcedure, router } from "../_core/trpc";
 import { getDb } from "../database";
 import { knownUsage } from "../generationTelemetry";
 
 export const operationsRouter = router({
+  /** 内部任务按类型/版本/服务分组，采样边界与未知成本明确返回。 */
+  taskQuality: adminProcedure
+    .input(
+      z
+        .object({ days: z.number().int().min(1).max(31).default(7) })
+        .default({ days: 7 })
+    )
+    .query(async ({ input }) => {
+      const db = (await getDb())!;
+      const since = new Date(Date.now() - input.days * 86_400_000);
+      const [total] = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(aiTaskRuns)
+        .where(gte(aiTaskRuns.createdAt, since));
+      const rows = await db
+        .select({
+          kind: aiTaskRuns.kind,
+          provider: aiTaskRuns.provider,
+          model: aiTaskRuns.model,
+          promptVersion: aiTaskRuns.promptVersion,
+          outcome: aiTaskRuns.outcome,
+          usage: aiTaskRuns.usage,
+          durationMs: aiTaskRuns.durationMs,
+        })
+        .from(aiTaskRuns)
+        .where(gte(aiTaskRuns.createdAt, since))
+        .orderBy(desc(aiTaskRuns.createdAt), desc(aiTaskRuns.id))
+        .limit(1000);
+      const groups = new Map<
+        string,
+        {
+          kind: string;
+          provider: string;
+          model: string;
+          promptVersion: string;
+          attempts: number;
+          succeeded: number;
+          failed: number;
+          pending: number;
+          knownInputTokens: number;
+          knownOutputTokens: number;
+          unknownInputAttempts: number;
+          unknownOutputAttempts: number;
+          knownCostUsd: number;
+          unknownCostAttempts: number;
+          durationSamples: number;
+          totalDurationMs: number;
+        }
+      >();
+      for (const row of rows) {
+        const key = JSON.stringify([
+          row.kind,
+          row.provider,
+          row.model,
+          row.promptVersion,
+        ]);
+        let group = groups.get(key);
+        if (!group) {
+          group = {
+            kind: row.kind,
+            provider: row.provider,
+            model: row.model,
+            promptVersion: row.promptVersion,
+            attempts: 0,
+            succeeded: 0,
+            failed: 0,
+            pending: 0,
+            knownInputTokens: 0,
+            knownOutputTokens: 0,
+            unknownInputAttempts: 0,
+            unknownOutputAttempts: 0,
+            knownCostUsd: 0,
+            unknownCostAttempts: 0,
+            durationSamples: 0,
+            totalDurationMs: 0,
+          };
+          groups.set(key, group);
+        }
+        group.attempts++;
+        group[row.outcome]++;
+        const inputTokens = knownUsage(row.usage?.inputTokens),
+          outputTokens = knownUsage(row.usage?.outputTokens),
+          cost = knownUsage(row.usage?.costUsd),
+          duration = knownUsage(row.durationMs);
+        if (inputTokens === null) group.unknownInputAttempts++;
+        else group.knownInputTokens += inputTokens;
+        if (outputTokens === null) group.unknownOutputAttempts++;
+        else group.knownOutputTokens += outputTokens;
+        if (cost === null) group.unknownCostAttempts++;
+        else group.knownCostUsd += cost;
+        if (duration !== null) {
+          group.durationSamples++;
+          group.totalDurationMs += duration;
+        }
+      }
+      return {
+        since,
+        totalAttempts: Number(total.count),
+        sampledAttempts: rows.length,
+        truncated: Number(total.count) > rows.length,
+        groups: Array.from(groups.values()),
+      };
+    }),
   /** 按 UTC 时间窗口读取最多一千次最近调用样本，明确未知用量和采样边界。 */
   generationQuality: adminProcedure
     .input(

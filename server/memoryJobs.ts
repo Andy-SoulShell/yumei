@@ -1,6 +1,11 @@
 /** 使用有期限的数据库租约执行记忆任务，提取结果与任务确认原子提交。 */
 import { and, desc, eq, isNull, lte, or, sql } from "drizzle-orm";
-import { girlfriends, memoryExtractionJobs, messages } from "../drizzle/schema";
+import {
+  conversations,
+  girlfriends,
+  memoryExtractionJobs,
+  messages,
+} from "../drizzle/schema";
 import { EXTRACTION_EVERY_N_MESSAGES } from "../shared/memory";
 import { resolveChatProvider } from "./_core/chatProvider";
 import { log, providerErrorSummary } from "./_core/log";
@@ -10,9 +15,12 @@ import {
   enforceMemoryCapacity,
   storeExtractedMemoriesInTransaction,
 } from "./memory";
+import { memoryFeatureEnabled, runtimeInteger } from "./aiTaskRuntime";
+import { refreshMemoryDerived, sameMemoryRouting } from "./memoryDerived";
 
 /** 多实例可同时调用；过期租约会被重新认领，连续五次失败保留为待排查任务。 */
 export async function runMemoryExtractionJobs(userId?: string): Promise<void> {
+  if (!memoryFeatureEnabled()) return;
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const jobs = await db
@@ -47,15 +55,68 @@ export async function runMemoryExtractionJobs(userId?: string): Promise<void> {
           (current.leaseUntil && current.leaseUntil.getTime() > Date.now())
         )
           return false;
+        const [role] = await tx
+          .select()
+          .from(girlfriends)
+          .where(
+            and(
+              eq(girlfriends.id, current.girlfriendId),
+              eq(girlfriends.userId, current.userId),
+              isNull(girlfriends.deletedAt)
+            )
+          )
+          .for("update");
+        const [conversation] = await tx
+          .select({ id: conversations.id })
+          .from(conversations)
+          .where(
+            and(
+              eq(conversations.id, current.conversationId),
+              eq(conversations.userId, current.userId),
+              eq(conversations.girlfriendId, current.girlfriendId)
+            )
+          );
+        if (
+          !role?.memoryEnabled ||
+          role.memoryEpoch !== current.memoryEpoch ||
+          current.lastMessageId <= role.memoryForgottenThroughId ||
+          !conversation
+        ) {
+          await tx
+            .delete(memoryExtractionJobs)
+            .where(eq(memoryExtractionJobs.id, current.id));
+          return false;
+        }
         await tx
           .update(memoryExtractionJobs)
-          .set({ leaseToken: token, leaseUntil: new Date(Date.now() + 60_000) })
+          .set({
+            leaseToken: token,
+            leaseUntil: new Date(
+              Date.now() +
+                Math.max(
+                  60_000,
+                  runtimeInteger("AI_TASK_TIMEOUT_MS", 30_000, 100, 120_000) +
+                    5_000
+                )
+            ),
+          })
           .where(eq(memoryExtractionJobs.id, job.id));
         return true;
       });
       if (!claimed) continue;
       const provider = await resolveChatProvider(job.userId);
       if (!provider.apiKey) throw new Error("Chat provider unavailable");
+      const [role] = await db
+        .select()
+        .from(girlfriends)
+        .where(
+          and(
+            eq(girlfriends.id, job.girlfriendId),
+            eq(girlfriends.userId, job.userId)
+          )
+        );
+      if (!role || !role.memoryEnabled || role.memoryEpoch !== job.memoryEpoch)
+        continue;
       const window = await db
         .select()
         .from(messages)
@@ -63,6 +124,7 @@ export async function runMemoryExtractionJobs(userId?: string): Promise<void> {
           and(
             eq(messages.conversationId, job.conversationId),
             lte(messages.id, job.lastMessageId),
+            sql`${messages.id} > ${role.memoryForgottenThroughId}`,
             eq(messages.role, "user"),
             sql`COALESCE(${messages.generationStatus}, 'succeeded') = 'succeeded'`,
             isNull(messages.imageUrl)
@@ -70,16 +132,29 @@ export async function runMemoryExtractionJobs(userId?: string): Promise<void> {
         )
         .orderBy(desc(messages.id))
         .limit(EXTRACTION_EVERY_N_MESSAGES);
-      const candidates = await callExtractionModel(provider, window.reverse());
+      const candidates = await callExtractionModel(provider, window.reverse(), {
+        userId: job.userId,
+        girlfriendId: job.girlfriendId,
+        memoryEpoch: job.memoryEpoch,
+      });
+      if (!(await sameMemoryRouting(job.userId, provider)))
+        throw new Error("Memory routing changed");
+      let committed = false;
       await withUserTransaction(job.userId, async tx => {
         const [current] = await tx
           .select()
           .from(memoryExtractionJobs)
           .where(eq(memoryExtractionJobs.id, job.id))
           .for("update");
-        if (!current || current.leaseToken !== token) return;
+        if (
+          !current ||
+          current.leaseToken !== token ||
+          !current.leaseUntil ||
+          current.leaseUntil.getTime() <= Date.now()
+        )
+          return;
         const [companion] = await tx
-          .select({ intimacyLevel: girlfriends.intimacyLevel })
+          .select()
           .from(girlfriends)
           .where(
             and(
@@ -88,13 +163,20 @@ export async function runMemoryExtractionJobs(userId?: string): Promise<void> {
             )
           )
           .for("update");
-        if (companion) {
+        if (
+          companion?.memoryEnabled &&
+          !companion.deletedAt &&
+          companion.memoryEpoch === job.memoryEpoch &&
+          memoryFeatureEnabled()
+        ) {
           await storeExtractedMemoriesInTransaction(
             tx,
             job.userId,
             job.girlfriendId,
-            candidates
+            candidates,
+            job.memoryEpoch
           );
+          committed = true;
           await enforceMemoryCapacity(
             job.userId,
             job.girlfriendId,
@@ -106,6 +188,13 @@ export async function runMemoryExtractionJobs(userId?: string): Promise<void> {
           .delete(memoryExtractionJobs)
           .where(eq(memoryExtractionJobs.id, job.id));
       });
+      if (committed)
+        await refreshMemoryDerived(
+          job.userId,
+          job.girlfriendId,
+          job.conversationId,
+          job.lastMessageId
+        );
     } catch (error) {
       await db
         .update(memoryExtractionJobs)

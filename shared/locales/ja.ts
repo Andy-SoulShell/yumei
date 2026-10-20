@@ -623,6 +623,60 @@ export default {
     photoCount_other: "写真 {{count}} 枚",
   },
   memories: {
+    emptyPausedHelp:
+      "記憶を一時停止しています。また役立つ情報を保存したくなったら、いつでも再開できます。",
+    memoryControl: "記憶を使う",
+    memoryEnabledHelp: "会話から役立つ情報を覚え、今後の返信に使います。",
+    memoryPausedHelp:
+      "一時停止中：新しい記憶を学習せず、保存済みの記憶や会話の振り返りも返信に使いません。ここでの閲覧と管理は続けられます。",
+    memoryPaused: "記憶を一時停止しました",
+    memoryResumed: "記憶を再開しました",
+    memoryUpdated: "記憶を訂正しました",
+    memoriesCleared: "すべての記憶と以前の会話の文脈を忘れました",
+    recallMeaning:
+      "記憶が有効なときは、言い回しが違っても意味の近い情報を関連付けて思い出せます。",
+    recallWords:
+      "記憶が有効なときは、関連する言葉から保存済みの記憶を探します。",
+    timeZone: "あなたのタイムゾーン",
+    timeZoneHelp:
+      "アカウント全体で「明日」などの日付を理解するために使います。Asia/Tokyo などの IANA タイムゾーンを選ぶか入力してください。",
+    timeZoneInvalid:
+      "Asia/Tokyo や Europe/London など、有効な IANA タイムゾーンを入力してください。",
+    saveTimeZone: "タイムゾーンを保存",
+    timeZoneSaved: "タイムゾーンを保存しました",
+    conversationSummary: "会話の振り返り",
+    rememberedFacts: "保存した情報",
+    recentTopics: "最近の話題と未解決のこと",
+    topicFromYou: "あなたのメッセージ #{{id}}",
+    topicFromCompanion: "キャラクターの提案 · メッセージ #{{id}}",
+    topicOpen: "続きがあります",
+    topicClosed: "話し合い済み",
+    noSummary: "会話がある程度たまると、ここに振り返りが表示されます。",
+    summaryPaused:
+      "記憶の一時停止中は振り返りを使いません。再開すると現在の振り返りを確認できます。",
+    forgettingHelp:
+      "記憶を訂正・削除・全消去すると、今後の AI の返信は以前の会話の文脈も使わなくなります。画面上のチャット履歴は残ります。",
+    clearAll: "すべて忘れる",
+    clearConfirm:
+      "{{name}}の記憶と以前の会話の文脈をすべて忘れますか？画面上のチャット履歴は残ります。",
+    deleteConfirm:
+      "「{{content}}」を忘れますか？今後の返信は以前の会話の文脈も使わなくなります。画面上のチャット履歴は残ります。",
+    editMemory: "記憶を編集・訂正",
+    correctedMemory: "訂正後の記憶",
+    editHelp:
+      "300文字まで。保存するとこの記憶を置き換え、以前の会話の文脈も今後の返信から除外します。画面上のチャット履歴は残ります。",
+    editEmptyError:
+      "訂正内容を入力するか、キャンセルしてこの記憶を残してください。",
+    saveCorrection: "訂正を保存",
+    sourceEdited: "出典：あなたの訂正",
+    sourceUserMessage: "出典：あなたのメッセージ #{{id}}",
+    sourceLegacy: "出典：以前に保存された記憶",
+    eventInfo: "予定：{{date}} · {{status}}",
+    eventDateUnknown: "日付未確認",
+    eventPlanned: "予定あり",
+    eventCompleted: "完了",
+    eventCancelled: "中止",
+    eventUnknown: "状況未確認",
     memoryDeleted: "思い出を削除しました",
     actionFailed: "操作に失敗しました：{{error}}",
     whatRemembersAboutYou: "{{name}}が覚えているあなたのこと",

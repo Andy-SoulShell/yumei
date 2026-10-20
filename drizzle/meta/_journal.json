@@ -50,6 +50,13 @@
       "when": 1792507824844,
       "tag": "0006_chat_routing",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1792509092667,
+      "tag": "0007_trusted_memories",
+      "breakpoints": true
     }
   ]
 }

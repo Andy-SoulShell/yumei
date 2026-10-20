@@ -1,7 +1,7 @@
 /** 用真实事务验证删除记忆与在途提取互斥、旧证据屏蔽和主动重新提起。 */
 import { eq } from "drizzle-orm";
 import { afterEach, expect, it, vi } from "vitest";
-import { memorySuppressions, users } from "../drizzle/schema";
+import { girlfriends, memorySuppressions, users } from "../drizzle/schema";
 import * as provider from "./_core/chatProvider";
 import { getDb } from "./database";
 import {
@@ -104,12 +104,14 @@ it("does not resurrect a deleted memory when an in-flight extraction commits aft
   await worker;
   expect(await memory.listMemories(a.userId, a.gf.id)).toEqual([]);
   const db = (await getDb())!;
-  const [suppression] = await db
+  const [role] = await db
     .select()
-    .from(memorySuppressions)
-    .where(eq(memorySuppressions.girlfriendId, a.gf.id));
-  expect(suppression.contentHash).toMatch(/^[a-f0-9]{64}$/);
-  expect(JSON.stringify(suppression)).not.toContain("团团");
+    .from(girlfriends)
+    .where(eq(girlfriends.id, a.gf.id));
+  expect(role.memoryEpoch).toBeGreaterThan(0);
+  expect(role.memoryForgottenThroughId).toBeGreaterThanOrEqual(
+    a.candidate.sourceMessageId
+  );
 });
 it("blocks old evidence but accepts the user explicitly stating the fact again in a new message", async () => {
   const a = await seed();
@@ -127,15 +129,16 @@ it("blocks old evidence but accepts the user explicitly stating the fact again i
   expect(rows).toHaveLength(1);
   expect(rows[0].sourceMessageId).toBe(saved.userMessage.id);
 });
-it("protects legacy memories without a source id and removes suppression records with the companion", async () => {
+it("rejects memories without a real source and removes forgotten metadata with the companion", async () => {
   const a = await seed();
   await memory.storeExtractedMemories(a.userId, a.gf.id, [
     { category: "preference", content: "用户喜欢拿铁", importance: 6 },
   ]);
-  const legacy = (await memory.listMemories(a.userId, a.gf.id)).find(
-    row => row.sourceMessageId === null
-  )!;
-  await memory.deleteMemory(a.userId, legacy.id);
+  expect(
+    (await memory.listMemories(a.userId, a.gf.id)).some(
+      row => row.sourceMessageId === null
+    )
+  ).toBe(false);
   await memory.storeExtractedMemories(a.userId, a.gf.id, [
     {
       category: "preference",

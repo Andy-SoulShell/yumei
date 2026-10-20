@@ -16,7 +16,7 @@ import * as memory from "./memory";
 import * as apiConfigDb from "./repositories/apiConfig";
 import { createConversation } from "./repositories/conversations";
 import { appRouter } from "./routers";
-import { createTestGirlfriend } from "./testFixtures";
+import { createTestGirlfriend, createTestUser } from "./testFixtures";
 
 const userId = "deepseek-test-user";
 const caller = appRouter.createCaller({
@@ -181,12 +181,15 @@ describe("DeepSeek official API deployment", () => {
   });
 
   it("extracts JSON memories through DeepSeek instead of the hardcoded OpenRouter model", async () => {
+    await createTestUser(userId);
     const post = vi.spyOn(axios, "post").mockResolvedValue({
       data: { choices: [{ message: { content: '{"memories":[]}' } }] },
     });
-    await memory.callExtractionModel(await resolveChatProvider(userId), [
-      { id: 1, role: "user", content: "我喜欢喝茶" },
-    ]);
+    await memory.callExtractionModel(
+      await resolveChatProvider(userId),
+      [{ id: 1, role: "user", content: "我喜欢喝茶" }],
+      { userId }
+    );
     await vi.waitFor(() =>
       expect(post).toHaveBeenCalledWith(
         "https://api.deepseek.com/chat/completions",

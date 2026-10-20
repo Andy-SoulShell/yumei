@@ -22,6 +22,8 @@ import { parseChatProviderStream } from "./_core/chatStreamProvider";
 import { log, providerErrorSummary } from "./_core/log";
 import { getTierLimits, isBillingEnforced, upsellHint } from "./billing";
 import { buildChatSystemPrompt, CHAT_PROMPT_VERSION } from "./chatPrompt";
+import { chatContextLimits, planChatContext } from "./chatContextBudget";
+import { runtimeInteger } from "./aiTaskRuntime";
 import { getChatBehaviorContext } from "./companionContext";
 import { getDb, withUserTransaction, type DbTransaction } from "./database";
 import {
@@ -40,12 +42,21 @@ import { getActiveGirlfriend } from "./repositories/companions";
 import { ensureAgeConfirmed } from "./routers/guards";
 import { consumeTranscription } from "./transcriptions";
 
-const MAX_OUTPUT = 16_000;
-const RESPONSE_TIMEOUT = 120_000;
+const MAX_OUTPUT = runtimeInteger(
+  "CHAT_MAX_OUTPUT_CHARS",
+  16_000,
+  1000,
+  32_000
+);
+const RESPONSE_TIMEOUT = runtimeInteger(
+  "CHAT_REPLY_TIMEOUT_MS",
+  120_000,
+  5000,
+  300_000
+);
 const LEASE_MS = 6_000;
-const LOCAL_CONCURRENCY = 4;
-const USER_CONCURRENCY = 3;
-const BURST_CONTENT_LIMIT = 48_000;
+const LOCAL_CONCURRENCY = runtimeInteger("CHAT_STREAM_CONCURRENCY", 4, 1, 32);
+const USER_CONCURRENCY = runtimeInteger("CHAT_USER_CONCURRENCY", 3, 1, 10);
 const BURST_MESSAGE_LIMIT = 32;
 const activeWorkers = new Map<string, Promise<void>>();
 let scanning = false;
@@ -126,7 +137,8 @@ async function consumeRate(tx: DbTransaction, userId: string) {
 async function requireFollowupCapacity(
   tx: DbTransaction,
   conversationId: number,
-  content: string
+  content: string,
+  forgottenThrough: number
 ) {
   const [completed] = await tx
     .select({ id: messages.id })
@@ -134,6 +146,7 @@ async function requireFollowupCapacity(
     .where(
       and(
         eq(messages.conversationId, conversationId),
+        sql`${messages.id} > ${forgottenThrough}`,
         eq(messages.role, "assistant"),
         eq(messages.generationStatus, "succeeded"),
         sql`CHAR_LENGTH(TRIM(${messages.content})) > 0`
@@ -141,21 +154,20 @@ async function requireFollowupCapacity(
     )
     .orderBy(desc(messages.id))
     .limit(1);
-  const [burst] = await tx
-    .select({
-      characters: sql<number>`COALESCE(SUM(CHAR_LENGTH(${messages.content})), 0)`,
-      users: sql<number>`SUM(CASE WHEN ${messages.role} = 'user' THEN 1 ELSE 0 END)`,
-    })
+  const burst = await tx
+    .select({ content: messages.content, role: messages.role })
     .from(messages)
     .where(
       and(
         eq(messages.conversationId, conversationId),
+        sql`${messages.id} > ${forgottenThrough}`,
         completed ? sql`${messages.id} > ${completed.id}` : undefined
       )
     );
   if (
-    Number(burst.characters) + content.length > BURST_CONTENT_LIMIT ||
-    Number(burst.users) >= BURST_MESSAGE_LIMIT
+    burst.reduce((sum, item) => sum + item.content.length, content.length) >
+      chatContextLimits().followups ||
+    burst.filter(item => item.role === "user").length >= BURST_MESSAGE_LIMIT
   )
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
@@ -226,7 +238,11 @@ export async function submitChatTurn(
       requireSameInput(duplicate, input);
       return duplicate.id;
     }
-    await requireGenerationConversation(tx, user.id, input.conversationId);
+    const role = await requireGenerationConversation(
+      tx,
+      user.id,
+      input.conversationId
+    );
     const oldTurns = await tx
       .select()
       .from(generationRequests)
@@ -241,7 +257,12 @@ export async function submitChatTurn(
       .for("update");
     for (const old of oldTurns)
       await settleChatTurnInTransaction(tx, old, "stopped");
-    await requireFollowupCapacity(tx, input.conversationId, input.content);
+    await requireFollowupCapacity(
+      tx,
+      input.conversationId,
+      input.content,
+      role.memoryForgottenThroughId
+    );
     const [count] = await tx
       .select({ count: sql<number>`COUNT(*)` })
       .from(generationRequests)
@@ -434,7 +455,8 @@ export async function stopChatTurn(
 async function liveLease(
   tx: DbTransaction,
   request: Request,
-  leaseToken: string
+  leaseToken: string,
+  memoryEpoch?: number
 ) {
   const [row] = await tx
     .select()
@@ -457,21 +479,24 @@ async function liveLease(
     row.expiresAt.getTime() <= Date.now()
   )
     throw new Error("Chat lease is no longer active");
-  await requireGenerationConversation(
+  const role = await requireGenerationConversation(
     tx,
     request.userId,
     request.conversationId
   );
+  if (memoryEpoch !== undefined && role.memoryEpoch !== memoryEpoch)
+    throw new Error("Companion context changed during generation");
   return row;
 }
 
 async function appendSegment(
   request: Request,
   leaseToken: string,
-  text: string
+  text: string,
+  memoryEpoch?: number
 ) {
   await withUserTransaction(request.userId, async tx => {
-    const row = await liveLease(tx, request, leaseToken);
+    const row = await liveLease(tx, request, leaseToken, memoryEpoch);
     const [message] = await tx
       .select()
       .from(messages)
@@ -520,7 +545,8 @@ async function appendSegment(
 async function finishWorker(
   request: Request,
   leaseToken: string,
-  status: "succeeded" | "failed"
+  status: "succeeded" | "failed",
+  memoryEpoch?: number
 ) {
   await withUserTransaction(request.userId, async tx => {
     const [row] = await tx
@@ -541,6 +567,7 @@ async function finishWorker(
     )
       return;
     if (status === "succeeded") {
+      await liveLease(tx, request, leaseToken, memoryEpoch);
       if (
         !row.leaseUntil ||
         row.leaseUntil.getTime() <= Date.now() ||
@@ -570,6 +597,7 @@ async function executeChatTurn(request: Request, leaseToken: string) {
   const started = Date.now();
   let telemetry: GenerationTelemetry | null = null;
   let truncated = false;
+  let memoryEpoch: number | undefined;
   let pending = "",
     oldestPendingAt = 0,
     received = 0,
@@ -597,7 +625,7 @@ async function executeChatTurn(request: Request, leaseToken: string) {
       flushChain = flushChain
         .then(() => {
           if (flushingError) return;
-          return appendSegment(request, leaseToken, piece);
+          return appendSegment(request, leaseToken, piece, memoryEpoch);
         })
         .catch(error => {
           flushingError = error;
@@ -635,7 +663,7 @@ async function executeChatTurn(request: Request, leaseToken: string) {
       }
       if (Date.now() - lastHeartbeat >= 2_000) {
         await withUserTransaction(request.userId, async tx => {
-          const live = await liveLease(tx, request, leaseToken);
+          const live = await liveLease(tx, request, leaseToken, memoryEpoch);
           await tx
             .update(generationRequests)
             .set({ leaseUntil: new Date(Date.now() + LEASE_MS) })
@@ -697,6 +725,12 @@ async function executeChatTurn(request: Request, leaseToken: string) {
       conversation.girlfriendId
     );
     if (!girlfriend) throw new Error("Companion is unavailable");
+    if (
+      !request.userMessageId ||
+      request.userMessageId <= girlfriend.memoryForgottenThroughId
+    )
+      throw new Error("Accepted input was cleared from companion context");
+    memoryEpoch = girlfriend.memoryEpoch;
     let behaviorContext = {};
     try {
       behaviorContext = await getChatBehaviorContext(
@@ -710,28 +744,33 @@ async function executeChatTurn(request: Request, leaseToken: string) {
         providerErrorSummary(error)
       );
     }
-    let systemPrompt = buildChatSystemPrompt(
+    const platformPrompt = buildChatSystemPrompt(
       girlfriend,
       config,
       behaviorContext
     );
+    let memoryBlock = "";
     try {
-      systemPrompt += await buildMemoryPromptBlock(
+      memoryBlock = await buildMemoryPromptBlock(
         request.userId,
         girlfriend.id,
         request.chatInput!,
-        girlfriend.intimacyLevel || 1
+        girlfriend.intimacyLevel || 1,
+        {
+          conversationId: request.conversationId,
+          maxChars: chatContextLimits().memory,
+        }
       );
     } catch (error) {
       log.warn("[chat-stream] memory unavailable", providerErrorSummary(error));
     }
-    systemPrompt += `\n${SAFETY_SYSTEM_CLAUSE}`;
     const [completed] = await db
       .select({ id: messages.id })
       .from(messages)
       .where(
         and(
           eq(messages.conversationId, request.conversationId),
+          sql`${messages.id} > ${girlfriend.memoryForgottenThroughId}`,
           eq(messages.role, "assistant"),
           eq(messages.generationStatus, "succeeded"),
           sql`${messages.id} < ${request.userMessageId!}`,
@@ -746,6 +785,7 @@ async function executeChatTurn(request: Request, leaseToken: string) {
       .where(
         and(
           eq(messages.conversationId, request.conversationId),
+          sql`${messages.id} > ${girlfriend.memoryForgottenThroughId}`,
           lte(messages.id, request.userMessageId!),
           completed ? sql`${messages.id} > ${completed.id}` : undefined,
           or(
@@ -762,6 +802,7 @@ async function executeChatTurn(request: Request, leaseToken: string) {
           .where(
             and(
               eq(messages.conversationId, request.conversationId),
+              sql`${messages.id} > ${girlfriend.memoryForgottenThroughId}`,
               lte(messages.id, completed.id),
               or(
                 eq(messages.role, "user"),
@@ -772,18 +813,16 @@ async function executeChatTurn(request: Request, leaseToken: string) {
           .orderBy(desc(messages.id))
           .limit(10)
       : [];
-    let historyBudget = 16_000;
-    const history = previous
-      .filter(item => {
-        if (item.content.length > historyBudget) return false;
-        historyBudget -= item.content.length;
-        return true;
-      })
-      .reverse()
-      .concat(followups);
+    const { systemPrompt, history } = planChatContext({
+      platform: platformPrompt + `\n${SAFETY_SYSTEM_CLAUSE}`,
+      memory: memoryBlock,
+      summary: "",
+      previous: previous.reverse(),
+      followups,
+    });
     // All accepted follow-up messages are already canonical history, including the current user message.
     await withUserTransaction(request.userId, tx =>
-      liveLease(tx, request, leaseToken)
+      liveLease(tx, request, leaseToken, memoryEpoch)
     );
     const response = await fetch(`${provider.baseUrl}/chat/completions`, {
       method: "POST",
@@ -837,7 +876,7 @@ async function executeChatTurn(request: Request, leaseToken: string) {
     await flushChain;
     if (flushingError) throw flushingError;
     if (!received) throw new Error("Chat provider returned empty content");
-    await finishWorker(request, leaseToken, "succeeded");
+    await finishWorker(request, leaseToken, "succeeded", memoryEpoch);
     maybeExtractMemories({ userId: request.userId });
   } catch (error) {
     // Preserve received text even for provider errors; shared cancellation can reject the late write.

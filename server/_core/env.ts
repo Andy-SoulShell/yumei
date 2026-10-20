@@ -29,6 +29,31 @@ function loadEnv() {
   const issues: string[] = [];
   const env = process.env;
 
+  for (const [name, min, max] of [
+    ["AI_DAILY_TASK_LIMIT", 1, 10000],
+    ["AI_TASK_TIMEOUT_MS", 100, 120000],
+    ["CHAT_CONTEXT_CHAR_LIMIT", 64000, 160000],
+    ["CHAT_MAX_OUTPUT_CHARS", 1000, 32000],
+    ["CHAT_REPLY_TIMEOUT_MS", 5000, 300000],
+    ["CHAT_STREAM_CONCURRENCY", 1, 32],
+    ["CHAT_USER_CONCURRENCY", 1, 10],
+  ] as const) {
+    if (
+      env[name] &&
+      (!/^\d+$/.test(env[name]!) ||
+        Number(env[name]) < min ||
+        Number(env[name]) > max)
+    )
+      issues.push(`${name}: must be an integer between ${min} and ${max}.`);
+  }
+  for (const name of [
+    "COMPANION_MEMORY_ENABLED",
+    "COMPANION_PROACTIVE_ENABLED",
+  ]) {
+    if (env[name] && !["0", "1"].includes(env[name]!))
+      issues.push(`${name}: must be 0 or 1.`);
+  }
+
   if (env.OPERATOR_CHAT_BASE_URL) {
     try {
       const base = new URL(env.OPERATOR_CHAT_BASE_URL);

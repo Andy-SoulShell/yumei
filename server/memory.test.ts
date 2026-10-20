@@ -2,7 +2,9 @@
 
 import { nanoid } from "nanoid";
 import axios from "axios";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { and, eq } from "drizzle-orm";
+import { conversations, messages } from "../drizzle/schema";
 import { renderMessage } from "../shared/i18n";
 import {
   bigramOverlap,
@@ -13,6 +15,7 @@ import {
   timeDecayFactor,
 } from "../shared/memory";
 import { getDb } from "./database";
+import * as providers from "./_core/chatProvider";
 import {
   buildMemoryPromptBlock,
   callExtractionModel,
@@ -22,10 +25,14 @@ import {
   listMemories,
   parseExtractionResponse,
   setMemoryPinned,
-  storeExtractedMemories,
+  storeExtractedMemories as persistExtractedMemories,
+  type ExtractedMemory,
 } from "./memory";
 import { checkAndCreateProactiveNotification } from "./repositories/notifications";
-import { createTestGirlfriend as createGirlfriend } from "./testFixtures";
+import {
+  createTestGirlfriend as createGirlfriend,
+  createTestUser,
+} from "./testFixtures";
 import {
   createConversation,
   createMessage,
@@ -95,6 +102,11 @@ describe("shared/memory scoring", () => {
 });
 
 describe("extraction provider responses", () => {
+  let context: { userId: string };
+  beforeEach(async () => {
+    context = { userId: await createTestUser() };
+    vi.spyOn(providers, "resolveChatProvider").mockResolvedValue(provider);
+  });
   afterEach(() => vi.restoreAllMocks());
   const provider = {
     name: "deepseek" as const,
@@ -116,16 +128,18 @@ describe("extraction provider responses", () => {
       vi.spyOn(axios, "post").mockResolvedValue({
         data: { choices: [{ message: { content } }] },
       });
-      await expect(callExtractionModel(provider, sources)).rejects.toThrow(
-        "Invalid memory extraction response"
-      );
+      await expect(
+        callExtractionModel(provider, sources, context)
+      ).rejects.toThrow("Invalid memory extraction response");
     }
   });
   it("accepts a valid empty result without retrying ordinary small talk", async () => {
     vi.spyOn(axios, "post").mockResolvedValue({
       data: { choices: [{ message: { content: '{"memories":[]}' } }] },
     });
-    await expect(callExtractionModel(provider, sources)).resolves.toEqual([]);
+    await expect(
+      callExtractionModel(provider, sources, context)
+    ).resolves.toEqual([]);
   });
   it("accepts only verbatim user evidence and never stores model-written paraphrases or companion quotes", async () => {
     const post = vi.spyOn(axios, "post").mockResolvedValue({
@@ -168,10 +182,11 @@ describe("extraction provider responses", () => {
       },
     });
     await expect(
-      callExtractionModel(provider, [
-        ...sources,
-        { id: 2, role: "assistant", content: "我最常喝手冲咖啡" },
-      ])
+      callExtractionModel(
+        provider,
+        [...sources, { id: 2, role: "assistant", content: "我最常喝手冲咖啡" }],
+        context
+      )
     ).resolves.toEqual([
       {
         category: "preference",
@@ -196,9 +211,11 @@ describe("extraction provider responses", () => {
   it("does not send assistant-only input to the extraction provider", async () => {
     const post = vi.spyOn(axios, "post");
     await expect(
-      callExtractionModel(provider, [
-        { id: 2, role: "assistant", content: "我喜欢手冲咖啡" },
-      ])
+      callExtractionModel(
+        provider,
+        [{ id: 2, role: "assistant", content: "我喜欢手冲咖啡" }],
+        context
+      )
     ).resolves.toEqual([]);
     expect(post).not.toHaveBeenCalled();
   });
@@ -224,9 +241,11 @@ describe("extraction provider responses", () => {
       },
     });
     await expect(
-      callExtractionModel(provider, [
-        { id: 1, role: "user", content: "我不喜欢黑咖啡，也不想改喝它。" },
-      ])
+      callExtractionModel(
+        provider,
+        [{ id: 1, role: "user", content: "我不喜欢黑咖啡，也不想改喝它。" }],
+        context
+      )
     ).resolves.toEqual([
       {
         category: "preference",
@@ -265,7 +284,11 @@ describe("extraction provider responses", () => {
         },
       });
       await expect(
-        callExtractionModel(provider, [{ id: 1, role: "user", content }])
+        callExtractionModel(
+          provider,
+          [{ id: 1, role: "user", content }],
+          context
+        )
       ).resolves.toEqual([]);
     }
   );
@@ -335,6 +358,63 @@ async function makeGirlfriend(userId: string) {
     referenceImageKey: "mem-test-key",
     isActive: false,
   });
+}
+
+const fixtureSources = new Map<string, number>();
+/** 存储回归的候选必须有真实所属用户原文，旧数字仅作为夹具的稳定标签。 */
+async function storeExtractedMemories(
+  userId: string,
+  girlfriendId: number,
+  candidates: ExtractedMemory[]
+) {
+  const db = (await getDb())!;
+  const [conversation] = await db
+    .select()
+    .from(conversations)
+    .where(
+      and(
+        eq(conversations.userId, userId),
+        eq(conversations.girlfriendId, girlfriendId)
+      )
+    )
+    .limit(1);
+  const target =
+    conversation ?? (await createConversation({ userId, girlfriendId }));
+  const grounded: ExtractedMemory[] = [];
+  for (const candidate of candidates) {
+    const key = `${userId}:${girlfriendId}:${candidate.sourceMessageId}`;
+    let sourceId =
+      candidate.sourceMessageId === undefined
+        ? undefined
+        : fixtureSources.get(key);
+    if (!sourceId && candidate.sourceMessageId !== undefined) {
+      const [source] = await db
+        .select({ id: messages.id })
+        .from(messages)
+        .innerJoin(conversations, eq(conversations.id, messages.conversationId))
+        .where(
+          and(
+            eq(messages.id, candidate.sourceMessageId),
+            eq(conversations.userId, userId),
+            eq(conversations.girlfriendId, girlfriendId)
+          )
+        );
+      sourceId = source?.id;
+    }
+    if (!sourceId)
+      sourceId = (
+        await createMessage({
+          conversationId: target.id,
+          role: "user",
+          content: candidate.content,
+          generationStatus: "succeeded",
+        })
+      ).id;
+    if (candidate.sourceMessageId !== undefined)
+      fixtureSources.set(key, sourceId);
+    grounded.push({ ...candidate, sourceMessageId: sourceId });
+  }
+  return persistExtractedMemories(userId, girlfriendId, grounded);
 }
 
 describe("memory storage (DB)", () => {
@@ -433,7 +513,7 @@ describe("memory storage (DB)", () => {
     );
     expect(block).toContain("燕麦拿铁");
     expect(
-      block.split("\n").filter(line => line.startsWith("- "))
+      JSON.parse(block.split("<memory-data>")[1].split("</memory-data>")[0])
     ).toHaveLength(26);
     expect(memoryInjectionK(10, "Do you remember my favorite drink?")).toBe(
       120
@@ -548,7 +628,7 @@ describe("proactive notifications reference memories", () => {
     const userId = `mem-user-${nanoid(8)}`;
     const gf = await makeGirlfriend(userId);
     await storeExtractedMemories(userId, gf.id, [
-      { category: "event", content: "用户周五要参加朋友的婚礼", importance: 7 },
+      { category: "event", content: "用户明天要参加朋友的婚礼", importance: 7 },
     ]);
 
     const fresh = await getFreshEventMemory(userId, gf.id);
@@ -558,7 +638,7 @@ describe("proactive notifications reference memories", () => {
     expect(notification).toBeTruthy();
     expect(notification!.content).toEqual({
       key: "notifications:memoryFollowUp",
-      values: { memory: "用户周五要参加朋友的婚礼" },
+      values: { memory: "用户明天要参加朋友的婚礼" },
     });
     expect(renderMessage(notification!.content, "zh-CN")).toContain("婚礼");
 
@@ -595,7 +675,7 @@ describe("memory reinforcement regressions", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
       content: "我不喜欢加糖的燕麦拿铁",
-      sourceMessageId: 20,
+      sourceMessageId: fixtureSources.get(`${userId}:${gf.id}:20`),
       pinned: true,
       weight: 80,
     });

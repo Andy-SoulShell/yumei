@@ -619,6 +619,60 @@ export default {
     photoCount_other: "{{count}} photos",
   },
   memories: {
+    emptyPausedHelp:
+      "Memory is paused. Resume it whenever you want useful details to be saved again.",
+    memoryControl: "Use memory",
+    memoryEnabledHelp:
+      "Learns useful details from your chats and uses them in future replies.",
+    memoryPausedHelp:
+      "Paused: no new memories are learned, and saved memories or recaps are not used in replies. You can still view and manage them here.",
+    memoryPaused: "Memory paused",
+    memoryResumed: "Memory resumed",
+    memoryUpdated: "Memory corrected",
+    memoriesCleared: "Memories and earlier conversation context forgotten",
+    recallMeaning:
+      "When memory is enabled, related details can be connected even when the wording differs.",
+    recallWords:
+      "When memory is enabled, saved details are found using relevant words.",
+    timeZone: "Your time zone",
+    timeZoneHelp:
+      "Used across your account to understand dates such as “tomorrow”. Choose or enter an IANA time zone, for example Asia/Shanghai.",
+    timeZoneInvalid:
+      "Enter a valid IANA time zone, such as Asia/Shanghai or Europe/London.",
+    saveTimeZone: "Save time zone",
+    timeZoneSaved: "Time zone saved",
+    conversationSummary: "Conversation recap",
+    rememberedFacts: "Saved details",
+    recentTopics: "Recent topics and open questions",
+    topicFromYou: "Your message #{{id}}",
+    topicFromCompanion: "Character’s suggestion · message #{{id}}",
+    topicOpen: "Still open",
+    topicClosed: "Discussed",
+    noSummary: "A recap will appear after enough conversation has been saved.",
+    summaryPaused:
+      "Recaps are not used while memory is paused. Resume memory to see the current recap.",
+    forgettingHelp:
+      "Editing, deleting or clearing memories excludes earlier chat context from future AI replies. Your visible chat history stays.",
+    clearAll: "Forget everything",
+    clearConfirm:
+      "Forget all saved memories and earlier conversation context for {{name}}? Chat history will remain visible.",
+    deleteConfirm:
+      "Forget “{{content}}”? Earlier chat context will also be excluded from future replies. Chat history stays visible.",
+    editMemory: "Edit or correct memory",
+    correctedMemory: "Corrected memory",
+    editHelp:
+      "Up to 300 characters. Saving replaces this memory and excludes earlier chat context from future replies. Chat history stays visible.",
+    editEmptyError: "Enter a correction, or cancel to keep this memory.",
+    saveCorrection: "Save correction",
+    sourceEdited: "Source: your correction",
+    sourceUserMessage: "Source: your message #{{id}}",
+    sourceLegacy: "Source: earlier saved memory",
+    eventInfo: "Event: {{date}} · {{status}}",
+    eventDateUnknown: "Date not confirmed",
+    eventPlanned: "Planned",
+    eventCompleted: "Completed",
+    eventCancelled: "Cancelled",
+    eventUnknown: "Status not confirmed",
     memoryDeleted: "Memory deleted",
     actionFailed: "Action failed: {{error}}",
     whatRemembersAboutYou: "What {{name}} remembers about you",

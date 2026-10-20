@@ -1,4 +1,5 @@
 import { shouldExtractMemories } from "../shared/memory";
+import { memoryFeatureEnabled } from "./aiTaskRuntime";
 /** 持久化生成请求，原子结算消息与额度，并补偿失败和过期预留。 */
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray, isNull, lte, sql } from "drizzle-orm";
@@ -47,6 +48,8 @@ export async function requireGenerationConversation(
     .select({
       girlfriendId: girlfriends.id,
       intimacyLevel: girlfriends.intimacyLevel,
+      memoryEpoch: girlfriends.memoryEpoch,
+      memoryForgottenThroughId: girlfriends.memoryForgottenThroughId,
     })
     .from(conversations)
     .innerJoin(girlfriends, eq(girlfriends.id, conversations.girlfriendId))
@@ -265,6 +268,9 @@ export async function settleChatTurnInTransaction(
       .select({
         girlfriendId: girlfriends.id,
         intimacyLevel: girlfriends.intimacyLevel,
+        memoryEnabled: girlfriends.memoryEnabled,
+        memoryEpoch: girlfriends.memoryEpoch,
+        memoryForgottenThroughId: girlfriends.memoryForgottenThroughId,
       })
       .from(conversations)
       .innerJoin(girlfriends, eq(girlfriends.id, conversations.girlfriendId))
@@ -327,6 +333,9 @@ export async function settleChatTurnInTransaction(
             )
           );
         if (
+          role.memoryEnabled &&
+          memoryFeatureEnabled() &&
+          userMessage.id > role.memoryForgottenThroughId &&
           shouldExtractMemories(Number(rounds.count) + 1, userMessage.content)
         )
           await tx.insert(memoryExtractionJobs).values({
@@ -336,6 +345,7 @@ export async function settleChatTurnInTransaction(
             conversationId: request.conversationId,
             lastMessageId: assistantMessage!.id,
             intimacyLevel: relationship.intimacyLevel,
+            memoryEpoch: role.memoryEpoch,
           });
       }
     }

@@ -611,6 +611,58 @@ export default {
     photoCount_other: "사진 {{count}}장",
   },
   memories: {
+    emptyPausedHelp:
+      "기억이 일시 중지되어 있어요. 유용한 정보를 다시 저장하고 싶을 때 언제든 켤 수 있어요.",
+    memoryControl: "기억 사용",
+    memoryEnabledHelp: "대화에서 유용한 정보를 기억하고 이후 답변에 사용해요.",
+    memoryPausedHelp:
+      "일시 중지 중: 새 기억을 배우지 않고 기존 기억이나 대화 요약도 답변에 사용하지 않아요. 여기에서 확인하고 관리할 수는 있어요.",
+    memoryPaused: "기억을 일시 중지했어요",
+    memoryResumed: "기억을 다시 사용해요",
+    memoryUpdated: "기억을 수정했어요",
+    memoriesCleared: "모든 기억과 이전 대화 맥락을 잊었어요",
+    recallMeaning:
+      "기억이 켜져 있으면 표현이 달라도 뜻이 비슷한 정보를 연결해 떠올릴 수 있어요.",
+    recallWords: "기억이 켜져 있으면 관련 단어로 저장된 기억을 찾아요.",
+    timeZone: "내 시간대",
+    timeZoneHelp:
+      "계정 전체에서 ‘내일’ 같은 날짜를 이해하는 데 사용해요. Asia/Seoul 같은 IANA 시간대를 선택하거나 입력하세요.",
+    timeZoneInvalid:
+      "Asia/Seoul 또는 Europe/London 같은 올바른 IANA 시간대를 입력하세요.",
+    saveTimeZone: "시간대 저장",
+    timeZoneSaved: "시간대를 저장했어요",
+    conversationSummary: "대화 돌아보기",
+    rememberedFacts: "저장한 정보",
+    recentTopics: "최근 주제와 아직 남은 이야기",
+    topicFromYou: "내 메시지 #{{id}}",
+    topicFromCompanion: "캐릭터의 제안 · 메시지 #{{id}}",
+    topicOpen: "계속할 이야기",
+    topicClosed: "이야기 완료",
+    noSummary: "대화가 어느 정도 쌓이면 여기에서 돌아볼 수 있어요.",
+    summaryPaused:
+      "기억이 일시 중지된 동안에는 대화 요약을 사용하지 않아요. 다시 켜면 현재 요약을 볼 수 있어요.",
+    forgettingHelp:
+      "기억을 수정하거나 삭제하거나 모두 지우면 이후 AI 답변에서 이전 대화 맥락도 사용하지 않아요. 화면의 채팅 기록은 남아 있어요.",
+    clearAll: "모두 잊기",
+    clearConfirm:
+      "{{name}}의 모든 기억과 이전 대화 맥락을 잊을까요? 화면의 채팅 기록은 남아 있어요.",
+    deleteConfirm:
+      "‘{{content}}’을 잊을까요? 이후 답변에서 이전 대화 맥락도 사용하지 않아요. 화면의 채팅 기록은 남아 있어요.",
+    editMemory: "기억 편집 또는 수정",
+    correctedMemory: "수정한 기억",
+    editHelp:
+      "최대 300자. 저장하면 이 기억을 바꾸고 이후 답변에서 이전 대화 맥락도 제외해요. 화면의 채팅 기록은 남아 있어요.",
+    editEmptyError: "수정할 내용을 입력하거나 취소해서 이 기억을 유지하세요.",
+    saveCorrection: "수정 저장",
+    sourceEdited: "출처: 내가 수정함",
+    sourceUserMessage: "출처: 내 메시지 #{{id}}",
+    sourceLegacy: "출처: 이전에 저장된 기억",
+    eventInfo: "일정: {{date}} · {{status}}",
+    eventDateUnknown: "날짜 미확인",
+    eventPlanned: "예정",
+    eventCompleted: "완료",
+    eventCancelled: "취소",
+    eventUnknown: "상태 미확인",
     memoryDeleted: "기억을 삭제했어요",
     actionFailed: "작업하지 못했어요: {{error}}",
     whatRemembersAboutYou: "{{name}} 님이 기억하는 나의 이야기",

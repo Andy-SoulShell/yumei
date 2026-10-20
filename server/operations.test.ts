@@ -1,6 +1,6 @@
 /** 通过实际管理员路由检查聚合统计、未知用量和数据最小化。 */
 import { describe, expect, it } from "vitest";
-import { generationRequests } from "../drizzle/schema";
+import { aiTaskRuns, generationRequests } from "../drizzle/schema";
 import { getDb } from "./database";
 import { appRouter } from "./routers";
 import { createTestUser } from "./testFixtures";
@@ -15,6 +15,60 @@ describe("generation operations", () => {
     await expect(caller.operations.generationQuality()).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
+    await expect(caller.operations.taskQuality()).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
+  it("reports bounded internal task aggregates without identifiers or confusing unknown cost with zero", async () => {
+    const userId = await createTestUser();
+    const version = `tasks-${crypto.randomUUID()}`;
+    await (await getDb())!.insert(aiTaskRuns).values([
+      {
+        id: crypto.randomUUID(),
+        userId,
+        kind: "memory_query",
+        provider: "test",
+        model: "test",
+        isByok: true,
+        promptVersion: version,
+        outcome: "succeeded",
+        durationMs: 20,
+        usage: { inputTokens: 4, outputTokens: 0, costUsd: 0 },
+      },
+      {
+        id: crypto.randomUUID(),
+        userId,
+        kind: "memory_query",
+        provider: "test",
+        model: "test",
+        isByok: true,
+        promptVersion: version,
+        outcome: "failed",
+        durationMs: 30,
+      },
+    ]);
+    const caller = appRouter.createCaller({
+      user: { id: userId, role: "admin" },
+      req: {},
+      res: {},
+    } as never);
+    const result = await caller.operations.taskQuality({ days: 1 });
+    expect(
+      result.groups.find(item => item.promptVersion === version)
+    ).toMatchObject({
+      attempts: 2,
+      succeeded: 1,
+      failed: 1,
+      knownInputTokens: 4,
+      unknownInputAttempts: 1,
+      knownCostUsd: 0,
+      unknownCostAttempts: 1,
+      durationSamples: 2,
+      totalDurationMs: 50,
+    });
+    expect(result.sampledAttempts).toBeLessThanOrEqual(1000);
+    expect(JSON.stringify(result)).not.toContain(userId);
+    expect(JSON.stringify(result)).not.toMatch(/sourceMessage|apiKey|content/);
   });
   it("separates provider success from business failure and known zero from unknown", async () => {
     const userId = await createTestUser();

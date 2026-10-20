@@ -12,10 +12,13 @@ import {
 } from "drizzle-orm";
 import {
   conversations,
+  conversationSummaries,
   girlfriendMoods,
   girlfriends,
   mediaDeletions,
   memories,
+  memoryEmbeddings,
+  aiTaskRuns,
   memoryExtractionJobs,
   memorySuppressions,
   messages,
@@ -193,13 +196,40 @@ export async function softDeleteGirlfriend(
   id: number,
   userId: string
 ): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  await db
-    .update(girlfriends)
-    .set({ deletedAt: new Date(), isActive: false })
-    .where(and(eq(girlfriends.id, id), eq(girlfriends.userId, userId)));
+  await withUserTransaction(userId, async tx => {
+    await tx
+      .update(girlfriends)
+      .set({
+        deletedAt: new Date(),
+        isActive: false,
+        memoryEpoch: sql`${girlfriends.memoryEpoch} + 1`,
+      })
+      .where(and(eq(girlfriends.id, id), eq(girlfriends.userId, userId)));
+    await tx
+      .delete(memoryExtractionJobs)
+      .where(
+        and(
+          eq(memoryExtractionJobs.girlfriendId, id),
+          eq(memoryExtractionJobs.userId, userId)
+        )
+      );
+    await tx
+      .delete(memoryEmbeddings)
+      .where(
+        and(
+          eq(memoryEmbeddings.girlfriendId, id),
+          eq(memoryEmbeddings.userId, userId)
+        )
+      );
+    await tx
+      .delete(conversationSummaries)
+      .where(
+        and(
+          eq(conversationSummaries.girlfriendId, id),
+          eq(conversationSummaries.userId, userId)
+        )
+      );
+  });
 }
 
 /** 依次将指定角色移入当前用户的回收站；多条记录分别写入。 */
@@ -207,15 +237,7 @@ export async function softDeleteGirlfriends(
   ids: number[],
   userId: string
 ): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  for (const id of ids) {
-    await db
-      .update(girlfriends)
-      .set({ deletedAt: new Date(), isActive: false })
-      .where(and(eq(girlfriends.id, id), eq(girlfriends.userId, userId)));
-  }
+  for (const id of ids) await softDeleteGirlfriend(id, userId);
 }
 
 /** 恢复回收站角色时在用户事务内校验套餐数量；重复恢复不额外占用名额。 */
@@ -296,6 +318,29 @@ export async function permanentDeleteGirlfriend(
     await tx
       .delete(memories)
       .where(and(eq(memories.girlfriendId, id), eq(memories.userId, userId)));
+    await tx
+      .delete(memoryEmbeddings)
+      .where(
+        and(
+          eq(memoryEmbeddings.girlfriendId, id),
+          eq(memoryEmbeddings.userId, userId)
+        )
+      );
+    await tx
+      .delete(conversationSummaries)
+      .where(
+        and(
+          eq(conversationSummaries.girlfriendId, id),
+          eq(conversationSummaries.userId, userId)
+        )
+      );
+    // 预算凭证不含正文，删除角色不能重置当天已发生的外部调用次数。
+    await tx
+      .update(aiTaskRuns)
+      .set({ girlfriendId: null })
+      .where(
+        and(eq(aiTaskRuns.girlfriendId, id), eq(aiTaskRuns.userId, userId))
+      );
     await tx
       .delete(memorySuppressions)
       .where(

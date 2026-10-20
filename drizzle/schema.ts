@@ -62,6 +62,21 @@ export const userPreferences = mysqlTable("userPreferences", {
     .notNull(),
 });
 
+/** 陪伴服务共享的时区与显式主动联系偏好，默认不主动联系。 */
+export const companionPreferences = mysqlTable("companionPreferences", {
+  userId: varchar("userId", { length: 255 }).primaryKey(),
+  timeZone: varchar("timeZone", { length: 64 }).default("UTC").notNull(),
+  proactiveEnabled: boolean("proactiveEnabled").default(false).notNull(),
+  proactiveMode: mysqlEnum("proactiveMode", ["events", "daily"])
+    .default("events")
+    .notNull(),
+  quietStart: int("quietStart").default(1320).notNull(),
+  quietEnd: int("quietEnd").default(480).notNull(),
+  frequencyDays: int("frequencyDays").default(1).notNull(),
+  hidePrivatePreview: boolean("hidePrivatePreview").default(true).notNull(),
+  revision: int("revision").default(0).notNull(),
+});
+
 /** Better-Auth 会话记录，客户端通过 token 而不是记录 id 关联会话。 */
 export const sessions = mysqlTable("sessions", {
   id: varchar("id", { length: 255 }).primaryKey(),
@@ -118,6 +133,11 @@ export const girlfriends = mysqlTable(
     referenceImageKey: varchar("referenceImageKey", { length: 500 }).notNull(), // 存储文件 key
     customPrompt: text("customPrompt"), // 个体定制提示词，追加在全局提示词之后
     behavior: json("behavior").$type<CompanionBehavior>(),
+    memoryEnabled: boolean("memoryEnabled").default(true).notNull(),
+    memoryEpoch: int("memoryEpoch").default(0).notNull(),
+    memoryForgottenThroughId: int("memoryForgottenThroughId")
+      .default(0)
+      .notNull(),
     avatarUrl: text("avatarUrl"), // 头像图片 URL
     avatarKey: varchar("avatarKey", { length: 500 }), // 头像存储文件 key
     intimacyLevel: int("intimacyLevel").default(1).notNull(), // 亲密度等级 1-10
@@ -411,6 +431,24 @@ export const memories = mysqlTable(
     weight: int("weight").default(50).notNull(), // 重要度范围 0～100
     pinned: boolean("pinned").default(false).notNull(),
     sourceMessageId: int("sourceMessageId"),
+    contentVersion: int("contentVersion").default(1).notNull(),
+    factKey: varchar("factKey", { length: 64 }),
+    sourceType: mysqlEnum("sourceType", ["user_message", "user_edit"])
+      .default("user_message")
+      .notNull(),
+    sourceCreatedAt: timestamp("sourceCreatedAt", { fsp: 3 }),
+    sourceTimeZone: varchar("sourceTimeZone", { length: 64 })
+      .default("UTC")
+      .notNull(),
+    eventDay: varchar("eventDay", { length: 10 }),
+    eventStatus: mysqlEnum("eventStatus", [
+      "planned",
+      "completed",
+      "cancelled",
+      "unknown",
+    ])
+      .default("unknown")
+      .notNull(),
     lastRecalledAt: timestamp("lastRecalledAt"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -427,6 +465,85 @@ export const memories = mysqlTable(
 export type Memory = typeof memories.$inferSelect;
 /** 从 memories 表结构推导的新增记录输入，允许省略由数据库填充的字段。 */
 export type InsertMemory = typeof memories.$inferInsert;
+
+/** 当前内容版本的派生语义向量；服务与模型不匹配时不可比较。 */
+export const memoryEmbeddings = mysqlTable("memoryEmbeddings", {
+  memoryId: int("memoryId").primaryKey(),
+  userId: varchar("userId", { length: 255 }).notNull(),
+  girlfriendId: int("girlfriendId").notNull(),
+  contentVersion: int("contentVersion").notNull(),
+  memoryEpoch: int("memoryEpoch").notNull(),
+  provider: varchar("provider", { length: 32 }).notNull(),
+  model: varchar("model", { length: 200 }).notNull(),
+  baseUrl: varchar("baseUrl", { length: 500 }).notNull(),
+  isByok: boolean("isByok").notNull(),
+  dimensions: int("dimensions").notNull(),
+  vector: json("vector").$type<number[]>().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+/** 有来源的会话摘要，原话保留说话者，事实绑定当前记忆版本。 */
+export const conversationSummaries = mysqlTable("conversationSummaries", {
+  conversationId: int("conversationId").primaryKey(),
+  userId: varchar("userId", { length: 255 }).notNull(),
+  girlfriendId: int("girlfriendId").notNull(),
+  memoryEpoch: int("memoryEpoch").notNull(),
+  throughMessageId: int("throughMessageId").notNull(),
+  content: text("content").notNull(),
+  sources: json("sources")
+    .$type<
+      {
+        memoryId: number;
+        contentVersion: number;
+        sourceMessageId: number | null;
+      }[]
+    >()
+    .notNull(),
+  topics: json("topics")
+    .$type<
+      {
+        sourceMessageId: number;
+        speaker: "user" | "assistant";
+        quote: string;
+        open: boolean;
+      }[]
+    >()
+    .notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+/** 内部 AI 调用统计与预算凭证，不保存正文、向量或凭据。 */
+export const aiTaskRuns = mysqlTable(
+  "aiTaskRuns",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    userId: varchar("userId", { length: 255 }).notNull(),
+    girlfriendId: int("girlfriendId"),
+    kind: mysqlEnum("kind", [
+      "memory_extract",
+      "memory_index",
+      "memory_query",
+      "summary",
+    ]).notNull(),
+    provider: varchar("provider", { length: 32 }).notNull(),
+    model: varchar("model", { length: 200 }).notNull(),
+    isByok: boolean("isByok").notNull(),
+    promptVersion: varchar("promptVersion", { length: 100 }).notNull(),
+    outcome: mysqlEnum("outcome", ["pending", "succeeded", "failed"])
+      .default("pending")
+      .notNull(),
+    durationMs: int("durationMs"),
+    usage: json("usage").$type<{
+      inputTokens: number | null;
+      outputTokens: number | null;
+      costUsd: number | null;
+    }>(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    byUserDay: index("idx_ai_task_user_day").on(table.userId, table.createdAt),
+  })
+);
 
 /** 仅保存遗忘记录的摘要与消息边界，阻止旧任务复活已删除的记忆。 */
 export const memorySuppressions = mysqlTable(
@@ -654,6 +771,7 @@ export const memoryExtractionJobs = mysqlTable(
     conversationId: int("conversationId").notNull(),
     lastMessageId: int("lastMessageId").notNull(),
     intimacyLevel: int("intimacyLevel").notNull(),
+    memoryEpoch: int("memoryEpoch").default(0).notNull(),
     attempts: int("attempts").default(0).notNull(),
     status: mysqlEnum("status", ["pending", "failed"])
       .default("pending")

@@ -66,6 +66,14 @@
 .sidebar-preferences {
   border: 0;
 }
+.sidebar-preference-trigger:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+.is-sidebar-collapsed .app-sidebar {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
 .sidebar-bottom::before {
   display: none;
 }
@@ -125,13 +133,13 @@
 .conversation-card:hover {
   background: color-mix(in oklch, var(--primary) 4%, var(--surface-panel));
 }
-.surface-field:not(.chat-composer-input) {
+.surface-field:not(.chat-composer-input):not(.sidebar-preference-trigger) {
   border-radius: 12px;
   background: var(--surface-field);
 }
-.surface-field:not(.chat-composer-input):not([aria-invalid="true"]):not(
-    :focus-visible
-  ) {
+.surface-field:not(.chat-composer-input):not(.sidebar-preference-trigger):not(
+    [aria-invalid="true"]
+  ):not(:focus-visible) {
   border-color: transparent;
   box-shadow: none;
 }
@@ -236,6 +244,15 @@
     border-radius: 28px;
     box-shadow: var(--shadow-glass);
   }
+  .app-bottom-nav .app-nav-link {
+    color: var(--foreground);
+  }
+  .app-bottom-nav .app-nav-icon {
+    color: var(--muted-foreground);
+  }
+  .app-bottom-nav .is-active .app-nav-icon {
+    color: var(--primary);
+  }
   .app-shell:not(.is-chat) .app-main {
     padding-bottom: calc(90px + var(--safe-area-bottom));
     scroll-padding-bottom: calc(90px + var(--safe-area-bottom));
@@ -259,6 +276,11 @@
   }
 }
 @media (forced-colors: active) {
+  .surface-field:not(.chat-composer-input):not(.sidebar-preference-trigger):not(
+      [aria-invalid="true"]
+    ):not(:focus-visible) {
+    border-color: CanvasText;
+  }
   .surface-card,
   .glass-surface,
   .surface-field,

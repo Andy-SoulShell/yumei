@@ -10,13 +10,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CharacterGrid } from "@/features/home/CharacterGrid";
 import { CharacterTrash } from "@/features/home/CharacterTrash";
 import { ConversationHistory } from "@/features/home/ConversationHistory";
@@ -46,7 +40,6 @@ export default function MyCharacters() {
     pullDistance,
     isRefreshing,
     isPulling,
-    user,
     girlfriends,
     batchMode,
     setBatchMode,
@@ -110,17 +103,9 @@ export default function MyCharacters() {
       />
 
       <div className="p-4 sm:p-8 max-w-6xl mx-auto space-y-4 sm:space-y-6 pb-8">
-        {/* 欢迎信息 + 批量操作 */}
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 flex-1 basis-56 space-y-1">
-            <h2 className="text-xl sm:text-2xl font-bold">
-              {t("home:greeting", { name: user?.name || t("home:friend") })} 👋
-            </h2>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              {t("home:chooseACompanionToStartChatting")}
-            </p>
-          </div>
-          {girlfriends && girlfriends.length > 1 && (
+        {/* 批量管理 */}
+        {girlfriends && girlfriends.length > 1 && (
+          <div className="flex justify-end">
             <Button
               variant={batchMode ? "default" : "outline"}
               size="sm"
@@ -141,8 +126,8 @@ export default function MyCharacters() {
                 </>
               )}
             </Button>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* 批量操作工具栏 */}
         {batchMode && girlfriends && girlfriends.length > 0 && (
@@ -189,9 +174,6 @@ export default function MyCharacters() {
                 <Plus className="w-8 h-8 text-primary" />
               </div>
               <CardTitle>{t("home:createYourFirstCompanion")}</CardTitle>
-              <CardDescription>
-                {t("home:uploadAReferencePhotoAndChooseAPersonality")}
-              </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
               <Button onClick={() => setLocation("/setup")}>
@@ -231,9 +213,6 @@ export default function MyCharacters() {
                   <p className="font-medium text-sm">
                     {t("common:photoGallery")}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {t("home:viewAllPhotos")}
-                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -248,9 +227,6 @@ export default function MyCharacters() {
                 </div>
                 <div>
                   <p className="font-medium text-sm">{t("home:apiSettings")}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {t("home:configureAPIKeys")}
-                  </p>
                 </div>
               </CardContent>
             </Card>

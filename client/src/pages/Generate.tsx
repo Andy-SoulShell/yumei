@@ -14,10 +14,6 @@ export default function Generate() {
   return (
     <div className="hub-page">
       <div className="hub-heading">
-        <span className="section-eyebrow">
-          <ImagePlus size={14} />
-          {t("explore:navGenerate")}
-        </span>
         <h1>{t("explore:generateTitle")}</h1>
         <p>{t("explore:generateSubtitle")}</p>
         <Button asChild variant="outline" className="mt-5">
@@ -36,10 +32,6 @@ export default function Generate() {
         </div>
       ) : companions?.length ? (
         <>
-          <div className="section-heading">
-            <h2>{t("explore:chooseRole")}</h2>
-            {pending !== null && <Loader2 className="animate-spin" />}
-          </div>
           <div
             className={`character-grid ${pending !== null ? "is-pending" : ""}`}
             aria-busy={pending !== null}
@@ -60,7 +52,6 @@ export default function Generate() {
         <div className="explore-empty">
           <ImagePlus size={34} />
           <h2>{t("chat:noCompanionYet")}</h2>
-          <p>{t("chat:createYourCompanionFirst")}</p>
           <Button asChild>
             <Link href="/explore">{t("explore:heroAction")}</Link>
           </Button>

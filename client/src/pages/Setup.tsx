@@ -11,13 +11,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -67,11 +61,6 @@ export default function Setup() {
                 ? t("setup:editCompanion")
                 : t("setup:createYourCompanion")}
             </CardTitle>
-            <CardDescription>
-              {isEditing
-                ? t("setup:editPersonalityAndInterests")
-                : t("setup:chooseFrom8PresetsOrUploadAPhoto")}
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -112,9 +101,6 @@ export default function Setup() {
                   rows={4}
                   required
                 />
-                <p className="text-xs text-muted-foreground">
-                  {t("setup:describeThePersonalityToShapeTheCompanionS")}
-                </p>
               </div>
 
               {/* 外貌描述 */}
@@ -128,9 +114,6 @@ export default function Setup() {
                   rows={3}
                   required
                 />
-                <p className="text-xs text-muted-foreground">
-                  {t("setup:describeTheAppearanceUsedWhenGeneratingSelfies")}
-                </p>
               </div>
 
               {/* 兴趣爱好 */}

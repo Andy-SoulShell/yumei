@@ -133,7 +133,7 @@ describe("public landing page", () => {
       container.querySelector(".landing-signup a")?.getAttribute("href")
     ).toBe("/explore");
     expect(container.querySelector(".landing-signup")?.textContent).toContain(
-      "你的故事，还在继续"
+      "继续你的故事"
     );
   });
   it("changes banners manually and keeps automatic rotation paused on request", async () => {

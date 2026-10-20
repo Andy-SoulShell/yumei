@@ -9,41 +9,39 @@ export default {
     goToSlide: "{{count}}번째 슬라이드로 이동",
     pauseSlides: "자동 전환 일시 정지",
     playSlides: "자동 전환 재개",
-    createTitle: "너의 상상으로,",
-    createHighlight: "단 하나뿐인 동행을.",
-    createDescription: "외모부터 성격까지, 함께할 이야기의 첫 줄을 써 보세요.",
+    createTitle: "원하는 캐릭터를,",
+    createHighlight: "직접 만들어 보세요.",
+
     photosTitle: "함께한 순간을,",
-    photosHighlight: "사진 한 장에.",
-    photosDescription:
-      "일상의 대화에서 하나의 장면으로, 이야기에 색을 더해 보세요.",
-    photosAction: "함께 장면 만들기",
+    photosHighlight: "사진으로 남겨요.",
+
+    photosAction: "사진 만들기",
     allCharacters: "모든 캐릭터",
-    catalogueDescription: "안녕이라는 한마디로 새로운 세상을 만나세요.",
-    exploreAll: "모든 캐릭터 탐색",
-    faqEyebrow: "만나기 전에",
+
+    exploreAll: "모든 캐릭터 보기",
+
     faqTitle: "자주 묻는 질문",
-    faqDescription: "궁금한 이야기는 여기서 시작해 보세요.",
+
     "faq.what.question": "YUMEI는 무엇인가요?",
     "faq.what.answer":
-      "YUMEI는 성인을 위한 AI 동행 앱입니다. 마음에 드는 캐릭터와 글이나 음성으로 대화하고, 일상을 나누고, 나만의 캐릭터와 장면 사진을 만들 수 있어요. 모든 캐릭터는 가상의 AI 인물입니다.",
+      "성인용 AI 대화 앱으로, 텍스트·음성 대화와 사진 생성을 지원합니다. 모든 캐릭터는 가상 인물입니다.",
     "faq.free.question": "무료로 시작할 수 있나요?",
     "faq.free.answer":
-      "무료로 가입하고 체험할 수 있어요. 메시지, 사진 생성, 개인 캐릭터 수는 현재 요금제와 서비스 설정에 따라 제한됩니다. 로그인 후 설정에서 요금제와 사용량을 확인하세요.",
+      "네. 무료 한도와 요금제 사용량은 설정에서 확인할 수 있어요.",
     "faq.memory.question": "캐릭터가 대화를 기억하나요?",
     "faq.memory.answer":
-      "YUMEI는 대화에서 장기 기억을 추출해 이후 대화에 활용할 수 있어요. 저장된 기억은 캐릭터의 기억 페이지에서 확인하고 관리할 수 있어요.",
+      "대화의 중요한 내용을 기억해요. 캐릭터의 기억 페이지에서 확인하거나 삭제할 수 있어요.",
     "faq.create.question": "나만의 캐릭터를 만들 수 있나요?",
     "faq.create.answer":
-      "네. 기본 캐릭터를 수정하거나 참고 이미지를 업로드해 이름, 외모, 성격, 관심사를 설정할 수 있어요. 만든 캐릭터는 내 캐릭터에 저장돼요.",
+      "기존 캐릭터를 수정하거나 참고 사진으로 외모와 성격을 설정할 수 있어요.",
     "faq.devices.question": "휴대폰과 컴퓨터에서 모두 쓸 수 있나요?",
     "faq.devices.answer":
-      "네. 휴대폰과 컴퓨터 브라우저에 맞춰져 있으며 휴대폰 홈 화면에도 추가할 수 있어요. 같은 계정으로 로그인하면 내 캐릭터와 대화 기록에 접근할 수 있어요.",
-    signupTitle: "오늘 이야기는 누구에게 들려줄까요?",
-    signupDescription: "마음이 맞는 동행과의 만남, 안녕이라는 한마디부터.",
-    signupAction: "무료로 가입하고 시작하기",
-    signupNote: "무료로 시작 · 이메일 가입",
-    welcomeBackTitle: "너의 이야기는 계속돼요.",
-    welcomeBackDescription: "새로운 동행을 만나거나, 익숙한 대화로 돌아가세요.",
+      "둘 다 가능해요. 같은 계정의 캐릭터와 대화가 동기화돼요.",
+    signupTitle: "AI 파트너를 만나보세요",
+
+    signupAction: "무료 가입",
+
+    welcomeBackTitle: "이야기를 이어가세요",
   },
   explore: {
     loadMore: "더 보기",
@@ -59,50 +57,45 @@ export default {
     skipToContent: "본문으로 이동",
     account: "내 계정",
     signIn: "로그인",
-    yourWorld: "당신의 세계",
-    brandCaption: "매일, 조금 더 가까이",
-    sidebarNote: "당신의 작은 세계를 이해해 주는 존재.",
+
     disclosure: "18세 이상 · 모든 동반자는 AI 캐릭터입니다",
-    heroEyebrow: "당신만의 만남",
-    heroTitle: "모든 이야기의 시작,",
-    heroHighlight: "한마디의 안녕.",
-    heroDescription:
-      "일상과 속마음, 작은 설렘까지. 당신과 마음이 통하는 동반자를 만나 보세요.",
-    heroAction: "동반자 찾기",
-    heroSecondary: "나만의 캐릭터 만들기",
-    heroFootnote: "당신의 속도로, 둘만의 이야기.",
-    featured: "추천 동반자",
+
+    heroTitle: "안녕,",
+    heroHighlight: "새로운 만남을 시작해요.",
+
+    heroAction: "캐릭터 둘러보기",
+    heroSecondary: "캐릭터 만들기",
+
+    featured: "추천 캐릭터",
     viewAll: "모두 보기",
-    title: "마음이 통하는 동반자를 찾아보세요",
-    subtitle: "다양한 성격, 기대되는 새로운 만남.",
+    title: "캐릭터 둘러보기",
+
     search: "이름, 성격, 관심사 검색…",
     all: "전체",
     realistic: "실사풍",
     anime: "애니메이션",
     custom: "내 캐릭터",
     resetFilters: "필터 초기화",
-    results: "만날 수 있는 동반자 {{count}}명",
-    aiNote: "AI와 나누는 진심 어린 대화",
+    results: "캐릭터 {{count}}명",
+
     emptyTitle: "일치하는 캐릭터가 없어요",
-    emptyDescription: "다른 이름이나 관심사, 스타일로 찾아보세요.",
+    emptyDescription: "다른 검색어나 스타일을 선택해 보세요.",
     viewCharacter: "{{name}} 만나기",
-    meetCharacter: "더 알아보기",
+
     age: "{{age}}세",
-    detailMemory: "둘만의 이야기를 기억해요",
-    detailPhotos: "함께하는 순간을 사진으로",
-    detailDisclosure:
-      "당신만의 AI 동반자예요. 캐릭터를 추가하면 현재 요금제의 캐릭터 한도를 사용합니다.",
-    addChat: "추가하고 채팅하기",
+
+    detailDisclosure: "추가하면 캐릭터 슬롯 1개를 사용해요.",
+    addChat: "추가하고 대화하기",
     continueChat: "이어서 채팅하기",
-    opening: "대화를 여는 중…",
-    customizeCharacter: "이 캐릭터 꾸미기",
+    opening: "여는 중…",
+    customizeCharacter: "캐릭터 꾸미기",
     manageRoles: "캐릭터 관리",
-    chatsTitle: "못다 한 이야기를 나눠요",
-    chatsSubtitle: "둘만의 대화, 함께한 작은 순간들.",
-    generateTitle: "함께한 순간을 사진으로",
-    generateSubtitle: "동반자를 선택하고 채팅에서 이미지를 생성하세요.",
-    chooseRole: "동반자 선택",
-    generateAction: "함께 사진 만들기",
+    chatsTitle: "최근 대화",
+
+    generateTitle: "사진 만들기",
+    generateSubtitle: "캐릭터를 선택해 채팅에서 사진을 만드세요.",
+
+    generateAction: "사진 만들기",
   },
   auth: {
     email: "이메일",
@@ -116,28 +109,28 @@ export default {
     signingIn: "로그인 중…",
     createAccount: "계정 만들기",
     creatingAccount: "계정 생성 중…",
-    registerTitle: "계정 만들기",
+    registerTitle: "회원가입",
     registerDescription: "이메일을 인증하고 나만의 이야기를 시작하세요.",
     loginDescription: "이메일과 비밀번호로 로그인하세요.",
     forgotPassword: "비밀번호를 잊으셨나요?",
     forgotTitle: "비밀번호 찾기",
     forgotDescription:
-      "이메일로 재설정 링크를 보내드려요. 이메일 링크로 로그인하셨던 분도 기존 계정에 비밀번호를 설정할 수 있어요.",
+      "이메일로 비밀번호를 재설정하세요. 이메일 링크 계정도 여기서 비밀번호를 만들 수 있어요.",
     sendResetLink: "재설정 링크 보내기",
     resetTitle: "새 비밀번호 설정",
     resetDescription: "계정에서 사용할 새 비밀번호를 설정하세요.",
     resetPassword: "새 비밀번호 저장",
     resetSuccess: "비밀번호 재설정 완료",
-    resetSuccessDescription: "새 비밀번호로 다시 로그인하세요.",
+    resetSuccessDescription: "새 비밀번호로 로그인해 주세요.",
     backToLogin: "로그인으로 돌아가기",
     noAccount: "계정이 없으신가요?",
     alreadyHaveAccount: "이미 계정이 있으신가요?",
     magicLinkLogin: "이메일 링크로 로그인",
     magicLinkTitle: "이메일 링크 로그인",
     verificationSentDescription:
-      "가입 가능한 이메일이면 {{email}}로 인증 링크를 보내드려요. 이미 계정이 있다면 로그인하거나 비밀번호를 재설정하세요.",
+      "가입 가능한 이메일이면 {{email}}로 인증 링크를 보내요. 기존 계정은 로그인하거나 비밀번호를 재설정해 주세요.",
     resetSentDescription:
-      "{{email}}로 등록된 계정이 있으면 재설정 링크를 보내드려요. 받은편지함과 스팸함을 확인하세요.",
+      "{{email}}이 등록되어 있으면 재설정 링크가 도착해요. 스팸함도 확인해 주세요.",
     verifyTitle: "이메일 인증",
     verifiedTitle: "이메일 인증 완료",
     verifiedDescription: "이메일 인증이 완료되었어요. YUMEI를 계속 이용하세요.",
@@ -145,8 +138,7 @@ export default {
     invalidLinkDescription: "새 링크를 요청해 주세요.",
     resendVerification: "인증 메일 다시 보내기",
     resendAfter: "{{seconds}}초 후 다시 보낼 수 있어요",
-    emailNotVerified:
-      "로그인하기 전에 이메일을 인증해 주세요. 아래에서 인증 메일을 다시 보낼 수 있어요.",
+    emailNotVerified: "이메일을 인증하거나 인증 메일을 다시 보내세요.",
     invalidCredentials: "이메일 또는 비밀번호가 올바르지 않아요.",
     registrationFailed: "계정을 만들 수 없어요. 다시 시도해 주세요.",
     requestFailed: "요청을 완료하지 못했어요. 다시 시도해 주세요.",
@@ -155,10 +147,9 @@ export default {
     passwordRules: "{{min}}~{{max}}자로 입력하세요.",
     passwordChanged: "비밀번호를 변경하고 다른 세션에서 로그아웃했어요.",
     passwordSecurity: "계정 보안",
-    passwordSecurityDescription: "비밀번호와 계정 접근을 관리하세요.",
+
     setPassword: "비밀번호 설정",
-    setPasswordDescription:
-      "이메일 인증으로 기존 계정에 비밀번호를 추가하세요.",
+    setPasswordDescription: "이메일 인증 후 비밀번호를 설정해요.",
     changePassword: "비밀번호 변경",
     savePassword: "비밀번호 업데이트",
     defaultName: "YUMEI 사용자",
@@ -176,35 +167,33 @@ export default {
     sending: "보내는 중…",
     sendMagicLink: "로그인 링크 보내기",
     guide18OnlyCompanionsOnYUMEIAreAIGenerated:
-      "만 18세 이상 전용이에요. YUMEI 캐릭터는 AI가 생성한 가상의 인물이에요. 대화는 모델 학습에 사용하지 않아요.",
+      "18세 이상 · 실제 인물이 아닌 가상의 AI 캐릭터입니다. 이 사이트는 대화를 모델 학습에 사용하지 않습니다.",
     weCanTLetYouIn: "이용할 수 없어요",
     yumeiIsAn18ServiceAndIsnT:
       "YUMEI는 만 18세 이상만 이용할 수 있어요. 힘든 시간을 보내고 있다면 믿을 수 있는 사람에게 이야기하거나 여기에서 도움을 찾아보세요: ",
     signOut: "로그아웃",
     confirmYourAge: "나이 확인",
     yumeiIsAnAdultsOnly18ServiceAnd:
-      "YUMEI는 만 18세 이상 전용이며 동반자는 실제 사람이 아닌 AI 캐릭터예요. 생년월일을 입력해 주세요. 성인 여부 확인에만 사용해요.",
+      "18세 이상을 위한 가상 AI 캐릭터 서비스입니다. 생년월일은 나이 확인에만 사용합니다.",
     confirming: "확인 중…",
-    iM18OrOlderContinue: "만 18세 이상이에요 — 계속하기",
+    iM18OrOlderContinue: "18세 이상입니다",
     youExampleCom: "you@example.com",
-    linkSent:
-      "{{email}} 주소로 로그인 링크를 보냈어요. 이메일의 링크를 눌러 계속하세요.",
+    linkSent: "{{email}}로 로그인 링크를 보냈어요.",
   },
   notifications: {
     markAsRead: "읽음으로 표시",
     notifications: "알림",
     markAllAsRead: "모두 읽음으로 표시",
     noNotificationsYet: "아직 알림이 없어요",
-    yourCompanionsWillReachOutToYouHere:
-      "동반자가 먼저 말을 걸면 여기에 표시돼요",
+
     notificationPermissionWasDenied: "알림 권한이 거부되었어요",
-    pushNotificationsEnabled: "푸시 알림을 켰어요",
+    pushNotificationsEnabled: "알림이 켜졌어요",
     couldNotEnableNotifications: "알림을 켜지 못했어요: {{error}}",
     pushNotificationsDisabled: "푸시 알림을 껐어요",
     couldNotDisableNotifications: "알림을 끄지 못했어요: {{error}}",
     pushNotifications: "푸시 알림",
     receiveProactiveMessagesOnThisDeviceSuchAs:
-      "아침 인사나 기억하는 이야기 등 동반자가 먼저 보내는 메시지를 이 기기에서 받아요. 하루 최대 1개예요.",
+      "이 기기에서 캐릭터 메시지를 하루 최대 1건 받아요.",
     disablePushOnThisDevice: "이 기기의 푸시 알림 끄기",
     enablePush: "푸시 알림 켜기",
     whatAreYouUpToItSBeen: "뭐 해? 한동안 못 봤네. 보고 싶어~ 💕",
@@ -266,33 +255,31 @@ export default {
     chatHistory: "대화 기록",
     trash: "휴지통",
     signOut: "로그아웃",
-    friend: "친구",
-    chooseACompanionToStartChatting: "동반자를 선택하고 대화를 시작하세요",
+
     manageSelection: "일괄 관리",
     deselectAll: "전체 선택 해제",
     selectAll: "전체 선택",
     deleteSelected: "선택 항목 삭제",
-    createYourFirstCompanion: "첫 동반자 만들기",
-    uploadAReferencePhotoAndChooseAPersonality:
-      "참고 사진을 올리고 성격과 취미를 설정하세요",
+    createYourFirstCompanion: "아직 캐릭터가 없어요",
+
     createACompanion: "동반자 만들기",
     active: "현재",
     lvXP: "{{name}} Lv.{{level}} · {{points}} XP",
     edit: "편집",
-    chooseOrCreateACompanion: "캐릭터 선택 / 직접 만들기",
-    viewAllPhotos: "모든 사진 보기",
+    chooseOrCreateACompanion: "캐릭터 추가",
+
     apiSettings: "API 설정",
-    configureAPIKeys: "API 키 설정",
+
     searchOrBrowseYourConversations: "대화 기록 검색 및 탐색",
     searchConversations: "대화 검색…",
     searching: "검색 중…",
     tryAnotherKeyword: "다른 검색어를 입력해 보세요",
-    noConversationsYet: "아직 대화 기록이 없어요",
+    noConversationsYet: "아직 대화가 없어요",
     conversation: "대화",
     sentAPhoto: "📷 사진을 보냈어요",
     noMessagesYet: "아직 메시지가 없어요",
     deletedCompanionsAreKeptFor7DaysBefore:
-      "삭제한 동반자는 7일 동안 보관된 후 영구 삭제돼요",
+      "7일 안에 복원할 수 있고, 이후 영구 삭제돼요.",
     trashIsEmpty: "휴지통이 비어 있어요",
     deletedCompanionsStayHereFor7Days:
       "삭제한 동반자는 여기에 7일 동안 보관돼요",
@@ -307,15 +294,14 @@ export default {
     selectionIncludesYourActiveCompanion: "⚠️ 현재 동반자가 포함되어 있어요",
     deleteSelectedCompanions: "선택한 동반자를 삭제할까요?",
     yourActiveCompanionIsSelectedAfterDeletionChoose:
-      "현재 동반자가 포함되어 있어요. 삭제 후 다른 동반자를 선택해 주세요.",
+      "현재 캐릭터가 포함돼 있어요. 삭제 후 다른 대화 상대를 선택하세요.",
     moveToTrash: "휴지통으로 이동({{count}})",
-    greeting: "안녕하세요, {{name}} 님",
+
     selectedCount: "{{count}}명 선택됨",
     todayMessages: "오늘 메시지 {{count}}개",
     searchEmpty: "“{{query}}” 검색 결과가 없어요",
     searchCount: "일치하는 대화 {{count}}개",
-    deleteActive:
-      "현재 동반자 “{{name}}” 님을 삭제해요. 삭제 후 다른 동반자를 선택해 주세요.",
+    deleteActive: "{{name}} 삭제 후 다른 대화 상대를 선택해야 해요.",
     deleteConfirm: "“{{name}}” 님을 삭제할까요?",
     batchDeleteConfirm:
       "선택한 동반자 {{count}}명을 삭제할까요? 7일 안에 휴지통에서 복원할 수 있어요.",
@@ -333,6 +319,7 @@ export default {
       "선택한 동반자 {{count}}명을 삭제할까요? 7일 안에 휴지통에서 복원할 수 있어요.",
   },
   settings: {
+    advancedServices: "고급 서비스 설정",
     favorites: "즐겨찾기",
     everydayCompanionship: "🏠 일상 동행",
     replyWarmlyAndThoughtfullyShowInterestInEveryday:
@@ -364,29 +351,26 @@ export default {
       "안녕하세요! 저는 당신의 AI 동반자예요. 만나서 반가워요.",
     generatingVoicePreview: "음성 미리 듣기 생성 중…",
     playingAudio: "음성 재생 중",
-    selectedClickSaveChangesToApply:
-      "{{name}} 모델을 선택했어요. '변경 사항 저장'을 눌러 적용하세요.",
+    selectedClickSaveChangesToApply: "{{name}} 선택됨. 저장하면 적용돼요.",
     modelSettingsSaved: "모델 설정을 저장했어요",
-    selectedVoiceClickSaveChangesToApply:
-      "{{name}} 음성을 선택했어요. '변경 사항 저장'을 눌러 적용하세요.",
+    selectedVoiceClickSaveChangesToApply: "{{name}} 선택됨. 저장하면 적용돼요.",
     voiceSettingsSaved: "음성 설정을 저장했어요",
     transcriptionSettingsSaved: "음성 변환 설정을 저장했어요",
     aiBehaviorSettingsSaved: "AI 행동 설정을 저장했어요",
     falAiSettingsSaved: "fal.ai 설정을 저장했어요",
     free: "무료",
     browserSpeech: "브라우저 음성",
-    freeUsingTheBrowserSWebSpeechAPI: "브라우저 Web Speech API로 무료 이용",
-    highQualityAISpeechWithVoiceCloning: "음성 복제를 지원하는 고품질 AI 음성",
-    optimizedForChineseWithAWideVoiceSelection:
-      "중국어에 최적화된 다양한 음성 모델",
+    freeUsingTheBrowserSWebSpeechAPI: "무료",
+    highQualityAISpeechWithVoiceCloning: "AI 음성·목소리 복제",
+    optimizedForChineseWithAWideVoiceSelection: "중국어 최적화",
     voiceSettings: "음성 설정",
-    chooseHowYourCompanionSounds: "동반자의 목소리를 선택하세요",
+
     readRepliesAloud: "답변 자동 읽기",
-    automaticallyReadEveryReplyAloud: "동반자의 답변을 매번 자동으로 읽어요",
+
     speechProvider: "음성 서비스",
     testBrowserSpeech: "브라우저 음성 테스트",
     browserSpeechIsFreeVoiceQualityDependsOn:
-      "브라우저 음성은 무료예요. 음질은 운영체제와 브라우저에 따라 달라요.",
+      "음질은 운영체제와 브라우저에 따라 달라요.",
     enterYourElevenLabsAPIKey: "ElevenLabs API 키 입력",
     getAnAPIKey: "API 키 발급: ",
     loadingVoices: "음성 목록 불러오는 중…",
@@ -403,41 +387,38 @@ export default {
     searchVoiceModels: "음성 모델 이름 검색…",
     noMatchingVoiceModels: "일치하는 음성 모델이 없어요",
     testFishAudioSpeech: "Fish Audio 음성 테스트",
-    saveChanges: "변경 사항 저장",
-    settingsSaved: "설정을 저장했어요",
+    saveChanges: "저장",
+    settingsSaved: "저장됨",
     youHaveUnsavedVoiceSettingsSaveChangesTo:
-      "저장하지 않은 음성 설정이 있어요. 저장해서 적용해 주세요.",
-    speechToTextSettings: "음성 텍스트 변환 설정",
+      "저장하지 않은 변경 사항이 있어요",
+    speechToTextSettings: "음성 받아쓰기",
     voiceMessagesAreTranscribedWithOpenAIWhisperUse:
-      "음성 메시지는 OpenAI Whisper로 변환해요. 요금제 한도 내에서 운영자의 키를 사용하거나 개인 키를 추가해 본인 계정으로 이용할 수 있어요.",
+      "기본 Whisper 서비스는 요금제 한도를 사용해요. 본인 키를 쓰면 본인 계정에 과금되며 한도를 사용하지 않아요.",
     openaiAPIKeyOptional: "OpenAI API 키(선택)",
-    leaveBlankToUseTheOperatorSKey:
-      "비워 두면 운영자의 키를 사용해요. 개인 sk-… 키를 입력해도 돼요",
-    listedPrice0006Minute: " · 표시 가격: 분당 $0.006",
+    leaveBlankToUseTheOperatorSKey: "비워두면 기본 서비스 사용",
+
     youHaveUnsavedTranscriptionSettingsSaveChangesTo:
-      "저장하지 않은 음성 변환 설정이 있어요. 저장해서 적용해 주세요.",
-    comfyuiOptionalFalAiSettings: "ComfyUI / fal.ai 선택 설정",
-    falAiSettings: "fal.ai 설정",
-    usedToGenerateSelfiesGetAnAPIKey: "셀카 생성에 사용해요. API 키 발급: ",
+      "저장하지 않은 변경 사항이 있어요",
+    comfyuiOptionalFalAiSettings: "이미지 생성 · ComfyUI",
+    falAiSettings: "이미지 생성 · fal.ai",
+    usedToGenerateSelfiesGetAnAPIKey: "키 발급:",
     comfyuiIsConfiguredByTheServerUseThe:
-      "서버에 ComfyUI가 설정되어 있어요. 대화의 카메라에서 참고 이미지나 텍스트로 생성하거나 사진을 올려 함께 찍은 사진을 만들 수 있어요.",
+      "현재 기본 ComfyUI 서비스를 사용해요.",
     enterYourFalAiAPIKey: "fal.ai API 키 입력",
     optionalUseYourOwnFalAiAccountOr:
-      "선택 사항: 개인 fal.ai 계정을 사용하려면 입력하세요. 비워 두면 서버의 이미지 생성 서비스를 사용해요.",
-    youHaveUnsavedFalAiSettingsSaveChanges:
-      "저장하지 않은 fal.ai 설정이 있어요. 저장해서 적용해 주세요.",
-    deepseekModelSettings: "DeepSeek 모델 설정",
-    openrouterModelSettings: "OpenRouter 모델 설정",
+      "비워두면 기본 이미지 서비스를 사용해요. 키를 입력하면 본인 fal.ai 계정에 과금돼요.",
+    youHaveUnsavedFalAiSettingsSaveChanges: "저장하지 않은 변경 사항이 있어요",
+    deepseekModelSettings: "대화 모델 · DeepSeek",
+    openrouterModelSettings: "대화 모델 · OpenRouter",
     usingTheOfficialDeepSeekAPIDefaultModel:
       "DeepSeek 공식 API 사용 중. 기본 모델: ",
-    accessHundredsOfAIModelsThroughOpenRouterGet:
-      "OpenRouter로 다양한 AI 모델을 이용하세요. API 키 발급: ",
+    accessHundredsOfAIModelsThroughOpenRouterGet: "키 발급:",
     leaveBlankToUseTheConfiguredDeepSeekService:
-      "비워 두면 설정된 DeepSeek를 사용해요. 여기에는 OpenRouter 키만 입력할 수 있어요.",
+      "비워두면 기본 DeepSeek를 사용해요. 여기에는 OpenRouter 키만 입력할 수 있어요.",
     leaveBlankToUseTheOperatorSOpenRouter:
-      "비워 두면 요금제 한도 내에서 운영자의 OpenRouter 키를 사용해요. 무료 요금제는 gpt-4o-mini를 사용해요.",
+      "비워두면 요금제 한도를 사용해요. 무료 요금제는 gpt-4o-mini를 사용해요.",
     yourOwnKeyUsesYourOwnAccountBypasses:
-      "개인 키를 사용하면 본인 계정으로 이용하며 요금제 한도를 차감하지 않고 모델을 선택할 수 있어요.",
+      "본인 키는 본인 계정에 과금되며 한도 없이 모델을 선택할 수 있어요.",
     loadingAvailableModels: "사용 가능한 모델 불러오는 중…",
     selectedModel: "선택한 모델",
     context: "컨텍스트: ",
@@ -447,18 +428,15 @@ export default {
     noMatchingModels: "일치하는 모델이 없어요",
     removeFromFavorites: "즐겨찾기 해제",
     addToFavorites: "즐겨찾기 추가",
-    youHaveUnsavedChangesSaveChangesToApply:
-      "저장하지 않은 변경 사항이 있어요. 저장해서 적용해 주세요.",
-    aiBehavior: "AI 행동 설정",
-    setSharedPreferencesForYourCompanionsSuchAs:
-      "답변 스타일과 말투 등 모든 동반자의 공통 설정",
+    youHaveUnsavedChangesSaveChangesToApply: "저장하지 않은 변경 사항이 있어요",
+    aiBehavior: "답변 설정",
+
     sharedSystemPrompt: "공통 시스템 프롬프트",
     forExampleKeepRepliesShortAndPlayfulUse:
       "예: 짧고 귀엽게 답하고, 이모티콘을 사용하고, 훈계하지 않기…",
-    thisPromptAppliesToConversationsWithAllYour:
-      "모든 동반자와의 대화에 적용돼요",
+    thisPromptAppliesToConversationsWithAllYour: "모든 캐릭터에 적용",
     quickTemplates: "빠른 템플릿",
-    chooseATemplateThenAdjustItAsYou: "템플릿을 선택한 후 자유롭게 수정하세요",
+
     templateApplied: "템플릿을 적용했어요: {{name}}",
     advancedOptions: "고급 설정",
     aiReplyLanguage: "AI 답변 언어",
@@ -467,29 +445,9 @@ export default {
     replyLength: "답변 길이",
     forExampleUnder50Words23Sentences: "예: 50자 이내, 2~3문장, 제한 없음",
     youHaveUnsavedAIBehaviorSettingsSaveChanges:
-      "저장하지 않은 AI 행동 설정이 있어요. 저장해서 적용해 주세요.",
-    saveAllSettings: "모든 설정 저장",
-    howToUse: "이용 안내",
-    guide1Speech: "1. 음성 기능: ",
-    chooseBrowserSpeechFreeElevenLabsHighQualityOr:
-      "브라우저 음성(무료), ElevenLabs(고품질), Fish Audio(중국어 최적화) 중에서 선택하세요",
-    guide2FalAiAPIKey: "2. fal.ai API 키: ",
-    optionalForSelfiesLeaveBlankToUseThe:
-      "셀카용 선택 설정이에요. 비워 두면 운영자의 키를 사용해요. 표시 가격은 장당 약 $0.022예요.",
-    guide3OpenRouterAPIKey: "3. OpenRouter API 키: ",
-    optionalLeaveBlankToUseTheOperatorS:
-      "선택 사항이에요. 비워 두면 요금제 한도 내에서 운영자의 키를 사용해요.",
-    guide4SpeechProviders: "4. 음성 서비스 비교: ",
-    browserFreeWithQualityDependingOnYourSystem:
-      "브라우저: 무료, 음질은 시스템에 따라 달라요",
-    elevenlabsListedFrom5MonthWithEnglishVoices:
-      "ElevenLabs: 표시 가격 월 $5부터, 영어 음성과 음성 복제 지원",
-    fishAudioUsageBasedBillingOptimizedForChinese:
-      "Fish Audio: 사용량 기반 과금, 중국어 최적화 및 다양한 음성",
-    guide5ModelSuggestions: "5. 모델 선택 안내: ",
-    valueOpenaiGpt4oMini: "가성비: openai/gpt-4o-mini",
-    roleplayAnthropicClaude35Sonnet: "역할극: anthropic/claude-3.5-sonnet",
-    chineseDeepseekDeepseekChat: "중국어: deepseek/deepseek-chat",
+      "저장하지 않은 변경 사항이 있어요",
+    saveAllSettings: "모두 저장",
+
     modelAddedToFavorites: "모델을 즐겨찾기에 추가했어요",
     modelRemovedFromFavorites: "모델의 즐겨찾기를 해제했어요",
     elevenlabsAPIKey: "ElevenLabs API Key",
@@ -509,14 +467,14 @@ export default {
     couldNotStartAConversation: "대화를 시작하지 못했어요: {{error}}",
     selfieSentToThisConversation: "현재 대화에 셀카를 보냈어요",
     selfieGenerationFailedNoQuotaWasChargedDetails:
-      "셀카를 생성하지 못했어요. 이용 한도는 차감되지 않았어요. 자세한 내용은 대화에서 확인해 주세요.",
+      "생성에 실패했어요. 한도는 차감되지 않았으며 자세한 내용은 대화를 확인하세요.",
     yourPlanDoesNotIncludeThisFeatureView:
-      "현재 요금제에서 지원하지 않는 기능이에요. 설정에서 요금제를 확인해 주세요.",
+      "이 기능을 쓰려면 설정에서 요금제를 업그레이드하세요.",
     openSettings: "설정 열기",
     couldNotSend: "전송하지 못했어요: {{error}}",
     selfieGenerated: "셀카를 생성했어요!",
     selfieQuotaReachedCheckYourPlanOrAdd:
-      "셀카 한도를 모두 사용했어요. 설정에서 요금제를 확인하거나 개인 fal.ai 키를 추가해 주세요.",
+      "사진 한도를 다 썼어요. 설정에서 요금제를 확인하거나 본인 fal.ai 키를 추가하세요.",
     selfieGenerationFailed: "셀카를 생성하지 못했어요: {{error}}",
     couplePhotoGenerated: "함께 찍은 사진을 생성했어요!",
     generatingASelfie: "셀카 생성 중…",
@@ -528,8 +486,8 @@ export default {
     noSpeechWasRecognizedPleaseTryAgain:
       "음성을 인식하지 못했어요. 다시 시도해 주세요.",
     transcriptionFailed: "음성 변환에 실패했어요: {{error}}",
-    noCompanionYet: "아직 동반자가 없어요",
-    createYourCompanionFirst: "먼저 나만의 동반자를 만들어 주세요",
+    noCompanionYet: "아직 캐릭터가 없어요",
+
     excited: "아주 신남",
     happy: "기쁨",
     content: "만족",
@@ -547,19 +505,16 @@ export default {
     turnOnAutoRead: "자동 읽기 켜기",
     playbackSpeed: "재생 속도",
     playbackSpeedSetTo: "재생 속도를 {{speed}}(으)로 설정했어요",
-    askForASelfieOrTapTheCamera:
-      "셀카를 보내 달라고 말하거나 아래 카메라에서 포즈를 선택하세요.",
+
     playAudio: "음성 재생{{suffix}}",
-    yourSelfieIsQueuedOrBeingGeneratedPlease:
-      "셀카가 대기 중이거나 생성 중이에요. 잠시 기다려 주세요…",
-    yourImageIsQueuedOrBeingGeneratedPlease:
-      "이미지가 대기 중이거나 생성 중이에요. 잠시 기다려 주세요…",
+    yourSelfieIsQueuedOrBeingGeneratedPlease: "사진 대기 또는 생성 중…",
+    yourImageIsQueuedOrBeingGeneratedPlease: "이미지 대기 또는 생성 중…",
     youAreNotAloneSomeoneIsHereTo:
       "혼자가 아니에요. 이야기를 들어 줄 사람이 있어요.",
     dismiss: "닫기",
     imageGenerationIsNotConfigured: "이미지 생성 서비스가 설정되지 않았어요",
-    askForASelfie: "셀카 요청하기",
-    askForASelfieRemaining: "셀카 요청하기({{count}}장 남음)",
+    askForASelfie: "셀카 찍기",
+    askForASelfieRemaining: "셀카 찍기 ({{count}}장 남음)",
     selfieQuotaReached: "셀카 한도를 모두 사용했어요",
     saySomethingTo: "{{name}} 님에게 말을 걸어 보세요…",
     switchToVoiceInput: "음성 입력으로 전환",
@@ -578,7 +533,7 @@ export default {
     points: "{{mood}}({{points}}점)",
     memoriesAboutYou: "나에 대한 기억",
     couldNotDelete: "삭제하지 못했어요: {{error}}",
-    photoGallery: "사진 갤러리",
+    photoGallery: "사진첩",
     openChat: "대화 열기",
     movedToTrashYouCanRestoreItWithin:
       "휴지통으로 이동했어요. 7일 안에 복원할 수 있어요.",
@@ -610,8 +565,7 @@ export default {
     failedToSendMagicLink: "로그인 링크를 보내지 못했어요",
     audioPlaybackFailed: "음성을 재생하지 못했어요",
     pageNotFound: "페이지를 찾을 수 없어요",
-    sorryThePageYouAreLookingForDoesn: "요청한 페이지를 찾을 수 없어요.",
-    itMayHaveBeenMovedOrDeleted: "이동하거나 삭제되었을 수 있어요.",
+
     goHome: "홈으로 돌아가기",
     close2: "닫기",
     anUnexpectedErrorOccurred: "예기치 않은 오류가 발생했어요.",
@@ -623,9 +577,8 @@ export default {
     deleted: "삭제했어요",
     downloaded: "다운로드했어요",
     downloadFailed: "다운로드하지 못했어요",
-    noSelfiesYet: "아직 셀카가 없어요",
-    askForASelfieInChatOrUse:
-      "대화에서 셀카를 요청하거나 카메라에서 장면과 포즈를 선택하세요.",
+    noSelfiesYet: "아직 사진이 없어요",
+
     selfie: "셀카 사진",
     viewSelfieAtFullSize: "{{count}}번째 셀카 원본 보기",
     mirror: "거울",
@@ -646,22 +599,21 @@ export default {
     whatRemembersAboutYou: "{{name}} 님이 기억하는 나의 이야기",
     noMemoriesYet: "아직 기억이 없어요",
     shareYourWorkInterestsAndRecentExperiencesImportant:
-      "일, 취미, 최근 있었던 일을 이야기해 보세요. 대화를 나누며 중요한 내용을 기억해요.",
+      "대화의 중요한 내용이 여기에 자동으로 저장돼요.",
     pinned: "고정됨",
     unpin: "고정 해제",
-    pinToKeepThisMemory: "잊지 않도록 고정",
+    pinToKeepThisMemory: "고정하여 자동 잊힘 방지",
     deleteMemory: "기억 삭제",
-    capacity:
-      "기억 {{count}} / {{capacity}}개 · 친밀도가 높을수록 더 많이 기억해요",
+    capacity: "{{count}} / {{capacity}}개 · 친밀도에 따라 용량 증가",
     "categories.fact": "나에 대해",
     "categories.preference": "나의 취향",
     "categories.event": "최근 이야기",
     "categories.relationship": "우리 사이",
   },
   setup: {
-    companionCreated: "동반자를 만들었어요!",
+    companionCreated: "캐릭터를 만들었어요",
     couldNotCreateCompanion: "동반자를 만들지 못했어요: {{error}}",
-    companionUpdated: "동반자를 수정했어요!",
+    companionUpdated: "캐릭터를 수정했어요",
     couldNotUpdate: "수정하지 못했어요: {{error}}",
     avatarUploaded: "프로필 사진을 업로드했어요!",
     avatarUploadFailed: "프로필 사진을 업로드하지 못했어요: {{error}}",
@@ -674,14 +626,11 @@ export default {
     fillInAllRequiredFields: "필수 항목을 모두 입력해 주세요",
     uploadAReferencePhoto: "참고 사진을 업로드해 주세요",
     back: "뒤로",
-    editCompanion: "동반자 편집",
-    createYourCompanion: "나만의 동반자 만들기",
-    editPersonalityAndInterests: "성격과 취미 편집",
-    chooseFrom8PresetsOrUploadAPhoto:
-      "프리셋 8명 중 선택하거나 사진을 올려 직접 만드세요",
+    editCompanion: "캐릭터 수정",
+    createYourCompanion: "캐릭터 만들기",
+
     avatar: "프로필 사진",
-    uploadAnAvatarForTheHomeAndChat:
-      "홈과 대화에 표시할 프로필 사진을 올리세요(JPG/PNG/GIF/WebP, 최대 10MB)",
+    uploadAnAvatarForTheHomeAndChat: "JPG / PNG / GIF / WebP, 최대 10MB",
     upload: "업로드",
     uploading: "업로드 중…",
     confirmUpload: "업로드 확인",
@@ -691,34 +640,31 @@ export default {
     referencePhoto: "참고 사진",
     change: "변경",
     clickToUploadAPhoto: "클릭하여 사진 업로드",
-    jpgPNGGIFOrWebPUpTo10: "JPG, PNG, GIF, WebP, 최대 10MB",
+    jpgPNGGIFOrWebPUpTo10: "JPG / PNG / GIF / WebP, 최대 10MB",
     restorePresetReference: "프리셋 참고 이미지 복원",
     referencePhotosCannotBeChangedWhileEditingCreate:
-      "편집 중에는 참고 사진을 바꿀 수 없어요. 다른 사진을 사용하려면 새 동반자를 만들어 주세요.",
+      "참고 사진을 바꾸려면 새 캐릭터를 만드세요.",
     name: "이름 *",
     forExampleYumi: "예: 유미",
     personality: "성격 *",
     forExampleGentleThoughtfulAffectionateAndALittle:
-      "예: 다정하고 배려심이 있으며 애교가 많고 조금 장난스러움…",
-    describeThePersonalityToShapeTheCompanionS:
-      "성격을 자세히 설명하면 대화 스타일에 반영돼요",
+      "예: 다정하고 장난기 있는 성격",
+
     appearance: "외모 *",
-    forExampleLongFlowingHairASlimBuild:
-      "예: 긴 머리, 날씬한 체형, 원피스를 좋아함…",
-    describeTheAppearanceUsedWhenGeneratingSelfies:
-      "셀카 생성에 사용할 외모를 설명해 주세요",
+    forExampleLongFlowingHairASlimBuild: "예: 긴 검은 머리, 흰 원피스",
+
     interestsOptional: "취미(선택)",
-    forExampleMoviesMusicTravelAndFood: "예: 영화, 음악, 여행, 맛집…",
-    advancedPrompt: "고급 프롬프트",
-    optional: "선택",
+    forExampleMoviesMusicTravelAndFood: "예: 영화, 음악, 여행",
+    advancedPrompt: "맞춤 지침",
+
     companionSpecificPrompt: "동반자 전용 프롬프트",
     forExampleAPlayfulToneOccasionalJapaneseWords:
-      "예: 살짝 새침한 말투, 가끔 일본어 사용, 좋아하는 말버릇…",
+      "예: 장난스러운 말투와 가벼운 농담",
     onlyAppliesToThisCompanionAfterTheShared:
-      "공통 프롬프트 뒤에 추가되며 이 동반자에게만 적용돼요",
+      "이 캐릭터에만 전체 지침 뒤에 적용돼요.",
     hidePreview: "미리 보기 닫기",
-    previewTheCombinedPrompt: "최종 프롬프트 미리 보기",
-    previewOfThePromptSentToTheAI: "AI에 전송할 프롬프트: ",
+    previewTheCombinedPrompt: "지침 미리보기",
+
     sharedPrompt: "공통 프롬프트",
     notSetConfigureItInSettings: "설정되지 않았어요. 설정 화면에서 변경하세요.",
     companionPrompt: "개별 프롬프트",
@@ -730,10 +676,10 @@ export default {
     interests: " | 취미: {{interests}}",
     creating: "만드는 중…",
     saveChanges: "변경 사항 저장",
-    createCompanion: "동반자 만들기",
-    deleteCompanion: "동반자 삭제",
+    createCompanion: "캐릭터 만들기",
+    deleteCompanion: "캐릭터 삭제",
     restoreFromTrashWithin7DaysAfterThat:
-      "7일 안에 홈의 휴지통에서 복원할 수 있어요. 이후에는 영구 삭제돼요.",
+      "7일 안에 휴지통에서 복원할 수 있고, 이후 영구 삭제돼요.",
     avatar2: "프로필 사진",
     preview: "미리 보기",
     deleteConfirm:
@@ -765,9 +711,7 @@ export default {
   },
   characters: {
     characterPresets: "캐릭터 프리셋",
-    startWithACharacter: "캐릭터로 시작하기",
-    chooseAPresetToFillInAProfile:
-      "선택하면 프로필과 참고 사진이 입력되며 자유롭게 수정할 수 있어요. 모든 캐릭터는 가상의 성인 AI 인물이에요.",
+
     characterStyle: "캐릭터 스타일",
     allCount: "전체 {{count}}명",
     realistic: "실사",
@@ -888,26 +832,24 @@ export default {
     "levels.10.unlocks.1": "최고 친밀도 달성",
   },
   selfie: {
-    askForAPhoto: "사진 요청하기…",
+    askForAPhoto: "사진 찍기",
     unlockPosesAsYouGrowCloserTextIn:
-      "친밀도가 높아지면 포즈가 해제돼요. 입력창의 텍스트도 장면 설명에 포함돼요.",
+      "친밀도에 따라 포즈가 열려요. 입력창에 장면을 적을 수 있어요.",
     generationMode: "생성 방식",
     fromReference: "참고 이미지로 생성",
     fromText: "텍스트로 생성",
-    generatesA916PortraitImageByDefault: "기본으로 9:16 세로 사진을 생성해요.",
+    generatesA916PortraitImageByDefault: "9:16 세로 사진",
     usesTheCharacterReferenceToHelpKeepThe:
-      "참고 이미지로 캐릭터 외모를 최대한 유지해요.",
+      "참고 사진으로 외모의 일관성을 유지해요.",
     generatesFromTheCharacterDescriptionAndSceneText:
-      "참고 이미지 없이 외모 설정과 장면 설명으로 생성해요.",
+      "참고 사진 없이 외모와 장면 설명으로 만들어요.",
     unlocksAtIntimacyLv: "친밀도 Lv.{{level}}에서 해제",
-    uploadYourPhotoToAppearTogether: "내 사진을 올려 함께 찍기",
+    uploadYourPhotoToAppearTogether: "사진을 올려 함께 찍기",
     couplePhotosRequireProOrYourOwnFal:
       "함께 찍은 사진은 Pro 또는 개인 fal.ai 키가 필요해요",
-    couplePhotoUploadYourPhotoToAppearTogether:
-      "함께 찍은 사진: 내 사진을 올려 함께 등장하기",
+    couplePhotoUploadYourPhotoToAppearTogether: "사진을 올려 함께 찍기",
     pro: "Pro",
-    poseLocked:
-      "이 포즈는 친밀도 Lv.{{required}}에서 사용할 수 있어요(현재 Lv.{{current}}). 대화를 나누며 레벨을 올려 보세요.",
+    poseLocked: "필요 Lv.{{required}} / 현재 Lv.{{current}}",
     "poses.casual": "가볍게 한 컷",
     "poses.sweet_smile": "사랑스러운 미소",
     "poses.aegyo": "애교",
@@ -930,10 +872,9 @@ export default {
     interfaceLanguage: "화면 언어",
     system: "시스템 설정 사용",
     displayMode: "화면 모드",
-    makeYUMEIYoursChoicesAreSavedToYour:
-      "원하는 화면으로 설정하세요. 계정에 자동으로 저장돼요.",
+    makeYUMEIYoursChoicesAreSavedToYour: "변경 사항은 계정에 자동 저장돼요.",
     onlyChangesTheInterfaceAIReplyLanguageAnd:
-      "화면 언어만 변경돼요. AI 답변 언어와 대화 기록에는 영향을 주지 않아요.",
+      "AI 답변 언어와 대화 기록에는 영향이 없어요.",
     notSyncedToYourAccountYetYourChoice:
       "계정에 아직 동기화되지 않았어요. 선택 내용은 이 기기에 저장되어 있어요.",
     retrySave: "다시 저장",

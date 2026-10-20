@@ -1,11 +1,5 @@
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupChoice } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
@@ -101,9 +95,6 @@ export function VoiceSettings(state: Props) {
           <Volume2 className="w-5 h-5 text-primary" />
           {t("settings:voiceSettings")}
         </CardTitle>
-        <CardDescription>
-          {t("settings:chooseHowYourCompanionSounds")}
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         {/* 自动播放开关 */}
@@ -112,9 +103,6 @@ export function VoiceSettings(state: Props) {
             <Label htmlFor="tts-auto-play">
               {t("settings:readRepliesAloud")}
             </Label>
-            <p className="text-xs text-muted-foreground">
-              {t("settings:automaticallyReadEveryReplyAloud")}
-            </p>
           </div>
           <Switch
             id="tts-auto-play"

@@ -63,9 +63,6 @@ export function ChatMessages({
                 <p className="text-muted-foreground">
                   {t("chat:empty.start", { name: girlfriend.name })}
                 </p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {t("chat:askForASelfieOrTapTheCamera")}
-                </p>
               </div>
             )
           : chatMessages.map(msg => (

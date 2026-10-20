@@ -29,12 +29,7 @@ export default function Chats() {
   return (
     <div className="hub-page">
       <div className="hub-heading">
-        <span className="section-eyebrow">
-          <MessageCircle size={14} />
-          {t("explore:navChats")}
-        </span>
         <h1>{t("explore:chatsTitle")}</h1>
-        <p>{t("explore:chatsSubtitle")}</p>
       </div>
       <div className="hub-search">
         <Search size={18} />
@@ -103,11 +98,6 @@ export default function Chats() {
           <h2>
             {search ? t("explore:emptyTitle") : t("home:noConversationsYet")}
           </h2>
-          <p>
-            {search
-              ? t("explore:emptyDescription")
-              : t("home:chooseACompanionToStartChatting")}
-          </p>
           <Button asChild>
             <Link href="/explore">{t("explore:heroAction")}</Link>
           </Button>

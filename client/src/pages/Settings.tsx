@@ -2,7 +2,11 @@ import { AppearanceSettings } from "@/components/AppearanceSettings";
 import { BillingCard } from "@/components/BillingCard";
 import { PushCard } from "@/components/PushCard";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { BehaviorSettings } from "@/features/settings/BehaviorSettings";
 import { ChatModelSettings } from "@/features/settings/ChatModelSettings";
 import { ImageSettings } from "@/features/settings/ImageSettings";
@@ -10,7 +14,7 @@ import { TranscriptionSettings } from "@/features/settings/TranscriptionSettings
 import { useSettingsController } from "@/features/settings/useSettingsController";
 import { VoiceSettings } from "@/features/settings/VoiceSettings";
 import { PasswordSettings } from "@/features/settings/PasswordSettings";
-import { ArrowLeft, Loader2, Moon, Save, Sun } from "lucide-react";
+import { ArrowLeft, ChevronDown, Loader2, Moon, Save, Sun } from "lucide-react";
 export default function Settings() {
   const state = useSettingsController();
   const {
@@ -66,19 +70,27 @@ export default function Settings() {
             {/* ========== 语音设置 ========== */}
             <VoiceSettings {...state} />
 
-            {/* ========== 语音转写配置 ========== */}
-            <TranscriptionSettings {...state} />
-
             <AppearanceSettings />
-
-            {/* ========== fal.ai API 配置 ========== */}
-            <ImageSettings {...state} />
-
-            {/* ========== LLM 配置 ========== */}
-            <ChatModelSettings {...state} />
 
             {/* ========== AI 行为设定 ========== */}
             <BehaviorSettings {...state} />
+
+            <Collapsible className="rounded-xl border bg-card group">
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-between p-5 h-auto"
+                >
+                  {t("settings:advancedServices")}
+                  <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="px-3 pb-3 space-y-4">
+                <TranscriptionSettings {...state} />
+                <ImageSettings {...state} />
+                <ChatModelSettings {...state} />
+              </CollapsibleContent>
+            </Collapsible>
 
             {/* ========== 保存按钮 ========== */}
             <Button
@@ -98,53 +110,6 @@ export default function Settings() {
                 </>
               )}
             </Button>
-
-            {/* ========== 使用说明 ========== */}
-            <Card className="bg-muted/50">
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {t("settings:howToUse")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground space-y-2">
-                <p>
-                  <strong>{t("settings:guide1Speech")}</strong>
-                  {t("settings:chooseBrowserSpeechFreeElevenLabsHighQualityOr")}
-                </p>
-                <p>
-                  <strong>{t("settings:guide2FalAiAPIKey")}</strong>
-                  {t("settings:optionalForSelfiesLeaveBlankToUseThe")}
-                </p>
-                <p>
-                  <strong>{t("settings:guide3OpenRouterAPIKey")}</strong>
-                  {t("settings:optionalLeaveBlankToUseTheOperatorS")}
-                </p>
-                <p>
-                  <strong>{t("settings:guide4SpeechProviders")}</strong>
-                </p>
-                <ul className="list-disc list-inside pl-4 space-y-1">
-                  <li>
-                    {t("settings:browserFreeWithQualityDependingOnYourSystem")}
-                  </li>
-                  <li>
-                    {t("settings:elevenlabsListedFrom5MonthWithEnglishVoices")}
-                  </li>
-                  <li>
-                    {t(
-                      "settings:fishAudioUsageBasedBillingOptimizedForChinese"
-                    )}
-                  </li>
-                </ul>
-                <p>
-                  <strong>{t("settings:guide5ModelSuggestions")}</strong>
-                </p>
-                <ul className="list-disc list-inside pl-4 space-y-1">
-                  <li>{t("settings:valueOpenaiGpt4oMini")}</li>
-                  <li>{t("settings:roleplayAnthropicClaude35Sonnet")}</li>
-                  <li>{t("settings:chineseDeepseekDeepseekChat")}</li>
-                </ul>
-              </CardContent>
-            </Card>
           </>
         )}
       </div>

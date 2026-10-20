@@ -85,9 +85,6 @@ export default function Gallery() {
             <h2 className="text-xl font-semibold mb-2">
               {t("gallery:noSelfiesYet")}
             </h2>
-            <p className="text-muted-foreground mb-4">
-              {t("gallery:askForASelfieInChatOrUse")}
-            </p>
             <Button onClick={() => setLocation("/chat")}>
               {t("common:openChat")}
             </Button>

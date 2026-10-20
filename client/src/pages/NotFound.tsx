@@ -32,12 +32,6 @@ export default function NotFound() {
             {t("common:pageNotFound")}
           </h2>
 
-          <p className="text-muted-foreground mb-8 leading-relaxed">
-            {t("common:sorryThePageYouAreLookingForDoesn")}
-            <br />
-            {t("common:itMayHaveBeenMovedOrDeleted")}
-          </p>
-
           <div
             id="not-found-button-group"
             className="flex flex-col sm:flex-row gap-3 justify-center"

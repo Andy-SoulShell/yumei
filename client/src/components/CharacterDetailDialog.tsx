@@ -72,19 +72,11 @@ export function CharacterDetailDialog({
                   {t(presetMessages[selected.id].tagline)}
                 </DialogDescription>
               </DialogHeader>
-              <div className="detail-traits">
-                <span>
-                  <Heart size={15} />
-                  {t("explore:detailMemory")}
-                </span>
-                <span>
-                  <Sparkles size={15} />
-                  {t("explore:detailPhotos")}
-                </span>
-              </div>
-              <p className="detail-disclosure">
-                {t("explore:detailDisclosure")}
-              </p>
+              {!findPreset(selected) && (
+                <p className="detail-disclosure">
+                  {t("explore:detailDisclosure")}
+                </p>
+              )}
               <Button
                 className="detail-start"
                 disabled={pending !== null}

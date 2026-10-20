@@ -93,7 +93,7 @@ describe("exploration", () => {
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
     expect(container.querySelectorAll(".character-card")).toHaveLength(0);
-    expect(container.textContent).toContain("还没有找到匹配的角色");
+    expect(container.textContent).toContain("没有匹配的角色");
     const reset = container.querySelector<HTMLButtonElement>(
       ".explore-empty button"
     )!;

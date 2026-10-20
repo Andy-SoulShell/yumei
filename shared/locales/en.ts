@@ -8,44 +8,39 @@ export default {
     goToSlide: "Go to slide {{count}}",
     pauseSlides: "Pause slideshow",
     playSlides: "Resume slideshow",
-    createTitle: "Imagine someone",
-    createHighlight: "entirely your own.",
-    createDescription:
-      "From looks to personality, write the first lines of your shared story.",
-    photosTitle: "Turn a shared moment",
-    photosHighlight: "into a picture.",
-    photosDescription:
-      "From a conversation to a scene, give your story a little more color.",
-    photosAction: "Create a moment",
+    createTitle: "Your character,",
+    createHighlight: "your way.",
+
+    photosTitle: "Shared moments,",
+    photosHighlight: "in a photo.",
+
+    photosAction: "Create a photo",
     allCharacters: "All characters",
-    catalogueDescription: "Say hello to a different little world.",
-    exploreAll: "Explore all characters",
-    faqEyebrow: "Before we meet",
+
+    exploreAll: "All characters",
+
     faqTitle: "Frequently asked questions",
-    faqDescription: "A few things you might like to know.",
+
     "faq.what.question": "What is YUMEI?",
     "faq.what.answer":
-      "YUMEI is an AI companion app for adults. Choose a character to chat by text or voice, share everyday moments, create your own characters, and generate scene photos. All characters are fictional AI companions.",
+      "An AI companion app for adults, with text, voice and photo generation. All characters are fictional.",
     "faq.free.question": "Can I start for free?",
     "faq.free.answer":
-      "You can create an account and start for free. Messages, photo generation, and personal characters follow your current plan and service settings. Check your plan and usage in Settings after signing in.",
+      "Yes. Check Settings for free allowances and plan usage.",
     "faq.memory.question": "Will characters remember our conversations?",
     "faq.memory.answer":
-      "YUMEI can extract long-term memories from conversations and use them in later chats. You can review and manage saved memories on your character's memory page.",
+      "Important details from chats are saved as memories. View or delete them on the character’s Memories page.",
     "faq.create.question": "Can I create my own character?",
     "faq.create.answer":
-      "Yes. Customize a preset or upload a reference image and choose a name, appearance, personality, and interests. Your creations are saved in My characters.",
+      "Edit a preset or upload a reference photo and choose an appearance and personality.",
     "faq.devices.question": "Does it work on phones and computers?",
     "faq.devices.answer":
-      "Yes. YUMEI works in mobile and desktop browsers and can be added to your phone's home screen. Sign in to the same account to access your characters and conversations.",
-    signupTitle: "Who will you tell your story to?",
-    signupDescription:
-      "Find a companion you click with. Start with a simple hello.",
+      "Yes. Characters and chats sync across devices on the same account.",
+    signupTitle: "Meet your AI companion",
+
     signupAction: "Sign up free",
-    signupNote: "Start free · Sign up with email",
-    welcomeBackTitle: "Your story is still unfolding.",
-    welcomeBackDescription:
-      "Meet someone new, or return to a familiar conversation.",
+
+    welcomeBackTitle: "Continue your story",
   },
   explore: {
     loadMore: "Load more",
@@ -61,51 +56,45 @@ export default {
     skipToContent: "Skip to content",
     account: "Your account",
     signIn: "Sign in",
-    yourWorld: "YOUR WORLD",
-    brandCaption: "A little closer, every day",
-    sidebarNote: "Someone who gets your kind of world.",
+
     disclosure: "18+ · All companions are AI characters",
-    heroEyebrow: "A connection that's yours",
-    heroTitle: "Every story starts",
-    heroHighlight: "with a hello.",
-    heroDescription:
-      "A familiar voice. An unexpected spark. Find someone to share your everyday with.",
-    heroAction: "Find your companion",
-    heroSecondary: "Create your own",
-    heroFootnote: "Your pace. Your story.",
-    featured: "Meet your next favorite",
+
+    heroTitle: "Say hello.",
+    heroHighlight: "Find your companion.",
+
+    heroAction: "Explore characters",
+    heroSecondary: "Create a character",
+
+    featured: "Featured characters",
     viewAll: "View all",
-    title: "Find your kind of connection",
-    subtitle: "Different personalities. A world of possibilities.",
+    title: "Explore characters",
+
     search: "Search names, personalities, interests…",
     all: "All companions",
     realistic: "Realistic",
     anime: "Anime",
     custom: "Your character",
     resetFilters: "Clear filters",
-    results: "{{count}} to discover",
-    aiNote: "AI companions, real conversations",
-    emptyTitle: "No matches just yet",
-    emptyDescription: "Try a different name, interest, or style.",
+    results: "{{count}} characters",
+
+    emptyTitle: "No matching characters",
+    emptyDescription: "Try another keyword or style.",
     viewCharacter: "Meet {{name}}",
-    meetCharacter: "Get to know me",
+
     age: "{{age}} years old",
-    detailMemory: "Remembers your story",
-    detailPhotos: "Photos inspired by your moments",
-    detailDisclosure:
-      "An AI companion, just for you. Adding a character uses your existing plan's character allowance.",
-    addChat: "Add & start chatting",
+
+    detailDisclosure: "Adding this character uses one character slot.",
+    addChat: "Add and chat",
     continueChat: "Continue chatting",
-    opening: "Opening your conversation…",
-    customizeCharacter: "Customize this character",
+    opening: "Opening…",
+    customizeCharacter: "Customize",
     manageRoles: "Manage characters",
-    chatsTitle: "Pick up where you left off",
-    chatsSubtitle: "Your conversations, your little shared moments.",
-    generateTitle: "Turn your moments into pictures",
-    generateSubtitle:
-      "Choose a companion to open photo generation in your conversation.",
-    chooseRole: "Choose your companion",
-    generateAction: "Create a photo together",
+    chatsTitle: "Recent chats",
+
+    generateTitle: "Create photos",
+    generateSubtitle: "Choose a character to create photos in chat.",
+
+    generateAction: "Create a photo",
   },
   auth: {
     email: "Email",
@@ -119,29 +108,28 @@ export default {
     signingIn: "Signing in…",
     createAccount: "Create account",
     creatingAccount: "Creating account…",
-    registerTitle: "Create your account",
+    registerTitle: "Sign up",
     registerDescription: "Verify your email to start your own story.",
     loginDescription: "Sign in with your email and password.",
     forgotPassword: "Forgot password?",
     forgotTitle: "Reset your password",
     forgotDescription:
-      "We’ll email you a reset link. Previously used an email sign-in link? You can set a password for that same account here.",
+      "Reset your password by email. Magic-link accounts can set a password here too.",
     sendResetLink: "Send reset link",
     resetTitle: "Choose a new password",
     resetDescription: "Set a new password for your account.",
     resetPassword: "Save new password",
     resetSuccess: "Password reset",
-    resetSuccessDescription:
-      "Your password has been updated. Sign in again with your new password.",
+    resetSuccessDescription: "Sign in with your new password.",
     backToLogin: "Back to sign in",
     noAccount: "New here?",
     alreadyHaveAccount: "Already have an account?",
     magicLinkLogin: "Sign in with an email link",
     magicLinkTitle: "Email link sign-in",
     verificationSentDescription:
-      "If this email can be registered, a verification link will arrive at {{email}}. Already have an account? Sign in or reset your password.",
+      "If this email can register, a verification link will be sent to {{email}}. Already registered? Sign in or reset your password.",
     resetSentDescription:
-      "If {{email}} has an account, a reset link will arrive shortly. Check your inbox and spam folder.",
+      "If {{email}} is registered, a reset link will arrive. Check spam too.",
     verifyTitle: "Verify your email",
     verifiedTitle: "Email verified",
     verifiedDescription: "Your email is verified. Continue to YUMEI.",
@@ -149,8 +137,7 @@ export default {
     invalidLinkDescription: "Request a new link to continue.",
     resendVerification: "Resend verification email",
     resendAfter: "Send again in {{seconds}}s",
-    emailNotVerified:
-      "Verify your email before signing in. You can resend the verification email below.",
+    emailNotVerified: "Verify your email or resend the verification link.",
     invalidCredentials: "Incorrect email or password.",
     registrationFailed: "Could not create your account. Please try again.",
     requestFailed: "Could not complete the request. Please try again.",
@@ -159,10 +146,9 @@ export default {
     passwordRules: "Use {{min}}–{{max}} characters.",
     passwordChanged: "Password updated. Other sessions have been signed out.",
     passwordSecurity: "Account security",
-    passwordSecurityDescription: "Manage your password and account access.",
+
     setPassword: "Set a password",
-    setPasswordDescription:
-      "Confirm your email to add a password to your existing account.",
+    setPasswordDescription: "Set a password after email verification.",
     changePassword: "Change password",
     savePassword: "Update password",
     defaultName: "YUMEI user",
@@ -180,35 +166,33 @@ export default {
     sending: "Sending…",
     sendMagicLink: "Send magic link",
     guide18OnlyCompanionsOnYUMEIAreAIGenerated:
-      "18+ only. Companions on YUMEI are AI-generated — not real people. We never train models on your conversations.",
+      "18+ only · Fictional AI characters, not real people. This site does not train models on your chats.",
     weCanTLetYouIn: "We can't let you in",
     yumeiIsAn18ServiceAndIsnT:
       "YUMEI is an 18+ service and isn't available to minors. If you're going through a hard time, you're not alone — reach out to someone you trust, or find help at",
     signOut: "Sign out",
     confirmYourAge: "Confirm your age",
     yumeiIsAnAdultsOnly18ServiceAnd:
-      "YUMEI is an adults-only (18+) service, and your companion is AI-generated — not a real person. Enter your date of birth to continue. We only use it to confirm you're an adult.",
+      "18+ only, with fictional AI characters. Your birth date is used only to confirm your age.",
     confirming: "Confirming…",
-    iM18OrOlderContinue: "I'm 18 or older — continue",
+    iM18OrOlderContinue: "Confirm I’m 18+",
     youExampleCom: "you@example.com",
-    linkSent:
-      "We sent a sign-in link to {{email}}. Click the link in the email to continue.",
+    linkSent: "Check {{email}} for your sign-in link.",
   },
   notifications: {
     markAsRead: "Mark as read",
     notifications: "Notifications",
     markAllAsRead: "Mark all as read",
     noNotificationsYet: "No notifications yet",
-    yourCompanionsWillReachOutToYouHere:
-      "Your companions will reach out to you here",
+
     notificationPermissionWasDenied: "Notification permission was denied",
-    pushNotificationsEnabled: "Push notifications enabled",
+    pushNotificationsEnabled: "Push enabled",
     couldNotEnableNotifications: "Could not enable notifications: {{error}}",
     pushNotificationsDisabled: "Push notifications disabled",
     couldNotDisableNotifications: "Could not disable notifications: {{error}}",
     pushNotifications: "Push notifications",
     receiveProactiveMessagesOnThisDeviceSuchAs:
-      "Receive proactive messages on this device, such as a good morning or a remembered detail. Up to one per day.",
+      "Receive character messages on this device, up to once a day.",
     disablePushOnThisDevice: "Disable push on this device",
     enablePush: "Enable push",
     whatAreYouUpToItSBeen:
@@ -279,33 +263,31 @@ export default {
     chatHistory: "Chat history",
     trash: "Trash",
     signOut: "Sign out",
-    friend: "friend",
-    chooseACompanionToStartChatting: "Choose a companion to start chatting",
+
     manageSelection: "Manage selection",
     deselectAll: "Deselect all",
     selectAll: "Select all",
     deleteSelected: "Delete selected",
-    createYourFirstCompanion: "Create your first companion",
-    uploadAReferencePhotoAndChooseAPersonality:
-      "Upload a reference photo and choose a personality and interests",
+    createYourFirstCompanion: "No characters yet",
+
     createACompanion: "Create a companion",
     active: "Active",
     lvXP: "{{name}} Lv.{{level}} · {{points}} XP",
     edit: "Edit",
-    chooseOrCreateACompanion: "Choose or create a companion",
-    viewAllPhotos: "View all photos",
+    chooseOrCreateACompanion: "Add a character",
+
     apiSettings: "API settings",
-    configureAPIKeys: "Configure API keys",
+
     searchOrBrowseYourConversations: "Search or browse your conversations",
     searchConversations: "Search conversations…",
     searching: "Searching…",
     tryAnotherKeyword: "Try another keyword",
-    noConversationsYet: "No conversations yet",
+    noConversationsYet: "No chats yet",
     conversation: "Conversation",
     sentAPhoto: "📷 Sent a photo",
     noMessagesYet: "No messages yet",
     deletedCompanionsAreKeptFor7DaysBefore:
-      "Deleted companions are kept for 7 days before permanent deletion",
+      "Restore within 7 days. After that, deletion is permanent.",
     trashIsEmpty: "Trash is empty",
     deletedCompanionsStayHereFor7Days:
       "Deleted companions stay here for 7 days",
@@ -321,15 +303,15 @@ export default {
       "⚠️ Selection includes your active companion",
     deleteSelectedCompanions: "Delete selected companions?",
     yourActiveCompanionIsSelectedAfterDeletionChoose:
-      "Your active companion is selected. After deletion, choose another companion to continue chatting.",
+      "Your active character is selected. Choose another after deletion.",
     moveToTrash: "Move to trash ({{count}})",
-    greeting: "Hello, {{name}}",
+
     selectedCount: "{{count}} selected",
     todayMessages: "{{count}} messages today",
     searchEmpty: "No conversations matching “{{query}}”",
     searchCount: "{{count}} matching conversations",
     deleteActive:
-      "You are deleting your active companion “{{name}}”. Choose another companion to continue chatting after deletion.",
+      "After deleting {{name}}, choose another character to chat with.",
     deleteConfirm: "Are you sure you want to delete “{{name}}”?",
     batchDeleteConfirm:
       "Delete the {{count}} selected companions? You can restore them from trash within 7 days.",
@@ -347,6 +329,7 @@ export default {
       "Delete the {{count}} selected companions? You can restore them from trash within 7 days.",
   },
   settings: {
+    advancedServices: "Advanced services",
     favorites: "Favorites",
     everydayCompanionship: "🏠 Everyday companionship",
     replyWarmlyAndThoughtfullyShowInterestInEveryday:
@@ -378,31 +361,26 @@ export default {
       "Hi! I'm your AI companion. It's lovely to meet you.",
     generatingVoicePreview: "Generating voice preview…",
     playingAudio: "Playing audio",
-    selectedClickSaveChangesToApply:
-      "Selected {{name}}. Click Save changes to apply.",
+    selectedClickSaveChangesToApply: "Selected {{name}}. Save to apply.",
     modelSettingsSaved: "Model settings saved",
-    selectedVoiceClickSaveChangesToApply:
-      "Selected voice: {{name}}. Click Save changes to apply.",
+    selectedVoiceClickSaveChangesToApply: "Selected {{name}}. Save to apply.",
     voiceSettingsSaved: "Voice settings saved",
     transcriptionSettingsSaved: "Transcription settings saved",
     aiBehaviorSettingsSaved: "AI behavior settings saved",
     falAiSettingsSaved: "fal.ai settings saved",
     free: "Free",
     browserSpeech: "Browser speech",
-    freeUsingTheBrowserSWebSpeechAPI:
-      "Free, using the browser's Web Speech API",
-    highQualityAISpeechWithVoiceCloning:
-      "High-quality AI speech with voice cloning",
-    optimizedForChineseWithAWideVoiceSelection:
-      "Optimized for Chinese, with a wide voice selection",
+    freeUsingTheBrowserSWebSpeechAPI: "Free",
+    highQualityAISpeechWithVoiceCloning: "AI voices and voice cloning",
+    optimizedForChineseWithAWideVoiceSelection: "Optimized for Chinese",
     voiceSettings: "Voice settings",
-    chooseHowYourCompanionSounds: "Choose how your companion sounds",
+
     readRepliesAloud: "Read replies aloud",
-    automaticallyReadEveryReplyAloud: "Automatically read every reply aloud",
+
     speechProvider: "Speech provider",
     testBrowserSpeech: "Test browser speech",
     browserSpeechIsFreeVoiceQualityDependsOn:
-      "Browser speech is free. Voice quality depends on your operating system and browser.",
+      "Voice quality depends on your system and browser.",
     enterYourElevenLabsAPIKey: "Enter your ElevenLabs API key",
     getAnAPIKey: "Get an API key:",
     loadingVoices: "Loading voices…",
@@ -419,42 +397,36 @@ export default {
     searchVoiceModels: "Search voice models…",
     noMatchingVoiceModels: "No matching voice models",
     testFishAudioSpeech: "Test Fish Audio speech",
-    saveChanges: "Save changes",
-    settingsSaved: "Settings saved",
-    youHaveUnsavedVoiceSettingsSaveChangesTo:
-      "You have unsaved voice settings. Save changes to apply them.",
-    speechToTextSettings: "Speech-to-text settings",
+    saveChanges: "Save",
+    settingsSaved: "Saved",
+    youHaveUnsavedVoiceSettingsSaveChangesTo: "Unsaved changes",
+    speechToTextSettings: "Speech transcription",
     voiceMessagesAreTranscribedWithOpenAIWhisperUse:
-      "Voice messages are transcribed with OpenAI Whisper. Use the operator's key under your plan, or add your own key to use your own account.",
+      "The site’s Whisper service uses your plan allowance. Your own key bills your account and bypasses this allowance.",
     openaiAPIKeyOptional: "OpenAI API key (optional)",
-    leaveBlankToUseTheOperatorSKey:
-      "Leave blank to use the operator's key, or enter your sk-… key",
-    listedPrice0006Minute: " · Listed price: $0.006/minute",
-    youHaveUnsavedTranscriptionSettingsSaveChangesTo:
-      "You have unsaved transcription settings. Save changes to apply them.",
-    comfyuiOptionalFalAiSettings: "ComfyUI / optional fal.ai settings",
-    falAiSettings: "fal.ai settings",
-    usedToGenerateSelfiesGetAnAPIKey:
-      "Used to generate selfies. Get an API key:",
+    leaveBlankToUseTheOperatorSKey: "Leave blank to use the site’s service",
+
+    youHaveUnsavedTranscriptionSettingsSaveChangesTo: "Unsaved changes",
+    comfyuiOptionalFalAiSettings: "Photo generation · ComfyUI",
+    falAiSettings: "Photo generation · fal.ai",
+    usedToGenerateSelfiesGetAnAPIKey: "Get a key:",
     comfyuiIsConfiguredByTheServerUseThe:
-      "ComfyUI is configured by the server. Use the camera in chat to generate from a reference or text, or upload your photo for a couple photo.",
+      "Currently using the site’s ComfyUI service.",
     enterYourFalAiAPIKey: "Enter your fal.ai API key",
     optionalUseYourOwnFalAiAccountOr:
-      "Optional: use your own fal.ai account, or leave blank to use the server's image service.",
-    youHaveUnsavedFalAiSettingsSaveChanges:
-      "You have unsaved fal.ai settings. Save changes to apply them.",
-    deepseekModelSettings: "DeepSeek model settings",
-    openrouterModelSettings: "OpenRouter model settings",
+      "Leave blank for the site’s service. Your own key bills your fal.ai account.",
+    youHaveUnsavedFalAiSettingsSaveChanges: "Unsaved changes",
+    deepseekModelSettings: "Chat model · DeepSeek",
+    openrouterModelSettings: "Chat model · OpenRouter",
     usingTheOfficialDeepSeekAPIDefaultModel:
       "Using the official DeepSeek API. Default model:",
-    accessHundredsOfAIModelsThroughOpenRouterGet:
-      "Access hundreds of AI models through OpenRouter. Get an API key:",
+    accessHundredsOfAIModelsThroughOpenRouterGet: "Get a key:",
     leaveBlankToUseTheConfiguredDeepSeekService:
-      "Leave blank to use the configured DeepSeek service. This field only accepts OpenRouter keys.",
+      "Leave blank for the site’s DeepSeek service. Only OpenRouter keys are accepted here.",
     leaveBlankToUseTheOperatorSOpenRouter:
-      "Leave blank to use the operator's OpenRouter key under your plan. Free plans use gpt-4o-mini.",
+      "Leave blank to use your plan allowance. The free plan uses gpt-4o-mini.",
     yourOwnKeyUsesYourOwnAccountBypasses:
-      "Your own key uses your own account, bypasses plan quotas and lets you choose a model.",
+      "Your own key bills your account, bypasses the allowance and lets you choose a model.",
     loadingAvailableModels: "Loading available models…",
     selectedModel: "Selected model",
     context: "Context:",
@@ -464,19 +436,15 @@ export default {
     noMatchingModels: "No matching models",
     removeFromFavorites: "Remove from favorites",
     addToFavorites: "Add to favorites",
-    youHaveUnsavedChangesSaveChangesToApply:
-      "You have unsaved changes. Save changes to apply them.",
-    aiBehavior: "AI behavior",
-    setSharedPreferencesForYourCompanionsSuchAs:
-      "Set shared preferences for your companions, such as reply style and tone",
+    youHaveUnsavedChangesSaveChangesToApply: "Unsaved changes",
+    aiBehavior: "Reply preferences",
+
     sharedSystemPrompt: "Shared system prompt",
     forExampleKeepRepliesShortAndPlayfulUse:
       "For example: keep replies short and playful, use emojis, and avoid lecturing…",
-    thisPromptAppliesToConversationsWithAllYour:
-      "This prompt applies to conversations with all your companions",
+    thisPromptAppliesToConversationsWithAllYour: "Applies to all characters",
     quickTemplates: "Quick templates",
-    chooseATemplateThenAdjustItAsYou:
-      "Choose a template, then adjust it as you like",
+
     templateApplied: "Template applied: {{name}}",
     advancedOptions: "Advanced options",
     aiReplyLanguage: "AI reply language",
@@ -485,30 +453,9 @@ export default {
     replyLength: "Reply length",
     forExampleUnder50Words23Sentences:
       "For example: under 50 words, 2–3 sentences, or unlimited",
-    youHaveUnsavedAIBehaviorSettingsSaveChanges:
-      "You have unsaved AI behavior settings. Save changes to apply them.",
-    saveAllSettings: "Save all settings",
-    howToUse: "How to use",
-    guide1Speech: "1. Speech:",
-    chooseBrowserSpeechFreeElevenLabsHighQualityOr:
-      "Choose browser speech (free), ElevenLabs (high quality), or Fish Audio (Chinese optimized)",
-    guide2FalAiAPIKey: "2. fal.ai API key:",
-    optionalForSelfiesLeaveBlankToUseThe:
-      "Optional for selfies. Leave blank to use the operator's key. Listed cost: about $0.022/image.",
-    guide3OpenRouterAPIKey: "3. OpenRouter API key:",
-    optionalLeaveBlankToUseTheOperatorS:
-      "Optional. Leave blank to use the operator's key under your plan.",
-    guide4SpeechProviders: "4. Speech providers:",
-    browserFreeWithQualityDependingOnYourSystem:
-      "Browser: free, with quality depending on your system",
-    elevenlabsListedFrom5MonthWithEnglishVoices:
-      "ElevenLabs: listed from $5/month, with English voices and voice cloning",
-    fishAudioUsageBasedBillingOptimizedForChinese:
-      "Fish Audio: usage-based billing, optimized for Chinese, with many voices",
-    guide5ModelSuggestions: "5. Model suggestions:",
-    valueOpenaiGpt4oMini: "Value: openai/gpt-4o-mini",
-    roleplayAnthropicClaude35Sonnet: "Roleplay: anthropic/claude-3.5-sonnet",
-    chineseDeepseekDeepseekChat: "Chinese: deepseek/deepseek-chat",
+    youHaveUnsavedAIBehaviorSettingsSaveChanges: "Unsaved changes",
+    saveAllSettings: "Save all",
+
     modelAddedToFavorites: "Model added to favorites",
     modelRemovedFromFavorites: "Model removed from favorites",
     elevenlabsAPIKey: "ElevenLabs API Key",
@@ -528,14 +475,14 @@ export default {
     couldNotStartAConversation: "Could not start a conversation: {{error}}",
     selfieSentToThisConversation: "Selfie sent to this conversation",
     selfieGenerationFailedNoQuotaWasChargedDetails:
-      "Selfie generation failed. No quota was charged; details are in the conversation.",
+      "Generation failed. No allowance charged; see the chat for details.",
     yourPlanDoesNotIncludeThisFeatureView:
-      "Your plan does not include this feature. View plans in Settings.",
+      "Upgrade in Settings to use this feature.",
     openSettings: "Open Settings",
     couldNotSend: "Could not send: {{error}}",
     selfieGenerated: "Selfie generated!",
     selfieQuotaReachedCheckYourPlanOrAdd:
-      "Selfie quota reached. Check your plan or add your own fal.ai key in Settings.",
+      "Photo allowance reached. Check your plan or add your own fal.ai key in Settings.",
     selfieGenerationFailed: "Selfie generation failed: {{error}}",
     couplePhotoGenerated: "Couple photo generated!",
     generatingASelfie: "Generating a selfie…",
@@ -547,8 +494,8 @@ export default {
     noSpeechWasRecognizedPleaseTryAgain:
       "No speech was recognized. Please try again.",
     transcriptionFailed: "Transcription failed: {{error}}",
-    noCompanionYet: "No companion yet",
-    createYourCompanionFirst: "Create your companion first",
+    noCompanionYet: "No characters yet",
+
     excited: "Excited",
     happy: "Happy",
     content: "Content",
@@ -567,19 +514,16 @@ export default {
     turnOnAutoRead: "Turn on auto-read",
     playbackSpeed: "Playback speed",
     playbackSpeedSetTo: "Playback speed set to {{speed}}",
-    askForASelfieOrTapTheCamera:
-      "Ask for a selfie, or tap the camera to choose a pose.",
+
     playAudio: "Play audio{{suffix}}",
-    yourSelfieIsQueuedOrBeingGeneratedPlease:
-      "Your selfie is queued or being generated. Please wait…",
-    yourImageIsQueuedOrBeingGeneratedPlease:
-      "Your image is queued or being generated. Please wait…",
+    yourSelfieIsQueuedOrBeingGeneratedPlease: "Photo queued or generating…",
+    yourImageIsQueuedOrBeingGeneratedPlease: "Image queued or generating…",
     youAreNotAloneSomeoneIsHereTo:
       "You are not alone. Someone is here to listen.",
     dismiss: "Dismiss",
     imageGenerationIsNotConfigured: "Image generation is not configured",
-    askForASelfie: "Ask for a selfie",
-    askForASelfieRemaining: "Ask for a selfie ({{count}} remaining)",
+    askForASelfie: "Take a selfie",
+    askForASelfieRemaining: "Take a selfie ({{count}} left)",
     selfieQuotaReached: "Selfie quota reached",
     saySomethingTo: "Say something to {{name}}…",
     switchToVoiceInput: "Switch to voice input",
@@ -629,9 +573,7 @@ export default {
     failedToSendMagicLink: "Failed to send magic link",
     audioPlaybackFailed: "Audio playback failed",
     pageNotFound: "Page Not Found",
-    sorryThePageYouAreLookingForDoesn:
-      "Sorry, the page you are looking for doesn't exist.",
-    itMayHaveBeenMovedOrDeleted: "It may have been moved or deleted.",
+
     goHome: "Go Home",
     close2: "Close",
     anUnexpectedErrorOccurred: "An unexpected error occurred.",
@@ -643,9 +585,8 @@ export default {
     deleted: "Deleted",
     downloaded: "Downloaded",
     downloadFailed: "Download failed",
-    noSelfiesYet: "No selfies yet",
-    askForASelfieInChatOrUse:
-      "Ask for a selfie in chat, or use the camera to choose a scene and pose.",
+    noSelfiesYet: "No photos yet",
+
     selfie: "Selfie",
     viewSelfieAtFullSize: "View selfie {{count}} at full size",
     mirror: "Mirror",
@@ -666,22 +607,21 @@ export default {
     whatRemembersAboutYou: "What {{name}} remembers about you",
     noMemoriesYet: "No memories yet",
     shareYourWorkInterestsAndRecentExperiencesImportant:
-      "Share your work, interests and recent experiences. Important details are remembered as you chat.",
+      "Important details from chats are saved here automatically.",
     pinned: "Pinned",
     unpin: "Unpin",
-    pinToKeepThisMemory: "Pin to keep this memory",
+    pinToKeepThisMemory: "Pin to prevent automatic forgetting",
     deleteMemory: "Delete memory",
-    capacity:
-      "{{count}} / {{capacity}} memories · Grow closer to remember more",
+    capacity: "{{count}} / {{capacity}} · Capacity grows with intimacy",
     "categories.fact": "About you",
     "categories.preference": "Your preferences",
     "categories.event": "Recent events",
     "categories.relationship": "Our relationship",
   },
   setup: {
-    companionCreated: "Companion created!",
+    companionCreated: "Character created",
     couldNotCreateCompanion: "Could not create companion: {{error}}",
-    companionUpdated: "Companion updated!",
+    companionUpdated: "Character updated",
     couldNotUpdate: "Could not update: {{error}}",
     avatarUploaded: "Avatar uploaded!",
     avatarUploadFailed: "Avatar upload failed: {{error}}",
@@ -694,14 +634,11 @@ export default {
     fillInAllRequiredFields: "Fill in all required fields",
     uploadAReferencePhoto: "Upload a reference photo",
     back: "Back",
-    editCompanion: "Edit companion",
-    createYourCompanion: "Create your companion",
-    editPersonalityAndInterests: "Edit personality and interests",
-    chooseFrom8PresetsOrUploadAPhoto:
-      "Choose from 8 presets, or upload a photo to create your own companion",
+    editCompanion: "Edit character",
+    createYourCompanion: "Create a character",
+
     avatar: "Avatar",
-    uploadAnAvatarForTheHomeAndChat:
-      "Upload an avatar for the home and chat pages (JPG/PNG/GIF/WebP, up to 10 MB)",
+    uploadAnAvatarForTheHomeAndChat: "JPG / PNG / GIF / WebP, up to 10MB",
     upload: "Upload",
     uploading: "Uploading…",
     confirmUpload: "Confirm upload",
@@ -711,35 +648,32 @@ export default {
     referencePhoto: "Reference photo",
     change: "Change",
     clickToUploadAPhoto: "Click to upload a photo",
-    jpgPNGGIFOrWebPUpTo10: "JPG, PNG, GIF or WebP, up to 10 MB",
+    jpgPNGGIFOrWebPUpTo10: "JPG / PNG / GIF / WebP, up to 10MB",
     restorePresetReference: "Restore preset reference",
     referencePhotosCannotBeChangedWhileEditingCreate:
-      "Reference photos cannot be changed while editing. Create a new companion to use a different photo.",
+      "To change the reference photo, create a new character.",
     name: "Name *",
     forExampleYumi: "For example: Yumi",
     personality: "Personality *",
     forExampleGentleThoughtfulAffectionateAndALittle:
-      "For example: gentle, thoughtful, affectionate and a little playful…",
-    describeThePersonalityToShapeTheCompanionS:
-      "Describe the personality to shape the companion's conversation style",
+      "e.g. Caring, playful, a little shy",
+
     appearance: "Appearance *",
     forExampleLongFlowingHairASlimBuild:
-      "For example: long flowing hair, a slim build, and a fondness for dresses…",
-    describeTheAppearanceUsedWhenGeneratingSelfies:
-      "Describe the appearance used when generating selfies",
+      "e.g. Long dark hair, usually wears a white dress",
+
     interestsOptional: "Interests (optional)",
-    forExampleMoviesMusicTravelAndFood:
-      "For example: movies, music, travel and food…",
-    advancedPrompt: "Advanced prompt",
-    optional: "Optional",
+    forExampleMoviesMusicTravelAndFood: "e.g. Movies, music, travel",
+    advancedPrompt: "Custom instructions",
+
     companionSpecificPrompt: "Companion-specific prompt",
     forExampleAPlayfulToneOccasionalJapaneseWords:
-      "For example: a playful tone, occasional Japanese words, or a favorite catchphrase…",
+      "e.g. A playful tone and gentle teasing",
     onlyAppliesToThisCompanionAfterTheShared:
-      "Only applies to this companion, after the shared system prompt",
+      "Applies to this character, after global instructions.",
     hidePreview: "Hide preview",
-    previewTheCombinedPrompt: "Preview the combined prompt",
-    previewOfThePromptSentToTheAI: "Preview of the prompt sent to the AI:",
+    previewTheCombinedPrompt: "Preview instructions",
+
     sharedPrompt: "Shared prompt",
     notSetConfigureItInSettings: "Not set. Configure it in Settings.",
     companionPrompt: "Companion prompt",
@@ -751,10 +685,10 @@ export default {
     interests: " | Interests: {{interests}}",
     creating: "Creating…",
     saveChanges: "Save changes",
-    createCompanion: "Create companion",
-    deleteCompanion: "Delete companion",
+    createCompanion: "Create character",
+    deleteCompanion: "Delete character",
     restoreFromTrashWithin7DaysAfterThat:
-      "Restore from trash within 7 days. After that, deletion is permanent.",
+      "Restore from Trash within 7 days. After that, deletion is permanent.",
     avatar2: "Avatar",
     preview: "Preview",
     deleteConfirm:
@@ -786,9 +720,7 @@ export default {
   },
   characters: {
     characterPresets: "Character presets",
-    startWithACharacter: "Start with a character",
-    chooseAPresetToFillInAProfile:
-      "Choose a preset to fill in a profile and reference photo, then make it your own. All characters are fictional AI adults.",
+
     characterStyle: "Character style",
     allCount: "All {{count}}",
     realistic: "Realistic",
@@ -914,27 +846,25 @@ export default {
     "levels.10.unlocks.1": "Maximum intimacy achievement",
   },
   selfie: {
-    askForAPhoto: "Ask for a photo…",
+    askForAPhoto: "Take a photo",
     unlockPosesAsYouGrowCloserTextIn:
-      "Unlock poses as you grow closer. Text in the chat input is included as the scene description.",
+      "Intimacy unlocks poses. Add a scene in the message box.",
     generationMode: "Generation mode",
     fromReference: "From reference",
     fromText: "From text",
-    generatesA916PortraitImageByDefault:
-      "Generates a 9:16 portrait image by default.",
+    generatesA916PortraitImageByDefault: "9:16 portrait",
     usesTheCharacterReferenceToHelpKeepThe:
-      "Uses the character reference to help keep the appearance consistent.",
+      "Uses the reference to help preserve appearance.",
     generatesFromTheCharacterDescriptionAndSceneText:
-      "Generates from the character description and scene text, without a reference photo.",
+      "Uses appearance and scene descriptions, without a reference photo.",
     unlocksAtIntimacyLv: "Unlocks at intimacy Lv.{{level}}",
-    uploadYourPhotoToAppearTogether: "Upload your photo to appear together",
+    uploadYourPhotoToAppearTogether: "Upload a photo for a couple portrait",
     couplePhotosRequireProOrYourOwnFal:
       "Couple photos require Pro or your own fal.ai key",
     couplePhotoUploadYourPhotoToAppearTogether:
-      "Couple photo: upload your photo to appear together",
+      "Upload a photo for a couple portrait",
     pro: "Pro",
-    poseLocked:
-      "This pose requires intimacy Lv.{{required}} (current Lv.{{current}}). Keep chatting to level up.",
+    poseLocked: "Requires Lv.{{required}}; current Lv.{{current}}.",
     "poses.casual": "Casual snap",
     "poses.sweet_smile": "Sweet smile",
     "poses.aegyo": "Playful",
@@ -958,9 +888,9 @@ export default {
     system: "System",
     displayMode: "Display mode",
     makeYUMEIYoursChoicesAreSavedToYour:
-      "Make YUMEI yours. Choices are saved to your account automatically.",
+      "Changes save to your account automatically.",
     onlyChangesTheInterfaceAIReplyLanguageAnd:
-      "Only changes the interface. AI reply language and conversations stay the same.",
+      "Does not change AI reply language or chat history.",
     notSyncedToYourAccountYetYourChoice:
       "Not synced to your account yet. Your choice is kept on this device.",
     retrySave: "Retry save",

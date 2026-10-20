@@ -55,10 +55,7 @@ export default function Landing() {
       <LandingCarousel />
       <section className="featured-section" aria-labelledby="featured-heading">
         <div className="section-heading">
-          <h2 id="featured-heading">
-            {t("explore:featured")}
-            <span className="section-kicker">{t("explore:brandCaption")}</span>
-          </h2>
+          <h2 id="featured-heading">{t("explore:featured")}</h2>
           <Button asChild variant="ghost" size="sm">
             <Link href="/explore">
               {t("explore:viewAll")}
@@ -97,9 +94,6 @@ export default function Landing() {
         <div className="section-heading">
           <div>
             <h2 id="home-catalogue-heading">{t("landing:allCharacters")}</h2>
-            <p className="section-description">
-              {t("landing:catalogueDescription")}
-            </p>
           </div>
           <span className="landing-count">
             {t("explore:results", { count: CHARACTER_PRESETS.length })}
@@ -120,9 +114,7 @@ export default function Landing() {
       </section>
       <section className="landing-faq" aria-labelledby="faq-heading">
         <div className="landing-section-intro">
-          <span className="section-eyebrow">{t("landing:faqEyebrow")}</span>
           <h2 id="faq-heading">{t("landing:faqTitle")}</h2>
-          <p>{t("landing:faqDescription")}</p>
         </div>
         <div className="faq-list">
           {faqs.map((faq, index) => (
@@ -151,17 +143,9 @@ export default function Landing() {
         <div className="signup-symbol">
           <Heart size={25} />
         </div>
-        <span className="section-eyebrow">YUMEI</span>
         <h2 id="signup-heading">
           {t(user ? "landing:welcomeBackTitle" : "landing:signupTitle")}
         </h2>
-        <p>
-          {t(
-            user
-              ? "landing:welcomeBackDescription"
-              : "landing:signupDescription"
-          )}
-        </p>
         {user ? (
           <Button asChild size="lg">
             <Link href="/explore">
@@ -178,9 +162,6 @@ export default function Landing() {
             disabled={loading}
           />
         )}
-        <span className="signup-note">
-          {t(user ? "explore:heroFootnote" : "landing:signupNote")}
-        </span>
       </section>
       <DiscoveryFooter />
       <CharacterDetailDialog

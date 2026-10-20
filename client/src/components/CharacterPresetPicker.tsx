@@ -27,12 +27,6 @@ export function CharacterPresetPicker({
       className="space-y-4"
       aria-label={t("characters:characterPresets")}
     >
-      <div>
-        <h2 className="font-semibold">{t("characters:startWithACharacter")}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("characters:chooseAPresetToFillInAProfile")}
-        </p>
-      </div>
       <RadioGroup
         value={style}
         onValueChange={value => setStyle(value as typeof style)}

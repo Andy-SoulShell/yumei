@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Pause,
   Play,
-  Sparkles,
 } from "lucide-react";
 import type { StaticMessageKey } from "@shared/i18n";
 import { useI18n } from "@/lib/i18n";
@@ -16,7 +15,6 @@ import { Button } from "@/components/ui/button";
 type Slide = {
   title: StaticMessageKey;
   highlight: StaticMessageKey;
-  description: StaticMessageKey;
   action: StaticMessageKey;
   href: string;
   images: readonly string[];
@@ -25,7 +23,6 @@ const slides: readonly Slide[] = [
   {
     title: "explore:heroTitle",
     highlight: "explore:heroHighlight",
-    description: "explore:heroDescription",
     action: "explore:heroAction",
     href: "/explore",
     images: [
@@ -37,7 +34,6 @@ const slides: readonly Slide[] = [
   {
     title: "landing:createTitle",
     highlight: "landing:createHighlight",
-    description: "landing:createDescription",
     action: "explore:heroSecondary",
     href: "/setup",
     images: [
@@ -49,7 +45,6 @@ const slides: readonly Slide[] = [
   {
     title: "landing:photosTitle",
     highlight: "landing:photosHighlight",
-    description: "landing:photosDescription",
     action: "landing:photosAction",
     href: "/generate",
     images: [
@@ -124,10 +119,6 @@ export function LandingCarousel() {
       </div>
       <div className="hero-shade" />
       <div className="hero-content">
-        <span className="hero-eyebrow">
-          <Sparkles size={14} />
-          {t("explore:heroEyebrow")}
-        </span>
         <div
           aria-live={focused || paused ? "polite" : "off"}
           aria-atomic="true"
@@ -136,7 +127,6 @@ export function LandingCarousel() {
             {t(slide.title)}
             <span>{t(slide.highlight)}</span>
           </h1>
-          <p>{t(slide.description)}</p>
         </div>
         <div className="hero-actions">
           <Button asChild className="hero-primary">
@@ -145,13 +135,6 @@ export function LandingCarousel() {
               <ArrowRight />
             </Link>
           </Button>
-          <Link
-            href={index === 0 ? "/setup" : "/explore"}
-            className="hero-secondary"
-          >
-            {t(index === 0 ? "explore:heroSecondary" : "explore:viewAll")}
-            <ArrowRight size={15} />
-          </Link>
         </div>
       </div>
       <div className="carousel-controls">

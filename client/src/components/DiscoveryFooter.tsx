@@ -9,7 +9,6 @@ export function DiscoveryFooter() {
     <footer className="explore-footer">
       <Sparkles size={15} />
       <span>{t("explore:disclosure")}</span>
-      <span>YUMEI — {t("explore:brandCaption")}</span>
     </footer>
   );
 }

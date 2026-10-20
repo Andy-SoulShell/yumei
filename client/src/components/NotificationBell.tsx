@@ -170,9 +170,6 @@ export function NotificationBell() {
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
               <Bell className="w-12 h-12 mb-3 opacity-30" />
               <p className="text-sm">{t("notifications:noNotificationsYet")}</p>
-              <p className="text-xs mt-1 opacity-60">
-                {t("notifications:yourCompanionsWillReachOutToYouHere")}
-              </p>
             </div>
           ) : (
             <div className="divide-y divide-border">

@@ -1,7 +1,7 @@
 /** 可公开访问的角色搜索页，提供画风筛选、分页目录和角色详情。 */
 import { useRef } from "react";
 import { Link } from "wouter";
-import { Compass, Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useExploreController } from "@/features/discovery/useExploreController";
 import { useCharacterPreview } from "@/hooks/useCharacterPreview";
@@ -30,12 +30,7 @@ export default function Explore() {
       >
         <div className="catalogue-intro">
           <div>
-            <span className="section-eyebrow">
-              <Compass size={14} />
-              {t("explore:navExplore")}
-            </span>
             <h1 id="catalogue-heading">{t("explore:title")}</h1>
-            <p>{t("explore:subtitle")}</p>
           </div>
           <div className="explore-search">
             <Search size={18} aria-hidden="true" />
@@ -114,7 +109,6 @@ export default function Explore() {
         <div className="catalogue-count" role="status">
           <span />
           {t("explore:results", { count: state.results.length })}
-          <span className="catalogue-ai-note">{t("explore:aiNote")}</span>
         </div>
         {state.results.length ? (
           <>

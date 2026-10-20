@@ -1,16 +1,10 @@
 /* 公开首页与独立探索目录，继承现有主题和应用导航。 */
 .landing-carousel {
-  min-height: 370px;
+  min-height: 310px;
   touch-action: pan-y;
 }
 .landing-carousel .hero-content {
-  padding-bottom: 82px;
-}
-.landing-carousel .hero-content p {
-  max-width: 365px;
-  color: #d3cbd8;
-  font-size: 13px;
-  line-height: 1.8;
+  padding-bottom: 70px;
 }
 .carousel-controls {
   position: absolute;
@@ -72,12 +66,6 @@
   color: var(--muted-foreground);
   font-size: 12px;
 }
-.section-description {
-  margin-top: 7px;
-  font-size: 12px;
-  line-height: 1.8;
-  color: var(--muted-foreground);
-}
 .landing-catalogue {
   padding-top: 28px;
   border-top: 1px solid var(--border);
@@ -111,12 +99,6 @@
   font-size: clamp(24px, 2.4vw, 32px);
   font-weight: 650;
   letter-spacing: -0.025em;
-}
-.landing-section-intro p {
-  margin-top: 12px;
-  color: var(--muted-foreground);
-  font-size: 13px;
-  line-height: 1.8;
 }
 .faq-item {
   border-bottom: 1px solid var(--border);
@@ -192,12 +174,6 @@
   letter-spacing: -0.035em;
   line-height: 1.4;
 }
-.landing-signup p {
-  max-width: 440px;
-  color: var(--muted-foreground);
-  font-size: 13px;
-  line-height: 1.9;
-}
 .landing-signup > a {
   height: auto;
   min-height: 46px;
@@ -205,10 +181,6 @@
   padding: 12px 24px;
   border-radius: 11px;
   white-space: normal;
-}
-.signup-note {
-  color: var(--muted-foreground);
-  font-size: 11px;
 }
 .explore-directory .catalogue-intro {
   flex-direction: column;
@@ -218,7 +190,7 @@
   text-align: center;
 }
 .explore-directory .catalogue-intro h1 {
-  margin-top: 10px;
+  margin-top: 0;
   font-size: clamp(26px, 2.8vw, 38px);
   font-weight: 650;
   letter-spacing: -0.035em;
@@ -242,19 +214,15 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
   .landing-carousel {
-    min-height: 340px;
+    min-height: 280px;
   }
   .landing-carousel .hero-content {
     width: 100%;
-    padding: 24px 20px 76px;
+    padding: 24px 20px 68px;
   }
   .landing-carousel .hero-content h1 {
     max-width: 300px;
     font-size: clamp(25px, 7.2vw, 31px);
-  }
-  .landing-carousel .hero-content p {
-    max-width: 260px;
-    font-size: 12px;
   }
   .landing-carousel .hero-primary {
     min-height: 44px;

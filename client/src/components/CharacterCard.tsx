@@ -58,10 +58,6 @@ export function CharacterCard({
         </span>
         <span className="character-label">{label}</span>
         <span className="character-description">{description}</span>
-        <span className="character-card-action">
-          {t("explore:meetCharacter")}
-          <ArrowUpRight size={14} />
-        </span>
       </span>
     </Button>
   );

@@ -9,40 +9,37 @@ export default {
     goToSlide: "切换到第 {{count}} 张",
     pauseSlides: "暂停轮播",
     playSlides: "继续轮播",
-    createTitle: "由你想象，",
-    createHighlight: "遇见独一无二的她。",
-    createDescription: "从外貌到性格，为你的陪伴故事写下第一笔。",
-    photosTitle: "把共同的时刻，",
-    photosHighlight: "留在一张照片里。",
-    photosDescription: "从一次闲聊到一个场景，让你们的故事有画面。",
-    photosAction: "一起创造画面",
+    createTitle: "她的样子，",
+    createHighlight: "由你设定。",
+
+    photosTitle: "一起的时刻，",
+    photosHighlight: "留在照片里。",
+
+    photosAction: "生成照片",
     allCharacters: "全部角色",
-    catalogueDescription: "从一句你好，认识一个不同的世界。",
-    exploreAll: "探索全部角色",
-    faqEyebrow: "相遇之前",
+
+    exploreAll: "查看全部角色",
+
     faqTitle: "常见问题",
-    faqDescription: "你想知道的，可以从这里开始。",
+
     "faq.what.question": "YUMEI 是什么？",
     "faq.what.answer":
-      "YUMEI 是面向成年用户的 AI 角色陪伴应用。你可以选择喜欢的角色，通过文字与语音聊天、分享日常，还可以创建自己的角色和生成场景照片。所有角色均为 AI 虚构人物。",
+      "面向成年人的 AI 角色陪伴应用，支持文字、语音聊天和照片生成。所有角色均为虚构人物。",
     "faq.free.question": "可以免费开始吗？",
-    "faq.free.answer":
-      "可以免费注册并开始体验。聊天、照片生成和个人角色数量受当前套餐及服务配置限制，登录后可在设置中查看套餐与用量。",
+    "faq.free.answer": "可以。免费额度和套餐用量可在设置中查看。",
     "faq.memory.question": "角色会记得我们的聊天吗？",
     "faq.memory.answer":
-      "YUMEI 支持从对话中提取长期记忆，并在后续聊天中使用这些信息。你可以在角色的记忆页面查看和管理已保存的记忆。",
+      "会保存对话中的重要信息。你可以在角色的记忆页查看或删除。",
     "faq.create.question": "可以创建自己的角色吗？",
     "faq.create.answer":
-      "可以。你可以从内置角色开始修改，也可以上传参考图，自定义名字、外貌、性格和兴趣。创建的角色会保存在「我的角色」中。",
+      "可以修改预设角色，也可以上传参考图，自定义外貌和性格。",
     "faq.devices.question": "手机和电脑都可以使用吗？",
-    "faq.devices.answer":
-      "可以。YUMEI 适配手机和电脑浏览器，也支持添加到手机主屏幕。同一账号登录后，可以继续访问自己的角色和聊天记录。",
-    signupTitle: "今天的故事，想讲给谁听？",
-    signupDescription: "遇见一位合拍的陪伴，从第一句「你好」开始。",
-    signupAction: "免费注册，开启故事",
-    signupNote: "免费开始 · 邮箱注册",
-    welcomeBackTitle: "你的故事，还在继续。",
-    welcomeBackDescription: "认识一位新的陪伴，或回到熟悉的对话。",
+    "faq.devices.answer": "都可以。同一账号的角色和聊天记录会同步。",
+    signupTitle: "遇见你的 AI 陪伴",
+
+    signupAction: "免费注册",
+
+    welcomeBackTitle: "继续你的故事",
   },
   explore: {
     loadMore: "加载更多",
@@ -58,49 +55,45 @@ export default {
     skipToContent: "跳转到正文",
     account: "我的账号",
     signIn: "登录",
-    yourWorld: "你的陪伴世界",
-    brandCaption: "每天，靠近一点",
-    sidebarNote: "总有一个人，懂你的小小世界。",
+
     disclosure: "18+ · 所有陪伴均为 AI 角色",
-    heroEyebrow: "一段属于你的相遇",
-    heroTitle: "故事的开始，",
-    heroHighlight: "是一句你好。",
-    heroDescription: "聊日常，分享心事，偶尔心动。在这里，遇见与你同频的陪伴。",
-    heroAction: "寻找我的陪伴",
-    heroSecondary: "创建专属角色",
-    heroFootnote: "按你的节奏，写你们的故事。",
-    featured: "精选陪伴",
+
+    heroTitle: "一句你好，",
+    heroHighlight: "开启一段陪伴。",
+
+    heroAction: "探索角色",
+    heroSecondary: "创建角色",
+
+    featured: "精选角色",
     viewAll: "查看全部",
-    title: "找到与你同频的陪伴",
-    subtitle: "不同的性格，一样值得期待的相遇。",
+    title: "探索角色",
+
     search: "搜索名字、性格、兴趣…",
     all: "全部角色",
     realistic: "写实",
     anime: "动漫",
     custom: "专属角色",
     resetFilters: "清除筛选",
-    results: "{{count}} 位陪伴等你认识",
-    aiNote: "AI 陪伴，用心交流",
-    emptyTitle: "还没有找到匹配的角色",
-    emptyDescription: "试试其他名字、兴趣，或切换画风。",
+    results: "{{count}} 位角色",
+
+    emptyTitle: "没有匹配的角色",
+    emptyDescription: "换个关键词或画风试试。",
     viewCharacter: "认识{{name}}",
-    meetCharacter: "认识一下",
+
     age: "{{age}} 岁",
-    detailMemory: "记得你们的故事",
-    detailPhotos: "记录相处的瞬间",
-    detailDisclosure:
-      "这是属于你的 AI 陪伴。添加角色将使用当前套餐的角色名额。",
-    addChat: "添加并开始聊天",
+
+    detailDisclosure: "添加后将占用一个角色名额。",
+    addChat: "添加并聊天",
     continueChat: "继续聊天",
-    opening: "正在打开你们的对话…",
-    customizeCharacter: "自定义这个角色",
-    manageRoles: "管理我的角色",
-    chatsTitle: "接着聊聊，今天的故事",
-    chatsSubtitle: "你们的对话，每一个共同的小瞬间。",
-    generateTitle: "把相处的瞬间，变成照片",
-    generateSubtitle: "选择你的角色，在聊天中描述场景并生成图片。",
-    chooseRole: "选择一位陪伴",
-    generateAction: "一起生成照片",
+    opening: "正在打开…",
+    customizeCharacter: "自定义角色",
+    manageRoles: "管理角色",
+    chatsTitle: "最近聊天",
+
+    generateTitle: "生成照片",
+    generateSubtitle: "选择角色后，在聊天中生成照片。",
+
+    generateAction: "生成照片",
   },
   auth: {
     email: "邮箱",
@@ -114,28 +107,27 @@ export default {
     signingIn: "登录中…",
     createAccount: "注册账号",
     creatingAccount: "注册中…",
-    registerTitle: "创建你的账号",
+    registerTitle: "注册",
     registerDescription: "验证邮箱，开启属于你的故事。",
     loginDescription: "使用邮箱和密码登录。",
     forgotPassword: "忘记密码？",
     forgotTitle: "找回密码",
-    forgotDescription:
-      "我们会向你的邮箱发送重置链接。之前使用邮箱链接登录？也可以在这里为原账号设置密码。",
+    forgotDescription: "通过邮件重置密码；邮箱链接账号也可在此设置密码。",
     sendResetLink: "发送重置链接",
     resetTitle: "设置新密码",
     resetDescription: "为你的账号设置一个新密码。",
     resetPassword: "保存新密码",
     resetSuccess: "密码已重置",
-    resetSuccessDescription: "密码已更新，请使用新密码重新登录。",
+    resetSuccessDescription: "请使用新密码登录。",
     backToLogin: "返回登录",
     noAccount: "还没有账号？",
     alreadyHaveAccount: "已有账号？",
     magicLinkLogin: "使用邮箱链接登录",
     magicLinkTitle: "邮箱链接登录",
     verificationSentDescription:
-      "如果此邮箱可用于注册，验证链接将发送至 {{email}}。如果你已有账号，请直接登录或找回密码。",
+      "若此邮箱可注册，验证链接将发送至 {{email}}。已有账号请登录或找回密码。",
     resetSentDescription:
-      "如果 {{email}} 已注册，我们会向该邮箱发送重置链接，请检查收件箱和垃圾邮件。",
+      "如果 {{email}} 已注册，将收到重置链接。也请检查垃圾邮件。",
     verifyTitle: "验证邮箱",
     verifiedTitle: "邮箱已验证",
     verifiedDescription: "邮箱验证成功，可以继续使用 YUMEI。",
@@ -143,7 +135,7 @@ export default {
     invalidLinkDescription: "请重新获取链接后继续。",
     resendVerification: "重新发送验证邮件",
     resendAfter: "{{seconds}} 秒后可重发",
-    emailNotVerified: "请先验证邮箱再登录，也可以在下方重新发送验证邮件。",
+    emailNotVerified: "请先验证邮箱，或重新发送验证邮件。",
     invalidCredentials: "邮箱或密码不正确。",
     registrationFailed: "注册失败，请稍后重试。",
     requestFailed: "操作未完成，请稍后重试。",
@@ -152,9 +144,9 @@ export default {
     passwordRules: "请输入 {{min}}–{{max}} 个字符。",
     passwordChanged: "密码已更新，其他设备上的登录已退出。",
     passwordSecurity: "账号安全",
-    passwordSecurityDescription: "管理你的登录密码和账号访问。",
+
     setPassword: "设置密码",
-    setPasswordDescription: "通过邮箱验证，为原有账号设置登录密码。",
+    setPasswordDescription: "通过邮件验证设置密码。",
     changePassword: "修改密码",
     savePassword: "更新密码",
     defaultName: "YUMEI 用户",
@@ -171,33 +163,33 @@ export default {
     sending: "发送中…",
     sendMagicLink: "发送登录链接",
     guide18OnlyCompanionsOnYUMEIAreAIGenerated:
-      "仅限 18 岁以上用户。YUMEI 角色均由 AI 生成，非真人。我们不会用你的聊天内容训练模型。",
+      "仅限 18+ · AI 虚构角色，非真人。本站不使用聊天内容训练模型。",
     weCanTLetYouIn: "暂时无法使用",
     yumeiIsAn18ServiceAndIsnT:
       "YUMEI 仅向 18 岁以上用户开放。如果你正在经历困难，可以向信任的人倾诉，或在这里寻求帮助：",
     signOut: "退出登录",
     confirmYourAge: "确认年龄",
     yumeiIsAnAdultsOnly18ServiceAnd:
-      "YUMEI 仅限 18 岁以上用户，陪伴角色由 AI 生成，非真人。请输入出生日期，我们仅用于确认你已成年。",
+      "仅限 18+，角色为 AI 虚构人物。出生日期仅用于确认年龄。",
     confirming: "确认中…",
-    iM18OrOlderContinue: "我已年满 18 岁，继续",
+    iM18OrOlderContinue: "确认已满 18 岁",
     youExampleCom: "you@example.com",
-    linkSent: "登录链接已发送至 {{email}}，请点击邮件中的链接继续。",
+    linkSent: "登录链接已发送至 {{email}}，请查收。",
   },
   notifications: {
     markAsRead: "标记已读",
     notifications: "通知",
     markAllAsRead: "全部已读",
     noNotificationsYet: "暂无通知",
-    yourCompanionsWillReachOutToYouHere: "女友们会主动来找你聊天哦~",
+
     notificationPermissionWasDenied: "浏览器拒绝了通知权限",
-    pushNotificationsEnabled: "推送已开启，她想你的时候会告诉你～",
+    pushNotificationsEnabled: "推送已开启",
     couldNotEnableNotifications: "开启推送失败：{{error}}",
     pushNotificationsDisabled: "推送已关闭",
     couldNotDisableNotifications: "关闭推送失败：{{error}}",
     pushNotifications: "推送通知",
     receiveProactiveMessagesOnThisDeviceSuchAs:
-      "开启后，她的主动消息（早安、惦记着你说过的事）会推送到这台设备。每天最多 1 条。",
+      "在这台设备接收角色消息，每天最多 1 条。",
     disablePushOnThisDevice: "关闭本设备推送",
     enablePush: "开启推送",
     whatAreYouUpToItSBeen: "在干嘛呀？好久没聊天了，人家想你了~ 💕",
@@ -254,33 +246,30 @@ export default {
     chatHistory: "历史对话",
     trash: "回收站",
     signOut: "退出登录",
-    friend: "朋友",
-    chooseACompanionToStartChatting: "选择一位女友开始聊天吧",
+
     manageSelection: "批量管理",
     deselectAll: "取消全选",
     selectAll: "全选",
     deleteSelected: "删除选中",
-    createYourFirstCompanion: "创建你的第一位女友",
-    uploadAReferencePhotoAndChooseAPersonality:
-      "上传参考照片，设置性格特征和兴趣爱好",
+    createYourFirstCompanion: "还没有角色",
+
     createACompanion: "开始创建",
     active: "当前",
     lvXP: "{{name}} Lv.{{level}} - {{points}}经验值",
     edit: "编辑",
-    chooseOrCreateACompanion: "选择角色 / 自定义创建",
-    viewAllPhotos: "查看所有照片",
+    chooseOrCreateACompanion: "添加角色",
+
     apiSettings: "API 设置",
-    configureAPIKeys: "配置 API Key",
+
     searchOrBrowseYourConversations: "搜索或浏览历史对话记录",
     searchConversations: "搜索聊天记录...",
     searching: "搜索中...",
     tryAnotherKeyword: "试试其他关键词",
-    noConversationsYet: "还没有对话记录",
+    noConversationsYet: "暂无聊天",
     conversation: "对话",
     sentAPhoto: "📷 发送了一张照片",
     noMessagesYet: "暂无消息",
-    deletedCompanionsAreKeptFor7DaysBefore:
-      "已删除的女友将保留 7 天，之后自动永久删除",
+    deletedCompanionsAreKeptFor7DaysBefore: "7 天内可恢复，之后永久删除。",
     trashIsEmpty: "回收站是空的",
     deletedCompanionsStayHereFor7Days: "删除的女友会在这里保留 7 天",
     permanentlyDeletedInDays: "{{count}} 天后永久删除",
@@ -293,15 +282,14 @@ export default {
     selectionIncludesYourActiveCompanion: "⚠️ 批量删除包含当前女友",
     deleteSelectedCompanions: "确认批量删除",
     yourActiveCompanionIsSelectedAfterDeletionChoose:
-      "选中的女友中包含当前正在聊天的对象，删除后需要重新选择一位女友才能继续聊天。",
+      "包含当前角色，删除后需重新选择聊天对象。",
     moveToTrash: "移入回收站 ({{count}})",
-    greeting: "你好，{{name}}",
+
     selectedCount: "已选 {{count}} 位",
     todayMessages: "今日聊了 {{count}} 条",
     searchEmpty: "未找到包含「{{query}}」的对话",
     searchCount: "找到 {{count}} 个相关对话",
-    deleteActive:
-      "你正在删除当前正在聊天的女友「{{name}}」，删除后需要重新选择一位女友才能继续聊天。",
+    deleteActive: "删除「{{name}}」后，需重新选择聊天对象。",
     deleteConfirm: "确定要删除「{{name}}」吗？",
     batchDeleteConfirm:
       "确定要删除选中的 {{count}} 位女友吗？她们将被移入回收站，7 天内可以恢复。",
@@ -319,6 +307,7 @@ export default {
       "确定要删除选中的 {{count}} 位女友吗？她们将被移入回收站，7 天内可以恢复。",
   },
   settings: {
+    advancedServices: "高级服务设置",
     favorites: "已收藏",
     everydayCompanionship: "🏠 日常陪伴",
     replyWarmlyAndThoughtfullyShowInterestInEveryday:
@@ -349,28 +338,25 @@ export default {
     hiIMYourAICompanionItS: "你好呀，我是你的虚拟女友，很高兴认识你~",
     generatingVoicePreview: "正在生成语音测试...",
     playingAudio: "语音播放中",
-    selectedClickSaveChangesToApply:
-      '已选择模型：{{name}}，请点击"保存生效"确认',
+    selectedClickSaveChangesToApply: "已选择 {{name}}，保存后生效",
     modelSettingsSaved: "LLM 配置已保存",
-    selectedVoiceClickSaveChangesToApply:
-      '已选择声音：{{name}}，请点击"保存生效"确认',
+    selectedVoiceClickSaveChangesToApply: "已选择 {{name}}，保存后生效",
     voiceSettingsSaved: "语音配置已保存",
     transcriptionSettingsSaved: "语音转写配置已保存",
     aiBehaviorSettingsSaved: "AI 行为设定已保存",
     falAiSettingsSaved: "fal.ai 配置已保存",
     free: "免费",
     browserSpeech: "浏览器内置语音",
-    freeUsingTheBrowserSWebSpeechAPI: "免费，使用浏览器 Web Speech API",
-    highQualityAISpeechWithVoiceCloning: "高品质 AI 语音，支持声音克隆",
-    optimizedForChineseWithAWideVoiceSelection: "中文语音优化，丰富的声音模型",
+    freeUsingTheBrowserSWebSpeechAPI: "免费",
+    highQualityAISpeechWithVoiceCloning: "AI 语音与声音克隆",
+    optimizedForChineseWithAWideVoiceSelection: "中文优化",
     voiceSettings: "语音设置",
-    chooseHowYourCompanionSounds: "选择语音引擎，让 AI 女友用你喜欢的声音说话",
+
     readRepliesAloud: "自动语音播放",
-    automaticallyReadEveryReplyAloud: "开启后，AI 女友的每条回复都会自动朗读",
+
     speechProvider: "语音引擎",
     testBrowserSpeech: "测试浏览器语音",
-    browserSpeechIsFreeVoiceQualityDependsOn:
-      "浏览器内置语音免费使用，语音质量取决于你的操作系统和浏览器。",
+    browserSpeechIsFreeVoiceQualityDependsOn: "音质取决于系统和浏览器。",
     enterYourElevenLabsAPIKey: "输入你的 ElevenLabs API Key",
     getAnAPIKey: "获取 API Key：",
     loadingVoices: "正在加载声音列表...",
@@ -387,40 +373,35 @@ export default {
     searchVoiceModels: "搜索声音模型名称...",
     noMatchingVoiceModels: "没有找到匹配的声音模型",
     testFishAudioSpeech: "测试 Fish Audio 语音",
-    saveChanges: "保存生效",
-    settingsSaved: "配置已生效",
-    youHaveUnsavedVoiceSettingsSaveChangesTo:
-      "你有未保存的语音配置更改，请点击上方按钮保存生效",
-    speechToTextSettings: "语音转写 API 配置",
+    saveChanges: "保存",
+    settingsSaved: "已保存",
+    youHaveUnsavedVoiceSettingsSaveChangesTo: "有未保存的更改",
+    speechToTextSettings: "语音转写",
     voiceMessagesAreTranscribedWithOpenAIWhisperUse:
-      "语音消息通过 OpenAI Whisper 转写。默认使用运营方的密钥（按套餐额度）， 也可以在下方填入自己的 Key（BYOK，走你自己的账户、不占额度）。",
+      "默认使用本站 Whisper 服务并计入套餐额度。使用自己的 Key 由你的账户付费，不占额度。",
     openaiAPIKeyOptional: "OpenAI API Key（可选）",
-    leaveBlankToUseTheOperatorSKey: "留空则使用运营方密钥；或填入你的 sk-...",
-    listedPrice0006Minute: "，价格：$0.006/分钟（约 ￥0.04/分钟）",
-    youHaveUnsavedTranscriptionSettingsSaveChangesTo:
-      "你有未保存的语音转写配置更改，请点击上方按钮保存生效",
-    comfyuiOptionalFalAiSettings: "ComfyUI 生图 / fal.ai 可选配置",
-    falAiSettings: "fal.ai API 配置",
-    usedToGenerateSelfiesGetAnAPIKey: "用于生成自拍照片。获取 API Key：",
-    comfyuiIsConfiguredByTheServerUseThe:
-      "当前使用服务器配置的 ComfyUI。聊天页点击相机，可选择参考图生图或文生图，也可上传照片生成合照。",
+    leaveBlankToUseTheOperatorSKey: "留空使用本站服务",
+
+    youHaveUnsavedTranscriptionSettingsSaveChangesTo: "有未保存的更改",
+    comfyuiOptionalFalAiSettings: "图片生成 · ComfyUI",
+    falAiSettings: "图片生成 · fal.ai",
+    usedToGenerateSelfiesGetAnAPIKey: "获取密钥：",
+    comfyuiIsConfiguredByTheServerUseThe: "当前使用本站的 ComfyUI 服务。",
     enterYourFalAiAPIKey: "输入你的 fal.ai API Key",
     optionalUseYourOwnFalAiAccountOr:
-      "可选：填写后使用你的 fal.ai 账户；留空沿用服务器配置的生图服务。",
-    youHaveUnsavedFalAiSettingsSaveChanges:
-      "你有未保存的 fal.ai 配置更改，请点击上方按钮保存生效",
-    deepseekModelSettings: "DeepSeek 模型配置",
-    openrouterModelSettings: "OpenRouter LLM 配置",
+      "留空使用本站生图服务；填写后由你的 fal.ai 账户付费。",
+    youHaveUnsavedFalAiSettingsSaveChanges: "有未保存的更改",
+    deepseekModelSettings: "聊天模型 · DeepSeek",
+    openrouterModelSettings: "聊天模型 · OpenRouter",
     usingTheOfficialDeepSeekAPIDefaultModel:
       "当前使用 DeepSeek 官方服务，默认模型为",
-    accessHundredsOfAIModelsThroughOpenRouterGet:
-      "通过 OpenRouter 接入数百种 AI 模型。获取 API Key：",
+    accessHundredsOfAIModelsThroughOpenRouterGet: "获取密钥：",
     leaveBlankToUseTheConfiguredDeepSeekService:
-      "留空则使用已配置的 DeepSeek 服务。此处仅接受 OpenRouter Key。",
+      "留空使用本站 DeepSeek。此处仅支持 OpenRouter Key。",
     leaveBlankToUseTheOperatorSOpenRouter:
-      "留空则使用运营方的 OpenRouter 密钥（按套餐额度，免费档锁定 gpt-4o-mini）。",
+      "留空使用本站服务并计入套餐额度；免费档使用 gpt-4o-mini。",
     yourOwnKeyUsesYourOwnAccountBypasses:
-      "填入自己的 Key 后走你自己的账户、不占额度，并可自由选择模型。",
+      "自己的 Key 由你的账户付费，不占额度，可自由选模型。",
     loadingAvailableModels: "正在加载可用模型列表...",
     selectedModel: "当前模型",
     context: "上下文：",
@@ -430,19 +411,15 @@ export default {
     noMatchingModels: "没有找到匹配的模型",
     removeFromFavorites: "取消收藏",
     addToFavorites: "收藏模型",
-    youHaveUnsavedChangesSaveChangesToApply:
-      "你有未保存的更改，请点击上方按钮保存生效",
-    aiBehavior: "AI 行为设定",
-    setSharedPreferencesForYourCompanionsSuchAs:
-      "设置所有女友共享的基础行为规范，如回复风格、语气偏好等",
+    youHaveUnsavedChangesSaveChangesToApply: "有未保存的更改",
+    aiBehavior: "回复偏好",
+
     sharedSystemPrompt: "全局默认提示词",
     forExampleKeepRepliesShortAndPlayfulUse:
       "例如：回复要简短可爱，多用表情，不要说教...",
-    thisPromptAppliesToConversationsWithAllYour:
-      "此提示词将应用于所有女友的对话中",
+    thisPromptAppliesToConversationsWithAllYour: "应用于所有角色",
     quickTemplates: "快捷模板",
-    chooseATemplateThenAdjustItAsYou:
-      "点击即可快速填充提示词，也可以在此基础上修改",
+
     templateApplied: "已应用模板：{{name}}",
     advancedOptions: "高级选项",
     aiReplyLanguage: "回复语言",
@@ -450,31 +427,9 @@ export default {
       "默认中文，可设置为英文、日文等",
     replyLength: "回复长度限制",
     forExampleUnder50Words23Sentences: "例如：50字以内、2-3句话、不限制",
-    youHaveUnsavedAIBehaviorSettingsSaveChanges:
-      "你有未保存的 AI 行为设定更改，请点击上方按钮保存生效",
-    saveAllSettings: "保存所有配置",
-    howToUse: "使用说明",
-    guide1Speech: "1. 语音功能：",
-    chooseBrowserSpeechFreeElevenLabsHighQualityOr:
-      "三种引擎可选 — 浏览器内置（免费）、ElevenLabs（高品质）、Fish Audio（中文优化）",
-    guide2FalAiAPIKey: "2. fal.ai API Key：",
-    optionalForSelfiesLeaveBlankToUseThe:
-      "可选（用于生成自拍），留空则使用运营方密钥，成本约 $0.022/张",
-    guide3OpenRouterAPIKey: "3. OpenRouter API Key：",
-    optionalLeaveBlankToUseTheOperatorS:
-      "可选，留空则使用运营方密钥（按套餐额度）",
-    guide4SpeechProviders: "4. 语音引擎对比：",
-    browserFreeWithQualityDependingOnYourSystem:
-      "浏览器内置：免费，质量一般，依赖系统",
-    elevenlabsListedFrom5MonthWithEnglishVoices:
-      "ElevenLabs：$5/月起，英文极佳，支持声音克隆",
-    fishAudioUsageBasedBillingOptimizedForChinese:
-      "Fish Audio：按量付费，中文优化，丰富的声音库",
-    guide5ModelSuggestions: "5. 模型选择建议：",
-    valueOpenaiGpt4oMini: "性价比之选：openai/gpt-4o-mini",
-    roleplayAnthropicClaude35Sonnet:
-      "角色扮演推荐：anthropic/claude-3.5-sonnet",
-    chineseDeepseekDeepseekChat: "中文优化：deepseek/deepseek-chat",
+    youHaveUnsavedAIBehaviorSettingsSaveChanges: "有未保存的更改",
+    saveAllSettings: "保存全部",
+
     modelAddedToFavorites: "已收藏模型",
     modelRemovedFromFavorites: "已取消收藏",
     elevenlabsAPIKey: "ElevenLabs API Key",
@@ -494,14 +449,13 @@ export default {
     couldNotStartAConversation: "新建对话失败：{{error}}",
     selfieSentToThisConversation: "自拍已发到当前对话",
     selfieGenerationFailedNoQuotaWasChargedDetails:
-      "自拍生成失败，本次未扣额度，详情已显示在对话中",
-    yourPlanDoesNotIncludeThisFeatureView:
-      "当前套餐不支持此功能，去设置查看订阅选项",
+      "生成失败，未扣额度。详情见对话。",
+    yourPlanDoesNotIncludeThisFeatureView: "当前套餐不支持，请在设置中升级。",
     openSettings: "去设置",
     couldNotSend: "发送失败：{{error}}",
     selfieGenerated: "自拍照片生成成功！",
     selfieQuotaReachedCheckYourPlanOrAdd:
-      "自拍额度已用完（在设置里查看套餐，或配置自己的 fal.ai Key 解除限制）",
+      "自拍额度已用完，可在设置中查看套餐或使用自己的 fal.ai Key。",
     selfieGenerationFailed: "生成自拍失败：{{error}}",
     couplePhotoGenerated: "合照生成成功！",
     generatingASelfie: "正在生成自拍照片...",
@@ -511,8 +465,8 @@ export default {
     audioTranscribedS: "语音识别成功（{{count}}秒）",
     noSpeechWasRecognizedPleaseTryAgain: "未识别到有效语音内容，请重试",
     transcriptionFailed: "语音识别失败：{{error}}",
-    noCompanionYet: "还没有女友配置",
-    createYourCompanionFirst: "请先创建你的专属女友",
+    noCompanionYet: "还没有角色",
+
     excited: "超开心",
     happy: "开心",
     content: "满足",
@@ -530,17 +484,15 @@ export default {
     turnOnAutoRead: "开启自动语音",
     playbackSpeed: "语音播放速度",
     playbackSpeedSetTo: "播放速度已设为 {{speed}}",
-    askForASelfieOrTapTheCamera:
-      "直接说「发张自拍」即可生成照片，也可以点击下方相机选择姿势",
+
     playAudio: "播放语音{{suffix}}",
-    yourSelfieIsQueuedOrBeingGeneratedPlease:
-      "正在拍自拍，排队或生成中，请稍候…",
-    yourImageIsQueuedOrBeingGeneratedPlease: "正在排队或生成图片，请稍候…",
+    yourSelfieIsQueuedOrBeingGeneratedPlease: "自拍排队生成中…",
+    yourImageIsQueuedOrBeingGeneratedPlease: "图片排队生成中…",
     youAreNotAloneSomeoneIsHereTo: "你并不孤单，有人愿意倾听。",
     dismiss: "关闭提示",
     imageGenerationIsNotConfigured: "生图服务尚未配置",
-    askForASelfie: "让她拍一张自拍",
-    askForASelfieRemaining: "让她拍一张自拍（剩余 {{count}} 张）",
+    askForASelfie: "拍张自拍",
+    askForASelfieRemaining: "拍张自拍（剩余 {{count}} 张）",
     selfieQuotaReached: "自拍额度已用完",
     saySomethingTo: "和 {{name}} 说点什么...",
     switchToVoiceInput: "切换到语音输入",
@@ -559,7 +511,7 @@ export default {
     points: "{{mood}} ({{points}}分)",
     memoriesAboutYou: "她记得你的事",
     couldNotDelete: "删除失败：{{error}}",
-    photoGallery: "自拍画廊",
+    photoGallery: "相册",
     openChat: "去聊天",
     movedToTrashYouCanRestoreItWithin: "已移入回收站，7天内可恢复",
     justNow: "刚刚",
@@ -589,8 +541,7 @@ export default {
     failedToSendMagicLink: "登录链接发送失败",
     audioPlaybackFailed: "语音播放失败",
     pageNotFound: "页面不存在",
-    sorryThePageYouAreLookingForDoesn: "找不到你访问的页面。",
-    itMayHaveBeenMovedOrDeleted: "页面可能已移动或删除。",
+
     goHome: "返回首页",
     close2: "关闭",
     anUnexpectedErrorOccurred: "页面发生异常。",
@@ -602,9 +553,8 @@ export default {
     deleted: "删除成功",
     downloaded: "下载成功",
     downloadFailed: "下载失败",
-    noSelfiesYet: "还没有自拍照片",
-    askForASelfieInChatOrUse:
-      "在聊天中说「发张自拍」，或点击相机选择场景和姿势",
+    noSelfiesYet: "还没有照片",
+
     selfie: "自拍照片",
     viewSelfieAtFullSize: "查看第 {{count}} 张自拍原图",
     mirror: "镜子",
@@ -623,23 +573,23 @@ export default {
     memoryDeleted: "已删除这条记忆",
     actionFailed: "操作失败：{{error}}",
     whatRemembersAboutYou: "{{name}} 记得你的事",
-    noMemoriesYet: "她还没有记住你的事",
+    noMemoriesYet: "暂无记忆",
     shareYourWorkInterestsAndRecentExperiencesImportant:
-      "多聊聊你自己——工作、喜好、最近发生的事。每聊几轮，她会自动记下重要的内容。",
+      "聊天中的重要信息会自动保存在这里。",
     pinned: "已置顶",
     unpin: "取消置顶",
-    pinToKeepThisMemory: "置顶（不会被自动遗忘）",
+    pinToKeepThisMemory: "置顶，防止自动遗忘",
     deleteMemory: "删除这条记忆",
-    capacity: "{{count}} / {{capacity}} 条 · 亲密度越高，记得越多",
+    capacity: "{{count}} / {{capacity}} 条 · 容量随亲密度增加",
     "categories.fact": "关于你",
     "categories.preference": "你的喜好",
     "categories.event": "最近的事",
     "categories.relationship": "我们之间",
   },
   setup: {
-    companionCreated: "女友配置创建成功！",
+    companionCreated: "角色已创建",
     couldNotCreateCompanion: "创建失败：{{error}}",
-    companionUpdated: "女友配置更新成功！",
+    companionUpdated: "角色已更新",
     couldNotUpdate: "更新失败：{{error}}",
     avatarUploaded: "头像上传成功！",
     avatarUploadFailed: "头像上传失败：{{error}}",
@@ -652,14 +602,11 @@ export default {
     fillInAllRequiredFields: "请填写所有必填项",
     uploadAReferencePhoto: "请上传参考照片",
     back: "返回",
-    editCompanion: "编辑女友配置",
-    createYourCompanion: "创建你的专属女友",
-    editPersonalityAndInterests: "修改性格特征和兴趣爱好",
-    chooseFrom8PresetsOrUploadAPhoto:
-      "从 8 位预设角色中选择，或上传照片创建自己的角色",
-    avatar: "头像照片",
-    uploadAnAvatarForTheHomeAndChat:
-      "上传一张头像照片，将在首页卡片和聊天页展示（支持 JPG/PNG/GIF/WebP，最大 10MB）",
+    editCompanion: "编辑角色",
+    createYourCompanion: "创建角色",
+
+    avatar: "头像",
+    uploadAnAvatarForTheHomeAndChat: "JPG / PNG / GIF / WebP，最大 10MB",
     upload: "上传",
     uploading: "上传中...",
     confirmUpload: "确认上传",
@@ -669,35 +616,30 @@ export default {
     referencePhoto: "参考照片",
     change: "更换",
     clickToUploadAPhoto: "点击上传照片",
-    jpgPNGGIFOrWebPUpTo10: "支持 JPG、PNG、GIF、WebP，最大 10MB",
+    jpgPNGGIFOrWebPUpTo10: "JPG / PNG / GIF / WebP，最大 10MB",
     restorePresetReference: "恢复预设参考图",
     referencePhotosCannotBeChangedWhileEditingCreate:
-      "编辑模式下暂不支持更换参考照片，如需更换请创建新女友",
+      "参考照片无法修改，需另建角色。",
     name: "名字 *",
     forExampleYumi: "例如：小雨",
-    personality: "性格特征 *",
+    personality: "性格 *",
     forExampleGentleThoughtfulAffectionateAndALittle:
-      "例如：温柔体贴，善解人意，喜欢撒娇，偶尔会有点小任性...",
-    describeThePersonalityToShapeTheCompanionS:
-      "详细描述性格特征，这将影响 AI 的对话风格",
-    appearance: "外貌描述 *",
-    forExampleLongFlowingHairASlimBuild:
-      "例如：长发飘逸，皮肤白皙，身材苗条，喜欢穿裙子...",
-    describeTheAppearanceUsedWhenGeneratingSelfies:
-      "描述外貌特征，用于生成自拍照片",
+      "例如：温柔体贴，偶尔撒娇",
+
+    appearance: "外貌 *",
+    forExampleLongFlowingHairASlimBuild: "例如：黑色长发，常穿白裙",
+
     interestsOptional: "兴趣爱好（可选）",
-    forExampleMoviesMusicTravelAndFood:
-      "例如：喜欢看电影、听音乐、旅行、美食...",
-    advancedPrompt: "高级提示词定制",
-    optional: "可选",
+    forExampleMoviesMusicTravelAndFood: "例如：电影、音乐、旅行",
+    advancedPrompt: "自定义提示词",
+
     companionSpecificPrompt: "专属提示词",
-    forExampleAPlayfulToneOccasionalJapaneseWords:
-      "例如：说话带点傲娇，偶尔用日语词汇，喜欢用哼开头...",
+    forExampleAPlayfulToneOccasionalJapaneseWords: "例如：语气俏皮，喜欢开玩笑",
     onlyAppliesToThisCompanionAfterTheShared:
-      "仅对这个女友生效，会追加到全局提示词之后",
+      "仅对当前角色生效，追加在全局提示词后。",
     hidePreview: "收起预览",
-    previewTheCombinedPrompt: "查看最终生效的提示词",
-    previewOfThePromptSentToTheAI: "最终发送给 AI 的提示词预览：",
+    previewTheCombinedPrompt: "预览提示词",
+
     sharedPrompt: "全局提示词",
     notSetConfigureItInSettings: "未设置，可在设置页配置",
     companionPrompt: "个体提示词",
@@ -709,10 +651,10 @@ export default {
     interests: " | 兴趣：{{interests}}",
     creating: "创建中...",
     saveChanges: "保存修改",
-    createCompanion: "创建女友",
-    deleteCompanion: "删除女友",
+    createCompanion: "创建角色",
+    deleteCompanion: "删除角色",
     restoreFromTrashWithin7DaysAfterThat:
-      "删除后可在首页回收站中恢复，7 天后自动永久删除",
+      "7 天内可从回收站恢复，之后永久删除。",
     avatar2: "头像",
     preview: "预览",
     deleteConfirm:
@@ -742,9 +684,7 @@ export default {
   },
   characters: {
     characterPresets: "角色预设",
-    startWithACharacter: "从一个角色开始",
-    chooseAPresetToFillInAProfile:
-      "选择后自动填写资料和参考图，你可以继续修改。所有角色均为成年 AI 虚构人物。",
+
     characterStyle: "角色画风",
     allCount: "全部 {{count}} 位",
     realistic: "写实",
@@ -860,25 +800,22 @@ export default {
     "levels.10.unlocks.1": "最高亲密度成就",
   },
   selfie: {
-    askForAPhoto: "让她拍一张…",
-    unlockPosesAsYouGrowCloserTextIn:
-      "姿势随亲密度解锁。输入框里的文字会作为场景描述一起生效。",
+    askForAPhoto: "拍张照片",
+    unlockPosesAsYouGrowCloserTextIn: "姿势随亲密度解锁，输入框可填写场景。",
     generationMode: "生图方式",
     fromReference: "参考图生图",
     fromText: "文生图",
-    generatesA916PortraitImageByDefault: "默认生成 9:16 竖屏照片。",
-    usesTheCharacterReferenceToHelpKeepThe:
-      "使用角色参考图，尽量保持人物外貌一致。",
+    generatesA916PortraitImageByDefault: "9:16 竖图",
+    usesTheCharacterReferenceToHelpKeepThe: "使用参考图，尽量保持外貌一致。",
     generatesFromTheCharacterDescriptionAndSceneText:
-      "根据角色外貌与输入框中的场景描述生成，不使用参考图。",
+      "按外貌和场景描述生成，不使用参考图。",
     unlocksAtIntimacyLv: "亲密度 Lv.{{level}} 解锁",
-    uploadYourPhotoToAppearTogether: "上传你的照片，和她同框",
+    uploadYourPhotoToAppearTogether: "上传照片，生成合照",
     couplePhotosRequireProOrYourOwnFal:
       "合照是 Pro 功能（或配置自己的 fal.ai Key）",
-    couplePhotoUploadYourPhotoToAppearTogether: "合照：上传你的照片，和她同框",
+    couplePhotoUploadYourPhotoToAppearTogether: "上传照片，生成合照",
     pro: "Pro",
-    poseLocked:
-      "这个姿势需要亲密度 Lv.{{required}}，当前 Lv.{{current}}。多聊聊天升级吧～",
+    poseLocked: "需要 Lv.{{required}}，当前 Lv.{{current}}。",
     "poses.casual": "随手一拍",
     "poses.sweet_smile": "甜甜微笑",
     "poses.aegyo": "撒娇",
@@ -901,10 +838,8 @@ export default {
     interfaceLanguage: "界面语言",
     system: "跟随系统",
     displayMode: "显示模式",
-    makeYUMEIYoursChoicesAreSavedToYour:
-      "按你的偏好显示，选择后自动保存到账号。",
-    onlyChangesTheInterfaceAIReplyLanguageAnd:
-      "仅影响界面，不改变 AI 回复语言和聊天记录。",
+    makeYUMEIYoursChoicesAreSavedToYour: "选择后自动保存到账号。",
+    onlyChangesTheInterfaceAIReplyLanguageAnd: "不影响 AI 回复语言和聊天记录。",
     notSyncedToYourAccountYetYourChoice:
       "偏好尚未同步到账号，当前选择已在本机保留。",
     retrySave: "重试保存",

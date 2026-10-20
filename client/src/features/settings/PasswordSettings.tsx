@@ -89,9 +89,6 @@ export function PasswordSettings() {
         <CardTitle className="text-base">
           {t("auth:passwordSecurity")}
         </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          {t("auth:passwordSecurityDescription")}
-        </p>
       </CardHeader>
       <CardContent>
         {status.isError ? (

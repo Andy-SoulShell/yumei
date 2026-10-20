@@ -133,9 +133,6 @@ export function ConversationHistory({
                 <p className="text-sm text-muted-foreground">
                   {t("home:noConversationsYet")}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t("home:chooseACompanionToStartChatting")}
-                </p>
               </div>
             )}
 

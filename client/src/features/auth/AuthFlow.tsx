@@ -81,6 +81,14 @@ export function AuthFlow(props: {
                   : mode === "magic"
                     ? t("auth:enterYourEmailAndWeLlSendYou")
                     : t("auth:loginDescription");
+  const redundantDescription =
+    !flow.sent &&
+    !flow.resetDone &&
+    !invalidReset &&
+    (mode === "login" ||
+      mode === "register" ||
+      mode === "reset" ||
+      mode === "magic");
   const backToLogin = (
     <Button
       type="button"
@@ -120,7 +128,13 @@ export function AuthFlow(props: {
           </div>
         )}
         <Title className="text-2xl font-semibold tracking-tight">{title}</Title>
-        <Description className="text-sm leading-relaxed text-muted-foreground">
+        <Description
+          className={
+            redundantDescription
+              ? "sr-only"
+              : "text-sm leading-relaxed text-muted-foreground"
+          }
+        >
           {description}
         </Description>
       </div>

@@ -57,9 +57,6 @@ export function CharacterPrompt({
           )}
           <Brain className="w-4 h-4" />
           {t("setup:advancedPrompt")}
-          <span className="text-xs px-1.5 py-0.5 rounded bg-muted">
-            {t("setup:optional")}
-          </span>
         </Button>
       </CollapsibleTrigger>
 
@@ -110,10 +107,6 @@ export function CharacterPrompt({
           </CollapsibleTrigger>
 
           <CollapsibleContent className="rounded-lg border bg-muted/30 p-3 space-y-2 text-sm">
-            <p className="text-xs font-medium text-muted-foreground mb-2">
-              {t("setup:previewOfThePromptSentToTheAI")}
-            </p>
-
             {/* 全局提示词 */}
             {apiConfig?.preferences?.globalPrompt ? (
               <div className="rounded p-2 bg-blue-500/10 border border-blue-500/20">

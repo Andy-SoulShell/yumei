@@ -48,9 +48,6 @@ export default function Chat() {
       <div className="min-h-full flex flex-col items-center justify-center p-4 bg-background">
         <Heart className="w-16 h-16 text-primary mb-4" />
         <h2 className="text-2xl font-bold mb-2">{t("chat:noCompanionYet")}</h2>
-        <p className="text-muted-foreground mb-4">
-          {t("chat:createYourCompanionFirst")}
-        </p>
         <Button onClick={() => setLocation("/setup")}>
           {t("chat:openSettings")}
         </Button>

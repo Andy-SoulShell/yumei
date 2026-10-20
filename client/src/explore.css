@@ -476,19 +476,8 @@
   width: 62%;
   padding: 32px 40px 42px;
 }
-.hero-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 10px;
-  border: 1px solid #ffffff26;
-  border-radius: 7px;
-  background: #ffffff0d;
-  color: #ead9f6;
-  font-size: 11px;
-}
 .hero-content h1 {
-  margin: 17px 0 14px;
+  margin: 0 0 14px;
   font-size: clamp(29px, 3vw, 47px);
   line-height: 1.23;
   letter-spacing: -0.025em;
@@ -497,12 +486,6 @@
 .hero-content h1 span {
   display: block;
   color: #d5a8f1;
-}
-.hero-content > p {
-  max-width: 360px;
-  font-size: 13px;
-  line-height: 1.8;
-  color: #d3cbd8;
 }
 .hero-actions {
   display: flex;
@@ -519,24 +502,6 @@
 }
 .hero-primary:hover {
   background: #f2e6fa;
-}
-.hero-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #eee5f3;
-  font-size: 12px;
-}
-.hero-footnote {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  right: 22px;
-  bottom: 15px;
-  color: #fff;
-  font-size: 10px;
-  text-shadow: 0 1px 8px #000;
 }
 .featured-section {
   margin: 30px 0 34px;
@@ -558,13 +523,6 @@
 .section-heading > button {
   color: var(--muted-foreground);
   font-size: 12px;
-}
-.section-kicker {
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  color: var(--muted-foreground);
-  opacity: 0.65;
 }
 .featured-grid {
   display: grid;
@@ -772,11 +730,6 @@
   border-radius: 50%;
   background: var(--primary);
 }
-.catalogue-ai-note {
-  margin-left: auto;
-  opacity: 0.8;
-  font-size: 10px;
-}
 .character-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -887,19 +840,6 @@
   line-height: 1.65;
   font-weight: 400;
 }
-.character-card-action {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding-top: 10px;
-  margin-top: 5px;
-  border-top: 1px solid #ffffff29;
-  font-size: 10px;
-  color: #f2e7f8;
-}
-.character-card-action svg {
-  margin-left: auto;
-}
 .explore-empty {
   display: flex;
   flex-direction: column;
@@ -1004,22 +944,6 @@
   font-size: 12px;
   font-weight: 400;
   color: var(--muted-foreground);
-}
-.detail-traits {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  font-size: 12px;
-  padding-block: 18px;
-  border-block: 1px solid var(--border);
-}
-.detail-traits > span {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.detail-traits svg {
-  color: var(--primary);
 }
 .detail-disclosure {
   color: var(--muted-foreground);
@@ -1217,12 +1141,6 @@
   .hero-actions {
     gap: 14px;
   }
-  .hero-secondary {
-    display: none;
-  }
-  .section-kicker {
-    display: none;
-  }
 }
 @media (max-width: 900px) {
   .mobile-menu-toggle {
@@ -1415,21 +1333,9 @@
     width: 87%;
     padding: 22px 20px 30px;
   }
-  .hero-eyebrow {
-    font-size: 9px;
-    padding: 4px 7px;
-  }
-  .hero-eyebrow svg {
-    width: 11px;
-  }
   .hero-content h1 {
     font-size: 29px;
     margin: 13px 0 10px;
-  }
-  .hero-content > p {
-    font-size: 11px;
-    max-width: 240px;
-    line-height: 1.8;
   }
   .hero-actions {
     margin-top: 16px;
@@ -1439,15 +1345,6 @@
     padding-inline: 14px;
     min-height: 40px;
   }
-  .hero-secondary {
-    display: none;
-  }
-  .hero-footnote {
-    font-size: 8px;
-    bottom: 9px;
-    right: 12px;
-    gap: 4px;
-  }
   .featured-section {
     margin: 25px 0 24px;
   }
@@ -1456,9 +1353,6 @@
   }
   .section-heading h2 {
     font-size: 16px;
-  }
-  .section-kicker {
-    display: none;
   }
   .section-heading > button {
     font-size: 10px;
@@ -1521,9 +1415,6 @@
     padding: 17px 0 14px;
     font-size: 10px;
   }
-  .catalogue-ai-note {
-    display: none;
-  }
   .character-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
@@ -1565,11 +1456,6 @@
     font-size: 10px;
     line-height: 1.6;
   }
-  .character-card-action {
-    font-size: 9px;
-    padding-top: 8px;
-    margin-top: 3px;
-  }
   .explore-footer {
     margin-top: 25px;
     padding-block: 20px;
@@ -1603,13 +1489,6 @@
   .detail-content [data-slot="dialog-title"] {
     font-size: 26px;
     margin-bottom: 8px;
-  }
-  .detail-traits {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 10px 16px;
-    font-size: 11px;
-    padding-block: 13px;
   }
   .detail-disclosure {
     font-size: 10px;

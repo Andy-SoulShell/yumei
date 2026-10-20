@@ -1,11 +1,5 @@
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Collapsible,
   CollapsibleContent,
@@ -92,9 +86,6 @@ export function BehaviorSettings({
           <Brain className="w-5 h-5 text-primary" />
           {t("settings:aiBehavior")}
         </CardTitle>
-        <CardDescription>
-          {t("settings:setSharedPreferencesForYourCompanionsSuchAs")}
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         {/* 全局默认提示词 */}
@@ -129,9 +120,6 @@ export function BehaviorSettings({
             <Sparkles className="w-3.5 h-3.5" />
             {t("settings:quickTemplates")}
           </Label>
-          <p className="text-xs text-muted-foreground">
-            {t("settings:chooseATemplateThenAdjustItAsYou")}
-          </p>
           <div className="grid grid-cols-2 gap-2">
             {promptTemplates.map(tpl => (
               <Button

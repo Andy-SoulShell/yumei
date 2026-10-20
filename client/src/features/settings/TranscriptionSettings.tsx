@@ -71,7 +71,6 @@ export function TranscriptionSettings({
               {t("settings:platformOpenaiCom")}
               <ExternalLink className="w-3 h-3" />
             </a>
-            {t("settings:listedPrice0006Minute")}
           </p>
         </div>
 

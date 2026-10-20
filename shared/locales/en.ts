@@ -502,7 +502,7 @@ export default {
     intimacyLv: "Intimacy: {{name}} Lv.{{level}}",
     online: "Online",
     voice: " · Voice: {{name}}",
-    aiCompanionNotARealPerson: "· AI companion, not a real person",
+    aiCompanionNotARealPerson: "AI companion, not a real person",
     newConversation: "New conversation",
     startANewConversationYourHistoryWillBe:
       "Start a new conversation; your history will be kept",

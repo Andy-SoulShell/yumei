@@ -321,10 +321,10 @@
 }
 .chat-header {
   display: grid;
-  grid-template-columns: 44px 36px minmax(0, 1fr) 44px;
+  min-height: 64px;
+  grid-template-columns: 44px 40px minmax(0, 1fr) 44px;
   align-items: center;
   column-gap: 8px;
-  row-gap: 2px;
   padding: 8px;
 }
 .chat-header > button,
@@ -332,10 +332,42 @@
   width: 44px;
   height: 44px;
 }
-.chat-disclosure {
-  grid-column: 2 / -1;
+.chat-identity {
+  display: grid;
+  gap: 2px;
+}
+.chat-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 20px;
+}
+.chat-title-row h1 {
+  line-height: 20px;
+}
+.chat-title-row .chat-intimacy-button {
+  position: relative;
+  height: 20px;
+  min-height: 20px;
+  min-width: 44px;
+  flex-shrink: 0;
+  gap: 3px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+/* 文字行保持紧凑，按钮上下仍各保留 12px 的可点击区域。 */
+.chat-intimacy-button::after {
+  content: "";
+  position: absolute;
+  inset: -12px 0;
+}
+.chat-status {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-size: 11px;
-  line-height: 1.5;
+  line-height: 16px;
 }
 .chat-desktop-actions {
   display: none;
@@ -348,7 +380,7 @@
 @container (min-width: 960px) {
   .chat-header {
     grid-template-columns: 44px 40px minmax(0, 1fr) auto;
-    padding: 10px 16px;
+    padding: 8px 16px;
   }
   .chat-desktop-actions {
     display: flex;

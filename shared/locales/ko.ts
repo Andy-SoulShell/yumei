@@ -494,7 +494,7 @@ export default {
     intimacyLv: "친밀도: {{name}} Lv.{{level}}",
     online: "온라인",
     voice: " · 음성: {{name}}",
-    aiCompanionNotARealPerson: "· 실제 사람이 아닌 AI 캐릭터예요",
+    aiCompanionNotARealPerson: "실제 사람이 아닌 AI 캐릭터예요",
     newConversation: "새 대화",
     startANewConversationYourHistoryWillBe: "기록을 유지하고 새 대화 시작",
     conversationWith: "{{name}} 님과의 대화",

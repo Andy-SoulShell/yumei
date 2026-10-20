@@ -504,8 +504,7 @@ export default {
     intimacyLv: "親密度：{{name}} Lv.{{level}}",
     online: "オンライン",
     voice: " · 音声：{{name}}",
-    aiCompanionNotARealPerson:
-      "· AI キャラクターです。実在の人物ではありません",
+    aiCompanionNotARealPerson: "AI キャラクターです。実在の人物ではありません",
     newConversation: "新しい会話",
     startANewConversationYourHistoryWillBe:
       "新しい会話を始めます。これまでの履歴は残ります",

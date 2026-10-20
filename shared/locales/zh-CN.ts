@@ -474,7 +474,7 @@ export default {
     intimacyLv: "亲密度: {{name}} Lv.{{level}}",
     online: "在线",
     voice: " · 语音: {{name}}",
-    aiCompanionNotARealPerson: "· AI 虚拟角色，非真人",
+    aiCompanionNotARealPerson: "AI 虚拟角色，非真人",
     newConversation: "新建对话",
     startANewConversationYourHistoryWillBe: "新建对话，原有记录会保留",
     conversationWith: "与 {{name}} 的对话",

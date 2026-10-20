@@ -111,7 +111,7 @@ export function ChatHeader({
         <ArrowLeft className="w-5 h-5" />
       </Button>
 
-      <Avatar className="size-9 shrink-0 sm:size-10">
+      <Avatar className="size-10 shrink-0">
         <AvatarImage
           src={girlfriend.avatarUrl || girlfriend.referenceImageUrl}
           alt={girlfriend.name}
@@ -120,7 +120,7 @@ export function ChatHeader({
       </Avatar>
 
       <div className="chat-identity min-w-0">
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="chat-title-row">
           <h1
             className="min-w-0 font-semibold text-sm sm:text-base truncate"
             title={girlfriend.name}
@@ -147,7 +147,7 @@ export function ChatHeader({
                 variant="plain"
                 size="none"
                 type="button"
-                className={`text-xs flex items-center gap-0.5 ${info.color} hover:opacity-80 transition-opacity`}
+                className={`chat-intimacy-button text-xs flex items-center ${info.color} hover:opacity-80 transition-opacity`}
                 onClick={() => setShowIntimacyPanel(true)}
                 title={t("chat:intimacyLv", {
                   name: t(intimacyMessages[info.level].name),
@@ -163,14 +163,8 @@ export function ChatHeader({
             );
           })()}
         </div>
-        <p className="truncate text-xs text-muted-foreground">
-          {currentMoodInfo ? (
-            <span className={currentMoodInfo.color}>
-              {currentMoodInfo.label}
-            </span>
-          ) : (
-            t("chat:online")
-          )}
+        <p className="chat-status text-muted-foreground">
+          {t("chat:aiCompanionNotARealPerson")}
           {ttsLabel ? t("chat:voice", { name: ttsLabel }) : ""}
         </p>
       </div>
@@ -349,9 +343,6 @@ export function ChatHeader({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <p className="chat-disclosure text-muted-foreground">
-        {t("chat:aiCompanionNotARealPerson")}
-      </p>
     </header>
   );
 }

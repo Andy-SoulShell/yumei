@@ -9,6 +9,7 @@ export default defineConfig({
     include: [
       "client/src/components/AppShell.test.tsx",
       "client/src/lib/navigation.test.ts",
+      "client/src/lib/serviceWorker.test.ts",
       "client/src/hooks/useCompanionChat.test.tsx",
       "client/src/pages/Explore.test.tsx",
     ],

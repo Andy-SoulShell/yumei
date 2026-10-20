@@ -9,7 +9,12 @@ function worker() {
   const caches = {
     keys: vi
       .fn()
-      .mockResolvedValue(["yumei-v1", "other-app", "yumei-static-v2"]),
+      .mockResolvedValue([
+        "yumei-v1",
+        "other-app",
+        "yumei-static-v2",
+        "yumei-static-v3",
+      ]),
     delete: vi.fn().mockResolvedValue(true),
     match: vi.fn().mockResolvedValue(new Response("stale private bytes")),
     open: vi.fn().mockResolvedValue(cache),
@@ -59,7 +64,10 @@ describe("private media cache policy", () => {
       waitUntil: (promise: Promise<unknown>) => (pending = promise),
     });
     await pending;
-    expect(w.caches.delete.mock.calls).toEqual([["yumei-v1"]]);
+    expect(w.caches.delete.mock.calls).toEqual([
+      ["yumei-v1"],
+      ["yumei-static-v2"],
+    ]);
   });
 
   it("keeps bundled static resources available from cache", async () => {

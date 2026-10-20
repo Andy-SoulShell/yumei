@@ -163,6 +163,7 @@ export function useChatStream(
       )
         return false;
       latest.current = candidate;
+      setConnection("connected");
       updateChatStreamDrafts(
         storageKey,
         conversationId,
@@ -252,6 +253,11 @@ export function useChatStream(
     let attempt = 0;
     const reconnect = () => {
       if (cancelled || !isCurrent()) return;
+      if (
+        latest.current?.id !== turnId ||
+        isChatTurnTerminal(latest.current.status)
+      )
+        return;
       unsubscribe?.();
       if (timer) clearTimeout(timer);
       setConnection("reconnecting");

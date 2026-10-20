@@ -246,8 +246,22 @@ it("recovers a terminal result after disconnect without reopening or repeating l
     await vi.advanceTimersByTimeAsync(1000);
   });
   expect(hook.snapshot?.status).toBe("succeeded");
+  expect(hook.connection).toBe("connected");
   expect(listeners).toHaveLength(1);
   expect(complete).toHaveBeenCalledTimes(1);
+});
+
+it("ignores a stream close arriving immediately after the terminal snapshot", async () => {
+  vi.mocked(transport.discover).mockResolvedValue(snapshot());
+  await render();
+  await act(async () => {
+    listeners[0].receive(snapshot({ status: "succeeded", revision: 2 }));
+    listeners[0].disconnect();
+  });
+  expect(hook.snapshot?.status).toBe("succeeded");
+  expect(hook.connection).toBe("connected");
+  await act(async () => vi.advanceTimersByTimeAsync(2000));
+  expect(transport.discover).toHaveBeenCalledTimes(1);
 });
 
 it("coalesces explicit stop calls, retains partial content and does not report a completion", async () => {

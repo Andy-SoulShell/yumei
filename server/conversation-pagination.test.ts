@@ -160,6 +160,11 @@ it.each(["%", "_", "!"])(
       role: "user",
       content: `Message ${character} match`,
     });
+    await createMessage({
+      conversationId: messageMatch.id,
+      role: "assistant",
+      content: "Latest reply without the keyword",
+    });
     await createConversation({ userId, girlfriendId: own.id, title: "Other" });
     await createConversation({
       userId: foreign.userId,
@@ -171,6 +176,9 @@ it.each(["%", "_", "!"])(
     });
     expect(results.map(row => row.id).sort()).toEqual(
       [titleMatch.id, nameMatch.id, messageMatch.id].sort()
+    );
+    expect(results.find(row => row.id === messageMatch.id)?.lastMessage).toBe(
+      "Latest reply without the keyword"
     );
   }
 );

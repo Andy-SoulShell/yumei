@@ -249,7 +249,7 @@ export async function getConversationsWithLastMessage(
           ? or(
               sql`${girlfriends.name} LIKE ${pattern} ESCAPE '!'`,
               sql`${conversations.title} LIKE ${pattern} ESCAPE '!'`,
-              sql`${messages.content} LIKE ${pattern} ESCAPE '!'`
+              sql`EXISTS (SELECT 1 FROM messages historyMatch WHERE historyMatch.conversationId = ${conversations.id} AND historyMatch.content LIKE ${pattern} ESCAPE '!')`
             )
           : undefined,
         options.ids ? inArray(conversations.id, options.ids) : undefined,

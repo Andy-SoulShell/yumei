@@ -8,7 +8,7 @@ import { formatRelativeTime } from "@/lib/formatters";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-/** 展示会话预览，支持按角色、标题和最近一条消息筛选。 */
+/** 展示会话预览，支持按角色、标题和完整聊天记录筛选。 */
 export default function Chats() {
   const { t, locale } = useI18n();
   const [search, setSearch] = useState("");

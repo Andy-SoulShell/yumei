@@ -37,5 +37,7 @@ jobs:
       - run: pnpm check
       - run: pnpm db:migrate
       - run: pnpm test
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: node --test "scripts/test-support/*.test.mjs"
       - run: TZ=Asia/Shanghai pnpm test server/notification-frequency.test.ts server/proactiveContact.test.ts server/memorySemantics.test.ts
       - run: pnpm build

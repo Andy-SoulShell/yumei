@@ -8,11 +8,14 @@ import { completeTextGeneration, reserveGeneration } from "./generations";
 import * as memory from "./memory";
 import { runMemoryExtractionJobs } from "./memoryJobs";
 import { permanentDeleteGirlfriend } from "./repositories/companions";
-import { createConversation } from "./repositories/conversations";
+import {
+  createConversation,
+  createMessage,
+} from "./repositories/conversations";
 import { createTestGirlfriend } from "./testFixtures";
 
 afterEach(() => vi.restoreAllMocks());
-async function seed() {
+async function seed(rounds = 1) {
   const userId = `memory-job-${crypto.randomUUID()}`;
   const gf = await createTestGirlfriend({
     userId,
@@ -26,7 +29,7 @@ async function seed() {
     userId,
     girlfriendId: gf.id,
   });
-  for (let index = 0; index < 5; index++) {
+  for (let index = 0; index < rounds; index++) {
     const id = await reserveGeneration({
       userId,
       conversationId: conversation.id,
@@ -46,9 +49,9 @@ async function seed() {
     isByok: false,
     model: "test",
   });
-  return { userId, gf, db: (await getDb())! };
+  return { userId, gf, conversation, db: (await getDb())! };
 }
-it("persists one job after five rounds and applies its result once across competing workers", async () => {
+it("persists a job after the first round and applies its result once across competing workers", async () => {
   const a = await seed();
   expect(
     await a.db
@@ -73,6 +76,44 @@ it("persists one job after five rounds and applies its result once across compet
       .from(memoryExtractionJobs)
       .where(eq(memoryExtractionJobs.userId, a.userId))
   ).toEqual([]);
+});
+it("keeps the five-round interval when a standalone image makes the message count odd", async () => {
+  const a = await seed(4);
+  const jobs = () =>
+    a.db
+      .select()
+      .from(memoryExtractionJobs)
+      .where(eq(memoryExtractionJobs.userId, a.userId));
+  expect(await jobs()).toHaveLength(1);
+  await createMessage({
+    conversationId: a.conversation.id,
+    role: "assistant",
+    content: "照片",
+    imageUrl: "https://example.test/photo",
+    generationStatus: "succeeded",
+  });
+  const id = await reserveGeneration({
+    userId: a.userId,
+    conversationId: a.conversation.id,
+    kind: "chat",
+  });
+  await completeTextGeneration(id, a.userId, "今天也很开心", "我也是");
+  expect(await jobs()).toHaveLength(2);
+});
+it("queues an explicit memory request before the normal interval", async () => {
+  const a = await seed();
+  const id = await reserveGeneration({
+    userId: a.userId,
+    conversationId: a.conversation.id,
+    kind: "chat",
+  });
+  await completeTextGeneration(id, a.userId, "请记住，我的猫叫团团", "好的");
+  expect(
+    await a.db
+      .select()
+      .from(memoryExtractionJobs)
+      .where(eq(memoryExtractionJobs.userId, a.userId))
+  ).toHaveLength(2);
 });
 it("retains failed work and recovers an expired worker lease without losing the extraction", async () => {
   const a = await seed();

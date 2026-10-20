@@ -8,6 +8,7 @@ import {
   memoryCapacity,
   memoryInjectionK,
   scoreMemory,
+  shouldExtractMemories,
   timeDecayFactor,
 } from "../shared/memory";
 import { getDb } from "./database";
@@ -29,6 +30,20 @@ import { createTestGirlfriend as createGirlfriend } from "./testFixtures";
 // ---------------------------------------------------------------------------
 
 describe("shared/memory scoring", () => {
+  it("extracts the first round, explicit requests and every fifth round", () => {
+    expect(shouldExtractMemories(1, "我喜欢猫")).toBe(true);
+    expect(shouldExtractMemories(2, "天气不错")).toBe(false);
+    expect(shouldExtractMemories(5, "天气不错")).toBe(true);
+    expect(shouldExtractMemories(10, "天气不错")).toBe(true);
+    for (const text of [
+      "请记住，我的猫叫团团",
+      "Please remember my cat's name",
+      "これを覚えて",
+      "기억해 줘",
+    ])
+      expect(shouldExtractMemories(2, text)).toBe(true);
+    expect(shouldExtractMemories(0, "请记住")).toBe(false);
+  });
   it("bigramOverlap finds zh overlap", () => {
     expect(
       bigramOverlap("面试", "用户下周二有一场产品经理面试")

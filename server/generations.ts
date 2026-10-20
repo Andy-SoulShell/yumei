@@ -1,4 +1,4 @@
-import { EXTRACTION_EVERY_N_MESSAGES } from "../shared/memory";
+import { shouldExtractMemories } from "../shared/memory";
 /** 持久化生成请求，原子结算消息与额度，并补偿失败和过期预留。 */
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray, isNull, lte, sql } from "drizzle-orm";
@@ -262,16 +262,17 @@ export async function completeTextGeneration(
       .update(generationRequests)
       .set({ status: "succeeded" })
       .where(eq(generationRequests.id, id));
-    const [messageCount] = await tx
+    const [chatRounds] = await tx
       .select({ count: sql<number>`COUNT(*)` })
-      .from(messages)
+      .from(generationRequests)
       .where(
         and(
-          eq(messages.conversationId, request.conversationId),
-          eq(messages.generationStatus, "succeeded")
+          eq(generationRequests.conversationId, request.conversationId),
+          eq(generationRequests.kind, "chat"),
+          eq(generationRequests.status, "succeeded")
         )
       );
-    if (Number(messageCount.count) % EXTRACTION_EVERY_N_MESSAGES === 0)
+    if (shouldExtractMemories(Number(chatRounds.count), content))
       await tx.insert(memoryExtractionJobs).values({
         id: request.id,
         userId,

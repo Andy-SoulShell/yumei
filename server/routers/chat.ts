@@ -230,7 +230,7 @@ export const chatRouter = router({
         });
       }
 
-      // 9. 异步记忆提取：每 10 条消息触发一次，不阻塞响应。
+      // 9. 唤醒首轮、明确记忆请求或常规五轮间隔登记的任务，不阻塞响应。
       maybeExtractMemories({ userId: ctx.user.id });
 
       return {

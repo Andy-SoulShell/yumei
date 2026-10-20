@@ -20,8 +20,23 @@ export const MEMORY_CATEGORY_LABELS: Record<MemoryCategory, string> = {
   relationship: "我们之间",
 };
 
-/** 记忆提取间隔，按会话内用户与助手消息的总条数计算。 */
+/** 常规记忆提取间隔，按成功文字对话的用户与助手消息总条数计算。 */
 export const EXTRACTION_EVERY_N_MESSAGES = 10;
+
+/** 首轮、明确要求记住信息或每五轮成功文字对话后提取，不受图片消息影响。 */
+export function shouldExtractMemories(
+  completedChatRounds: number,
+  userMessage: string
+): boolean {
+  if (completedChatRounds < 1) return false;
+  return (
+    completedChatRounds === 1 ||
+    (completedChatRounds * 2) % EXTRACTION_EVERY_N_MESSAGES === 0 ||
+    /记住|記住|别忘了|別忘了|\b(?:please\s+remember|remember\s+(?:that|my|I\b))|覚えて|기억해/i.test(
+      userMessage
+    )
+  );
+}
 
 /** 单条记忆保存的最大文本长度，按 JavaScript 字符串长度计算。 */
 export const MEMORY_MAX_LENGTH = 200;

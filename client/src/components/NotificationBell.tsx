@@ -1,3 +1,6 @@
+import { PageError } from "@/components/PageError";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import { formatRelativeTime } from "@/lib/formatters";
 import { renderMessage } from "@shared/i18n";
 /** 站内通知入口，轮询未读数并定时请求生成主动通知。 */
@@ -50,10 +53,14 @@ export function NotificationBell() {
     });
 
   // 获取通知列表
-  const { data: notifications = [], refetch: refetchList } =
-    trpc.notification.list.useQuery(undefined, {
-      enabled: open,
-    });
+  const {
+    data: notifications = [],
+    isLoading: notificationsLoading,
+    error: notificationsError,
+    refetch: refetchList,
+  } = trpc.notification.list.useQuery(undefined, {
+    enabled: open,
+  });
 
   // 定时检查主动通知（每 5 分钟）
   const checkProactive = trpc.notification.checkProactive.useMutation({
@@ -93,6 +100,7 @@ export function NotificationBell() {
 
   // 标记已读
   const markRead = trpc.notification.markRead.useMutation({
+    onError: () => toast.error(t("auth:requestFailed")),
     onSuccess: () => {
       refetchCount();
       refetchList();
@@ -100,6 +108,7 @@ export function NotificationBell() {
   });
 
   const markAllRead = trpc.notification.markAllRead.useMutation({
+    onError: () => toast.error(t("auth:requestFailed")),
     onSuccess: () => {
       refetchCount();
       refetchList();
@@ -156,7 +165,16 @@ export function NotificationBell() {
         </SheetHeader>
 
         <ScrollArea className="min-h-0 flex-1">
-          {notifications.length === 0 ? (
+          {notificationsLoading ? (
+            <div className="flex justify-center py-16">
+              <Loader2
+                className="size-6 animate-spin"
+                aria-label={t("auth:working")}
+              />
+            </div>
+          ) : notificationsError && !notifications.length ? (
+            <PageError onRetry={() => void refetchList()} />
+          ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
               <Bell className="w-12 h-12 mb-3 opacity-30" />
               <p className="text-sm">{t("notifications:noNotificationsYet")}</p>

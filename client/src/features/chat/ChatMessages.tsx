@@ -1,3 +1,4 @@
+import { PageError } from "@/components/PageError";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { detectSelfieRequest } from "@shared/selfieRequest";
@@ -68,8 +69,21 @@ export function ChatMessages({
             {t("common:loadMore")}
           </Button>
         )}
+        {messagesQuery.isLoading && (
+          <div className="flex justify-center py-12">
+            <Loader2
+              className="size-6 animate-spin"
+              aria-label={t("auth:working")}
+            />
+          </div>
+        )}
+        {messagesQuery.error && !chatMessages?.length && (
+          <PageError onRetry={() => void messagesQuery.refetch()} />
+        )}
         {!chatMessages || chatMessages.length === 0
-          ? !sendMessage.isPending && (
+          ? !messagesQuery.error &&
+            !messagesQuery.isLoading &&
+            !sendMessage.isPending && (
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <Heart className="w-12 h-12 text-primary mb-4" />
                 <p className="text-muted-foreground">

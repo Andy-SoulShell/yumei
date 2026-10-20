@@ -1,5 +1,6 @@
 /** 用户相册页面，支持角色筛选、图片下载与记录删除。 */
 
+import { PageError } from "@/components/PageError";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { SelfieGalleryGrid } from "@/components/SelfieGalleryGrid";
@@ -20,7 +21,12 @@ export default function Gallery() {
   const { t } = useI18n();
   const [, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
-  const { data: selfies, isLoading, refetch } = trpc.selfie.list.useQuery();
+  const {
+    data: selfies,
+    isLoading,
+    error,
+    refetch,
+  } = trpc.selfie.list.useQuery();
   const deleteSelfie = trpc.selfie.delete.useMutation({
     onSuccess: () => {
       toast.success(t("gallery:deleted"));
@@ -53,7 +59,12 @@ export default function Gallery() {
     <div className="min-h-full bg-background">
       {/* 顶部导航栏 */}
       <header className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 border-b bg-card sticky top-0 z-10">
-        <Button variant="ghost" size="icon" onClick={() => setLocation("/")}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t("setup:back")}
+          onClick={() => setLocation("/generate")}
+        >
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <h1 className="text-lg font-semibold flex-1">
@@ -79,6 +90,8 @@ export default function Gallery() {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
+        ) : error && !selfies ? (
+          <PageError onRetry={() => void refetch()} />
         ) : !selfies || selfies.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <ImageIcon className="w-16 h-16 text-muted-foreground mb-4" />

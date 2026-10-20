@@ -1,3 +1,4 @@
+import { PageError } from "@/components/PageError";
 import { IntimacyPanel } from "@/components/IntimacyPanel";
 import { LevelUpNotice } from "@/components/LevelUpNotice";
 import { SelfiePoseDialog } from "@/components/SelfiePoseDialog";
@@ -12,6 +13,9 @@ export default function Chat() {
   const state = useChatController();
   const {
     conversationId,
+    pageError,
+    retryPage,
+    invalidConversation,
     conversationLoading,
     girlfriendsLoading,
     activeLoading,
@@ -42,6 +46,16 @@ export default function Chat() {
       </div>
     );
   }
+
+  if (invalidConversation || pageError?.data?.code === "NOT_FOUND")
+    return (
+      <PageError
+        title={t("common:contentUnavailable")}
+        actionLabel={t("explore:navCharacters")}
+        onRetry={() => setLocation("/characters")}
+      />
+    );
+  if (pageError) return <PageError onRetry={retryPage} />;
 
   if (!girlfriend) {
     return (

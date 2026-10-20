@@ -1,3 +1,4 @@
+import { PageError } from "@/components/PageError";
 import { PullToRefreshIndicator } from "@/components/PullToRefreshIndicator";
 import {
   AlertDialog,
@@ -48,6 +49,8 @@ export default function MyCharacters() {
     selectedIds,
     setBatchDeleteConfirm,
     girlfriendsLoading,
+    girlfriendsError,
+    refetch,
     batchDeleteConfirm,
     hasActiveInSelection,
     batchDeleteGirlfriends,
@@ -167,6 +170,8 @@ export default function MyCharacters() {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
+        ) : girlfriendsError && !girlfriends ? (
+          <PageError onRetry={() => void refetch()} />
         ) : !girlfriends || girlfriends.length === 0 ? (
           <Card className="border-dashed">
             <CardHeader className="text-center">

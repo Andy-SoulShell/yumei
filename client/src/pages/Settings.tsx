@@ -1,3 +1,4 @@
+import { PageError } from "@/components/PageError";
 import { AppearanceSettings } from "@/components/AppearanceSettings";
 import { BillingCard } from "@/components/BillingCard";
 import { PushCard } from "@/components/PushCard";
@@ -23,6 +24,9 @@ export default function Settings() {
     toggleTheme,
     theme,
     isLoading,
+    configError,
+    retryConfig,
+    apiConfig,
     updatePreferences,
     isSavingKeys,
     handleSave,
@@ -32,7 +36,12 @@ export default function Settings() {
     <div className="min-h-full bg-background">
       {/* 顶部导航栏 */}
       <header className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 border-b bg-card sticky top-0 z-10">
-        <Button variant="ghost" size="icon" onClick={() => setLocation("/")}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t("setup:back")}
+          onClick={() => setLocation("/characters")}
+        >
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <h1 className="text-base sm:text-lg font-semibold flex-1">
@@ -58,6 +67,8 @@ export default function Settings() {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
+        ) : configError && !apiConfig ? (
+          <PageError onRetry={() => void retryConfig()} />
         ) : (
           <>
             <PasswordSettings />

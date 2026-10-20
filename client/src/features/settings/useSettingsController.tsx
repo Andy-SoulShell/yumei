@@ -20,7 +20,12 @@ export function useSettingsController() {
 
   const { theme, toggleTheme } = useTheme();
 
-  const { data: apiConfig, isLoading } = trpc.apiConfig.get.useQuery();
+  const {
+    data: apiConfig,
+    isLoading,
+    error: configError,
+    refetch: retryConfig,
+  } = trpc.apiConfig.get.useQuery();
 
   const remotePreferences = useMemo(
     () =>
@@ -363,6 +368,8 @@ export function useSettingsController() {
     toggleTheme,
     theme,
     isLoading,
+    configError,
+    retryConfig,
     ttsAutoPlay,
     handleTtsToggle,
     ttsProvider,

@@ -1,3 +1,4 @@
+import { PageError } from "@/components/PageError";
 import { memoryMessages } from "@/locales/domain";
 /** 指定角色的长期记忆列表与用户管理入口。 */
 
@@ -17,7 +18,7 @@ import {
   PinOff,
   Trash2,
 } from "lucide-react";
-import { useParams } from "wouter";
+import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 
 /** 读取角色记忆，并提供置顶、取消置顶和删除操作。 */
@@ -25,6 +26,8 @@ export default function Memories() {
   const { t, locale } = useI18n();
   const params = useParams<{ id: string }>();
   const girlfriendId = Number(params.id);
+  const validId = Number.isInteger(girlfriendId) && girlfriendId > 0;
+  const [, navigate] = useLocation();
 
   const { isAuthenticated, loading: authLoading } = useAuth({
     redirectOnUnauthenticated: true,
@@ -33,14 +36,24 @@ export default function Memories() {
 
   const { open: openChat, pending } = useCompanionChat();
   const utils = trpc.useUtils();
-  const { data: girlfriends } = trpc.girlfriend.list.useQuery(undefined, {
+  const {
+    data: girlfriends,
+    isLoading: rolesLoading,
+    error: rolesError,
+    refetch: retryRoles,
+  } = trpc.girlfriend.list.useQuery(undefined, {
     enabled: isAuthenticated,
   });
   const girlfriend = girlfriends?.find(g => g.id === girlfriendId);
 
-  const { data: memories, isLoading } = trpc.memory.list.useQuery(
+  const {
+    data: memories,
+    isLoading,
+    error,
+    refetch,
+  } = trpc.memory.list.useQuery(
     { girlfriendId },
-    { enabled: isAuthenticated && Number.isFinite(girlfriendId) }
+    { enabled: isAuthenticated && validId }
   );
 
   const deleteMemory = trpc.memory.delete.useMutation({
@@ -56,13 +69,31 @@ export default function Memories() {
     onError: e => toast.error(t("memories:actionFailed", { error: e.message })),
   });
 
-  if (authLoading || isLoading) {
+  if (authLoading || isLoading || rolesLoading) {
     return (
       <div className="min-h-full flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
+
+  if (!validId || (!rolesError && !girlfriend))
+    return (
+      <PageError
+        title={t("common:contentUnavailable")}
+        actionLabel={t("explore:navCharacters")}
+        onRetry={() => navigate("/characters")}
+      />
+    );
+  if (error || rolesError)
+    return (
+      <PageError
+        onRetry={() => {
+          void refetch();
+          void retryRoles();
+        }}
+      />
+    );
 
   const categories = Object.keys(memoryMessages) as MemoryCategory[];
   const grouped = categories
@@ -77,7 +108,12 @@ export default function Memories() {
   return (
     <div className="min-h-full bg-background">
       <header className="flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3 border-b bg-card sticky top-0 z-10">
-        <Button variant="ghost" size="icon" onClick={() => history.back()}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t("setup:back")}
+          onClick={() => history.back()}
+        >
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <BookHeart className="w-5 h-5 text-primary" />
@@ -149,6 +185,12 @@ export default function Memories() {
                         variant="ghost"
                         size="icon"
                         className="w-8 h-8 shrink-0 text-muted-foreground hover:text-primary"
+                        aria-label={
+                          memory.pinned
+                            ? t("memories:unpin")
+                            : t("memories:pinToKeepThisMemory")
+                        }
+                        disabled={setPinned.isPending}
                         title={
                           memory.pinned
                             ? t("memories:unpin")
@@ -171,6 +213,8 @@ export default function Memories() {
                         variant="ghost"
                         size="icon"
                         className="w-8 h-8 shrink-0 text-muted-foreground hover:text-destructive"
+                        aria-label={t("memories:deleteMemory")}
+                        disabled={deleteMemory.isPending}
                         title={t("memories:deleteMemory")}
                         onClick={() => deleteMemory.mutate({ id: memory.id })}
                       >

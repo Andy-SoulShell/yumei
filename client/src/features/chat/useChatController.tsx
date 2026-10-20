@@ -25,7 +25,13 @@ export function useChatController() {
 
   const params = useParams();
 
-  const conversationId = params.id ? parseInt(params.id) : null;
+  const conversationId = params.id ? Number(params.id) : null;
+
+  const invalidConversation =
+    params.id !== undefined &&
+    (!Number.isInteger(conversationId) ||
+      !conversationId ||
+      conversationId < 0);
 
   const { theme, toggleTheme } = useTheme();
 
@@ -102,17 +108,31 @@ export function useChatController() {
     recordingDurationRef.current = duration;
   }, [duration]);
 
-  const { data: activeGirlfriend, isLoading: activeLoading } =
-    trpc.girlfriend.getActive.useQuery(undefined, { enabled: !conversationId });
+  const {
+    data: activeGirlfriend,
+    isLoading: activeLoading,
+    error: activeError,
+    refetch: retryActive,
+  } = trpc.girlfriend.getActive.useQuery(undefined, { enabled: !params.id });
 
-  const { data: conversation, isLoading: conversationLoading } =
-    trpc.conversation.get.useQuery(
-      { id: conversationId! },
-      { enabled: !!conversationId }
-    );
+  const {
+    data: conversation,
+    isLoading: conversationLoading,
+    error: conversationError,
+    refetch: retryConversation,
+  } = trpc.conversation.get.useQuery(
+    { id: conversationId! },
+    { enabled: !!conversationId && !invalidConversation }
+  );
 
-  const { data: girlfriends, isLoading: girlfriendsLoading } =
-    trpc.girlfriend.list.useQuery(undefined, { enabled: !!conversationId });
+  const {
+    data: girlfriends,
+    isLoading: girlfriendsLoading,
+    error: girlfriendsError,
+    refetch: retryRoles,
+  } = trpc.girlfriend.list.useQuery(undefined, {
+    enabled: !!conversationId && !invalidConversation,
+  });
 
   const girlfriend = conversationId
     ? girlfriends?.find(gf => gf.id === conversation?.girlfriendId)
@@ -587,6 +607,20 @@ export function useChatController() {
     ttsLabel,
     currentMoodInfo,
     conversationId,
+    invalidConversation,
+    pageError: conversationId
+      ? conversationError || girlfriendsError
+      : activeError || resumeChat.error,
+    retryPage: () => {
+      if (conversationId) {
+        void retryConversation();
+        void retryRoles();
+      } else {
+        void retryActive();
+        if (girlfriend && resumeChat.error)
+          resumeChat.mutate({ girlfriendId: girlfriend.id });
+      }
+    },
     conversationLoading,
     girlfriendsLoading,
     activeLoading,

@@ -1,3 +1,4 @@
+import { PageError } from "@/components/PageError";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,7 +103,7 @@ export function ConversationHistory({
         </SheetHeader>
 
         <ScrollArea className="min-h-0 flex-1">
-          {searchLoading && isSearchMode && (
+          {(isSearchMode ? searchLoading : conversationsQuery.isLoading) && (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-5 h-5 animate-spin text-primary mr-2" />
               <span className="text-sm text-muted-foreground">
@@ -111,7 +112,18 @@ export function ConversationHistory({
             </div>
           )}
 
+          {(isSearchMode ? searchQuery.error : conversationsQuery.error) &&
+            !displayConversations?.length && (
+              <PageError
+                onRetry={() =>
+                  void (isSearchMode
+                    ? searchQuery.refetch()
+                    : conversationsQuery.refetch())
+                }
+              />
+            )}
           {isSearchMode &&
+            !searchQuery.error &&
             !searchLoading &&
             (!searchResults || searchResults.length === 0) && (
               <div className="flex flex-col items-center justify-center py-16 text-center px-4">
@@ -126,6 +138,8 @@ export function ConversationHistory({
             )}
 
           {!isSearchMode &&
+            !conversationsQuery.isLoading &&
+            !conversationsQuery.error &&
             (!conversationsWithDetails ||
               conversationsWithDetails.length === 0) && (
               <div className="flex flex-col items-center justify-center py-16 text-center px-4">

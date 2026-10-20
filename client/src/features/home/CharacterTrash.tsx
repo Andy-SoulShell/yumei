@@ -1,3 +1,5 @@
+import { PageError } from "@/components/PageError";
+import { Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -16,6 +18,9 @@ type Props = Pick<
   | "setTrashOpen"
   | "t"
   | "trashItems"
+  | "trashLoading"
+  | "trashError"
+  | "refetchTrash"
   | "getRemainingDays"
   | "restoreGirlfriend"
   | "permanentDelete"
@@ -27,6 +32,9 @@ export function CharacterTrash({
   setTrashOpen,
   t,
   trashItems,
+  trashLoading,
+  trashError,
+  refetchTrash,
   getRemainingDays,
   restoreGirlfriend,
   permanentDelete,
@@ -45,7 +53,16 @@ export function CharacterTrash({
         </SheetHeader>
 
         <ScrollArea className="min-h-0 flex-1">
-          {!trashItems || trashItems.length === 0 ? (
+          {trashLoading ? (
+            <div className="flex justify-center py-16">
+              <Loader2
+                className="size-6 animate-spin"
+                aria-label={t("auth:working")}
+              />
+            </div>
+          ) : trashError && !trashItems ? (
+            <PageError onRetry={() => void refetchTrash()} />
+          ) : !trashItems || trashItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center px-4">
               <Trash className="w-12 h-12 text-muted-foreground mb-3" />
               <p className="text-sm text-muted-foreground">

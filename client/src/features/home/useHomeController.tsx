@@ -52,14 +52,19 @@ export function useHomeController() {
   const {
     data: girlfriends,
     isLoading: girlfriendsLoading,
+    error: girlfriendsError,
     refetch,
   } = trpc.girlfriend.list.useQuery(undefined, { enabled: isAuthenticated });
 
   // 回收站列表
-  const { data: trashItems, refetch: refetchTrash } =
-    trpc.girlfriend.trash.useQuery(undefined, {
-      enabled: isAuthenticated && trashOpen,
-    });
+  const {
+    data: trashItems,
+    isLoading: trashLoading,
+    error: trashError,
+    refetch: refetchTrash,
+  } = trpc.girlfriend.trash.useQuery(undefined, {
+    enabled: isAuthenticated && trashOpen,
+  });
 
   const conversationsQuery = trpc.conversation.listWithDetails.useInfiniteQuery(
     { limit: 50 },
@@ -304,6 +309,10 @@ export function useHomeController() {
     selectedIds,
     setBatchDeleteConfirm,
     girlfriendsLoading,
+    girlfriendsError,
+    refetch,
+    trashLoading,
+    trashError,
     moodMap,
     toggleSelect,
     intimacyMap,

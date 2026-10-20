@@ -827,6 +827,15 @@ export default {
     changesApplyImmediately: "Changes apply immediately",
   },
   email: {
+    verificationSubject: "Verify your YUMEI email",
+    verificationInstruction:
+      "Confirm your email address to finish creating your YUMEI account.",
+    verificationAction: "Verify email",
+    verificationExpiry: "This link expires in 15 minutes.",
+    resetSubject: "Reset your YUMEI password",
+    resetInstruction:
+      "Use the link below to choose a new password. Your other sessions will be signed out after the reset.",
+    resetAction: "Reset password",
     subject: "Sign in to YUMEI",
     greeting: "Hi,",
     instruction: "Click the link below to sign in to YUMEI:",

@@ -807,6 +807,15 @@ export default {
     changesApplyImmediately: "변경 사항이 바로 적용돼요",
   },
   email: {
+    verificationSubject: "YUMEI 이메일 인증",
+    verificationInstruction:
+      "이메일 주소를 인증하고 YUMEI 계정 가입을 완료하세요.",
+    verificationAction: "이메일 인증",
+    verificationExpiry: "이 링크는 15분 후 만료돼요.",
+    resetSubject: "YUMEI 비밀번호 재설정",
+    resetInstruction:
+      "아래 링크에서 새 비밀번호를 설정하세요. 재설정하면 다른 세션에서 로그아웃돼요.",
+    resetAction: "비밀번호 재설정",
     subject: "YUMEI 로그인",
     greeting: "안녕하세요.",
     instruction: "아래 링크를 눌러 YUMEI에 로그인하세요:",

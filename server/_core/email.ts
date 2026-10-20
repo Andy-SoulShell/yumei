@@ -1,4 +1,4 @@
-/** 邮箱登录链接发送驱动；支持 Resend、SMTP 和显式本地日志输出。 */
+/** 认证邮件发送驱动；支持 Resend、SMTP 和显式本地日志输出。 */
 
 import { Resend } from "resend";
 import nodemailer from "nodemailer";
@@ -7,23 +7,26 @@ import { log } from "./log";
 import { translate } from "../../shared/i18n";
 import { FALLBACK_LOCALE, type Locale } from "../../shared/locales";
 
-/** 一封登录邮件的收件人、主题、正文与原始登录链接。 */
+/** 一封认证邮件的收件人、主题、正文、用途与操作链接。 */
+
+type EmailPurpose = "magic-link" | "verification" | "reset-password";
 
 type SendArgs = {
   to: string;
   subject: string;
   html: string;
   text: string;
-  magicLinkUrl: string;
+  url: string;
+  purpose: EmailPurpose;
 };
 
-/** 登录邮件驱动约定，发送失败时向调用方传播错误。 */
+/** 认证邮件驱动约定，发送失败时向调用方传播错误。 */
 interface EmailDriver {
-  /** 发送已经构建好的登录邮件，失败时拒绝 Promise。 */
+  /** 发送已经构建好的认证邮件，失败时拒绝 Promise。 */
   send(args: SendArgs): Promise<void>;
 }
 
-/** 通过 Resend 发送登录邮件，使用运营方配置的发信身份。 */
+/** 通过 Resend 发送认证邮件，使用运营方配置的发信身份。 */
 class ResendDriver implements EmailDriver {
   private client: Resend;
   private from: string;
@@ -47,7 +50,7 @@ class ResendDriver implements EmailDriver {
   }
 }
 
-/** 通过 SMTP 发送登录邮件，465 端口使用隐式 TLS。 */
+/** 通过 SMTP 发送认证邮件，465 端口使用隐式 TLS。 */
 class SmtpDriver implements EmailDriver {
   private transporter: ReturnType<typeof nodemailer.createTransport>;
   private from: string;
@@ -80,20 +83,21 @@ class SmtpDriver implements EmailDriver {
 }
 
 /**
- * 将完整登录链接输出到本地日志，便于开发与本机 Docker 登录。
+ * 将完整认证链接输出到本地日志，便于开发与本机 Docker 登录。
  *
  * @remarks 日志中包含可登录令牌，仅适用于受控的本机调试环境。
  */
 class StdoutDriver implements EmailDriver {
-  /** 输出完整的本地登录链接，避免普通日志脱敏或截断令牌。 */
-  async send({ to, subject, magicLinkUrl }: SendArgs) {
+  /** 输出完整的本地认证链接，避免普通日志脱敏或截断令牌。 */
+  async send({ to, subject, url, purpose }: SendArgs) {
     // 保持登录链接完整且可复制；普通日志截断长字符串会破坏令牌。
     console.log(
       "[email:stdout]",
       JSON.stringify({
         to: typeof to === "string" ? to : "[redacted]",
         subject,
-        magicLinkUrl,
+        purpose,
+        [purpose === "magic-link" ? "magicLinkUrl" : "url"]: url,
       })
     );
   }
@@ -152,52 +156,97 @@ export function _resetEmailDriverForTests() {
   cachedDriver = null;
 }
 
-/**
- * 生成十五分钟有效的登录邮件文案，并委托当前驱动发送。
- *
- * @remarks 单次使用与实际有效期由 Better-Auth 的令牌流程保证。
- */
-export async function sendMagicLinkEmail(args: {
-  to: string;
-  magicLinkUrl: string;
-  locale?: Locale;
-}) {
-  const driver = getDriver();
+/** 转义邮件文本与链接属性，避免查询参数或文案被解释为 HTML。 */
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+const emailMessages = {
+  "magic-link": {
+    subject: "email:subject",
+    instruction: "email:instruction",
+    action: "email:signIn",
+    expiry: "email:expiry",
+  },
+  verification: {
+    subject: "email:verificationSubject",
+    instruction: "email:verificationInstruction",
+    action: "email:verificationAction",
+    expiry: "email:verificationExpiry",
+  },
+  "reset-password": {
+    subject: "email:resetSubject",
+    instruction: "email:resetInstruction",
+    action: "email:resetAction",
+    expiry: "email:expiry",
+  },
+} as const;
+
+type AuthEmailArgs = { to: string; url: string; locale?: Locale };
+
+/** 构建本地化认证邮件，令牌有效期与单次消费由 Better-Auth 负责。 */
+async function sendAuthEmail(purpose: EmailPurpose, args: AuthEmailArgs) {
   const locale = args.locale ?? FALLBACK_LOCALE;
-  const subject = translate("email:subject", locale);
-  const greeting = translate("email:greeting", locale);
-  const instruction = translate("email:instruction", locale);
-  const expiry = translate("email:expiry", locale);
+  const keys = emailMessages[purpose];
+  const subject = translate(keys.subject, locale);
+  const instruction = translate(keys.instruction, locale);
+  const expiry = translate(keys.expiry, locale);
   const ignore = translate("email:ignore", locale);
   const fallback = translate("email:fallback", locale);
   const text = [
-    greeting,
-    ``,
+    translate("email:greeting", locale),
+    "",
     instruction,
-    ``,
-    args.magicLinkUrl,
-    ``,
+    "",
+    args.url,
+    "",
     expiry,
-    ``,
+    "",
     ignore,
   ].join("\n");
+  const url = escapeHtml(args.url);
   const html = `<!doctype html>
 <html lang="${locale}"><body style="font-family:system-ui,-apple-system,sans-serif;line-height:1.6;max-width:480px;margin:40px auto;padding:0 16px;">
-  <h2 style="color:#e91e63;margin:0 0 16px 0;">${subject}</h2>
-  <p>${instruction} ${expiry}</p>
+  <h2 style="color:#e91e63;margin:0 0 16px 0;">${escapeHtml(subject)}</h2>
+  <p>${escapeHtml(instruction)} ${escapeHtml(expiry)}</p>
   <p style="margin:32px 0;">
-    <a href="${args.magicLinkUrl}" style="display:inline-block;padding:12px 24px;background:#e91e63;color:white;text-decoration:none;border-radius:8px;font-weight:600;">${translate("email:signIn", locale)}</a>
+    <a href="${url}" style="display:inline-block;padding:12px 24px;background:#e91e63;color:white;text-decoration:none;border-radius:8px;font-weight:600;">${escapeHtml(translate(keys.action, locale))}</a>
   </p>
-  <p style="color:#666;font-size:13px;">${fallback}</p>
-  <p style="color:#666;font-size:13px;word-break:break-all;"><a href="${args.magicLinkUrl}" style="color:#e91e63;">${args.magicLinkUrl}</a></p>
+  <p style="color:#666;font-size:13px;">${escapeHtml(fallback)}</p>
+  <p style="color:#666;font-size:13px;word-break:break-all;"><a href="${url}" style="color:#e91e63;">${url}</a></p>
   <hr style="border:none;border-top:1px solid #eee;margin:32px 0;">
-  <p style="color:#999;font-size:12px;">${ignore}</p>
+  <p style="color:#999;font-size:12px;">${escapeHtml(ignore)}</p>
 </body></html>`;
-  await driver.send({
+  await getDriver().send({
     to: args.to,
     subject,
     html,
     text,
-    magicLinkUrl: args.magicLinkUrl,
+    url: args.url,
+    purpose,
   });
+}
+
+/** 发送十五分钟有效、单次使用的邮箱登录链接。 */
+export function sendMagicLinkEmail(args: {
+  to: string;
+  magicLinkUrl: string;
+  locale?: Locale;
+}) {
+  return sendAuthEmail("magic-link", { ...args, url: args.magicLinkUrl });
+}
+
+/** 发送注册或重新请求的邮箱验证链接。 */
+export function sendVerificationEmail(args: AuthEmailArgs) {
+  return sendAuthEmail("verification", args);
+}
+
+/** 发送十五分钟有效、单次使用的密码重置链接。 */
+export function sendPasswordResetEmail(args: AuthEmailArgs) {
+  return sendAuthEmail("reset-password", args);
 }

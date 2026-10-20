@@ -75,7 +75,7 @@ export const sessions = mysqlTable("sessions", {
 /** 从 sessions 表结构推导的数据库读取记录。 */
 export type Session = typeof sessions.$inferSelect;
 
-/** Better-Auth 账号关联结构；当前未启用密码及社交登录。 */
+/** Better-Auth 账号关联结构，credential 记录保存密码哈希。 */
 export const accounts = mysqlTable("accounts", {
   id: varchar("id", { length: 255 }).primaryKey(),
   userId: varchar("userId", { length: 255 }).notNull(),
@@ -87,12 +87,12 @@ export const accounts = mysqlTable("accounts", {
   accessTokenExpiresAt: timestamp("accessTokenExpiresAt"),
   refreshTokenExpiresAt: timestamp("refreshTokenExpiresAt"),
   scope: text("scope"),
-  password: text("password"), // 当前邮箱链接登录不使用密码
+  password: text("password"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-/** 邮箱链接登录使用的短期验证记录与过期时间。 */
+/** 邮箱链接登录与密码重置使用的短期验证记录和过期时间。 */
 export const verifications = mysqlTable("verifications", {
   id: varchar("id", { length: 255 }).primaryKey(),
   identifier: varchar("identifier", { length: 320 }).notNull(),

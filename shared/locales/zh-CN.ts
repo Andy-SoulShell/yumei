@@ -784,6 +784,13 @@ export default {
     changesApplyImmediately: "选择后立即生效",
   },
   email: {
+    verificationSubject: "验证你的 YUMEI 邮箱",
+    verificationInstruction: "请确认你的邮箱地址，完成 YUMEI 账号注册。",
+    verificationAction: "验证邮箱",
+    verificationExpiry: "此链接将在 15 分钟后失效。",
+    resetSubject: "重置你的 YUMEI 密码",
+    resetInstruction: "点击下方链接设置新密码，完成后其他设备上的登录将退出。",
+    resetAction: "重置密码",
     subject: "登录 YUMEI",
     greeting: "你好，",
     instruction: "请点击以下链接登录 YUMEI：",

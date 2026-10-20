@@ -1,6 +1,6 @@
 /** users 领域的数据访问与事务边界。 */
-import { eq } from "drizzle-orm";
-import { users } from "../../drizzle/schema";
+import { and, eq, isNotNull, ne } from "drizzle-orm";
+import { accounts, users } from "../../drizzle/schema";
 import { getDb } from "../database";
 
 // 用户资料。
@@ -24,4 +24,23 @@ export async function setUserBirthDate(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(users).set({ birthDate }).where(eq(users.id, userId));
+}
+
+/** 仅返回是否已设置密码，不向客户端暴露密码哈希或其他认证资料。 */
+export async function hasCredentialPassword(userId: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(
+      and(
+        eq(accounts.userId, userId),
+        eq(accounts.providerId, "credential"),
+        isNotNull(accounts.password),
+        ne(accounts.password, "")
+      )
+    )
+    .limit(1);
+  return result.length > 0;
 }

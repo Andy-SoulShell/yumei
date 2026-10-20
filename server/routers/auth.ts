@@ -4,12 +4,17 @@ import { z } from "zod";
 import { auth } from "../_core/auth";
 import { getSessionCookieOptions } from "../_core/cookies";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
-import { setUserBirthDate } from "../repositories/users";
+import { hasCredentialPassword, setUserBirthDate } from "../repositories/users";
 import { yearsSince } from "./guards";
 
 export const authRouter = router({
   /** 返回上下文中已解析的应用用户，未登录时返回 null。 */
   me: publicProcedure.query(opts => opts.ctx.user),
+
+  /** 当前用户是否已设置密码；邮箱链接账号可通过邮件为原账号设置密码。 */
+  passwordStatus: protectedProcedure.query(async ({ ctx }) => ({
+    hasPassword: await hasCredentialPassword(ctx.user.id),
+  })),
 
   /** 校验输入日期及周岁，保存当前用户的成年确认日期。 */
   confirmAge: protectedProcedure

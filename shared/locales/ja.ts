@@ -819,6 +819,15 @@ export default {
     changesApplyImmediately: "変更はすぐに反映されます",
   },
   email: {
+    verificationSubject: "YUMEI のメールアドレスを確認",
+    verificationInstruction:
+      "メールアドレスを確認して、YUMEI のアカウント登録を完了してください。",
+    verificationAction: "メールアドレスを確認",
+    verificationExpiry: "このリンクの有効期限は 15 分です。",
+    resetSubject: "YUMEI のパスワードを再設定",
+    resetInstruction:
+      "下のリンクから新しいパスワードを設定してください。再設定後、ほかのセッションはログアウトされます。",
+    resetAction: "パスワードを再設定",
     subject: "YUMEI にログイン",
     greeting: "こんにちは。",
     instruction: "以下のリンクから YUMEI にログインしてください：",

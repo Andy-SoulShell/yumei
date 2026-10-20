@@ -1,4 +1,4 @@
-/** 覆盖登录邮件驱动选择、错误与正文。 */
+/** 覆盖认证邮件驱动选择、错误、本地化正文与链接转义。 */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -243,4 +243,34 @@ describe("magic-link email body", () => {
     expect(args.html).toContain(url);
     expect(args.subject).toMatch(/Sign in/);
   });
+});
+
+describe("verification and password-reset email bodies", () => {
+  it.each(["en", "zh-CN", "ja", "ko"] as const)(
+    "localizes both mail purposes in %s and escapes HTML without changing the text link",
+    async locale => {
+      process.env.RESEND_API_KEY = "re_test";
+      resendSendMock.mockResolvedValue({ data: { id: "x" }, error: null });
+      const { sendVerificationEmail, sendPasswordResetEmail } =
+        await import("./email");
+      const { i18n } = await import("../../shared/i18n");
+      const t = i18n.getFixedT(locale);
+      const url = 'https://example.com/verify?token=abc&callbackURL="value"';
+      await sendVerificationEmail({ to: "user@example.com", url, locale });
+      await sendPasswordResetEmail({ to: "user@example.com", url, locale });
+      const [verification, reset] = resendSendMock.mock.calls.map(
+        call => call[0]
+      );
+      expect(verification.subject).toBe(t("email:verificationSubject"));
+      expect(reset.subject).toBe(t("email:resetSubject"));
+      expect(verification.text).toContain(t("email:verificationExpiry"));
+      expect(reset.text).toContain(t("email:expiry"));
+      for (const message of [verification, reset]) {
+        expect(message.html).toContain(`lang="${locale}"`);
+        expect(message.text).toContain(url);
+        expect(message.html).toContain("&amp;callbackURL=&quot;value&quot;");
+        expect(message.html).not.toContain(url);
+      }
+    }
+  );
 });

@@ -190,12 +190,6 @@ export const POINTS_RULES: Record<string, PointsRule> = {
 /** 用户与每个角色独立计算的每日经验上限，单位为经验点。 */
 export const DAILY_POINTS_LIMIT = 200;
 
-// 衰减规则
-/** 未互动的宽限期，单位为完整天数。 */
-export const DECAY_START_DAYS = 7; // 超过 7 天未互动开始衰减
-/** 宽限期结束后每日扣除的经验点数。 */
-export const DECAY_POINTS_PER_DAY = 5; // 每天衰减 5 点
-
 // ========== 工具函数 ==========
 
 /** 根据累计经验选择已达到的最高等级；低于首级门槛时返回首级。 */
@@ -252,51 +246,6 @@ export function getLevelProgress(currentPoints: number): number {
 export function isNightTime(date: Date = new Date()): boolean {
   const hour = date.getHours();
   return hour >= 22 || hour < 2;
-}
-
-/**
- * 根据未互动时长计算经验衰减，最低保留当前等级的起始经验。
- *
- * @remarks 纯计算，不记录已扣除的衰减；持久化调用方需管理衰减基准。
- */
-export function calculateDecay(
-  currentPoints: number,
-  lastInteractionAt: Date | null,
-  currentLevel: number,
-  lastDecayAt: Date | null = null
-): { points: number; decayed: number } {
-  if (!lastInteractionAt) return { points: currentPoints, decayed: 0 };
-
-  const now = new Date();
-  const daysSinceLastInteraction = Math.floor(
-    (now.getTime() - lastInteractionAt.getTime()) / (1000 * 60 * 60 * 24)
-  );
-
-  if (daysSinceLastInteraction <= DECAY_START_DAYS) {
-    return { points: currentPoints, decayed: 0 };
-  }
-
-  const accountedDays = lastDecayAt
-    ? Math.max(
-        0,
-        Math.floor(
-          (lastDecayAt.getTime() - lastInteractionAt.getTime()) / 86_400_000
-        ) - DECAY_START_DAYS
-      )
-    : 0;
-  const decayDays = Math.max(
-    0,
-    daysSinceLastInteraction - DECAY_START_DAYS - accountedDays
-  );
-  const totalDecay = decayDays * DECAY_POINTS_PER_DAY;
-
-  // 最多扣到当前等级起点
-  const levelInfo = getLevelInfo(currentLevel);
-  const minPoints = levelInfo.requiredPoints;
-  const newPoints = Math.max(currentPoints - totalDecay, minPoints);
-  const actualDecay = currentPoints - newPoints;
-
-  return { points: newPoints, decayed: actualDecay };
 }
 
 /** 读取等级进度条的 Tailwind 渐变类，未知等级使用首级颜色。 */

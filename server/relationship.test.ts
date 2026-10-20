@@ -100,7 +100,7 @@ describe("server-owned relationship settlement", () => {
     }
   );
   it.each(["你好", "很久不见，我回来了，今天想继续和你聊聊"])(
-    "settles overdue decay before a returning message, regardless of prior reads: %s",
+    "preserves earned experience after absence, regardless of prior reads: %s",
     async content => {
       vi.useFakeTimers({ toFake: ["Date"] });
       vi.setSystemTime(new Date("2026-10-19T12:00:00Z"));
@@ -117,12 +117,12 @@ describe("server-owned relationship settlement", () => {
           })
           .where(eq(girlfriends.id, target.gf.id));
       expect((await getIntimacyInfo(b.gf.id, b.userId)).intimacyPoints).toBe(
-        1219
+        1234
       );
       const first = await a.send(content);
       const second = await b.send(content);
       expect(first.relationship.intimacyPoints).toBe(
-        content.length < 5 ? 1219 : 1221
+        content.length < 5 ? 1234 : 1236
       );
       expect(first.relationship).toEqual(second.relationship);
       expect((await getIntimacyInfo(a.gf.id, a.userId)).decayed).toBe(0);

@@ -4,20 +4,26 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useSetupController } from "./useSetupController";
+import { DEFAULT_COMPANION_BEHAVIOR } from "@shared/companionBehavior";
+import { getCharacterPreset } from "@shared/characterPresets";
+import { getPresetBehavior } from "@shared/presetBehavior";
 const mock = vi.hoisted(() => ({
   roles: [] as any[],
   update: vi.fn(),
+  create: vi.fn(),
   remove: vi.fn(),
   navigate: vi.fn(),
   invalidate: vi.fn(),
   error: vi.fn(),
   options: [] as any[],
   calls: 0,
+  editId: "1" as string | undefined,
+  search: "",
 }));
 vi.mock("wouter", () => ({
   useLocation: () => ["/setup/1", mock.navigate],
-  useParams: () => ({ id: "1" }),
-  useSearch: () => "",
+  useParams: () => ({ id: mock.editId }),
+  useSearch: () => mock.search,
 }));
 vi.mock("@/lib/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: mock.error } }));
@@ -31,7 +37,9 @@ vi.mock("@/lib/trpc", () => ({
           refetch: vi.fn(),
         }),
       },
-      create: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+      create: {
+        useMutation: () => ({ mutate: mock.create, isPending: false }),
+      },
       update: {
         useMutation: (options: any) => {
           const slot = mock.calls++ % 2;
@@ -52,10 +60,13 @@ vi.mock("@/lib/trpc", () => ({
 let controller: ReturnType<typeof useSetupController>;
 let render: () => Promise<void>;
 let unmount: () => Promise<void>;
+let remount: () => Promise<void>;
 beforeEach(async () => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   vi.clearAllMocks();
   mock.calls = 0;
+  mock.editId = "1";
+  mock.search = "";
   mock.roles = [
     {
       id: 1,
@@ -65,6 +76,12 @@ beforeEach(async () => {
       interests: "音乐",
       referenceImageUrl: "/reference.jpg",
       avatarUrl: "/avatar.jpg",
+      behavior: {
+        ...DEFAULT_COMPANION_BEHAVIOR,
+        expression: "reserved",
+        userNickname: "小米",
+        examples: [{ user: "晚安", assistant: "明天再一起看星星。" }],
+      },
     },
   ];
   mock.invalidate.mockResolvedValue(undefined);
@@ -72,9 +89,14 @@ beforeEach(async () => {
     controller = useSetupController();
     return null;
   }
-  const root = createRoot(document.createElement("div"));
+  let root = createRoot(document.createElement("div"));
   render = () => act(async () => root.render(<Probe />));
   unmount = () => act(async () => root.unmount());
+  remount = async () => {
+    await unmount();
+    root = createRoot(document.createElement("div"));
+    await render();
+  };
   await render();
 });
 afterEach(async () => {
@@ -84,11 +106,16 @@ it("does not replace unsaved fields when the character query refreshes", async (
   await act(async () => {
     controller.setName("未保存的名字");
     controller.setPersonality("未保存的性格");
+    controller.setBehavior(previous => ({
+      ...previous,
+      expression: "playful",
+    }));
   });
   mock.roles = [{ ...mock.roles[0], avatarUrl: "/new-avatar.jpg" }];
   await render();
   expect(controller.name).toBe("未保存的名字");
   expect(controller.personality).toBe("未保存的性格");
+  expect(controller.behavior.expression).toBe("playful");
 });
 it("sends an empty interests field so an existing value can be cleared", async () => {
   await act(async () => controller.setInterests(""));
@@ -123,4 +150,140 @@ it("rejects whitespace-only required fields without a request", async () => {
   });
   expect(mock.update).not.toHaveBeenCalled();
   expect(mock.error).toHaveBeenCalled();
+});
+it("loads saved style and examples and sends edited behavior in the update", async () => {
+  expect(controller.behavior).toEqual(mock.roles[0].behavior);
+  await act(async () =>
+    controller.setBehavior(previous => ({
+      ...previous,
+      userNickname: " 阿雨 ",
+      examples: [{ user: " 今天好累 ", assistant: " 先坐一会儿吧。 " }],
+    }))
+  );
+  await act(async () => {
+    await controller.handleSubmit({ preventDefault: vi.fn() } as any);
+  });
+  expect(mock.update).toHaveBeenCalledWith(
+    expect.objectContaining({
+      id: 1,
+      behavior: expect.objectContaining({
+        expression: "reserved",
+        userNickname: "阿雨",
+        examples: [{ user: "今天好累", assistant: "先坐一会儿吧。" }],
+      }),
+    })
+  );
+});
+it("gives existing characters with no behavior the editable default", async () => {
+  mock.roles = [{ ...mock.roles[0], behavior: null }];
+  await remount();
+  expect(controller.behavior).toEqual(DEFAULT_COMPANION_BEHAVIOR);
+  await act(async () => {
+    await controller.handleSubmit({ preventDefault: vi.fn() } as any);
+  });
+  expect(mock.update).toHaveBeenCalledWith(
+    expect.objectContaining({ behavior: DEFAULT_COMPANION_BEHAVIOR })
+  );
+});
+it("initializes a preset URL and submits customized behavior on creation", async () => {
+  mock.editId = undefined;
+  mock.search = "?preset=xiaotao";
+  await remount();
+  expect(controller.presetId).toBe("xiaotao");
+  expect(controller.behavior).toEqual(getPresetBehavior("xiaotao"));
+  await act(async () =>
+    controller.setBehavior(previous => ({
+      ...previous,
+      initiative: "quiet",
+      userNickname: "阿雨",
+    }))
+  );
+  await act(async () => {
+    await controller.handleSubmit({ preventDefault: vi.fn() } as any);
+  });
+  expect(mock.create).toHaveBeenCalledWith(
+    expect.objectContaining({
+      presetId: "xiaotao",
+      behavior: expect.objectContaining({
+        initiative: "quiet",
+        userNickname: "阿雨",
+      }),
+    })
+  );
+});
+it("replaces behavior with each chosen preset and resets it for a custom character", async () => {
+  mock.editId = undefined;
+  await remount();
+  await act(async () =>
+    controller.handleSelectPreset(getCharacterPreset("xiaotao")!)
+  );
+  expect(controller.behavior).toEqual(getPresetBehavior("xiaotao"));
+  await act(async () =>
+    controller.handleSelectPreset(getCharacterPreset("rin")!)
+  );
+  expect(controller.behavior).toEqual(getPresetBehavior("rin"));
+  await act(async () => controller.handleSelectPreset(null));
+  expect(controller.presetId).toBeNull();
+  expect(controller.behavior).toEqual(DEFAULT_COMPANION_BEHAVIOR);
+});
+it("includes behavior when creating a custom character from an uploaded image", async () => {
+  mock.editId = undefined;
+  await remount();
+  await act(async () => {
+    controller.setName("小雨");
+    controller.setPersonality("温柔");
+    controller.setAppearance("长发");
+    controller.setBehavior(previous => ({ ...previous, expression: "direct" }));
+    controller.handleImageChange({
+      target: {
+        files: [new File(["image"], "portrait.png", { type: "image/png" })],
+      },
+    } as any);
+  });
+  await act(async () => {
+    await controller.handleSubmit({ preventDefault: vi.fn() } as any);
+    await new Promise(resolve => setTimeout(resolve, 20));
+  });
+  expect(mock.create).toHaveBeenCalledWith(
+    expect.objectContaining({
+      name: "小雨",
+      referenceImageBase64: "aW1hZ2U=",
+      referenceImageMimeType: "image/png",
+      behavior: expect.objectContaining({ expression: "direct" }),
+    })
+  );
+});
+it("blocks incomplete and excessive examples, then allows corrected behavior", async () => {
+  await act(async () =>
+    controller.setBehavior(previous => ({
+      ...previous,
+      examples: [{ user: "你好", assistant: "   " }],
+    }))
+  );
+  await act(async () => {
+    await controller.handleSubmit({ preventDefault: vi.fn() } as any);
+  });
+  expect(controller.behaviorError).toBe(true);
+  expect(mock.update).not.toHaveBeenCalled();
+  await act(async () =>
+    controller.setBehavior(previous => ({
+      ...previous,
+      examples: Array.from({ length: 6 }, () => ({
+        user: "你好",
+        assistant: "你好呀",
+      })),
+    }))
+  );
+  await act(async () => {
+    await controller.handleSubmit({ preventDefault: vi.fn() } as any);
+  });
+  expect(mock.update).not.toHaveBeenCalled();
+  await act(async () =>
+    controller.setBehavior(previous => ({ ...previous, examples: [] }))
+  );
+  await act(async () => {
+    await controller.handleSubmit({ preventDefault: vi.fn() } as any);
+  });
+  expect(controller.behaviorError).toBe(false);
+  expect(mock.update).toHaveBeenCalledOnce();
 });

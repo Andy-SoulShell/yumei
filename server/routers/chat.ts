@@ -1,4 +1,6 @@
-import { buildChatSystemPrompt } from "../chatPrompt";
+import { buildChatSystemPrompt, CHAT_PROMPT_VERSION } from "../chatPrompt";
+import { getChatBehaviorContext } from "../companionContext";
+import { knownUsage, recordGenerationTelemetry } from "../generationTelemetry";
 import { TRPCError } from "@trpc/server";
 import axios from "axios";
 import { z } from "zod";
@@ -120,7 +122,21 @@ export const chatRouter = router({
       const apiConfig = await getUserApiConfig(ctx.user.id);
 
       // 5. 构建分层系统提示词
-      let systemPrompt = buildChatSystemPrompt(girlfriend, apiConfig);
+      let behaviorContext = {};
+      try {
+        behaviorContext = await getChatBehaviorContext(
+          ctx.user.id,
+          girlfriend.id,
+          input.content
+        );
+      } catch (error) {
+        log.warn("[Chat] emotion read failed", providerErrorSummary(error));
+      }
+      let systemPrompt = buildChatSystemPrompt(
+        girlfriend,
+        apiConfig,
+        behaviorContext
+      );
 
       // 长期记忆注入：按相关性取 top-k，等级越高记得越多。
       // 失败不阻塞聊天。
@@ -174,18 +190,30 @@ export const chatRouter = router({
             : undefined,
       });
       let saved: Awaited<ReturnType<typeof completeTextGeneration>>;
+      const model =
+        chatProvider.name === "deepseek"
+          ? chatProvider.model
+          : isBillingEnforced() && limits.modelLocked && !isByokChat
+            ? FREE_TIER_DEFAULT_MODEL
+            : apiConfig?.llmModel || FREE_TIER_DEFAULT_MODEL;
+      const started = Date.now();
+      let providerCompleted = false;
+      const telemetry = {
+        promptVersion: CHAT_PROMPT_VERSION,
+        provider: chatProvider.name,
+        model,
+        isByok: isByokChat,
+        inputTokens: null,
+        outputTokens: null,
+        costUsd: null,
+      };
       try {
         const response = await axios.post(
           `${chatProvider.baseUrl}/chat/completions`,
           {
             // 免费档锁定 gpt-4o-mini（控制成本）；
             // 付费档 / BYOK / 自托管可自由选模型。
-            model:
-              chatProvider.name === "deepseek"
-                ? chatProvider.model
-                : isBillingEnforced() && limits.modelLocked && !isByokChat
-                  ? FREE_TIER_DEFAULT_MODEL
-                  : apiConfig?.llmModel || FREE_TIER_DEFAULT_MODEL,
+            model,
             messages,
             ...(chatProvider.name === "deepseek"
               ? { thinking: { type: "disabled" }, max_tokens: 4096 }
@@ -200,6 +228,15 @@ export const chatRouter = router({
             timeout: 60_000,
           }
         );
+        providerCompleted = true;
+        await recordGenerationTelemetry(requestId, ctx.user.id, {
+          ...telemetry,
+          durationMs: Date.now() - started,
+          outcome: "succeeded",
+          inputTokens: knownUsage(response.data?.usage?.prompt_tokens),
+          outputTokens: knownUsage(response.data?.usage?.completion_tokens),
+          costUsd: knownUsage(response.data?.usage?.cost),
+        });
         const messageContent = response.data?.choices?.[0]?.message?.content;
         const aiResponse =
           typeof messageContent === "string" ? messageContent : "";
@@ -212,6 +249,12 @@ export const chatRouter = router({
           aiResponse
         );
       } catch (error) {
+        if (!providerCompleted)
+          await recordGenerationTelemetry(requestId, ctx.user.id, {
+            ...telemetry,
+            durationMs: Date.now() - started,
+            outcome: "failed",
+          });
         log.error("[Chat] generation failed", {
           requestId,
           ...providerErrorSummary(error),

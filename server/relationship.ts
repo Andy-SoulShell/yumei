@@ -8,13 +8,13 @@ import {
   type Message,
 } from "../drizzle/schema";
 import {
-  calculateDecay,
   DAILY_POINTS_LIMIT,
   getLevelByPoints,
   isNightTime,
   POINTS_RULES,
 } from "../shared/intimacy";
 import { METERS } from "../shared/quotas";
+import { evolveCompanionEmotion } from "../shared/companionEmotion";
 import { todayUTC, tryConsumeMeterInTransaction } from "./_core/quota";
 import type { DbTransaction } from "./database";
 function skippedPoints(gf: Girlfriend, reason: string) {
@@ -30,7 +30,7 @@ function skippedPoints(gf: Girlfriend, reason: string) {
   };
 }
 
-/** 在更新互动基准前结算未处理的衰减；短消息和奖励受限时也保留真实互动。 */
+/** 短消息和奖励受限时仍保留真实互动，已有经验不因离线减少。 */
 async function recordInteraction(
   tx: DbTransaction,
   girlfriendId: number,
@@ -49,12 +49,6 @@ async function recordInteraction(
     )
     .for("update");
   if (!gf) throw new Error("Girlfriend not found");
-  const decay = calculateDecay(
-    gf.intimacyPoints,
-    gf.lastInteractionAt,
-    gf.intimacyLevel,
-    gf.lastDecayAt
-  );
   const period = now.toISOString().slice(0, 10);
   const lastDay = gf.lastInteractionAt?.toISOString().slice(0, 10);
   const yesterday = new Date(now.getTime() - 86_400_000)
@@ -67,10 +61,7 @@ async function recordInteraction(
         ? gf.consecutiveDays + 1
         : 1;
   const changes = {
-    intimacyPoints: decay.points,
-    intimacyLevel: getLevelByPoints(decay.points).level,
     lastInteractionAt: now,
-    lastDecayAt: now,
     consecutiveDays,
   };
   await tx.update(girlfriends).set(changes).where(eq(girlfriends.id, gf.id));
@@ -188,123 +179,34 @@ export async function applyMessageRelationship(
   totalMessages += 1;
   todayMessages += 1;
 
-  // 基于聊天内容调整心情分数
-  const content = message.content.toLowerCase();
-
-  // 积极情绪关键词
-  const positiveKeywords = [
-    "爱",
-    "喜欢",
-    "开心",
-    "快乐",
-    "幸福",
-    "漂亮",
-    "可爱",
-    "棒",
-    "好棒",
-    "想你",
-    "想念",
-    "亲亲",
-    "抱抱",
-    "宝贝",
-    "亲爱",
-    "美丽",
-    "温柔",
-    "谢谢",
-    "感谢",
-    "太好了",
-    "开心",
-    "哈哈",
-    "嘻嘻",
-    "love",
-    "happy",
-    "cute",
-    "beautiful",
-    "miss",
-    "hug",
-    "kiss",
-  ];
-
-  // 消极情绪关键词
-  const negativeKeywords = [
-    "生气",
-    "不开心",
-    "难过",
-    "伤心",
-    "无聊",
-    "烦",
-    "累",
-    "讨厌",
-    "分手",
-    "再见",
-    "拜拜",
-    "不想",
-    "笨",
-    "丑",
-    "差",
-    "sad",
-    "angry",
-    "boring",
-    "hate",
-    "bye",
-    "ugly",
-  ];
-
-  // 计算情绪变化
-  let scoreDelta = 0;
-
-  // 用户发消息本身就是正面信号（表示在乎）
-  if (message.role === "user") {
-    scoreDelta += 2;
-  }
-
-  for (const kw of positiveKeywords) {
-    if (content.includes(kw)) {
-      scoreDelta += 3;
-      break;
-    }
-  }
-
-  for (const kw of negativeKeywords) {
-    if (content.includes(kw)) {
-      scoreDelta -= 5;
-      break;
-    }
-  }
-
-  // 今日聊天数量加成
-  if (todayMessages >= 20) scoreDelta += 2;
-  else if (todayMessages >= 10) scoreDelta += 1;
-
-  // 时间衰减：如果上次聊天超过24小时，心情下降
-  if (currentMood?.lastChatAt) {
-    const hoursSinceLastChat =
-      (now.getTime() - new Date(currentMood.lastChatAt).getTime()) / 3600000;
-    if (hoursSinceLastChat > 48) scoreDelta -= 10;
-    else if (hoursSinceLastChat > 24) scoreDelta -= 5;
-  }
-
-  // 更新分数（限制在 0-100 范围）
-  moodScore = Math.max(0, Math.min(100, moodScore + scoreDelta));
-
-  // 根据分数确定心情状态
-  let mood: "excited" | "happy" | "content" | "neutral" | "lonely" | "sad";
-  if (moodScore >= 90) mood = "excited";
-  else if (moodScore >= 70) mood = "happy";
-  else if (moodScore >= 50) mood = "content";
-  else if (moodScore >= 30) mood = "neutral";
-  else if (moodScore >= 15) mood = "lonely";
-  else mood = "sad";
-
+  // 助手消息只计数，不解释助手自己的话或触发情绪恢复。
+  const emotionState =
+    message.role === "user"
+      ? evolveCompanionEmotion(currentMood?.emotionState, message.content, now)
+      : (currentMood?.emotionState ?? null);
+  moodScore = Math.round(emotionState?.score ?? moodScore);
+  const mood =
+    emotionState?.tone === "hurt"
+      ? ("sad" as const)
+      : emotionState?.tone === "concerned"
+        ? ("neutral" as const)
+        : moodScore >= 90
+          ? ("excited" as const)
+          : moodScore >= 70
+            ? ("happy" as const)
+            : ("content" as const);
   const data = {
     userId,
     girlfriendId,
     mood,
     moodScore,
-    lastChatAt: now,
+    emotionState,
+    lastChatAt:
+      message.role === "user" ? now : (currentMood?.lastChatAt ?? null),
     totalMessages,
     todayMessages,
-    lastMoodUpdate: now,
+    lastMoodUpdate:
+      message.role === "user" ? now : (currentMood?.lastMoodUpdate ?? now),
   };
   await tx
     .insert(girlfriendMoods)

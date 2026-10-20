@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AvatarUpload } from "@/features/setup/AvatarUpload";
+import { BehaviorEditor } from "@/features/setup/BehaviorEditor";
 import { CharacterPrompt } from "@/features/setup/CharacterPrompt";
 import { ReferenceUpload } from "@/features/setup/ReferenceUpload";
 import { useSetupController } from "@/features/setup/useSetupController";
@@ -127,6 +128,7 @@ export default function Setup() {
                     value={personality}
                     onChange={e => setPersonality(e.target.value)}
                     rows={4}
+                    maxLength={2000}
                     className="max-h-64"
                     required
                   />
@@ -141,6 +143,7 @@ export default function Setup() {
                     value={appearance}
                     onChange={e => setAppearance(e.target.value)}
                     rows={3}
+                    maxLength={2000}
                     className="max-h-64"
                     required
                   />
@@ -157,8 +160,11 @@ export default function Setup() {
                     value={interests}
                     onChange={e => setInterests(e.target.value)}
                     rows={2}
+                    maxLength={1000}
                   />
                 </div>
+
+                <BehaviorEditor {...state} />
 
                 {/* 高级提示词定制 */}
                 <CharacterPrompt {...state} />

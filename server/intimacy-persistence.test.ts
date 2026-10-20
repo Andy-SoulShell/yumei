@@ -1,4 +1,4 @@
-/** 使用真实计量记录验证衰减幂等、夜间奖励和并发每日上限。 */
+/** 使用真实计量记录验证离线经验保留、夜间奖励和并发每日上限。 */
 import { and, eq } from "drizzle-orm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { usageMeters } from "../drizzle/schema";
@@ -43,7 +43,7 @@ describe("intimacy persistence", () => {
     expect((await award(c.id)).pointsAdded).toBeGreaterThan(0);
     expect(await getDailyMeter(userId, METERS.intimacyPoints(a.id))).toBe(200);
   });
-  it("decays each inactive day once, including concurrent reads and the following day", async () => {
+  it("preserves earned experience across concurrent reads and longer absence", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-10-19T12:00:00Z"));
     const userId = await createTestUser();
@@ -55,15 +55,15 @@ describe("intimacy persistence", () => {
       lastInteractionAt: new Date("2026-10-09T12:00:00Z"),
     });
     const first = await getIntimacyInfo(gf.id, userId);
-    expect(first.intimacyPoints).toBe(1219);
+    expect(first.intimacyPoints).toBe(1234);
     const reads = await Promise.all(
       Array.from({ length: 6 }, () => getIntimacyInfo(gf.id, userId))
     );
-    expect(reads.every(r => r.intimacyPoints === 1219 && r.decayed === 0)).toBe(
+    expect(reads.every(r => r.intimacyPoints === 1234 && r.decayed === 0)).toBe(
       true
     );
     vi.setSystemTime(new Date("2026-10-20T12:00:00Z"));
-    expect((await getIntimacyInfo(gf.id, userId)).intimacyPoints).toBe(1214);
+    expect((await getIntimacyInfo(gf.id, userId)).intimacyPoints).toBe(1234);
   });
 
   it("includes the night bonus in admission and rolls back the reason meter on refusal", async () => {

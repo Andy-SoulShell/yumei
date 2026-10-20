@@ -1,4 +1,4 @@
-/** 覆盖亲密度等级、经验、夜间时段与衰减计算。 */
+/** 覆盖亲密度等级、经验与夜间时段计算。 */
 
 import { describe, it, expect } from "vitest";
 import { SELFIE_POSES } from "../shared/selfiePoses";
@@ -9,7 +9,6 @@ import {
   getPointsToNextLevel,
   getLevelProgress,
   isNightTime,
-  calculateDecay,
   getLevelGradient,
   INTIMACY_LEVELS,
   POINTS_RULES,
@@ -230,40 +229,6 @@ describe("Intimacy System - isNightTime", () => {
     const date = new Date();
     date.setHours(8, 0, 0, 0);
     expect(isNightTime(date)).toBe(false);
-  });
-});
-
-describe("Intimacy System - calculateDecay", () => {
-  it("should not decay within 7 days", () => {
-    const lastInteraction = new Date();
-    lastInteraction.setDate(lastInteraction.getDate() - 5);
-    const result = calculateDecay(100, lastInteraction, 3);
-    expect(result.points).toBe(100);
-    expect(result.decayed).toBe(0);
-  });
-
-  it("should decay after 7 days", () => {
-    const lastInteraction = new Date();
-    lastInteraction.setDate(lastInteraction.getDate() - 10); // 10 days ago
-    const result = calculateDecay(100, lastInteraction, 1);
-    // 3 decay days * 5 points = 15 decay
-    expect(result.decayed).toBe(15);
-    expect(result.points).toBe(85);
-  });
-
-  it("should not decay below current level minimum", () => {
-    const lastInteraction = new Date();
-    lastInteraction.setDate(lastInteraction.getDate() - 100); // 100 days ago
-    // Level 3 starts at 150 points
-    const result = calculateDecay(200, lastInteraction, 3);
-    expect(result.points).toBe(150); // Clamped to level 3 minimum
-    expect(result.decayed).toBe(50);
-  });
-
-  it("should handle null lastInteractionAt", () => {
-    const result = calculateDecay(100, null, 1);
-    expect(result.points).toBe(100);
-    expect(result.decayed).toBe(0);
   });
 });
 

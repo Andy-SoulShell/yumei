@@ -11,7 +11,7 @@ build/
 *.tsbuildinfo
 coverage/
 .playwright-cli/
-output/playwright/
+output/
 drizzle/meta/
 drizzle/*.sql
 workflows/comfyui/*.json

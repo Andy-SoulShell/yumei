@@ -25,6 +25,7 @@ import {
   type InsertGirlfriend,
 } from "../../drizzle/schema";
 import { BusinessRuleError } from "../_core/businessError";
+import { resolveCompanionBehavior } from "../../shared/companionBehavior";
 import { getDb, withUserTransaction, type DbTransaction } from "../database";
 import { publishMedia } from "../managedMedia";
 import { awardIntimacy } from "../relationship";
@@ -59,7 +60,9 @@ async function insertGirlfriend(
       .update(girlfriends)
       .set({ isActive: false })
       .where(eq(girlfriends.userId, data.userId));
-  const [result] = await tx.insert(girlfriends).values(data);
+  const [result] = await tx
+    .insert(girlfriends)
+    .values({ ...data, behavior: resolveCompanionBehavior(data.behavior) });
   const [created] = await tx
     .select()
     .from(girlfriends)
@@ -169,11 +172,14 @@ export async function updateGirlfriend(
       "appearance",
       "interests",
       "customPrompt",
+      "behavior",
       "avatarKey",
     ] as const;
     if (
       profileFields.some(
-        key => data[key] !== undefined && data[key] !== target[key]
+        key =>
+          data[key] !== undefined &&
+          JSON.stringify(data[key]) !== JSON.stringify(target[key])
       )
     )
       await awardIntimacy(tx, id, userId, 5, "edit_profile");

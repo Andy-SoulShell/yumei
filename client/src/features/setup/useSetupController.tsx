@@ -5,6 +5,12 @@ import {
   getCharacterPreset,
   type CharacterPreset,
 } from "@shared/characterPresets";
+import {
+  companionBehaviorSchema,
+  DEFAULT_COMPANION_BEHAVIOR,
+  type CompanionBehavior,
+} from "@shared/companionBehavior";
+import { getPresetBehavior } from "@shared/presetBehavior";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useLocation, useParams, useSearch } from "wouter";
@@ -46,6 +52,13 @@ export function useSetupController() {
   const [appearance, setAppearance] = useState(initialPreset?.appearance || "");
 
   const [interests, setInterests] = useState(initialPreset?.interests || "");
+
+  const [behavior, setBehavior] = useState<CompanionBehavior>(() =>
+    initialPreset
+      ? getPresetBehavior(initialPreset.id)
+      : structuredClone(DEFAULT_COMPANION_BEHAVIOR)
+  );
+  const [behaviorError, setBehaviorError] = useState(false);
 
   const [imageFile, setImageFile] = useState<File | null>(null);
 
@@ -101,6 +114,7 @@ export function useSetupController() {
         setPersonality(gf.personality);
         setAppearance(gf.appearance);
         setInterests(gf.interests || "");
+        setBehavior(gf.behavior ?? structuredClone(DEFAULT_COMPANION_BEHAVIOR));
         setExistingImageUrl(gf.referenceImageUrl);
         setCustomPrompt(gf.customPrompt || "");
         setExistingAvatarUrl(gf.avatarUrl || null);
@@ -222,6 +236,12 @@ export function useSetupController() {
     setPersonality(preset?.personality || "");
     setAppearance(preset?.appearance || "");
     setInterests(preset?.interests || "");
+    setBehavior(
+      preset
+        ? getPresetBehavior(preset.id)
+        : structuredClone(DEFAULT_COMPANION_BEHAVIOR)
+    );
+    setBehaviorError(false);
     setCustomPrompt("");
     setImageFile(null);
     setImagePreview(null);
@@ -299,6 +319,27 @@ export function useSetupController() {
       return;
     }
 
+    const parsedBehavior = companionBehaviorSchema.safeParse(behavior);
+    if (!parsedBehavior.success) {
+      setBehaviorError(true);
+      const firstInvalidExample = behavior.examples.findIndex(
+        example => !example.user.trim() || !example.assistant.trim()
+      );
+      document
+        .getElementById(
+          firstInvalidExample >= 0
+            ? `behavior-example-${firstInvalidExample}-${
+                behavior.examples[firstInvalidExample].user.trim()
+                  ? "assistant"
+                  : "user"
+              }`
+            : "behavior-user-nickname"
+        )
+        ?.focus();
+      return;
+    }
+    setBehaviorError(false);
+
     if (editId) {
       submissionBusy.current = true;
       // 编辑模式
@@ -309,6 +350,7 @@ export function useSetupController() {
         appearance: appearance.trim(),
         interests: interests.trim(),
         customPrompt: customPrompt || null,
+        behavior: parsedBehavior.data,
       });
     } else {
       // 创建模式
@@ -326,6 +368,7 @@ export function useSetupController() {
           interests: interests || undefined,
           customPrompt: customPrompt || undefined,
           presetId: presetId!,
+          behavior: parsedBehavior.data,
         });
         return;
       }
@@ -347,6 +390,7 @@ export function useSetupController() {
           appearance: appearance.trim(),
           interests: interests || undefined,
           customPrompt: customPrompt || undefined,
+          behavior: parsedBehavior.data,
           referenceImageBase64: base64,
           referenceImageMimeType: imageFile.type as
             "image/jpeg" | "image/png" | "image/gif" | "image/webp",
@@ -409,6 +453,9 @@ export function useSetupController() {
     setAppearance,
     interests,
     setInterests,
+    behavior,
+    setBehavior,
+    behaviorError,
     showCustomPrompt,
     setShowCustomPrompt,
     customPrompt,

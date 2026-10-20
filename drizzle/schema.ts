@@ -15,6 +15,8 @@ import {
 } from "drizzle-orm/mysql-core";
 import type { UiLanguage } from "../shared/preferences";
 import type { LocalizedMessage } from "../shared/i18n";
+import type { CompanionBehavior } from "../shared/companionBehavior";
+import type { CompanionEmotion } from "../shared/companionEmotion";
 
 /** 用户资料、认证邮箱、应用角色与成年确认信息。 */
 export const users = mysqlTable("users", {
@@ -115,11 +117,12 @@ export const girlfriends = mysqlTable(
     referenceImageUrl: text("referenceImageUrl").notNull(), // 通过文件路由访问的参考图 URL
     referenceImageKey: varchar("referenceImageKey", { length: 500 }).notNull(), // 存储文件 key
     customPrompt: text("customPrompt"), // 个体定制提示词，追加在全局提示词之后
+    behavior: json("behavior").$type<CompanionBehavior>(),
     avatarUrl: text("avatarUrl"), // 头像图片 URL
     avatarKey: varchar("avatarKey", { length: 500 }), // 头像存储文件 key
     intimacyLevel: int("intimacyLevel").default(1).notNull(), // 亲密度等级 1-10
     intimacyPoints: int("intimacyPoints").default(0).notNull(), // 亲密度经验值
-    /** 上次完成衰减结算的时间；空值表示尚未结算。 */
+    /** 历史结算时间；当前版本保留原数据但不再按离线时长扣除经验。 */
     lastDecayAt: timestamp("lastDecayAt"),
     lastInteractionAt: timestamp("lastInteractionAt"), // 最后互动时间
     consecutiveDays: int("consecutiveDays").default(0).notNull(), // 连续互动天数
@@ -296,6 +299,7 @@ export const girlfriendMoods = mysqlTable(
       .default("happy")
       .notNull(),
     moodScore: int("moodScore").default(70).notNull(), // 范围 0～100，越高表示越开心
+    emotionState: json("emotionState").$type<CompanionEmotion>(),
     lastChatAt: timestamp("lastChatAt"),
     totalMessages: int("totalMessages").default(0).notNull(),
     todayMessages: int("todayMessages").default(0).notNull(),
@@ -530,6 +534,18 @@ export const generationRequests = mysqlTable(
       .notNull(),
     meterPeriod: varchar("meterPeriod", { length: 10 }),
     meterName: varchar("meterName", { length: 64 }),
+    /** 只保存调用统计；未知用量和成本保持 null，不保存提示词、正文或密钥。 */
+    telemetry: json("telemetry").$type<{
+      promptVersion: string;
+      provider: string;
+      model: string;
+      isByok: boolean;
+      durationMs: number;
+      inputTokens: number | null;
+      outputTokens: number | null;
+      costUsd: number | null;
+      outcome: "succeeded" | "failed";
+    }>(),
     /** 预先记录输出与临时输入位置，进程中断后仍可回收。 */
     outputKey: varchar("outputKey", { length: 500 }),
     temporaryKey: varchar("temporaryKey", { length: 500 }),

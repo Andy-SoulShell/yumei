@@ -15,6 +15,13 @@
       "when": 1792503254504,
       "tag": "0001_memory_suppressions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1792506087738,
+      "tag": "0002_companion_behavior",
+      "breakpoints": true
     }
   ]
 }

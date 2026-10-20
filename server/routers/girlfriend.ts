@@ -3,6 +3,8 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { getCharacterPreset } from "../../shared/characterPresets";
 import { DEFAULT_GIRLFRIEND } from "../../shared/defaultGirlfriend";
+import { companionBehaviorSchema } from "../../shared/companionBehavior";
+import { getPresetBehavior } from "../../shared/presetBehavior";
 import {
   getLevelInfo,
   getLevelProgress,
@@ -39,10 +41,11 @@ export const girlfriendRouter = router({
       z
         .object({
           name: z.string().min(1).max(100),
-          personality: z.string().min(1),
-          appearance: z.string().min(1),
-          interests: z.string().optional(),
+          personality: z.string().min(1).max(2000),
+          appearance: z.string().min(1).max(2000),
+          interests: z.string().max(1000).optional(),
           customPrompt: z.string().max(300).optional(),
+          behavior: companionBehaviorSchema.optional(),
           presetId: z
             .string()
             .refine(id => !!getCharacterPreset(id), "角色预设不存在")
@@ -111,6 +114,7 @@ export const girlfriendRouter = router({
             appearance: input.appearance,
             interests: input.interests,
             customPrompt: input.customPrompt || null,
+            behavior: input.behavior ?? getPresetBehavior(input.presetId ?? ""),
             referenceImageUrl: imageUrl,
             referenceImageKey: fileKey,
             isActive: true,
@@ -146,10 +150,11 @@ export const girlfriendRouter = router({
       z.object({
         id: z.number(),
         name: z.string().min(1).max(100).optional(),
-        personality: z.string().min(1).optional(),
-        appearance: z.string().min(1).optional(),
-        interests: z.string().optional(),
+        personality: z.string().min(1).max(2000).optional(),
+        appearance: z.string().min(1).max(2000).optional(),
+        interests: z.string().max(1000).optional(),
         customPrompt: z.string().max(300).nullable().optional(),
+        behavior: companionBehaviorSchema.optional(),
         isActive: z.boolean().optional(),
         avatarUrl: z.null().optional(),
         avatarKey: z.null().optional(),
@@ -292,7 +297,7 @@ export const girlfriendRouter = router({
 
   // ============ 亲密度系统 ============
 
-  /** 读取并计算角色亲密度、衰减和升级进度；底层查询可能写回衰减。 */
+  /** 只读角色亲密度与升级进度，离线不扣除已有经验。 */
   getIntimacy: protectedProcedure
     .input(z.object({ girlfriendId: z.number() }))
     .query(async ({ ctx, input }) => {

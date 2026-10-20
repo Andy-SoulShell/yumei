@@ -14,11 +14,11 @@ const character = {
 describe("chat system prompt", () => {
   it("includes the real character profile and role identity", () => {
     const prompt = buildChatSystemPrompt(character);
-    expect(prompt).toContain("你是YUMEI，一个虚拟女友。");
-    expect(prompt).toContain("性格特征：\n温柔体贴");
-    expect(prompt).toContain("外貌特征：\n长发");
-    expect(prompt).toContain("兴趣爱好：\n摄影");
-    expect(prompt).toContain("请以YUMEI的身份与用户对话");
+    expect(prompt).toContain("虚拟 AI 陪伴角色");
+    expect(prompt).toContain('"name":"YUMEI"');
+    expect(prompt).toContain('"personality":"温柔体贴"');
+    expect(prompt).toContain('"appearance":"长发"');
+    expect(prompt).toContain('"interests":"摄影"');
     expect(prompt).not.toMatch(/undefined|null|全局行为规范|专属指令/);
   });
 
@@ -32,10 +32,10 @@ describe("chat system prompt", () => {
       }
     );
     const expected = [
-      "【全局行为规范】\n回复简短",
-      "请使用日文回复。",
-      "回复长度控制在50字以内左右。",
-      "【YUMEI专属指令】\n偶尔用日语词汇",
+      '"customPrompt":"偶尔用日语词汇"',
+      '"globalPrompt":"回复简短"',
+      '请使用"日文"回复。',
+      '【回复长度】"50字以内"',
     ];
     for (const text of expected) expect(prompt).toContain(text);
     for (let i = 1; i < expected.length; i++) {
@@ -60,7 +60,7 @@ describe("chat system prompt", () => {
       ...character,
       customPrompt: "保持角色设定",
     });
-    expect(prompt).toContain("【YUMEI专属指令】\n保持角色设定");
+    expect(prompt).toContain('"customPrompt":"保持角色设定"');
     expect(prompt).not.toContain("全局行为规范");
   });
 

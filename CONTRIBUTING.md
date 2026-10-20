@@ -134,6 +134,8 @@ pnpm test
 
 运行 `pnpm test:i18n` 检查所有注册语言的 key、非空文案、插值参数、回退行为、账号语言切换和本地化邮件。此命令不连接数据库；完整集成测试继续使用独立 MySQL 测试库。
 
+`pnpm test:auth` 检查认证表单、桌面弹框、手机登录入口、回调地址及邮件模板，不连接数据库或真实发信服务。邮箱验证、密码重置、并发令牌消费和事务回滚等真实认证回归通过 `pnpm test server/auth.password.test.ts server/auth.session.test.ts` 在独立测试库执行。
+
 业务组件使用 `t("chat:empty.start", { name })`，不要用原文作 key、拆句拼接或修改展示字符串来转换价格。key 与插值参数有类型检查；金额、相对时间和列表分别使用 `Intl.NumberFormat`、`Intl.RelativeTimeFormat` 和 `Intl.ListFormat`。
 
 主题、姿势、亲密度和预设角色的显示文案通过 `client/src/locales/domain.ts` 关联稳定业务 ID。用户资料、角色设定、聊天记录和 AI 回复保持原文；界面语言不改变 AI 回复语言。系统通知保存 `{ key, values }`，显示或推送时才渲染。新增本地化业务错误应传结构化原因和参数，不要在错误正文中编码前缀。

@@ -15,7 +15,12 @@ let viewport: EventTarget & {
 
 function Form() {
   useKeyboardViewport();
-  return <input aria-label="消息" />;
+  return (
+    <>
+      <input aria-label="消息" />
+      <input type="checkbox" />
+    </>
+  );
 }
 
 beforeEach(async () => {
@@ -27,6 +32,8 @@ beforeEach(async () => {
   });
   vi.stubGlobal("visualViewport", viewport);
   vi.stubGlobal("innerHeight", 800);
+  vi.stubGlobal("innerWidth", 390);
+  vi.stubGlobal("matchMedia", () => ({ matches: true }));
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -50,6 +57,55 @@ function resize(value: number, scale = 1) {
 }
 
 describe("软键盘视觉视口", () => {
+  it("桌面用户调整窗口高度时，不把仍有焦点的输入框当作键盘", () => {
+    vi.stubGlobal("matchMedia", () => ({ matches: false }));
+    container.querySelector("input")!.focus();
+    vi.stubGlobal("innerHeight", 480);
+    resize(480);
+    expect(height()).toBe("");
+    expect(document.documentElement.hasAttribute("data-keyboard-open")).toBe(
+      false
+    );
+  });
+  it("安卓同时缩小布局与视觉视口时也识别键盘，返回键收起后恢复", () => {
+    container.querySelector("input")!.focus();
+    vi.stubGlobal("innerHeight", 480);
+    resize(480);
+    window.dispatchEvent(new Event("resize"));
+    expect(height()).toBe("480px");
+    expect(document.documentElement.hasAttribute("data-keyboard-open")).toBe(
+      true
+    );
+    vi.stubGlobal("innerHeight", 800);
+    resize(800);
+    expect(height()).toBe("");
+  });
+
+  it("键盘关闭动画中切换输入框不丢失原来的布局高度", () => {
+    const input = container.querySelector("input")!;
+    input.focus();
+    vi.stubGlobal("innerHeight", 480);
+    resize(480);
+    input.blur();
+    expect(height()).toBe("");
+    viewport.dispatchEvent(new Event("resize"));
+    input.focus();
+    expect(height()).toBe("480px");
+  });
+
+  it("横屏后重新记录布局基线，工具栏变化和复选框不触发键盘模式", () => {
+    vi.stubGlobal("innerWidth", 844);
+    vi.stubGlobal("innerHeight", 390);
+    resize(390);
+    container.querySelector("input")!.focus();
+    resize(330);
+    expect(height()).toBe("");
+    container
+      .querySelector<HTMLInputElement>('input[type="checkbox"]')!
+      .focus();
+    resize(200);
+    expect(height()).toBe("");
+  });
   it("输入时跟随视觉视口缩小，键盘关闭后恢复 CSS 的正常高度", () => {
     container.querySelector("input")!.focus();
     resize(480.4);

@@ -408,6 +408,10 @@
     margin: 0;
   }
 }
+.chat-messages,
+[data-slot="scroll-area-viewport"] {
+  overscroll-behavior-y: contain;
+}
 .chat-messages-content {
   width: 100%;
   max-width: 840px;

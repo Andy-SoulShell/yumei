@@ -33,6 +33,7 @@ beforeEach(async () => {
     clientHeight: { get: () => dimensions.height },
     scrollHeight: { get: () => dimensions.contentHeight },
     scrollTop: {
+      configurable: true,
       get: () => dimensions.top,
       set: (value: number) => {
         dimensions.top = Math.min(
@@ -75,6 +76,68 @@ afterEach(async () => {
 });
 
 describe("聊天滚动位置", () => {
+  it("向上滑动与回复增高同帧发生时，不抢回末尾", () => {
+    viewport.dispatchEvent(new WheelEvent("wheel", { deltaY: -80 }));
+    dimensions.top = 820;
+    dimensions.contentHeight = 1300;
+    viewport.dispatchEvent(new Event("scroll"));
+    notify();
+    expect(dimensions.top).toBe(820);
+  });
+
+  it("触摸上翻的惯性滚动期间，消息变化不打断阅读", () => {
+    const touch = (name: string, y: number) => {
+      const event = new Event(name);
+      Object.defineProperty(event, "touches", { value: [{ clientY: y }] });
+      viewport.dispatchEvent(event);
+    };
+    touch("touchstart", 200);
+    touch("touchmove", 240);
+    viewport.dispatchEvent(new Event("touchend"));
+    dimensions.top = 880;
+    viewport.dispatchEvent(new Event("scroll"));
+    dimensions.contentHeight = 1400;
+    notify();
+    expect(dimensions.top).toBe(880);
+  });
+
+  it("布局未改变末尾位置时不重复写入 scrollTop", () => {
+    const setter = vi.spyOn(viewport, "scrollTop", "set");
+    notify();
+    expect(setter).not.toHaveBeenCalled();
+  });
+
+  it("回到末尾后恢复跟随，新回复保持可见", () => {
+    viewport.dispatchEvent(new WheelEvent("wheel", { deltaY: -80 }));
+    dimensions.top = 400;
+    viewport.dispatchEvent(new Event("scroll"));
+    dimensions.top = 900;
+    viewport.dispatchEvent(new Event("scroll"));
+    dimensions.contentHeight = 1500;
+    notify();
+    expect(dimensions.top).toBe(1200);
+  });
+
+  it("捏合滚轮缩放和轻触不解除末尾跟随，也不阻止浏览器手势", () => {
+    const wheel = new WheelEvent("wheel", {
+      deltaY: -80,
+      ctrlKey: true,
+      cancelable: true,
+    });
+    viewport.dispatchEvent(wheel);
+    const touch = new Event("touchstart", { cancelable: true });
+    Object.defineProperty(touch, "touches", { value: [{ clientY: 200 }] });
+    viewport.dispatchEvent(touch);
+    const jitter = new Event("touchmove", { cancelable: true });
+    Object.defineProperty(jitter, "touches", { value: [{ clientY: 203 }] });
+    viewport.dispatchEvent(jitter);
+    viewport.dispatchEvent(new Event("touchend"));
+    dimensions.contentHeight = 1300;
+    notify();
+    expect(dimensions.top).toBe(1000);
+    expect(wheel.defaultPrevented).toBe(false);
+    expect(touch.defaultPrevented).toBe(false);
+  });
   it("初次进入已有长记录的会话时定位到末尾", async () => {
     await act(async () => root.render(null));
     dimensions.top = 0;

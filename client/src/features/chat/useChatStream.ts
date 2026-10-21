@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createUuid } from "@/lib/uuid";
 import {
   chatStreamDraftKey,
   readChatStreamDrafts,
@@ -365,7 +366,7 @@ export function useChatStream(
       return create({
         ...draft,
         conversationId,
-        clientRequestId: crypto.randomUUID(),
+        clientRequestId: createUuid(),
       });
     },
     [conversationId, create, isCurrent]

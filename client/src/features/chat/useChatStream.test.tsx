@@ -106,6 +106,37 @@ afterEach(async () => {
   await act(async () => root.unmount());
   vi.clearAllTimers();
   vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
+
+it("sends and retries on LAN HTTP when crypto.randomUUID is unavailable", async () => {
+  vi.stubGlobal("crypto", {
+    getRandomValues: crypto.getRandomValues.bind(crypto),
+  });
+  accountId = "lan-user";
+  vi.mocked(transport.create).mockRejectedValueOnce(new TypeError("offline"));
+  await render();
+  await act(async () => {
+    await hook.submit({ content: "你好" });
+  });
+  const submission = vi.mocked(transport.create).mock.calls[0][0];
+  expect(submission.clientRequestId).toMatch(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+  );
+  expect(hook.failures).toHaveLength(1);
+  expect(
+    readChatStreamDrafts(
+      chatStreamDraftKey(accountId, conversationId),
+      conversationId
+    )
+  ).toEqual([submission]);
+  await act(async () => {
+    await hook.retry(hook.failures[0]);
+  });
+  expect(transport.create).toHaveBeenLastCalledWith(submission);
+  expect(hook.failures).toHaveLength(0);
+  expect(hook.turns[0].userMessage.content).toBe("你好");
+  expect(hook.turns[0].assistantMessage.content).toBe("你好呀。");
 });
 
 it("retries an unknown delivery with the same UUID and clears only that failure", async () => {

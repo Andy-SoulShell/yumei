@@ -2,6 +2,7 @@
 import { z } from "zod";
 import { contentTextSchema, contentText, officialIdSchema } from "./discovery";
 import type { Locale } from "./locales";
+import { memoryConfigSchema, promptsConfigSchema } from "./aiConfig";
 
 export const REWARD_ACTIONS = [
   "text_message",
@@ -178,6 +179,8 @@ export const productConfigSchema = z
       })
       .strict(),
     intimacy: intimacyConfigSchema,
+    prompts: promptsConfigSchema,
+    memory: memoryConfigSchema,
   })
   .strict()
   .superRefine((config, ctx) => {
@@ -186,6 +189,43 @@ export const productConfigSchema = z
     const unique = (ids: string[], message: string) => {
       if (new Set(ids).size !== ids.length) issue(message);
     };
+    unique(
+      config.prompts.quickTemplates.map(item => item.id),
+      "提示词模板 ID 不能重复"
+    );
+    for (const item of config.prompts.quickTemplates)
+      if (Object.values(item.text).some(text => text && text.length > 500))
+        issue("快捷模板正文不能超过全局偏好的 500 字上限");
+    const context = config.prompts.context;
+    if (
+      context.platform + context.followups > context.total ||
+      config.memory.recall.maxChars >
+        context.total - context.platform - context.followups
+    )
+      issue("提示词、补充消息和记忆预留超出总上下文预算");
+    const chat = config.prompts.chat;
+    const longest = (values: Record<string, string>) =>
+      Math.max(...Object.values(values).map(v => v.length));
+    const reserve =
+      chat.system.length +
+      longest(chat.expression) +
+      longest(chat.verbosity) +
+      longest(chat.initiative) +
+      longest(chat.tone) +
+      longest(chat.cause) +
+      longest(chat.emotionIntensity) +
+      Math.max(
+        ...Object.values(chat.relationshipStages).flatMap(v =>
+          v.map(s => s.instruction.length)
+        )
+      ) +
+      chat.languageRule.length +
+      chat.lengthRule.length +
+      chat.turnLanguage.length +
+      Math.max(chat.memoryEnabled.length, chat.memoryDisabled.length) +
+      10400;
+    if (reserve > context.platform)
+      issue("聊天模板与资料预留超过平台上下文预算");
     unique(
       config.billing.plans.map(plan => plan.id),
       "套餐 ID 不能重复"
@@ -259,6 +299,23 @@ export type ProductConfig = z.infer<typeof productConfigSchema>;
 export function localizeProductConfig(config: ProductConfig, locale: Locale) {
   return {
     ...config,
+    prompts: {
+      ...config.prompts,
+      quickTemplates: config.prompts.quickTemplates
+        .filter(item => item.enabled)
+        .map(item => ({
+          ...item,
+          label: contentText(item.label, locale),
+          text: contentText(item.text, locale),
+        })),
+    },
+    memory: {
+      ...config.memory,
+      categories: config.memory.categories.map(item => ({
+        ...item,
+        label: contentText(item.label, locale),
+      })),
+    },
     billing: {
       ...config.billing,
       plans: config.billing.plans.map(plan => ({

@@ -12,5 +12,19 @@ export function initialProductConfig() {
     plan.lemonVariantId =
       process.env[`LEMONSQUEEZY_VARIANT_${id.toUpperCase()}`] || null;
   }
+  config.memory.enabled = process.env.COMPANION_MEMORY_ENABLED !== "0";
+  const provider =
+    process.env.LLM_PROVIDER === "deepseek" ? "deepseek" : "openrouter";
+  config.memory.extraction.models[provider] =
+    process.env.MEMORY_EXTRACTION_MODEL?.trim() || null;
+  config.memory.semantic.model =
+    process.env.MEMORY_EMBEDDING_MODEL?.trim() || null;
+  if (process.env.CHAT_CONTEXT_CHAR_LIMIT) {
+    config.prompts.context.total = Number(process.env.CHAT_CONTEXT_CHAR_LIMIT);
+    config.prompts.context.followups = Math.min(
+      48000,
+      config.prompts.context.total - 16000
+    );
+  }
   return productConfigSchema.parse(config);
 }

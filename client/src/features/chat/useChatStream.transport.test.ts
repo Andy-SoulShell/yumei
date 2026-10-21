@@ -1,8 +1,9 @@
+import { productFixture } from "../../../../server/testProductConfig";
 // @vitest-environment jsdom
 /** 浏览器传输必须带会话和 CSRF；关闭 SSE 订阅不发送停止请求。 */
 import { afterEach, expect, it, vi } from "vitest";
 import {
-  browserChatStreamTransport,
+  createBrowserChatStreamTransport,
   ChatStreamRequestError,
 } from "./useChatStream";
 
@@ -122,3 +123,7 @@ it("receives snapshot events and disconnects without invoking the stop endpoint"
   expect(source.close).toHaveBeenCalled();
   expect(fetcher).not.toHaveBeenCalled();
 });
+
+const browserChatStreamTransport = createBrowserChatStreamTransport(
+  productFixture.experience.transport
+);

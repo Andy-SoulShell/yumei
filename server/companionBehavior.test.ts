@@ -1,16 +1,12 @@
+import { resolveCompanionBehavior } from "./testAiConfig";
+import { evolveCompanionEmotion } from "./testAiConfig";
 import { stubProductConfig } from "./testProductConfig";
 /** 回归角色行为、情绪方向、真实保存与调用统计，不调用真实模型。 */
 import { eq } from "drizzle-orm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { generationRequests, users } from "../drizzle/schema";
-import {
-  companionBehaviorSchema,
-  resolveCompanionBehavior,
-} from "../shared/companionBehavior";
-import {
-  classifyCompanionEmotion,
-  evolveCompanionEmotion,
-} from "../shared/companionEmotion";
+import { companionBehaviorSchema } from "../shared/companionBehavior";
+import { classifyCompanionEmotion } from "../shared/companionEmotion";
 import { getPresetBehavior } from "./seeds/presetBehavior";
 import { CHARACTER_PRESETS } from "./seeds/characterPresets";
 import { buildChatSystemPrompt } from "./testAiConfig";

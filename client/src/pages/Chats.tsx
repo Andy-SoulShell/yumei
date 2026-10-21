@@ -1,3 +1,4 @@
+import { useProductConfig } from "@/features/product/useProductConfig";
 /** 最近会话列表，直接进入原有聊天页并保留历史消息。 */
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/button";
 
 /** 展示会话预览，支持按角色、标题和完整聊天记录筛选。 */
 export default function Chats() {
+  const product = useProductConfig();
   const { t, locale } = useI18n();
   const [search, setSearch] = useState("");
   const [keyword, setKeyword] = useState("");
@@ -18,11 +20,14 @@ export default function Chats() {
     return () => window.clearTimeout(timer);
   }, [search]);
   const query = trpc.conversation.listWithDetails.useInfiniteQuery(
-    { limit: 50, search: keyword || undefined },
+    {
+      limit: product.raw?.experience.pagination.conversations,
+      search: keyword || undefined,
+    },
     {
       placeholderData: previous => previous,
       getNextPageParam: page =>
-        page.length === 50
+        page.length === product.raw?.experience.pagination.conversations
           ? {
               updatedAt: page[page.length - 1].updatedAt,
               id: page[page.length - 1].id,

@@ -1,3 +1,4 @@
+import type { ProductConfig } from "./productConfig";
 /** 以有方向的用户表达更新情绪，保留惯性和原因，离线只恢复而不惩罚。 */
 
 /** 允许持久化的原因标签，避免状态和日志保存用户原文。 */
@@ -67,6 +68,7 @@ export function classifyCompanionEmotion(text: string): EmotionReason {
 export function evolveCompanionEmotion(
   previous: CompanionEmotion | null | undefined,
   userText: string,
+  rules: ProductConfig["emotion"],
   now = new Date()
 ): CompanionEmotion {
   const age = previous
@@ -74,24 +76,23 @@ export function evolveCompanionEmotion(
     : 0;
   const elapsed = Number.isFinite(age) ? age : 0;
   const score =
-    70 + ((previous?.score ?? 70) - 70) * Math.exp(-elapsed / 43_200_000);
+    rules.baseline +
+    ((previous?.score ?? rules.baseline) - rules.baseline) *
+      Math.exp(-elapsed / rules.recoveryMs);
   const reason = classifyCompanionEmotion(userText);
-  const delta = {
-    steady: 0,
-    affection: 4,
-    support: 0,
-    conflict: -6,
-    repair: 5,
-  }[reason];
-  const nextScore = Math.max(35, Math.min(95, score + delta));
+  const delta = rules.deltas[reason];
+  const nextScore = Math.max(
+    rules.minScore,
+    Math.min(rules.maxScore, score + delta)
+  );
   const eventAge = previous
     ? now.getTime() - Date.parse(previous.eventAt ?? previous.updatedAt)
     : Infinity;
   const lingering =
     previous &&
-    eventAge < 7_200_000 &&
+    eventAge < rules.hurtDurationMs &&
     previous.tone === "hurt" &&
-    nextScore < 70;
+    nextScore < rules.hurtThreshold;
   return {
     tone:
       reason === "support"

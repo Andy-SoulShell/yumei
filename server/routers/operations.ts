@@ -1,3 +1,4 @@
+import { getPublishedProductConfig } from "../repositories/productConfig";
 /** 管理员读取聚合调用质量与用量，不返回用户、聊天正文或凭据。 */
 import { gte, desc, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -11,12 +12,16 @@ export const operationsRouter = router({
   taskQuality: adminProcedure
     .input(
       z
-        .object({ days: z.number().int().min(1).max(31).default(7) })
-        .default({ days: 7 })
+        .object({ days: z.number().int().min(1).max(365).optional() })
+        .default({})
     )
     .query(async ({ input }) => {
       const db = (await getDb())!;
-      const since = new Date(Date.now() - input.days * 86_400_000);
+      const rules = (await getPublishedProductConfig()).experience.operations;
+      const days = input.days ?? rules.defaultDays;
+      if (days > rules.maxDays)
+        throw new Error(`统计窗口最多 ${rules.maxDays} 天`);
+      const since = new Date(Date.now() - days * 86_400_000);
       const [total] = await db
         .select({ count: sql<number>`COUNT(*)` })
         .from(aiTaskRuns)
@@ -34,7 +39,7 @@ export const operationsRouter = router({
         .from(aiTaskRuns)
         .where(gte(aiTaskRuns.createdAt, since))
         .orderBy(desc(aiTaskRuns.createdAt), desc(aiTaskRuns.id))
-        .limit(1000);
+        .limit(rules.sampleSize);
       const groups = new Map<
         string,
         {
@@ -114,13 +119,17 @@ export const operationsRouter = router({
   generationQuality: adminProcedure
     .input(
       z
-        .object({ days: z.number().int().min(1).max(31).default(7) })
-        .default({ days: 7 })
+        .object({ days: z.number().int().min(1).max(365).optional() })
+        .default({})
     )
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const since = new Date(Date.now() - input.days * 86_400_000);
+      const rules = (await getPublishedProductConfig()).experience.operations;
+      const days = input.days ?? rules.defaultDays;
+      if (days > rules.maxDays)
+        throw new Error(`统计窗口最多 ${rules.maxDays} 天`);
+      const since = new Date(Date.now() - days * 86_400_000);
       const [total] = await db
         .select({ count: sql<number>`COUNT(*)` })
         .from(generationRequests)
@@ -136,7 +145,7 @@ export const operationsRouter = router({
           desc(generationRequests.createdAt),
           desc(generationRequests.id)
         )
-        .limit(1000);
+        .limit(rules.sampleSize);
       const groups = new Map<
         string,
         {

@@ -234,7 +234,8 @@ export async function applyMessageRelationship(
         eq(girlfriendMoods.girlfriendId, girlfriendId)
       )
     );
-  let moodScore = currentMood?.moodScore ?? 70;
+  const policy = await getPublishedProductConfig(tx);
+  let moodScore = currentMood?.moodScore ?? policy.emotion.baseline;
   let totalMessages = currentMood?.totalMessages ?? 0;
   let todayMessages = currentMood?.todayMessages ?? 0;
 
@@ -256,7 +257,12 @@ export async function applyMessageRelationship(
   // 助手消息只计数，不解释助手自己的话或触发情绪恢复。
   const emotionState =
     message.role === "user"
-      ? evolveCompanionEmotion(currentMood?.emotionState, message.content, now)
+      ? evolveCompanionEmotion(
+          currentMood?.emotionState,
+          message.content,
+          policy.emotion,
+          now
+        )
       : (currentMood?.emotionState ?? null);
   moodScore = Math.round(emotionState?.score ?? moodScore);
   const mood =
@@ -264,9 +270,9 @@ export async function applyMessageRelationship(
       ? ("sad" as const)
       : emotionState?.tone === "concerned"
         ? ("neutral" as const)
-        : moodScore >= 90
+        : moodScore >= policy.emotion.thresholds.excited
           ? ("excited" as const)
-          : moodScore >= 70
+          : moodScore >= policy.emotion.thresholds.happy
             ? ("happy" as const)
             : ("content" as const);
   const data = {

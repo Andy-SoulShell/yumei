@@ -1,3 +1,4 @@
+import { characterFieldsError } from "@shared/experienceConfig";
 import { useProductConfig } from "@/features/product/useProductConfig";
 import { acceptsUpload, uploadDescription } from "@shared/operationalConfig";
 import { apiErrorMessage } from "@/lib/errors";
@@ -7,10 +8,16 @@ import type { CharacterPreset } from "@shared/discovery";
 import { useDiscovery } from "@/features/discovery/useDiscovery";
 import {
   companionBehaviorSchema,
-  DEFAULT_COMPANION_BEHAVIOR,
   type CompanionBehavior,
 } from "@shared/companionBehavior";
-import { useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { toast } from "sonner";
 import { useLocation, useParams, useSearch } from "wouter";
 
@@ -54,10 +61,24 @@ export function useSetupController() {
 
   const [interests, setInterests] = useState(initialPreset?.interests || "");
 
-  const [behavior, setBehavior] = useState<CompanionBehavior>(() =>
-    initialPreset
-      ? structuredClone(initialPreset.behavior)
-      : structuredClone(DEFAULT_COMPANION_BEHAVIOR)
+  const [behaviorDraft, setBehaviorDraft] = useState<
+    CompanionBehavior | undefined
+  >(() =>
+    initialPreset ? structuredClone(initialPreset.behavior) : undefined
+  );
+  const behavior = behaviorDraft ?? product.raw?.characters.defaultBehavior;
+  const setBehavior: Dispatch<SetStateAction<CompanionBehavior>> = useCallback(
+    next => {
+      setBehaviorDraft(previous => {
+        const base = previous ?? product.raw?.characters.defaultBehavior;
+        return typeof next === "function"
+          ? base
+            ? next(base)
+            : undefined
+          : next;
+      });
+    },
+    [product.raw]
   );
   const [behaviorError, setBehaviorError] = useState(false);
 
@@ -95,7 +116,7 @@ export function useSetupController() {
     setAppearance(initialPreset.appearance);
     setInterests(initialPreset.interests);
     setBehavior(structuredClone(initialPreset.behavior));
-  }, [editId, requestedPresetId, initialPreset]);
+  }, [editId, requestedPresetId, initialPreset, setBehavior]);
 
   // 头像相关状态
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -133,14 +154,18 @@ export function useSetupController() {
         setPersonality(gf.personality);
         setAppearance(gf.appearance);
         setInterests(gf.interests || "");
-        setBehavior(gf.behavior ?? structuredClone(DEFAULT_COMPANION_BEHAVIOR));
+        if (gf.behavior || product.raw)
+          setBehavior(
+            gf.behavior ??
+              structuredClone(product.raw!.characters.defaultBehavior)
+          );
         setExistingImageUrl(gf.referenceImageUrl);
         setCustomPrompt(gf.customPrompt || "");
         setExistingAvatarUrl(gf.avatarUrl || null);
         if (gf.customPrompt) setShowCustomPrompt(true);
       }
     }
-  }, [editId, girlfriends]);
+  }, [editId, girlfriends, product.raw, setBehavior]);
 
   const utils = trpc.useUtils();
 
@@ -264,7 +289,7 @@ export function useSetupController() {
     setBehavior(
       preset
         ? structuredClone(preset.behavior)
-        : structuredClone(DEFAULT_COMPANION_BEHAVIOR)
+        : structuredClone(product.raw!.characters.defaultBehavior)
     );
     setBehaviorError(false);
     setCustomPrompt("");
@@ -331,7 +356,13 @@ export function useSetupController() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (submissionBusy.current || isUploadingAvatar) return;
+    if (
+      submissionBusy.current ||
+      isUploadingAvatar ||
+      !behavior ||
+      !product.raw
+    )
+      return;
     const fields = { name, personality, appearance };
     const invalid = Object.entries(fields).find(([, value]) => !value.trim());
     if (invalid) {
@@ -340,6 +371,14 @@ export function useSetupController() {
       return;
     }
 
+    const fieldError = characterFieldsError(
+      { name, personality, appearance, interests, customPrompt, behavior },
+      product.raw.characters
+    );
+    if (fieldError) {
+      toast.error(fieldError);
+      return;
+    }
     const parsedBehavior = companionBehaviorSchema.safeParse(behavior);
     if (!parsedBehavior.success) {
       setBehaviorError(true);
@@ -441,6 +480,7 @@ export function useSetupController() {
 
   const displayAvatar = avatarPreview || existingAvatarUrl;
   return {
+    characterLimits: product.raw?.characters.limits,
     trashDays,
     uploads,
     characters,
@@ -483,7 +523,7 @@ export function useSetupController() {
     setAppearance,
     interests,
     setInterests,
-    behavior,
+    behavior: behavior!,
     setBehavior,
     behaviorError,
     showCustomPrompt,

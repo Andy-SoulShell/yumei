@@ -83,7 +83,7 @@ export function CharacterPrompt({
             value={customPrompt}
             onChange={e => setCustomPrompt(e.target.value)}
             rows={3}
-            maxLength={300}
+            maxLength={policy.raw?.characters.limits.customPrompt}
             className="resize-none"
           />
           <div className="flex items-center justify-between">
@@ -91,7 +91,7 @@ export function CharacterPrompt({
               {t("setup:onlyAppliesToThisCompanionAfterTheShared")}
             </p>
             <span className="text-xs text-muted-foreground">
-              {customPrompt.length}/300
+              {customPrompt.length}/{policy.raw?.characters.limits.customPrompt}
             </span>
           </div>
         </div>

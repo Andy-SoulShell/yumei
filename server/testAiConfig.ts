@@ -1,3 +1,5 @@
+import * as emotion from "../shared/companionEmotion";
+import * as behavior from "../shared/companionBehavior";
 /** 旧功能回归显式传入种子快照；生产代码不得导入测试配置。 */
 import { productFixture } from "./testProductConfig";
 import * as chat from "../shared/chatPrompt";
@@ -53,3 +55,16 @@ export const planChatContext = (
     input
   );
 export const SAFETY_SYSTEM_CLAUSE = productFixture.prompts.chat.safetyClause;
+
+export { DEFAULT_COMPANION_BEHAVIOR } from "./testProductConfig";
+export const evolveCompanionEmotion = (
+  previous: Parameters<typeof emotion.evolveCompanionEmotion>[0],
+  text: string,
+  now?: Date
+) =>
+  emotion.evolveCompanionEmotion(previous, text, productFixture.emotion, now);
+export const resolveCompanionBehavior = (value: unknown) =>
+  behavior.resolveCompanionBehavior(
+    value,
+    productFixture.characters.defaultBehavior
+  );

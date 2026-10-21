@@ -73,11 +73,11 @@ export function useHomeController() {
   });
 
   const conversationsQuery = trpc.conversation.listWithDetails.useInfiniteQuery(
-    { limit: 50 },
+    { limit: product.raw?.experience.pagination.conversations },
     {
       enabled: isAuthenticated,
       getNextPageParam: page =>
-        page.length === 50
+        page.length === product.raw?.experience.pagination.conversations
           ? {
               updatedAt: page[page.length - 1].updatedAt,
               id: page[page.length - 1].id,
@@ -89,11 +89,16 @@ export function useHomeController() {
   const conversationsWithDetails = conversationsQuery.data?.pages.flat();
 
   const searchQuery = trpc.conversation.search.useInfiniteQuery(
-    { keyword: debouncedKeyword, limit: 50 },
+    {
+      keyword: debouncedKeyword,
+      limit: product.raw?.experience.pagination.search,
+    },
     {
       enabled: isAuthenticated && !!debouncedKeyword,
       getNextPageParam: page =>
-        page.length === 50 ? page[page.length - 1].matchedMessageId : undefined,
+        page.length === product.raw?.experience.pagination.search
+          ? page[page.length - 1].matchedMessageId
+          : undefined,
     }
   );
 
@@ -297,6 +302,7 @@ export function useHomeController() {
 
   const isSearchMode = !!debouncedKeyword;
   return {
+    moods: product.data?.emotion.moods,
     trashDays,
     product,
     levels: product.data?.intimacy.levels,

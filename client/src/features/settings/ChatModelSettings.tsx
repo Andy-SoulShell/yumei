@@ -1,3 +1,4 @@
+import { useProductConfig } from "@/features/product/useProductConfig";
 import { KeyStatusIndicator } from "@/components/KeyStatusIndicator";
 import { PageError } from "@/components/PageError";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,7 @@ export function ChatModelSettings({
   isSavingKeys,
   hasUnsavedLlmChanges,
 }: Props) {
+  const sitePolicy = useProductConfig();
   const formatPrice = (price: string) => {
     const num = parseFloat(price);
     if (num === 0) return t("settings:free");
@@ -89,7 +91,7 @@ export function ChatModelSettings({
             <>
               {t("settings:accessHundredsOfAIModelsThroughOpenRouterGet")}
               <a
-                href="https://openrouter.ai/keys"
+                href={sitePolicy.raw?.site.links.openrouter}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline ml-1 inline-flex items-center gap-1"

@@ -1,5 +1,12 @@
 // @vitest-environment jsdom
 /** 真实 hook 配合可控传输，验证幂等重试、刷新恢复和网络断开不取消生成。 */
+vi.mock("@/features/product/useProductConfig", async () => {
+  const { productFixture, productView } =
+    await import("../../../../server/testProductConfig");
+  return {
+    useProductConfig: () => ({ raw: productFixture, data: productView }),
+  };
+});
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";

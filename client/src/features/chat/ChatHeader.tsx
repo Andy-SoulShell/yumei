@@ -13,7 +13,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SPEED_OPTIONS } from "@/hooks/useTTS";
 import { useProductConfig } from "@/features/product/useProductConfig";
 import {
   ArrowLeft,
@@ -49,6 +48,7 @@ type Props = Pick<
   | "isTranscribing"
   | "autoPlay"
   | "toggleAutoPlay"
+  | "speedOptions"
   | "playbackSpeed"
   | "updateSpeed"
   | "toggleTheme"
@@ -75,6 +75,7 @@ export function ChatHeader({
   autoPlay,
   toggleAutoPlay,
   playbackSpeed,
+  speedOptions,
   updateSpeed,
   toggleTheme,
   theme,
@@ -96,7 +97,7 @@ export function ChatHeader({
       title: t("chat:conversationWith", { name: girlfriend.name }),
     });
   const changeSpeed = (value: string) => {
-    const option = SPEED_OPTIONS.find(option => String(option.value) === value);
+    const option = speedOptions.find(option => String(option.value) === value);
     if (!option) return;
     updateSpeed(option.value);
     toast.success(t("chat:playbackSpeedSetTo", { speed: option.label }));
@@ -229,7 +230,7 @@ export function ChatHeader({
               value={String(playbackSpeed)}
               onValueChange={changeSpeed}
             >
-              {SPEED_OPTIONS.map(option => (
+              {speedOptions.map(option => (
                 <DropdownMenuRadioItem
                   key={option.value}
                   value={String(option.value)}
@@ -319,7 +320,7 @@ export function ChatHeader({
                   value={String(playbackSpeed)}
                   onValueChange={changeSpeed}
                 >
-                  {SPEED_OPTIONS.map(option => (
+                  {speedOptions.map(option => (
                     <DropdownMenuRadioItem
                       key={option.value}
                       value={String(option.value)}

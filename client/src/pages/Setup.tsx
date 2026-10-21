@@ -27,6 +27,7 @@ export default function Setup() {
   const goBack = usePageBack("/characters");
   const state = useSetupController();
   const {
+    characterLimits,
     trashDays,
     setLocation,
     t,
@@ -113,7 +114,7 @@ export default function Setup() {
                   <Label htmlFor="name">{t("setup:name")}</Label>
                   <Input
                     id="name"
-                    maxLength={100}
+                    maxLength={characterLimits?.name}
                     placeholder={t("setup:forExampleYumi")}
                     value={name}
                     onChange={e => setName(e.target.value)}
@@ -132,7 +133,7 @@ export default function Setup() {
                     value={personality}
                     onChange={e => setPersonality(e.target.value)}
                     rows={4}
-                    maxLength={2000}
+                    maxLength={characterLimits?.personality}
                     className="max-h-64"
                     required
                   />
@@ -147,7 +148,7 @@ export default function Setup() {
                     value={appearance}
                     onChange={e => setAppearance(e.target.value)}
                     rows={3}
-                    maxLength={2000}
+                    maxLength={characterLimits?.appearance}
                     className="max-h-64"
                     required
                   />
@@ -164,7 +165,7 @@ export default function Setup() {
                     value={interests}
                     onChange={e => setInterests(e.target.value)}
                     rows={2}
-                    maxLength={1000}
+                    maxLength={characterLimits?.interests}
                   />
                 </div>
 

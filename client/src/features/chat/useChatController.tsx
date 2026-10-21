@@ -83,6 +83,7 @@ export function useChatController() {
     autoPlay,
     toggleAutoPlay,
     ttsProvider,
+    speedOptions,
     playbackSpeed,
     updateSpeed,
   } = useTTS();
@@ -200,10 +201,16 @@ export function useChatController() {
   );
 
   const messagesQuery = trpc.conversation.getMessages.useInfiniteQuery(
-    { conversationId: currentConversationId!, limit: 50 },
+    {
+      conversationId: currentConversationId!,
+      limit: productRules.raw?.experience.pagination.messages,
+    },
     {
       enabled: !!currentConversationId,
-      getNextPageParam: page => (page.length === 50 ? page[0].id : undefined),
+      getNextPageParam: page =>
+        page.length === productRules.raw?.experience.pagination.messages
+          ? page[0].id
+          : undefined,
     }
   );
 
@@ -451,13 +458,15 @@ export function useChatController() {
 
   // 今日自拍额度（BYOK fal 用户无限制）
   const selfieQuota = trpc.selfie.quota.useQuery(undefined, {
-    refetchInterval: 60000,
+    refetchInterval:
+      productRules.raw?.experience.transport.clientPollMs ?? false,
     refetchOnWindowFocus: true,
   });
 
   // 合照权限读取当前套餐配置。
   const { data: billingInfo } = trpc.billing.getInfo.useQuery(undefined, {
-    refetchInterval: 60000,
+    refetchInterval:
+      productRules.raw?.experience.transport.clientPollMs ?? false,
     refetchOnWindowFocus: true,
   });
 
@@ -770,7 +779,10 @@ export function useChatController() {
     if (!recordingIsCurrent() || !result || !currentConversationId) return;
 
     // 最短录音时长检查
-    if (currentDuration < 1) {
+    if (
+      currentDuration <
+      (productRules.raw?.experience.minimumRecordingSeconds ?? Infinity)
+    ) {
       toast.info(t("chat:recordingIsTooShortPleaseTryAgain"));
       return;
     }
@@ -842,6 +854,7 @@ export function useChatController() {
     reader.readAsDataURL(result.blob);
   }, [
     productRules.raw?.uploads.audio,
+    productRules.raw?.experience.minimumRecordingSeconds,
     t,
     stopRecording,
     currentConversationId,
@@ -864,23 +877,9 @@ export function useChatController() {
         ? "Fish"
         : "";
 
-  // 心情配置
-  const MOOD_CONFIG: Record<
-    string,
-    { emoji: string; label: string; color: string }
-  > = {
-    excited: { emoji: "🥰", label: t("chat:excited"), color: "text-primary" },
-    happy: { emoji: "😊", label: t("chat:happy"), color: "text-green-500" },
-    content: { emoji: "🙂", label: t("chat:content"), color: "text-blue-500" },
-    neutral: { emoji: "😐", label: t("chat:calm"), color: "text-yellow-500" },
-    lonely: {
-      emoji: "😢",
-      label: t("chat:missingYou"),
-      color: "text-purple-500",
-    },
-    sad: { emoji: "😭", label: t("chat:sad"), color: "text-red-500" },
-  };
-  const currentMoodInfo = moodData ? MOOD_CONFIG[moodData.mood] : null;
+  const currentMoodInfo = moodData
+    ? (productRules.data?.emotion.moods[moodData.mood] ?? null)
+    : null;
 
   return {
     maxMessageLength: productRules.raw?.runtime.chat.maxInputChars,
@@ -931,6 +930,7 @@ export function useChatController() {
     isTranscribing,
     autoPlay,
     toggleAutoPlay,
+    speedOptions,
     playbackSpeed,
     updateSpeed,
     toggleTheme,

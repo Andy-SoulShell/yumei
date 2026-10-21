@@ -1,5 +1,12 @@
 // @vitest-environment jsdom
 /** 语音切换、取消和离开页面时，不让迟到的事件恢复旧播放。 */
+vi.mock("@/features/product/useProductConfig", async () => {
+  const { productFixture, productView } =
+    await import("../../../server/testProductConfig");
+  return {
+    useProductConfig: () => ({ raw: productFixture, data: productView }),
+  };
+});
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";

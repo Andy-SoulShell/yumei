@@ -20,10 +20,10 @@ export function LevelUpNotice({
   const policy = useProductConfig();
   const close = usePersistFn(onClose);
   useEffect(() => {
-    if (!show) return;
-    const timer = setTimeout(close, 3500);
+    if (!show || !policy.raw) return;
+    const timer = setTimeout(close, policy.raw.experience.levelNoticeMs);
     return () => clearTimeout(timer);
-  }, [show, newLevel, close]);
+  }, [show, newLevel, close, policy.raw]);
   if (!show || !policy.data) return null;
   const level = getLevelInfo(newLevel, policy.data.intimacy.levels);
   return (

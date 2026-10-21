@@ -1,10 +1,11 @@
+import { DEFAULT_COMPANION_BEHAVIOR } from "../../../../server/testProductConfig";
 // @vitest-environment jsdom
 /** 编辑中刷新、头像操作和清空字段均不得破坏用户草稿。 */
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useSetupController } from "./useSetupController";
-import { DEFAULT_COMPANION_BEHAVIOR } from "@shared/companionBehavior";
+
 import { discoveryFixture } from "@/features/discovery/testFixtures";
 const getCharacterPreset = (id: string) =>
   discoveryFixture.characters.find(item => item.id === id);

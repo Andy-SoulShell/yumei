@@ -1,5 +1,12 @@
 // @vitest-environment jsdom
 /** 从真实设置控制器验证跨分区保存和保存期间继续编辑。 */
+vi.mock("@/features/product/useProductConfig", async () => {
+  const { productFixture, productView } =
+    await import("../../../../server/testProductConfig");
+  return {
+    useProductConfig: () => ({ raw: productFixture, data: productView }),
+  };
+});
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeEach, expect, it, vi } from "vitest";

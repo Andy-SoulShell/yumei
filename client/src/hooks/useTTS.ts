@@ -1,3 +1,4 @@
+import { useProductConfig } from "@/features/product/useProductConfig";
 import { apiErrorMessage } from "@/lib/errors";
 import { useI18n } from "@/lib/i18n";
 import { resolveSpeechLanguage, selectSpeechVoice } from "@/lib/speech";
@@ -5,25 +6,23 @@ import { trpc } from "@/lib/trpc";
 import { readDeviceValue, writeDeviceValue } from "@/lib/deviceStorage";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-export const SPEED_OPTIONS = [
-  { value: 0.5, label: "0.5x" },
-  { value: 0.75, label: "0.75x" },
-  { value: 1, label: "1x" },
-  { value: 1.25, label: "1.25x" },
-  { value: 1.5, label: "1.5x" },
-  { value: 2, label: "2x" },
-];
 export function useTTS() {
+  const product = useProductConfig();
+  const rules = product.raw?.experience.playback;
   const { t } = useI18n();
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [activeMessageId, setActiveMessageId] = useState<number | null>(null);
   const [autoPlay, setAutoPlay] = useState(() => {
     return readDeviceValue("tts-autoplay") === "true";
   });
-  const [playbackSpeed, setPlaybackSpeed] = useState(() => {
-    const saved = Number(readDeviceValue("tts-speed"));
-    return SPEED_OPTIONS.some(option => option.value === saved) ? saved : 1;
-  });
+  const [savedSpeed, setPlaybackSpeed] = useState(() =>
+    Number(readDeviceValue("tts-speed"))
+  );
+  const playbackSpeed = rules?.speeds.includes(savedSpeed)
+    ? savedSpeed
+    : (rules?.defaultSpeed ?? 1);
+  const speedOptions =
+    rules?.speeds.map(value => ({ value, label: `${value}x` })) ?? [];
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const playbackRequest = useRef(0);
@@ -55,24 +54,30 @@ export function useTTS() {
   const { mutate: generateSpeech } = trpc.tts.generate.useMutation();
 
   // 分别读取偏好与脱敏后的密钥状态。
-  const ttsProvider = apiConfig?.preferences?.ttsProvider || "browser";
+  const ttsProvider =
+    apiConfig?.preferences?.ttsProvider || rules?.defaultProvider || "browser";
 
   // 更新播放速度
-  const updateSpeed = useCallback((speed: number) => {
-    setPlaybackSpeed(speed);
-    writeDeviceValue("tts-speed", String(speed));
-    // 如果当前正在播放，实时更新速度
-    if (audioRef.current) {
-      audioRef.current.playbackRate = speed;
-    }
-    if (utteranceRef.current && "speechSynthesis" in window) {
-      // 浏览器语音不支持实时更新 rate，下次播放生效
-    }
-  }, []);
+  const updateSpeed = useCallback(
+    (speed: number) => {
+      if (!rules?.speeds.includes(speed)) return;
+      setPlaybackSpeed(speed);
+      writeDeviceValue("tts-speed", String(speed));
+      // 如果当前正在播放，实时更新速度
+      if (audioRef.current) {
+        audioRef.current.playbackRate = speed;
+      }
+      if (utteranceRef.current && "speechSynthesis" in window) {
+        // 浏览器语音不支持实时更新 rate，下次播放生效
+      }
+    },
+    [rules]
+  );
 
   // 浏览器内置语音
   const speakBrowser = useCallback(
     (text: string, request: number) => {
+      if (!rules) return;
       if (!("speechSynthesis" in window)) {
         finish(request);
         toast.error(t("common:thisBrowserDoesNotSupportSpeech"));
@@ -80,11 +85,12 @@ export function useTTS() {
       }
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = resolveSpeechLanguage(
-        apiConfig?.preferences?.replyLanguage
+        apiConfig?.preferences?.replyLanguage,
+        rules.defaultLanguage
       );
-      utterance.rate = playbackSpeed * 0.95; // 基础速度 0.95 * 用户选择的倍速
-      utterance.pitch = 1.2;
-      utterance.volume = 1;
+      utterance.rate = playbackSpeed * rules.browserRate; // 基础速度 0.95 * 用户选择的倍速
+      utterance.pitch = rules.pitch;
+      utterance.volume = rules.volume;
       const voices = window.speechSynthesis.getVoices();
       const voice = selectSpeechVoice(voices, utterance.lang);
       if (voice) utterance.voice = voice;
@@ -93,7 +99,7 @@ export function useTTS() {
       utteranceRef.current = utterance;
       window.speechSynthesis.speak(utterance);
     },
-    [playbackSpeed, t, apiConfig?.preferences?.replyLanguage, finish]
+    [playbackSpeed, t, apiConfig?.preferences?.replyLanguage, finish, rules]
   );
 
   // API 语音（ElevenLabs / Fish Audio）
@@ -176,6 +182,7 @@ export function useTTS() {
     autoPlay,
     toggleAutoPlay,
     ttsProvider,
+    speedOptions,
     playbackSpeed,
     updateSpeed,
   };

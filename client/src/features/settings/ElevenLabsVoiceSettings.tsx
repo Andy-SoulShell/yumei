@@ -1,3 +1,4 @@
+import { useProductConfig } from "@/features/product/useProductConfig";
 import { KeyStatusIndicator } from "@/components/KeyStatusIndicator";
 import { PageError } from "@/components/PageError";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ export function ElevenLabsVoiceSettings({
   handleTestApiVoice,
   ttsGenerate,
 }: Props) {
+  const sitePolicy = useProductConfig();
   return (
     <div className="space-y-4 pt-2">
       <div className="space-y-2">
@@ -72,7 +74,7 @@ export function ElevenLabsVoiceSettings({
         <p className="text-xs text-muted-foreground">
           {t("settings:getAnAPIKey")}
           <a
-            href="https://elevenlabs.io/app/settings/api-keys"
+            href={sitePolicy.raw?.site.links.elevenlabs}
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary hover:underline ml-1 inline-flex items-center gap-1"

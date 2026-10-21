@@ -1,3 +1,4 @@
+import { useProductConfig } from "@/features/product/useProductConfig";
 import { KeyStatusIndicator } from "@/components/KeyStatusIndicator";
 import { PageError } from "@/components/PageError";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ export function FishVoiceSettings({
   handleTestApiVoice,
   ttsGenerate,
 }: Props) {
+  const sitePolicy = useProductConfig();
   return (
     <div className="space-y-4 pt-2">
       <div className="space-y-2">
@@ -71,7 +73,7 @@ export function FishVoiceSettings({
         <p className="text-xs text-muted-foreground">
           {t("settings:getAnAPIKey")}
           <a
-            href="https://fish.audio/zh-CN/go-api/"
+            href={sitePolicy.raw?.site.links.fishaudio}
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary hover:underline ml-1 inline-flex items-center gap-1"

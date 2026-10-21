@@ -2,7 +2,8 @@ import { LANGUAGES, LOCALES, matchLocale } from "@shared/locales";
 
 /** 聊天朗读跟随 AI 回复设置，默认中文，不受界面语言切换影响。 */
 export function resolveSpeechLanguage(
-  replyLanguage: string | null | undefined
+  replyLanguage: string | null | undefined,
+  fallback: string
 ) {
   const value = replyLanguage?.trim().toLowerCase();
   const locale =
@@ -10,7 +11,7 @@ export function resolveSpeechLanguage(
     LOCALES.find(id =>
       LANGUAGES[id].speechNames.some(name => name.toLowerCase() === value)
     ) ??
-    "zh-CN";
+    matchLocale(fallback)!;
   return LANGUAGES[locale].speech;
 }
 

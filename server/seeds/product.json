@@ -1751,5 +1751,172 @@
       "rateWindowRetentionMs": 600000,
       "generationTimeoutMs": 180000
     }
+  },
+  "characters": {
+    "defaultBehavior": {
+      "expression": "warm",
+      "verbosity": "balanced",
+      "initiative": "balanced",
+      "relationshipPace": "gradual",
+      "emotionIntensity": "gentle",
+      "userNickname": "",
+      "examples": []
+    },
+    "limits": {
+      "name": 100,
+      "personality": 2000,
+      "appearance": 2000,
+      "interests": 1000,
+      "customPrompt": 300,
+      "nickname": 40,
+      "exampleLength": 300,
+      "exampleCount": 5,
+      "globalPrompt": 500,
+      "replyLanguage": 50,
+      "replyLength": 50
+    },
+    "promptBudgets": {
+      "character": 6000,
+      "style": 3200,
+      "preferences": 600
+    }
+  },
+  "emotion": {
+    "baseline": 70,
+    "minScore": 35,
+    "maxScore": 95,
+    "recoveryMs": 43200000,
+    "hurtDurationMs": 7200000,
+    "hurtThreshold": 70,
+    "deltas": {
+      "steady": 0,
+      "affection": 4,
+      "support": 0,
+      "conflict": -6,
+      "repair": 5
+    },
+    "thresholds": {
+      "excited": 90,
+      "happy": 70
+    },
+    "moods": {
+      "excited": {
+        "emoji": "🥰",
+        "label": {
+          "zh-CN": "超开心",
+          "en": "Excited",
+          "ja": "大喜び",
+          "ko": "아주 신남"
+        },
+        "color": "#ec4899",
+        "background": "#fce7f3"
+      },
+      "happy": {
+        "emoji": "😊",
+        "label": {
+          "zh-CN": "开心",
+          "en": "Happy",
+          "ja": "嬉しい",
+          "ko": "기쁨"
+        },
+        "color": "#22c55e",
+        "background": "#dcfce7"
+      },
+      "content": {
+        "emoji": "🙂",
+        "label": {
+          "zh-CN": "满足",
+          "en": "Content",
+          "ja": "満足",
+          "ko": "만족"
+        },
+        "color": "#3b82f6",
+        "background": "#dbeafe"
+      },
+      "neutral": {
+        "emoji": "😐",
+        "label": {
+          "zh-CN": "平静",
+          "en": "Calm",
+          "ja": "穏やか",
+          "ko": "평온"
+        },
+        "color": "#eab308",
+        "background": "#fef9c3"
+      },
+      "lonely": {
+        "emoji": "😢",
+        "label": {
+          "zh-CN": "想你了",
+          "en": "Missing you",
+          "ja": "会いたい",
+          "ko": "보고 싶음"
+        },
+        "color": "#a855f7",
+        "background": "#f3e8ff"
+      },
+      "sad": {
+        "emoji": "😭",
+        "label": {
+          "zh-CN": "伤心",
+          "en": "Sad",
+          "ja": "悲しい",
+          "ko": "슬픔"
+        },
+        "color": "#ef4444",
+        "background": "#fee2e2"
+      }
+    }
+  },
+  "experience": {
+    "pagination": {
+      "conversations": 50,
+      "messages": 50,
+      "search": 50,
+      "recentCharacters": 10,
+      "notifications": 20,
+      "searchPreviewChars": 60,
+      "maxSearchChars": 100
+    },
+    "playback": {
+      "speeds": [0.5, 0.75, 1, 1.25, 1.5, 2],
+      "defaultSpeed": 1,
+      "browserRate": 0.95,
+      "pitch": 1.2,
+      "volume": 1,
+      "defaultLanguage": "zh-CN",
+      "defaultProvider": "browser"
+    },
+    "transport": {
+      "requestTimeoutMs": 15000,
+      "retryBaseMs": 1000,
+      "retryMaxMs": 15000,
+      "observerPollMs": 200,
+      "observerHeartbeatMs": 15000,
+      "clientPollMs": 60000
+    },
+    "operations": {
+      "defaultDays": 7,
+      "maxDays": 31,
+      "sampleSize": 1000
+    },
+    "minimumRecordingSeconds": 1,
+    "levelNoticeMs": 3500
+  },
+  "site": {
+    "disclosure": {
+      "zh-CN": "18+ · 所有陪伴均为 AI 角色",
+      "en": "18+ · All companions are AI characters",
+      "ja": "18歳以上 · すべてAIキャラクターです",
+      "ko": "18세 이상 · 모든 동반자는 AI 캐릭터입니다"
+    },
+    "links": {
+      "support": "https://findahelpline.com",
+      "openrouter": "https://openrouter.ai/keys",
+      "openai": "https://platform.openai.com/api-keys",
+      "fal": "https://fal.ai/dashboard/keys",
+      "elevenlabs": "https://elevenlabs.io/app/settings/api-keys",
+      "fishaudio": "https://fish.audio/zh-CN/go-api/"
+    }
   }
 }

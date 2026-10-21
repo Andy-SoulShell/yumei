@@ -37,7 +37,8 @@ export const ttsRouter = router({
         throw new Error("未配置 API");
       }
 
-      const provider = apiConfig.ttsProvider || "browser";
+      const provider =
+        apiConfig.ttsProvider || policy.experience.playback.defaultProvider;
 
       const ttsKey =
         provider === "elevenlabs" || provider === "fishaudio"

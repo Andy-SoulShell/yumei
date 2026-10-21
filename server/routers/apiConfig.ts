@@ -28,6 +28,7 @@ export const apiConfigRouter = router({
       // null when the user hasn't saved preferences yet — frontend
       // treats that as "use defaults".
       preferences: config ?? null,
+      defaults: { ttsProvider: policy.experience.playback.defaultProvider },
       keys,
       chatProvider: {
         name: chatProvider.name,
@@ -64,12 +65,23 @@ export const apiConfigRouter = router({
         elevenlabsVoiceName: z.string().optional(),
         fishAudioModelId: z.string().optional(),
         fishAudioModelName: z.string().optional(),
-        globalPrompt: z.string().max(500).nullable().optional(),
-        replyLanguage: z.string().max(50).nullable().optional(),
-        replyLengthLimit: z.string().max(50).nullable().optional(),
+        globalPrompt: z.string().max(10000).nullable().optional(),
+        replyLanguage: z.string().max(200).nullable().optional(),
+        replyLengthLimit: z.string().max(200).nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const limits = (await getPublishedProductConfig()).characters.limits;
+      for (const [key, max] of [
+        ["globalPrompt", limits.globalPrompt],
+        ["replyLanguage", limits.replyLanguage],
+        ["replyLengthLimit", limits.replyLength],
+      ] as const)
+        if ((input[key]?.length ?? 0) > max)
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `${key} 最多 ${max} 字符`,
+          });
       return await upsertApiConfig({
         userId: ctx.user.id,
         ...input,

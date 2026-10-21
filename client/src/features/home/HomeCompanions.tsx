@@ -49,7 +49,7 @@ export function HomeCompanions() {
         </Button>
       </div>
       <div className="featured-grid home-companions-grid">
-        {roles.slice(0, 10).map(role => (
+        {roles.map(role => (
           <Button
             key={role.id}
             variant="plain"

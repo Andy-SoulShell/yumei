@@ -14,7 +14,12 @@ import type { SetupController } from "./useSetupController";
 
 type Props = Pick<
   SetupController,
-  "behavior" | "setBehavior" | "behaviorError" | "isPending" | "t"
+  | "characterLimits"
+  | "behavior"
+  | "setBehavior"
+  | "behaviorError"
+  | "isPending"
+  | "t"
 >;
 
 const controls = [
@@ -66,12 +71,14 @@ const controls = [
 
 /** 用普通表单定义角色表达方式和示例，不要求用户编写提示词。 */
 export function BehaviorEditor({
+  characterLimits,
   behavior,
   setBehavior,
   behaviorError,
   isPending,
   t,
 }: Props) {
+  if (!behavior || !characterLimits) return null;
   const invalidExamples = behavior.examples.map(
     example => !example.user.trim() || !example.assistant.trim()
   );
@@ -124,7 +131,7 @@ export function BehaviorEditor({
         <Input
           id="behavior-user-nickname"
           value={behavior.userNickname}
-          maxLength={40}
+          maxLength={characterLimits.nickname}
           placeholder={t("setup:behaviorUserNicknamePlaceholder")}
           onChange={event =>
             setBehavior(previous => ({
@@ -172,7 +179,7 @@ export function BehaviorEditor({
                   id={`behavior-example-${index}-${speaker}`}
                   value={example[speaker]}
                   rows={2}
-                  maxLength={300}
+                  maxLength={characterLimits.exampleLength}
                   aria-invalid={showError && !example[speaker].trim()}
                   aria-describedby={
                     showError && invalidExamples[index]
@@ -217,11 +224,14 @@ export function BehaviorEditor({
           type="button"
           variant="outline"
           size="sm"
-          disabled={isPending || behavior.examples.length >= 5}
+          disabled={
+            isPending ||
+            behavior.examples.length >= characterLimits.exampleCount
+          }
           aria-describedby="behavior-examples-help"
           onClick={() =>
             setBehavior(previous =>
-              previous.examples.length >= 5
+              previous.examples.length >= characterLimits.exampleCount
                 ? previous
                 : {
                     ...previous,

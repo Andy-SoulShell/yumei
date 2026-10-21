@@ -25,7 +25,7 @@ export type ChatBehaviorContext = {
   memoryEnabled?: boolean;
 };
 /** 资料保持完整 JSON，编码分隔符并按转义后长度限制总输入。 */
-function dataBlock(value: unknown, budget = 6000) {
+function dataBlock(value: unknown, budget: number) {
   let remaining = budget;
   return JSON.stringify(value, (_key, item: unknown) => {
     if (typeof item !== "string") return item;
@@ -46,10 +46,12 @@ export function buildTurnLanguageReminder(
   config: ProductConfig,
   language: string | null | undefined
 ) {
-  const value = language?.trim().slice(0, 50);
+  const value = language
+    ?.trim()
+    .slice(0, config.characters.limits.replyLanguage);
   return value
     ? renderPrompt(config.prompts.chat.turnLanguage, {
-        language: dataBlock(value),
+        language: dataBlock(value, config.characters.promptBudgets.preferences),
       })
     : "";
 }
@@ -60,7 +62,10 @@ export function buildChatSystemPrompt(
   apiConfig: ChatPromptPreferences = {},
   context: ChatBehaviorContext = {}
 ) {
-  const behavior = resolveCompanionBehavior(girlfriend.behavior),
+  const behavior = resolveCompanionBehavior(
+      girlfriend.behavior,
+      config.characters.defaultBehavior
+    ),
     templates = config.prompts.chat;
   const level =
     girlfriend.intimacyPoints === undefined
@@ -72,13 +77,32 @@ export function buildChatSystemPrompt(
     [...stages].reverse().find(stage => stage.minLevel <= level) ?? stages[0];
   return (
     renderPrompt(templates.system, {
-      characterData: dataBlock({
-        name: girlfriend.name?.slice(0, 100) ?? "",
-        personality: girlfriend.personality?.slice(0, 2000) ?? "",
-        appearance: girlfriend.appearance?.slice(0, 2000) ?? "",
-        interests: girlfriend.interests?.slice(0, 1000) ?? "",
-        customPrompt: girlfriend.customPrompt?.slice(0, 300) ?? "",
-      }),
+      characterData: dataBlock(
+        {
+          name: girlfriend.name?.slice(0, config.characters.limits.name) ?? "",
+          personality:
+            girlfriend.personality?.slice(
+              0,
+              config.characters.limits.personality
+            ) ?? "",
+          appearance:
+            girlfriend.appearance?.slice(
+              0,
+              config.characters.limits.appearance
+            ) ?? "",
+          interests:
+            girlfriend.interests?.slice(
+              0,
+              config.characters.limits.interests
+            ) ?? "",
+          customPrompt:
+            girlfriend.customPrompt?.slice(
+              0,
+              config.characters.limits.customPrompt
+            ) ?? "",
+        },
+        config.characters.promptBudgets.character
+      ),
       expression: templates.expression[behavior.expression],
       verbosity: templates.verbosity[behavior.verbosity],
       initiative: templates.initiative[behavior.initiative],
@@ -88,20 +112,38 @@ export function buildChatSystemPrompt(
       emotionIntensity: templates.emotionIntensity[behavior.emotionIntensity],
       styleData: dataBlock(
         { userNickname: behavior.userNickname, examples: behavior.examples },
-        3200
+        config.characters.promptBudgets.style
       ),
       preferencesData: dataBlock(
-        { globalPrompt: apiConfig.globalPrompt?.slice(0, 500) ?? "" },
-        600
+        {
+          globalPrompt:
+            apiConfig.globalPrompt?.slice(
+              0,
+              config.characters.limits.globalPrompt
+            ) ?? "",
+        },
+        config.characters.promptBudgets.preferences
       ),
       languageRule: apiConfig.replyLanguage
         ? renderPrompt(templates.languageRule, {
-            language: dataBlock(apiConfig.replyLanguage.slice(0, 50)),
+            language: dataBlock(
+              apiConfig.replyLanguage.slice(
+                0,
+                config.characters.limits.replyLanguage
+              ),
+              config.characters.promptBudgets.preferences
+            ),
           })
         : templates.defaultLanguage,
       lengthRule: apiConfig.replyLengthLimit
         ? renderPrompt(templates.lengthRule, {
-            length: dataBlock(apiConfig.replyLengthLimit.slice(0, 100)),
+            length: dataBlock(
+              apiConfig.replyLengthLimit.slice(
+                0,
+                config.characters.limits.replyLength
+              ),
+              config.characters.promptBudgets.preferences
+            ),
           })
         : "",
       memoryState:

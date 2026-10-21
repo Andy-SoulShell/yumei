@@ -1,3 +1,4 @@
+import { getPublishedProductConfig } from "./productConfig";
 /** notifications 领域的数据访问与事务边界。 */
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import {
@@ -32,7 +33,7 @@ export async function createNotification(
 /** 按创建时间倒序读取当前用户最近的站内通知。 */
 export async function getUserNotifications(
   userId: string,
-  limit = 20
+  limit?: number
 ): Promise<Notification[]> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -42,7 +43,10 @@ export async function getUserNotifications(
     .from(notifications)
     .where(eq(notifications.userId, userId))
     .orderBy(desc(notifications.createdAt))
-    .limit(limit);
+    .limit(
+      limit ??
+        (await getPublishedProductConfig()).experience.pagination.notifications
+    );
 }
 
 /** 统计当前用户尚未读过的站内通知数量。 */

@@ -1,3 +1,7 @@
+import {
+  DEFAULT_COMPANION_BEHAVIOR,
+  productFixture,
+} from "../../../../server/testProductConfig";
 // @vitest-environment jsdom
 /** 通过真实控件验证四语标签、风格选择和示例编辑的数量及无障碍反馈。 */
 import { act, useState } from "react";
@@ -5,10 +9,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { i18n, type Translator } from "@shared/i18n";
 import { LOCALES, type Locale } from "@shared/locales";
-import {
-  DEFAULT_COMPANION_BEHAVIOR,
-  type CompanionBehavior,
-} from "@shared/companionBehavior";
+import { type CompanionBehavior } from "@shared/companionBehavior";
 import { BehaviorEditor } from "./BehaviorEditor";
 
 let root: Root;
@@ -46,6 +47,7 @@ function Probe({
   return (
     <fieldset disabled={isPending}>
       <BehaviorEditor
+        characterLimits={productFixture.characters.limits}
         behavior={behavior}
         setBehavior={setBehavior}
         behaviorError={behaviorError}

@@ -1,3 +1,4 @@
+import { characterFieldsError } from "../../shared/experienceConfig";
 /** companions 领域的数据访问与事务边界。 */
 import { getPublishedProductConfig } from "./productConfig";
 import { getLevelByPoints } from "../../shared/intimacy";
@@ -67,9 +68,19 @@ async function insertGirlfriend(
       .update(girlfriends)
       .set({ isActive: false })
       .where(eq(girlfriends.userId, data.userId));
-  const [result] = await tx
-    .insert(girlfriends)
-    .values({ ...data, behavior: resolveCompanionBehavior(data.behavior) });
+  const configuration = await getPublishedProductConfig(tx);
+  const invalid = characterFieldsError(
+    data as Record<string, unknown>,
+    configuration.characters
+  );
+  if (invalid) throw new TRPCError({ code: "BAD_REQUEST", message: invalid });
+  const [result] = await tx.insert(girlfriends).values({
+    ...data,
+    behavior: resolveCompanionBehavior(
+      data.behavior,
+      configuration.characters.defaultBehavior
+    ),
+  });
   const [created] = await tx
     .select()
     .from(girlfriends)
@@ -188,7 +199,9 @@ export async function getRecentUserGirlfriends(userId: string) {
       desc(girlfriends.createdAt),
       desc(girlfriends.id)
     )
-    .limit(10);
+    .limit(
+      (await getPublishedProductConfig()).experience.pagination.recentCharacters
+    );
 }
 
 /**
@@ -201,6 +214,12 @@ export async function updateGirlfriend(
   userId: string,
   data: Partial<InsertGirlfriend>
 ): Promise<void> {
+  const invalid = characterFieldsError(
+    data as Record<string, unknown>,
+    (await getPublishedProductConfig()).characters
+  );
+  if (invalid) throw new TRPCError({ code: "BAD_REQUEST", message: invalid });
+
   await withUserTransaction(userId, async tx => {
     const [target] = await tx
       .select()

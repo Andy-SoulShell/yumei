@@ -7,55 +7,9 @@ import { Edit, MessageCircle, Trash2 } from "lucide-react";
 import { getLevelGradient, getLevelInfo } from "../../../../shared/intimacy";
 import type { HomeController } from "./useHomeController";
 
-// 心情配置
-const MOOD_CONFIG: Record<
-  string,
-  {
-    emoji: string;
-    label: import("@shared/i18n").StaticMessageKey;
-    color: string;
-    bgColor: string;
-  }
-> = {
-  excited: {
-    emoji: "🥰",
-    label: "chat:excited",
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
-  happy: {
-    emoji: "😊",
-    label: "chat:happy",
-    color: "text-green-500",
-    bgColor: "bg-green-500/10",
-  },
-  content: {
-    emoji: "🙂",
-    label: "chat:content",
-    color: "text-blue-500",
-    bgColor: "bg-blue-500/10",
-  },
-  neutral: {
-    emoji: "😐",
-    label: "chat:calm",
-    color: "text-yellow-500",
-    bgColor: "bg-yellow-500/10",
-  },
-  lonely: {
-    emoji: "😢",
-    label: "chat:missingYou",
-    color: "text-purple-500",
-    bgColor: "bg-purple-500/10",
-  },
-  sad: {
-    emoji: "😭",
-    label: "chat:sad",
-    color: "text-red-500",
-    bgColor: "bg-red-500/10",
-  },
-};
 type Props = Pick<
   HomeController,
+  | "moods"
   | "levels"
   | "moodMap"
   | "selectedIds"
@@ -74,6 +28,7 @@ type Props = Pick<
 export function CharacterGrid({
   girlfriends,
   levels,
+  moods,
   moodMap,
   selectedIds,
   batchMode,
@@ -90,7 +45,7 @@ export function CharacterGrid({
     <div className="grid gap-4 xl:grid-cols-2">
       {girlfriends.map(gf => {
         const mood = moodMap[gf.id];
-        const moodInfo = mood ? MOOD_CONFIG[mood.mood] : null;
+        const moodInfo = mood ? moods?.[mood.mood] : null;
         const isSelected = selectedIds.has(gf.id);
 
         return (
@@ -127,9 +82,10 @@ export function CharacterGrid({
                   {/* 心情气泡 */}
                   {moodInfo && (
                     <div
-                      className={`absolute -bottom-1 -right-1 w-7 h-7 rounded-full ${moodInfo.bgColor} flex items-center justify-center border-2 border-background text-sm`}
+                      style={{ backgroundColor: moodInfo.background }}
+                      className={`absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center border-2 border-background text-sm`}
                       title={t("common:points", {
-                        mood: t(moodInfo.label),
+                        mood: moodInfo.label,
                         points: mood!.moodScore,
                       })}
                     >
@@ -217,8 +173,11 @@ export function CharacterGrid({
                   {/* 心情状态文字 */}
                   {moodInfo && (
                     <div className="flex items-center gap-1.5 mt-1">
-                      <span className={`text-xs font-medium ${moodInfo.color}`}>
-                        {t(moodInfo.label)}
+                      <span
+                        className="text-xs font-medium"
+                        style={{ color: moodInfo.color }}
+                      >
+                        {moodInfo.label}
                       </span>
                       {mood!.todayMessages > 0 && (
                         <span className="text-[10px] text-muted-foreground">

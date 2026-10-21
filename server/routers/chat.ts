@@ -15,13 +15,18 @@ export const chatRouter = router({
     .input(
       z.object({
         conversationId: z.number().int().positive(),
-        content: z.string().trim().min(1).max(8_000),
+        content: z.string().trim().min(1).max(32_000),
         transcriptionId: z.string().uuid().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       ensureAgeConfirmed(ctx.user);
       const policy = await getPublishedProductConfig();
+      if (input.content.length > policy.runtime.chat.maxInputChars)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `消息最多 ${policy.runtime.chat.maxInputChars} 字符`,
+        });
       const selfieRequest = detectSelfieRequest(
         input.content,
         policy.selfies.poses,

@@ -1,3 +1,4 @@
+import { getPublishedProductConfig } from "../repositories/productConfig";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -66,12 +67,18 @@ export const conversationRouter = router({
           cursor: z
             .object({ updatedAt: z.date(), id: z.number().int() })
             .nullish(),
-          search: z.string().max(100).optional(),
-          limit: z.number().int().min(1).max(100).default(50),
+          search: z.string().max(500).optional(),
+          limit: z.number().int().min(1).max(100).optional(),
         })
         .optional()
     )
     .query(async ({ ctx, input }) => {
+      const rules = (await getPublishedProductConfig()).experience.pagination;
+      if ((input?.search?.length ?? 0) > rules.maxSearchChars)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "搜索内容超出当前长度限制",
+        });
       return await getConversationsWithLastMessage(ctx.user.id, input);
     }),
 
@@ -88,7 +95,7 @@ export const conversationRouter = router({
       z.object({
         conversationId: z.number(),
         cursor: z.number().int().nullish(),
-        limit: z.number().int().min(1).max(100).default(50),
+        limit: z.number().int().min(1).max(100).optional(),
       })
     )
     .query(async ({ ctx, input }) => {
@@ -101,7 +108,8 @@ export const conversationRouter = router({
       return await getMessagePage(
         input.conversationId,
         input.cursor,
-        input.limit
+        input.limit ??
+          (await getPublishedProductConfig()).experience.pagination.messages
       );
     }),
 
@@ -109,17 +117,23 @@ export const conversationRouter = router({
   search: protectedProcedure
     .input(
       z.object({
-        keyword: z.string().min(1).max(100),
+        keyword: z.string().min(1).max(500),
         cursor: z.number().int().nullish(),
-        limit: z.number().int().min(1).max(100).default(50),
+        limit: z.number().int().min(1).max(100).optional(),
       })
     )
     .query(async ({ ctx, input }) => {
+      const rules = (await getPublishedProductConfig()).experience.pagination;
+      if (input.keyword.length > rules.maxSearchChars)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "搜索内容超出当前长度限制",
+        });
       return await searchConversations(
         ctx.user.id,
         input.keyword,
         input.cursor,
-        input.limit
+        input.limit ?? rules.search
       );
     }),
 });

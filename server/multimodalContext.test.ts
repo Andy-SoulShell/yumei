@@ -1,3 +1,4 @@
+import { resolveCompanionBehavior } from "./testAiConfig";
 import { stubProductConfig } from "./testProductConfig";
 import axios from "axios";
 import { eq } from "drizzle-orm";
@@ -8,7 +9,7 @@ import {
   selfies,
   users,
 } from "../drizzle/schema";
-import { resolveCompanionBehavior } from "../shared/companionBehavior";
+
 import * as imageProvider from "./_core/imageProvider";
 import { keyProvider } from "./_core/keyProvider";
 import { getDb } from "./database";

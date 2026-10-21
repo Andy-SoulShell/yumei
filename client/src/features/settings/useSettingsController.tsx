@@ -1,3 +1,4 @@
+import { useProductConfig } from "@/features/product/useProductConfig";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useProviderKeyDrafts } from "@/hooks/useProviderKeyDrafts";
 import { useSettingsDraft } from "@/hooks/useSettingsDraft";
@@ -15,6 +16,7 @@ import type { ElevenLabsVoice, FishAudioModel, TTSProvider } from "./types";
 import { useProviderCatalogs } from "./useProviderCatalogs";
 /** 页面查询、草稿与操作流程；展示组件只消费此状态。 */
 export function useSettingsController() {
+  const product = useProductConfig();
   const { t, locale } = useI18n();
 
   const [, setLocation] = useLocation();
@@ -37,6 +39,7 @@ export function useSettingsController() {
                 ? apiConfig.chatProvider.model
                 : apiConfig.preferences?.llmModel || "",
             ttsProvider: (apiConfig.preferences?.ttsProvider ||
+              product.raw?.experience.playback.defaultProvider ||
               "browser") as TTSProvider,
             elevenlabsVoiceId: apiConfig.preferences?.elevenlabsVoiceId || "",
             elevenlabsVoiceName:
@@ -48,7 +51,7 @@ export function useSettingsController() {
             replyLengthLimit: apiConfig.preferences?.replyLengthLimit || "",
           }
         : undefined,
-    [apiConfig]
+    [apiConfig, product.raw]
   );
 
   const settingsDraft = useSettingsDraft(
@@ -363,6 +366,7 @@ export function useSettingsController() {
       t("settings:falAiSettingsSaved")
     );
   return {
+    characterLimits: product.raw?.characters.limits,
     ...catalogs,
     setLocation,
     t,

@@ -1,3 +1,4 @@
+import { useProductConfig } from "@/features/product/useProductConfig";
 /** 成年确认入口，根据用户出生日期状态控制弹窗。 */
 
 import { useI18n } from "@/lib/i18n";
@@ -21,6 +22,7 @@ import {
  * @remarks 成年条件仍由服务端校验，前端弹窗不构成独立权限保障。
  */
 export function AgeGate() {
+  const sitePolicy = useProductConfig();
   const { t } = useI18n();
   const { user, refresh, logout } = useAuth();
   const [birthDate, setBirthDate] = useState("");
@@ -59,7 +61,7 @@ export function AgeGate() {
                 {t("auth:yumeiIsAn18ServiceAndIsnT")}{" "}
                 <a
                   className="underline"
-                  href="https://findahelpline.com"
+                  href={sitePolicy.raw?.site.links.support}
                   target="_blank"
                   rel="noreferrer"
                 >

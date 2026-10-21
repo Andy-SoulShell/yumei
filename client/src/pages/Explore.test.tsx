@@ -1,5 +1,12 @@
 // @vitest-environment jsdom
 /** 探索页搜索、画风筛选、无结果提示和角色详情的交互回归。 */
+vi.mock("@/features/product/useProductConfig", async () => {
+  const { productFixture, productView } =
+    await import("../../../server/testProductConfig");
+  return {
+    useProductConfig: () => ({ raw: productFixture, data: productView }),
+  };
+});
 import { act } from "react";
 import { discoveryFixture } from "@/features/discovery/testFixtures";
 import { createRoot, type Root } from "react-dom/client";

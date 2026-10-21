@@ -744,7 +744,8 @@ async function executeChatTurn(request: Request, leaseToken: string) {
       behaviorContext = await getChatBehaviorContext(
         request.userId,
         girlfriend.id,
-        request.chatInput!
+        request.chatInput!,
+        policy
       );
     } catch (error) {
       log.warn(

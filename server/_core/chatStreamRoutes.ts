@@ -1,3 +1,4 @@
+import { getPublishedProductConfig } from "../repositories/productConfig";
 /** 经过 Cookie 鉴权及 CSRF 检查的聊天接收、观察和停止 HTTP 路由。 */
 import { TRPCError } from "@trpc/server";
 import { getHTTPStatusCodeFromError } from "@trpc/server/http";
@@ -119,6 +120,8 @@ export function registerChatStreamRoutes(app: Express) {
           code: "BAD_REQUEST",
           message: "Invalid turn ID",
         });
+      const transport = (await getPublishedProductConfig()).experience
+        .transport;
       let snapshot = await getChatTurnSnapshot(user.id, req.params.id);
       res.status(200);
       res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
@@ -141,12 +144,14 @@ export function registerChatStreamRoutes(app: Express) {
           lastSent = Date.now();
           // A stalled observer can reconnect from canonical state; do not accumulate snapshots in memory.
           if (!accepted) break;
-        } else if (Date.now() - lastSent >= 15_000) {
+        } else if (Date.now() - lastSent >= transport.observerHeartbeatMs) {
           if (!res.write(": heartbeat\n\n")) break;
           lastSent = Date.now();
         }
         if (isChatTurnTerminal(snapshot.status)) break;
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve =>
+          setTimeout(resolve, transport.observerPollMs)
+        );
         if (closed) break;
         snapshot = await getChatTurnSnapshot(user.id, req.params.id);
       }

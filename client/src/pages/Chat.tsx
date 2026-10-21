@@ -1,3 +1,4 @@
+import { useProductConfig } from "@/features/product/useProductConfig";
 import { PageError } from "@/components/PageError";
 import { IntimacyPanel } from "@/components/IntimacyPanel";
 import { LevelUpNotice } from "@/components/LevelUpNotice";
@@ -10,6 +11,7 @@ import { ChatHeader } from "@/features/chat/ChatHeader";
 import { ChatMessages } from "@/features/chat/ChatMessages";
 import { useChatController } from "@/features/chat/useChatController";
 export default function Chat() {
+  const sitePolicy = useProductConfig();
   const state = useChatController();
   const {
     conversationId,
@@ -95,7 +97,7 @@ export default function Chat() {
             <p className="mt-0.5 opacity-90">
               {t("chat:china400161999524HoursUSCanada")}
               <a
-                href="https://findahelpline.com"
+                href={sitePolicy.raw?.site.links.support}
                 target="_blank"
                 rel="noreferrer"
                 className="underline"

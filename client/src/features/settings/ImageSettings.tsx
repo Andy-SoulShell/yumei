@@ -1,3 +1,4 @@
+import { useProductConfig } from "@/features/product/useProductConfig";
 import { KeyStatusIndicator } from "@/components/KeyStatusIndicator";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +37,7 @@ export function ImageSettings({
   isSavingKeys,
   hasUnsavedFalChanges,
 }: Props) {
+  const sitePolicy = useProductConfig();
   return (
     <Card>
       <CardHeader>
@@ -47,7 +49,7 @@ export function ImageSettings({
         <CardDescription>
           {t("settings:usedToGenerateSelfiesGetAnAPIKey")}
           <a
-            href="https://fal.ai/dashboard/keys"
+            href={sitePolicy.raw?.site.links.fal}
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary hover:underline ml-1"

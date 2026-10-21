@@ -1,3 +1,10 @@
+vi.mock("@/features/product/useProductConfig", async () => {
+  const { productFixture, productView } =
+    await import("../../server/testProductConfig");
+  return {
+    useProductConfig: () => ({ raw: productFixture, data: productView }),
+  };
+});
 import { productView } from "../../server/testProductConfig";
 // @vitest-environment jsdom
 /** 游客触发登录后可返回公开页面，再次使用手机导航和外观控件。 */

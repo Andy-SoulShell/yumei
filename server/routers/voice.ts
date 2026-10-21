@@ -91,6 +91,7 @@ export const voiceRouter = router({
 
       if (
         !Number.isFinite(result.duration) ||
+        result.duration < policy.experience.minimumRecordingSeconds ||
         result.duration > policy.uploads.audio.maxDurationSeconds
       )
         throw new TRPCError({

@@ -48,3 +48,6 @@ export function stubProductConfig(path: string, value: unknown) {
     }
   );
 }
+
+export const DEFAULT_COMPANION_BEHAVIOR =
+  productFixture.characters.defaultBehavior;

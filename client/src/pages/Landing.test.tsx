@@ -1,5 +1,12 @@
 // @vitest-environment jsdom
 /** 首页模块、角色预览、轮播暂停与注册入口的交互回归。 */
+vi.mock("@/features/product/useProductConfig", async () => {
+  const { productFixture, productView } =
+    await import("../../../server/testProductConfig");
+  return {
+    useProductConfig: () => ({ raw: productFixture, data: productView }),
+  };
+});
 import { act } from "react";
 import { discoveryFixture } from "@/features/discovery/testFixtures";
 import { createRoot, type Root } from "react-dom/client";
@@ -148,7 +155,7 @@ describe("public landing page", () => {
       container.querySelector(".landing-signup a")?.getAttribute("href")
     ).toBe("/register?next=%2Fexplore");
   });
-  it("shows up to ten owned roles above curated characters in server activity order", async () => {
+  it("shows the server-selected owned roles without applying a second fixed cap", async () => {
     mock.user = { name: "Andy" };
     mock.roles = Array.from({ length: 12 }, (_, i) => ({
       id: 12 - i,
@@ -160,13 +167,13 @@ describe("public landing page", () => {
     const roles = section.querySelectorAll<HTMLButtonElement>(
       ".featured-character"
     );
-    expect(roles).toHaveLength(10);
+    expect(roles).toHaveLength(12);
     expect(
       Array.from(
         roles,
         role => role.querySelector(".featured-name")?.textContent
       )
-    ).toEqual(mock.roles.slice(0, 10).map(role => role.name));
+    ).toEqual(mock.roles.slice(0, 12).map(role => role.name));
     expect(section.nextElementSibling?.getAttribute("aria-labelledby")).toBe(
       "featured-heading"
     );

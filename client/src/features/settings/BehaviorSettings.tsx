@@ -79,7 +79,7 @@ export function BehaviorSettings({
               setGlobalPrompt(e.target.value);
             }}
             rows={4}
-            maxLength={500}
+            maxLength={policy.raw?.characters.limits.globalPrompt}
             className="resize-none"
           />
           <div className="flex items-center justify-between">
@@ -87,7 +87,7 @@ export function BehaviorSettings({
               {t("settings:thisPromptAppliesToConversationsWithAllYour")}
             </p>
             <span className="text-xs text-muted-foreground">
-              {globalPrompt.length}/500
+              {globalPrompt.length}/{policy.raw?.characters.limits.globalPrompt}
             </span>
           </div>
         </div>
@@ -163,7 +163,7 @@ export function BehaviorSettings({
                 onChange={e => {
                   setReplyLanguage(e.target.value);
                 }}
-                maxLength={50}
+                maxLength={policy.raw?.characters.limits.replyLanguage}
               />
             </div>
             <div className="space-y-2">
@@ -177,7 +177,7 @@ export function BehaviorSettings({
                 onChange={e => {
                   setReplyLengthLimit(e.target.value);
                 }}
-                maxLength={50}
+                maxLength={policy.raw?.characters.limits.replyLength}
               />
             </div>
           </CollapsibleContent>

@@ -1,3 +1,4 @@
+import { useProductConfig } from "@/features/product/useProductConfig";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -33,6 +34,7 @@ export function TranscriptionSettings({
   isSavingKeys,
   hasUnsavedWhisperChanges,
 }: Props) {
+  const sitePolicy = useProductConfig();
   return (
     <Card>
       <CardHeader>
@@ -63,7 +65,7 @@ export function TranscriptionSettings({
           <p className="text-xs text-muted-foreground">
             {t("settings:getAnAPIKey")}
             <a
-              href="https://platform.openai.com/api-keys"
+              href={sitePolicy.raw?.site.links.openai}
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary hover:underline ml-1 inline-flex items-center gap-1"

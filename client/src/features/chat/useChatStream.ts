@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useProductConfig } from "@/features/product/useProductConfig";
+import type { ProductConfig } from "@shared/productConfig";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createUuid } from "@/lib/uuid";
 import {
   chatStreamDraftKey,
@@ -40,7 +42,11 @@ export class ChatStreamRequestError extends Error {
   }
 }
 
-async function request<T>(url: string, body?: object): Promise<T> {
+async function request<T>(
+  rules: ProductConfig["experience"]["transport"],
+  url: string,
+  body?: object
+): Promise<T> {
   const headers = new Headers();
   if (body) {
     headers.set("content-type", "application/json");
@@ -48,7 +54,7 @@ async function request<T>(url: string, body?: object): Promise<T> {
     if (cookie) headers.set("x-csrf-token", decodeURIComponent(cookie[1]));
   }
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15000);
+  const timer = setTimeout(() => controller.abort(), rules.requestTimeoutMs);
   try {
     const response = await fetch(url, {
       method: body ? "POST" : "GET",
@@ -70,32 +76,36 @@ async function request<T>(url: string, body?: object): Promise<T> {
 }
 
 /** SSE 断开仅关闭订阅；用户点击停止才调用停止接口。 */
-export const browserChatStreamTransport: ChatStreamTransport = {
-  create: submission => request("/api/chat/turns", submission),
-  discover: conversationId =>
-    request(`/api/chat/turns?conversationId=${conversationId}`),
-  stop: turnId =>
-    request(`/api/chat/turns/${encodeURIComponent(turnId)}/stop`, {}),
-  subscribe: (turnId, receive, disconnect) => {
-    const source = new EventSource(
-      `/api/chat/turns/${encodeURIComponent(turnId)}/events`,
-      { withCredentials: true }
-    );
-    source.addEventListener("snapshot", event => {
-      try {
-        receive(JSON.parse((event as MessageEvent).data) as ChatTurnSnapshot);
-      } catch {
+export function createBrowserChatStreamTransport(
+  rules: ProductConfig["experience"]["transport"]
+): ChatStreamTransport {
+  return {
+    create: submission => request(rules, "/api/chat/turns", submission),
+    discover: conversationId =>
+      request(rules, `/api/chat/turns?conversationId=${conversationId}`),
+    stop: turnId =>
+      request(rules, `/api/chat/turns/${encodeURIComponent(turnId)}/stop`, {}),
+    subscribe: (turnId, receive, disconnect) => {
+      const source = new EventSource(
+        `/api/chat/turns/${encodeURIComponent(turnId)}/events`,
+        { withCredentials: true }
+      );
+      source.addEventListener("snapshot", event => {
+        try {
+          receive(JSON.parse((event as MessageEvent).data) as ChatTurnSnapshot);
+        } catch {
+          source.close();
+          disconnect();
+        }
+      });
+      source.onerror = () => {
         source.close();
         disconnect();
-      }
-    });
-    source.onerror = () => {
-      source.close();
-      disconnect();
-    };
-    return () => source.close();
-  },
-};
+      };
+      return () => source.close();
+    },
+  };
+}
 
 type Options = {
   accountId?: string;
@@ -110,7 +120,14 @@ export function useChatStream(
   conversationId: number | null,
   options: Options = {}
 ) {
-  const transport = options.transport ?? browserChatStreamTransport;
+  const policy = useProductConfig();
+  const rules = policy.raw?.experience.transport;
+  const transport = useMemo(
+    () =>
+      options.transport ??
+      (rules ? createBrowserChatStreamTransport(rules) : null),
+    [options.transport, rules]
+  );
   const storageKey = chatStreamDraftKey(options.accountId, conversationId);
   const callbacks = useRef(options);
   callbacks.current = options;
@@ -197,6 +214,7 @@ export function useChatStream(
   );
 
   useEffect(() => {
+    if (!transport || !rules) return;
     mounted.current = true;
     const epoch = ++scope.current;
     readyIdentity.current = identity;
@@ -220,8 +238,10 @@ export function useChatStream(
     let timer: ReturnType<typeof setTimeout> | undefined;
     let attempt = 0;
     const discover = async () => {
+      if (!transport || !rules) return Promise.resolve(null);
       if (!conversationId || !isCurrent()) return;
       try {
+        if (!transport || !rules) throw new Error("Configuration unavailable");
         const result = await transport.discover(conversationId);
         if (cancelled || scope.current !== epoch || !isCurrent()) return;
         if (result) receive(result);
@@ -231,7 +251,7 @@ export function useChatStream(
         setConnection("reconnecting");
         timer = setTimeout(
           () => void discover(),
-          Math.min(1000 * 2 ** attempt++, 15000)
+          Math.min(rules!.retryBaseMs * 2 ** attempt++, rules!.retryMaxMs)
         );
       }
     };
@@ -242,11 +262,20 @@ export function useChatStream(
       if (timer) clearTimeout(timer);
       // 不停止生成，离开和网络中断均允许随后恢复。
     };
-  }, [conversationId, transport, receive, storageKey, isCurrent, identity]);
+  }, [
+    conversationId,
+    transport,
+    receive,
+    storageKey,
+    isCurrent,
+    identity,
+    rules,
+  ]);
 
   const turnId = snapshot?.id;
   const terminal = snapshot ? isChatTurnTerminal(snapshot.status) : true;
   useEffect(() => {
+    if (!transport || !rules) return;
     if (!conversationId || !turnId || terminal) return;
     let cancelled = false;
     let unsubscribe: (() => void) | undefined;
@@ -279,7 +308,7 @@ export function useChatStream(
             reconnect();
           }
         },
-        Math.min(1000 * 2 ** attempt++, 15000)
+        Math.min(rules!.retryBaseMs * 2 ** attempt++, rules!.retryMaxMs)
       );
     };
     const connect = () => {
@@ -301,7 +330,7 @@ export function useChatStream(
       unsubscribe?.();
       if (timer) clearTimeout(timer);
     };
-  }, [conversationId, turnId, terminal, transport, receive, isCurrent]);
+  }, [conversationId, turnId, terminal, transport, receive, isCurrent, rules]);
 
   const create = useCallback(
     async (submission: ChatStreamSubmission) => {
@@ -325,6 +354,7 @@ export function useChatStream(
         )
       );
       try {
+        if (!transport || !rules) throw new Error("Configuration unavailable");
         const result = await transport.create(submission);
         if (!isCurrent() || scope.current !== epoch) return null;
         updateChatStreamDrafts(
@@ -357,11 +387,12 @@ export function useChatStream(
         }
       }
     },
-    [conversationId, transport, receive, storageKey, isCurrent]
+    [conversationId, transport, receive, storageKey, isCurrent, rules]
   );
 
   const submit = useCallback(
     (draft: ChatStreamDraft) => {
+      if (!transport || !rules) return Promise.resolve(null);
       if (!conversationId || !isCurrent()) return Promise.resolve(null);
       return create({
         ...draft,
@@ -369,7 +400,7 @@ export function useChatStream(
         clientRequestId: createUuid(),
       });
     },
-    [conversationId, create, isCurrent]
+    [conversationId, create, isCurrent, transport, rules]
   );
   const retry = useCallback(
     (failure: FailedStreamSubmission) => {
@@ -392,7 +423,7 @@ export function useChatStream(
     [submit]
   );
   const stop = useCallback((): Promise<boolean> => {
-    if (!isCurrent()) return Promise.resolve(false);
+    if (!isCurrent() || !transport || !rules) return Promise.resolve(false);
     if (stoppingRequest.current) return stoppingRequest.current;
     const current = latest.current;
     if (!current || isChatTurnTerminal(current.status))
@@ -402,6 +433,7 @@ export function useChatStream(
     setIsStopping(true);
     const operation = (async () => {
       try {
+        if (!transport || !rules) throw new Error("Configuration unavailable");
         const result = await transport.stop(current.id);
         if (!isCurrent() || scope.current !== epoch) return false;
         receive(result);
@@ -435,7 +467,7 @@ export function useChatStream(
     })();
     stoppingRequest.current = operation;
     return operation;
-  }, [transport, receive, isCurrent]);
+  }, [transport, receive, isCurrent, rules]);
 
   const visible = readyIdentity.current === identity;
   return {

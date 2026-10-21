@@ -1,3 +1,4 @@
+import { getPublishedProductConfig } from "./productConfig";
 /** conversations 领域的数据访问与事务边界。 */
 import {
   and,
@@ -186,7 +187,10 @@ export async function getRecentMessages(
       )
     )
     .orderBy(desc(messages.createdAt), desc(messages.id))
-    .limit(limit);
+    .limit(
+      limit ??
+        (await getPublishedProductConfig()).experience.pagination.messages
+    );
 
   return allMessages.reverse(); // 返回时按时间正序
 }
@@ -266,7 +270,10 @@ export async function getConversationsWithLastMessage(
       )
     )
     .orderBy(desc(conversations.updatedAt), desc(conversations.id))
-    .limit(options.limit ?? 50);
+    .limit(
+      options.limit ??
+        (await getPublishedProductConfig()).experience.pagination.conversations
+    );
   return rows.map(row => ({
     ...row,
     lastMessage: row.lastMessage ?? undefined,
@@ -279,10 +286,12 @@ export async function searchConversations(
   userId: string,
   keyword: string,
   cursor?: number | null,
-  limit = 50
+  limit?: number
 ): Promise<ConversationPreview[]> {
   const db = await getDb();
   if (!db) return [];
+  const rules = (await getPublishedProductConfig()).experience.pagination;
+  limit ??= rules.search;
   const pattern = "%" + keyword.replace(/[!%_]/g, "!$&") + "%";
   const latest = sql<number>`MAX(${messages.id})`;
   const hits = await db
@@ -298,7 +307,10 @@ export async function searchConversations(
     .groupBy(messages.conversationId)
     .having(cursor ? lt(latest, cursor) : undefined)
     .orderBy(desc(latest))
-    .limit(limit);
+    .limit(
+      limit ??
+        (await getPublishedProductConfig()).experience.pagination.messages
+    );
   if (!hits.length) return [];
   const summaries = await getConversationsWithLastMessage(userId, {
     ids: hits.map(hit => hit.conversationId),
@@ -323,8 +335,8 @@ export async function searchConversations(
           {
             ...summary,
             matchedMessage:
-              message.content.length > 60
-                ? message.content.slice(0, 60) + "..."
+              message.content.length > rules.searchPreviewChars
+                ? message.content.slice(0, rules.searchPreviewChars) + "..."
                 : message.content,
             matchedMessageId: hit.id,
           },
@@ -337,7 +349,7 @@ export async function searchConversations(
 export async function getMessagePage(
   conversationId: number,
   cursor?: number | null,
-  limit = 50
+  limit?: number
 ): Promise<Message[]> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -351,6 +363,9 @@ export async function getMessagePage(
       )
     )
     .orderBy(desc(messages.id))
-    .limit(limit);
+    .limit(
+      limit ??
+        (await getPublishedProductConfig()).experience.pagination.messages
+    );
   return rows.reverse();
 }

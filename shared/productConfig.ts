@@ -1,3 +1,9 @@
+import {
+  charactersConfigSchema,
+  emotionConfigSchema,
+  experienceConfigSchema,
+  siteConfigSchema,
+} from "./experienceConfig";
 /** 套餐、养成、提示词与记忆共用的可执行业务配置。 */
 import { z } from "zod";
 import { contentTextSchema, contentText, officialIdSchema } from "./discovery";
@@ -220,6 +226,10 @@ export type ThemesConfig = z.infer<typeof themesConfigSchema>;
 /** 一次发布完整替换业务快照，跨领域引用在发布前统一检查。 */
 export const productConfigSchema = z
   .object({
+    characters: charactersConfigSchema,
+    emotion: emotionConfigSchema,
+    experience: experienceConfigSchema,
+    site: siteConfigSchema,
     themes: themesConfigSchema,
     proactive: proactiveConfigSchema,
     uploads: uploadsConfigSchema,
@@ -248,8 +258,17 @@ export const productConfigSchema = z
       "提示词模板 ID 不能重复"
     );
     for (const item of config.prompts.quickTemplates)
-      if (Object.values(item.text).some(text => text && text.length > 500))
-        issue("快捷模板正文不能超过全局偏好的 500 字上限");
+      if (
+        Object.values(item.text).some(
+          text => text && text.length > config.characters.limits.globalPrompt
+        )
+      )
+        issue("快捷模板正文不能超过全局偏好的字数上限");
+    if (
+      config.experience.minimumRecordingSeconds >
+      config.uploads.audio.maxDurationSeconds
+    )
+      issue("最短录音时长不能超过最长录音时长");
     const context = config.prompts.context;
     if (
       context.platform + context.followups > context.total ||
@@ -282,7 +301,10 @@ export const productConfigSchema = z
       chat.lengthRule.length +
       chat.turnLanguage.length +
       Math.max(chat.memoryEnabled.length, chat.memoryDisabled.length) +
-      10400;
+      config.characters.promptBudgets.character +
+      config.characters.promptBudgets.style +
+      config.characters.promptBudgets.preferences +
+      600;
     if (reserve > context.platform)
       issue("聊天模板与资料预留超过平台上下文预算");
     unique(
@@ -358,6 +380,24 @@ export type ProductConfig = z.infer<typeof productConfigSchema>;
 export function localizeProductConfig(config: ProductConfig, locale: Locale) {
   return {
     ...config,
+    emotion: {
+      ...config.emotion,
+      moods: Object.fromEntries(
+        Object.entries(config.emotion.moods).map(([id, item]) => [
+          id,
+          { ...item, label: contentText(item.label, locale) },
+        ])
+      ) as Record<
+        keyof ProductConfig["emotion"]["moods"],
+        Omit<ProductConfig["emotion"]["moods"]["happy"], "label"> & {
+          label: string;
+        }
+      >,
+    },
+    site: {
+      ...config.site,
+      disclosure: contentText(config.site.disclosure, locale),
+    },
     themes: {
       ...config.themes,
       items: config.themes.items

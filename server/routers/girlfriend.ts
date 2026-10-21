@@ -26,6 +26,7 @@ import {
   getActiveGirlfriend,
   getTrashGirlfriends,
   getUserGirlfriends,
+  getRecentUserGirlfriends,
   permanentDeleteGirlfriend,
   restoreGirlfriend,
   softDeleteGirlfriend,
@@ -142,6 +143,11 @@ export const girlfriendRouter = router({
   /** 读取当前用户未删除的角色列表。 */
   list: protectedProcedure.query(async ({ ctx }) => {
     return await getUserGirlfriends(ctx.user.id);
+  }),
+
+  /** 登录首页按实际消息时间读取最近十个未删除角色，每个角色只返回一次。 */
+  recent: protectedProcedure.query(async ({ ctx }) => {
+    return await getRecentUserGirlfriends(ctx.user.id);
   }),
 
   /** 更新当前用户所属角色的可编辑资料。 */

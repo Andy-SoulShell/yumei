@@ -8,6 +8,7 @@ import {
   isNotNull,
   isNull,
   lte,
+  max,
   sql,
 } from "drizzle-orm";
 import {
@@ -124,6 +125,39 @@ export async function getUserGirlfriends(
     .from(girlfriends)
     .where(and(eq(girlfriends.userId, userId), isNull(girlfriends.deletedAt)))
     .orderBy(desc(girlfriends.createdAt));
+}
+
+/** 首页只取最近聊过的十个角色；从未聊天的角色按创建时间补在末尾。 */
+export async function getRecentUserGirlfriends(userId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const activity = db
+    .select({
+      girlfriendId: conversations.girlfriendId,
+      lastChattedAt: max(messages.createdAt).as("last_chatted_at"),
+    })
+    .from(conversations)
+    .innerJoin(messages, eq(messages.conversationId, conversations.id))
+    .where(eq(conversations.userId, userId))
+    .groupBy(conversations.girlfriendId)
+    .as("companion_chat_activity");
+  return db
+    .select({
+      id: girlfriends.id,
+      name: girlfriends.name,
+      avatarUrl: girlfriends.avatarUrl,
+      referenceImageUrl: girlfriends.referenceImageUrl,
+      lastChattedAt: activity.lastChattedAt,
+    })
+    .from(girlfriends)
+    .leftJoin(activity, eq(activity.girlfriendId, girlfriends.id))
+    .where(and(eq(girlfriends.userId, userId), isNull(girlfriends.deletedAt)))
+    .orderBy(
+      desc(activity.lastChattedAt),
+      desc(girlfriends.createdAt),
+      desc(girlfriends.id)
+    )
+    .limit(10);
 }
 
 /**

@@ -1,5 +1,5 @@
 /** 单密码运营后台：直接调用既有管理 API 编辑草稿、校验并发布。 */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { z } from "zod";
 import { useQueryClient } from "@tanstack/react-query";
@@ -974,10 +974,16 @@ function ManagementConsole({
   onExpired: () => void;
 }) {
   const appearance = usePreferences();
+  const shell = useRef<HTMLDivElement>(null);
   const [pane, setPane] = useState<Pane>("overview"),
     [dirty, setDirty] = useState(false),
     [epoch, setEpoch] = useState(0),
     [characterId, setCharacterId] = useState("");
+  useEffect(() => {
+    shell.current
+      ?.closest<HTMLElement>("[data-management-scroll]")
+      ?.scrollTo({ top: 0, behavior: "instant" });
+  }, [pane, characterId]);
   const product = trpc.productConfig.admin.getDraft.useQuery(undefined, {
       retry: false,
       staleTime: Infinity,
@@ -1049,7 +1055,7 @@ function ManagementConsole({
   );
   const ready = product.data && discovery.data;
   return (
-    <div className="admin-shell min-h-screen bg-background">
+    <div ref={shell} className="admin-shell min-h-screen bg-background">
       <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b bg-background/95 px-4 backdrop-blur sm:px-6">
         <div className="flex items-center gap-2.5">
           <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">

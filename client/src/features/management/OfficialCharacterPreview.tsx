@@ -47,7 +47,7 @@ export function OfficialCharacterPreview({
           </select>
         </div>
         <p className="text-xs text-muted-foreground">
-          随编辑即时更新。点击卡片查看详情，预览不会保存或创建角色。
+          这是前台实际比例的裁切预览。点击卡片查看详情；完整原图可在封面编辑区放大查看。预览不会保存或创建角色。
         </p>
         {officialImageSchema.safeParse(value.imageUrl).success ? (
           <div className="mx-auto w-full max-w-72">

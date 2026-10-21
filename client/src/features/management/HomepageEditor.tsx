@@ -25,6 +25,7 @@ import { CharacterCard } from "@/components/CharacterCard";
 import { CharacterDetailContent } from "@/components/CharacterDetailDialog";
 import { fieldLabel, type FormSchema } from "./ConfigForm";
 import { NumberField } from "./NumberField";
+import { ImagePreview } from "./ImagePreview";
 import type { CharacterRow } from "./managementModel";
 const homeFields = (z.toJSONSchema(homepageSchema) as FormSchema).properties!;
 
@@ -369,7 +370,7 @@ export function HomepageEditor({
                       <img
                         src={row.data.imageUrl}
                         alt=""
-                        className="h-16 w-12 rounded-lg object-cover"
+                        className="h-16 w-12 rounded-lg object-contain"
                       />
                     )}
                     <div className="min-w-0 flex-1">
@@ -431,7 +432,7 @@ export function HomepageEditor({
                     <img
                       src={row.data.imageUrl}
                       alt=""
-                      className="h-12 w-9 rounded-md object-cover"
+                      className="h-12 w-9 rounded-md object-contain"
                     />
                     <span className="min-w-0 truncate">{row.data.name}</span>
                     <Plus className="ml-auto size-4 shrink-0" />
@@ -517,10 +518,11 @@ export function HomepageEditor({
                         key={imageIndex}
                         className="space-y-2 rounded-xl border p-3"
                       >
-                        <img
+                        <ImagePreview
                           src={src}
                           alt={`轮播${index + 1}画面${imageIndex + 1}`}
-                          className="aspect-[4/3] w-full rounded-lg object-cover"
+                          disabled={busy}
+                          className="h-60 w-full"
                         />
                         <select
                           className="admin-select w-full"

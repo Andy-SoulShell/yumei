@@ -8,6 +8,8 @@ import { themesConfigSchema, productConfigSchema } from "@shared/productConfig";
 import { productFixture } from "../../../../server/testProductConfig";
 import { ConfigForm, type FormSchema } from "./ConfigForm";
 import { ThemeEditor } from "./ThemeEditor";
+import { ImagePreview } from "./ImagePreview";
+import { contentTextSchema } from "@shared/discovery";
 let root: Root, container: HTMLDivElement;
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -63,6 +65,70 @@ async function choose(trigger: HTMLElement, label: string) {
     )
   );
 }
+it("edits one language at a time and preserves translations while switching", async () => {
+  let copy = { "zh-CN": "中文标题", en: "English title" };
+  function Probe() {
+    const [value, update] = useState(copy);
+    copy = value;
+    return (
+      <ConfigForm
+        value={value}
+        path="billing.plans.0.label"
+        schema={z.toJSONSchema(contentTextSchema) as FormSchema}
+        onChange={next => update(next as typeof value)}
+      />
+    );
+  }
+  await act(async () => root.render(<Probe />));
+  expect(container.querySelectorAll("input")).toHaveLength(1);
+  expect(container.querySelector<HTMLInputElement>("input")!.value).toBe(
+    "中文标题"
+  );
+  const language = (name: string) =>
+    Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
+      button => button.textContent === name
+    )!;
+  await act(async () => language("English").click());
+  await change(
+    container.querySelector<HTMLInputElement>("input")!,
+    "New English"
+  );
+  await act(async () => language("简体中文").click());
+  expect(copy).toEqual({ "zh-CN": "中文标题", en: "New English" });
+  expect(container.querySelector<HTMLInputElement>("input")!.value).toBe(
+    "中文标题"
+  );
+  await act(async () => language("English").click());
+  await change(container.querySelector<HTMLInputElement>("input")!, "");
+  expect(copy).toEqual({ "zh-CN": "中文标题" });
+});
+it("opens the original image without changing its source or editing the draft", async () => {
+  await act(async () =>
+    root.render(
+      <ImagePreview
+        src="/images/tall.webp"
+        alt="当前封面"
+        className="h-52 w-36"
+      />
+    )
+  );
+  const trigger = container.querySelector<HTMLButtonElement>(
+    'button[aria-label="查看完整图片：当前封面"]'
+  )!;
+  await act(async () => trigger.click());
+  const dialog = document.querySelector('[role="dialog"]')!;
+  expect(dialog).not.toBeNull();
+  expect(dialog.querySelector("img")!.getAttribute("src")).toBe(
+    "/images/tall.webp"
+  );
+  expect(dialog.textContent).toContain("完整原图");
+  await act(async () =>
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
+    )
+  );
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+});
 it("synchronizes the color picker, hex input and preview while keeping invalid text editable", async () => {
   let color = "";
   function Probe() {

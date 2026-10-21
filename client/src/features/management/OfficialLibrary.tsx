@@ -135,12 +135,12 @@ export function OfficialLibrary({
               className="admin-role-card group"
               aria-label={`编辑角色 ${row.data.name}`}
             >
-              <div className="relative aspect-[5/4] overflow-hidden">
+              <div className="relative aspect-[4/5] overflow-hidden bg-muted/25">
                 <img
                   src={row.data.imageUrl}
                   alt=""
                   loading="lazy"
-                  className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
+                  className="h-full w-full object-contain"
                 />
                 <Badge
                   className="absolute left-3 top-3"

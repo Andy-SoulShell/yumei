@@ -12,6 +12,7 @@ import { ChoiceField } from "./ChoiceField";
 import { officialImageSchema } from "@shared/discovery";
 import { ColorField, isHexColor } from "./ColorField";
 import { NumberField } from "./NumberField";
+import { ImagePreview } from "./ImagePreview";
 import {
   fieldHint,
   nullableLabel,
@@ -546,6 +547,7 @@ export function ConfigForm({
   disabled ||= path === "proactive.defaults.proactiveEnabled";
   const id = useId(),
     [newKey, setNewKey] = useState("");
+  const [locale, setLocale] = useState("zh-CN");
   const key = path.split(".").at(-1)!,
     label = /^\d+$/.test(key)
       ? itemName(value, Number(key))
@@ -553,7 +555,9 @@ export function ConfigForm({
         ? key === "light"
           ? "浅色背景"
           : "深色背景"
-        : fieldLabel(key),
+        : path === "prompts.chat.defaultLanguage"
+          ? "未指定回复语言时的指令"
+          : fieldLabel(key),
     s = normalized(schema, value);
   const options = { choices, onUpload, uploadAccept, issues, currency, flat };
   const issue = issues?.[path];
@@ -763,6 +767,59 @@ export function ConfigForm({
     const object = value as Record<string, unknown>,
       languages = s.propertyNames?.enum?.includes("zh-CN"),
       editableRecord = !languages && typeof s.additionalProperties === "object";
+    if (languages) {
+      const codes = s.propertyNames!.enum!,
+        selected = codes.includes(locale) ? locale : "zh-CN";
+      const languageSchema =
+        typeof s.additionalProperties === "object"
+          ? s.additionalProperties
+          : undefined;
+      return (
+        <fieldset className="min-w-0 space-y-3 rounded-xl bg-muted/15 p-3 sm:p-4">
+          <legend className="px-1 text-sm font-medium">{label}</legend>
+          <div
+            className="flex flex-wrap gap-1"
+            role="group"
+            aria-label={`${label}的编辑语言`}
+          >
+            {codes.map(code => (
+              <Button
+                type="button"
+                key={code}
+                size="sm"
+                variant={selected === code ? "secondary" : "ghost"}
+                aria-pressed={selected === code}
+                disabled={disabled}
+                onClick={() => setLocale(code)}
+              >
+                {fieldLabel(code)}
+                {issues?.[`${path}.${code}`] && (
+                  <span className="text-destructive"> · 需修正</span>
+                )}
+              </Button>
+            ))}
+          </div>
+          <ConfigForm
+            {...options}
+            value={String(object[selected] ?? "")}
+            schema={languageSchema}
+            path={`${path}.${selected}`}
+            depth={depth + 1}
+            disabled={disabled}
+            onChange={next => {
+              const result = { ...object };
+              if (selected !== "zh-CN" && !String(next).trim())
+                delete result[selected];
+              else result[selected] = next;
+              onChange(result);
+            }}
+          />
+          <p className="text-xs leading-5 text-muted-foreground">
+            简体中文必填；其他语言选填，留空时回退中文。切换语言会保留当前输入。
+          </p>
+        </fieldset>
+      );
+    }
     // MySQL JSON 会重排对象键；表单始终遵循共享契约的字段和语言顺序。
     const ordered = Array.from(
       new Set([
@@ -979,7 +1036,7 @@ export function ConfigForm({
                 <img
                   src={selected.imageUrl}
                   alt=""
-                  className="size-12 rounded-xl object-cover"
+                  className="size-12 rounded-xl object-contain"
                 />
                 <span className="text-xs text-muted-foreground">
                   {selected.label}
@@ -1083,10 +1140,11 @@ export function ConfigForm({
       {image && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed p-3">
           {officialImageSchema.safeParse(value).success ? (
-            <img
+            <ImagePreview
               src={String(value)}
               alt="图片预览"
-              className="h-24 w-32 rounded-lg object-cover"
+              disabled={disabled}
+              className="h-52 w-44"
             />
           ) : (
             <span className="text-xs text-muted-foreground">

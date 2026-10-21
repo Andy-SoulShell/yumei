@@ -16,6 +16,7 @@ import { officialFieldNames, type CharacterRules } from "./officialEditor";
 import { uploadDescription } from "@shared/operationalConfig";
 import type { ProductConfig } from "@shared/productConfig";
 import { NumberField } from "./NumberField";
+import { ImagePreview } from "./ImagePreview";
 
 const behaviorForm = z.toJSONSchema(companionBehaviorSchema) as FormSchema;
 const numberSchemas = (z.toJSONSchema(officialCharacterSchema) as FormSchema)
@@ -195,12 +196,13 @@ export function OfficialCharacterForm({
       </section>
       <section aria-label="封面与展示" className="space-y-4">
         <h2 className="font-semibold">封面与展示</h2>
-        <div className="flex items-start gap-4">
+        <div className="flex flex-wrap items-start gap-4">
           {officialImageSchema.safeParse(value.imageUrl).success && (
-            <img
+            <ImagePreview
               src={value.imageUrl}
               alt="当前封面"
-              className="h-28 w-20 rounded-xl object-cover"
+              disabled={busy}
+              className="h-52 w-36"
             />
           )}
           <div className="min-w-0 flex-1 space-y-2">

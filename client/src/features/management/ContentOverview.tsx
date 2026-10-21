@@ -159,7 +159,7 @@ export function ContentOverview({
               <img
                 src={row.data.imageUrl}
                 alt=""
-                className="h-20 w-16 rounded-xl object-cover"
+                className="h-20 w-16 rounded-xl object-contain"
               />
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-semibold">

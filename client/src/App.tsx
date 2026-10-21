@@ -67,9 +67,14 @@ function Router() {
 
   if (location === "/admin" || location.startsWith("/admin/"))
     return (
-      <Suspense fallback={<PageLoading />}>
-        <Management />
-      </Suspense>
+      <div
+        data-management-scroll
+        className="h-full overflow-x-hidden overflow-y-auto overscroll-y-contain scroll-pt-36"
+      >
+        <Suspense fallback={<PageLoading />}>
+          <Management />
+        </Suspense>
+      </div>
     );
 
   if (authModeForPath(location))

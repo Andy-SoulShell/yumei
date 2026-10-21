@@ -27,6 +27,8 @@ export type FormSchema = {
   const?: unknown;
 };
 const labels: Record<string, string> = {
+  home: "首页展示",
+  character: "角色资料",
   id: "标识 ID",
   enabled: "启用",
   name: "名称",

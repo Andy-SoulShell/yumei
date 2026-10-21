@@ -22,11 +22,21 @@
 .admin-config-group[open] > summary::after {
   transform: rotate(225deg);
 }
-.admin-config-group > summary > div {
+.admin-config-group > summary > span:first-child {
   flex: 1;
 }
 .admin-config-group > summary:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 4px;
   border-radius: 4px;
+}
+
+@media (max-width: 639px) {
+  .management-actions button {
+    padding-inline: 8px;
+    font-size: 12px;
+  }
+  .management-actions button svg:not(.animate-spin) {
+    display: none;
+  }
 }

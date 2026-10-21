@@ -12,11 +12,15 @@ let container: HTMLDivElement;
 let desktop = true;
 let busy = false;
 let generating = false;
+let voiceSupported = true;
+let preferredInputMode: "text" | "voice" = "text";
 const stopped = vi.fn();
 const submitted = vi.fn();
 function Harness() {
   const [message, setMessage] = useState("");
-  const [inputMode, switchInputMode] = useState<"text" | "voice">("text");
+  const [inputMode, switchInputMode] = useState<"text" | "voice">(
+    preferredInputMode
+  );
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const props = {
     handleSendMessage: (event: React.FormEvent) => {
@@ -43,7 +47,7 @@ function Harness() {
     inputRef,
     message,
     setMessage,
-    voiceSupported: true,
+    voiceSupported,
     switchInputMode,
     duration: 0,
     startRecording: vi.fn(),
@@ -58,6 +62,8 @@ beforeEach(async () => {
   desktop = true;
   busy = false;
   generating = false;
+  voiceSupported = true;
+  preferredInputMode = "text";
   stopped.mockClear();
   submitted.mockClear();
   vi.stubGlobal(
@@ -177,4 +183,15 @@ it("keeps the text draft when switching to voice and back", async () => {
   );
   expect(input().value).toBe("  ");
   expect(document.activeElement).toBe(input());
+});
+
+it("uses text input when saved voice mode is unavailable on LAN HTTP", async () => {
+  preferredInputMode = "voice";
+  voiceSupported = false;
+  await act(async () => root.render(<Harness key="saved-voice" />));
+  expect(input()).not.toBeNull();
+  expect(container.querySelector('[aria-label="切换到语音输入"]')).toBeNull();
+  await fill("局域网文字消息");
+  await key();
+  expect(submitted).toHaveBeenCalledWith("局域网文字消息");
 });

@@ -58,7 +58,9 @@ export function ChatComposer({
   handleRecordingComplete,
   cancelRecording,
 }: Props) {
-  useAutosizeTextarea(inputRef, message, inputMode === "text");
+  // 已保存的语音偏好不能阻止不支持录音的环境继续使用文字聊天。
+  const textInput = inputMode === "text" || !voiceSupported;
+  useAutosizeTextarea(inputRef, message, textInput);
   const busy =
     isAccepting ||
     generateSelfie.isPending ||
@@ -131,7 +133,7 @@ export function ChatComposer({
           )}
         </Button>
 
-        {inputMode === "text" ? (
+        {textInput ? (
           <>
             <Textarea
               ref={inputRef}

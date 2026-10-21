@@ -1,7 +1,14 @@
 /** 覆盖明确自拍意图识别及否定、讨论排除。 */
 
 import { describe, expect, it } from "vitest";
-import { detectSelfieRequest } from "../shared/selfieRequest";
+import { detectSelfieRequest as detect } from "../shared/selfieRequest";
+import { productFixture } from "./testProductConfig";
+const detectSelfieRequest = (text: string) =>
+  detect(
+    text,
+    productFixture.selfies.poses,
+    productFixture.selfies.defaultPoseId
+  );
 
 describe("explicit selfie requests", () => {
   it.each([

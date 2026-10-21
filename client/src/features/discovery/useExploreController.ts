@@ -1,16 +1,14 @@
 /** 公开探索目录的搜索、画风与分页状态，统一保存在地址中。 */
 import { useLocation, useSearch } from "wouter";
-import {
-  CHARACTER_PRESETS,
-  type CharacterPreset,
-} from "@shared/characterPresets";
+import type { CharacterPreset } from "@shared/discovery";
 import { useI18n } from "@/lib/i18n";
-import { presetMessages } from "@/locales/domain";
-import { CATALOGUE_PAGE_SIZE } from "./catalogue";
+import { useDiscovery } from "./useDiscovery";
 
 /** 刷新或关闭角色详情后，继续展示原来的目录条件和已加载角色。 */
 export function useExploreController() {
   const { t } = useI18n();
+  const discovery = useDiscovery();
+  const pageSize = discovery.data?.home.pageSize ?? 20;
   const [, navigate] = useLocation();
   const query = useSearch();
   const params = new URLSearchParams(query);
@@ -19,25 +17,21 @@ export function useExploreController() {
   const style: "all" | CharacterPreset["style"] =
     rawStyle === "realistic" || rawStyle === "anime" ? rawStyle : "all";
   const keyword = search.trim().toLocaleLowerCase();
-  const results = CHARACTER_PRESETS.filter(preset => {
+  const results = (discovery.data?.characters ?? []).filter(preset => {
+    if (!preset.listed) return false;
     if (style !== "all" && preset.style !== style) return false;
     return [
       preset.name,
       preset.label,
       preset.tagline,
       preset.interests,
-      t(presetMessages[preset.id].label),
-      t(presetMessages[preset.id].tagline),
       t(preset.style === "anime" ? "explore:anime" : "explore:realistic"),
     ]
       .join(" ")
       .toLocaleLowerCase()
       .includes(keyword);
   });
-  const pageCount = Math.max(
-    1,
-    Math.ceil(results.length / CATALOGUE_PAGE_SIZE)
-  );
+  const pageCount = Math.max(1, Math.ceil(results.length / pageSize));
   const rawPage = Number(params.get("page") ?? 1);
   const page = Number.isSafeInteger(rawPage)
     ? Math.min(pageCount, Math.max(1, rawPage))
@@ -53,10 +47,13 @@ export function useExploreController() {
     });
   };
   return {
+    isLoading: discovery.isLoading,
+    error: discovery.error,
+    refetch: discovery.refetch,
     search,
     style,
     results,
-    visible: results.slice(0, page * CATALOGUE_PAGE_SIZE),
+    visible: results.slice(0, page * pageSize),
     hasFilters: !!keyword || style !== "all",
     hasMore: page < pageCount,
     setSearch: (value: string) => update({ q: value, page: null }),

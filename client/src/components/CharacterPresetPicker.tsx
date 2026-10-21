@@ -1,4 +1,3 @@
-import { presetMessages } from "@/locales/domain";
 /** 内置角色预设的画风筛选与受控选择界面。 */
 
 import { useI18n } from "@/lib/i18n";
@@ -11,16 +10,15 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { RadioGroup, RadioGroupChoice } from "@/components/ui/radio-group";
-import {
-  CHARACTER_PRESETS,
-  type CharacterPreset,
-} from "@shared/characterPresets";
+import type { CharacterPreset } from "@shared/discovery";
 
 /** 展示内置预设并通过回调返回选择，选择 null 表示从零自定义。 */
 export function CharacterPresetPicker({
   selectedId,
   onSelect,
+  characters,
 }: {
+  characters: readonly CharacterPreset[];
   /** 当前选中预设标识，null 表示自定义角色。 */
   selectedId: string | null;
   /** 选择预设时返回完整资料；选择从零创建时返回 null。 */
@@ -30,7 +28,7 @@ export function CharacterPresetPicker({
   const [style, setStyle] = useState<"all" | CharacterPreset["style"]>("all");
   const [expanded, setExpanded] = useState(!selectedId);
   const trigger = useRef<HTMLButtonElement>(null);
-  const selected = CHARACTER_PRESETS.find(preset => preset.id === selectedId);
+  const selected = characters.find(preset => preset.id === selectedId);
   return (
     <section
       className="space-y-4"
@@ -57,10 +55,7 @@ export function CharacterPresetPicker({
           >
             {(
               [
-                [
-                  "all",
-                  t("characters:allCount", { count: CHARACTER_PRESETS.length }),
-                ],
+                ["all", t("characters:allCount", { count: characters.length })],
                 ["realistic", t("characters:realistic")],
                 ["anime", t("characters:anime")],
               ] as const
@@ -79,9 +74,7 @@ export function CharacterPresetPicker({
             aria-label={t("characters:characterPresets")}
             value={selectedId ?? "custom"}
             onValueChange={id => {
-              onSelect(
-                CHARACTER_PRESETS.find(preset => preset.id === id) ?? null
-              );
+              onSelect(characters.find(preset => preset.id === id) ?? null);
               setExpanded(false);
               requestAnimationFrame(() => {
                 trigger.current?.focus({ preventScroll: true });
@@ -90,42 +83,40 @@ export function CharacterPresetPicker({
             }}
           >
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {CHARACTER_PRESETS.filter(
-                preset => style === "all" || preset.style === style
-              ).map(preset => (
-                <RadioGroupChoice
-                  key={preset.id}
-                  value={preset.id}
-                  aria-label={t("characters:select", { name: preset.name })}
-                  className={`relative overflow-hidden rounded-2xl text-left transition-colors focus-visible:outline-2 focus-visible:outline-primary ${selectedId === preset.id ? "ring-2 ring-primary" : "bg-muted/30 hover:bg-muted/60"}`}
-                >
-                  <img
-                    src={preset.imageUrl}
-                    alt={preset.name}
-                    loading="lazy"
-                    className="w-full aspect-[3/4] object-cover object-top"
-                  />
-                  {selectedId === preset.id && (
-                    <span className="absolute right-2 top-2 rounded-full bg-primary p-1 text-primary-foreground">
-                      <Check className="h-4 w-4" />
-                    </span>
-                  )}
-                  <div className="p-2.5 space-y-1">
-                    <p className="font-medium">
-                      {preset.name}
-                      <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                        {t("characters:age", { age: preset.age })}
+              {characters
+                .filter(preset => style === "all" || preset.style === style)
+                .map(preset => (
+                  <RadioGroupChoice
+                    key={preset.id}
+                    value={preset.id}
+                    aria-label={t("characters:select", { name: preset.name })}
+                    className={`relative overflow-hidden rounded-2xl text-left transition-colors focus-visible:outline-2 focus-visible:outline-primary ${selectedId === preset.id ? "ring-2 ring-primary" : "bg-muted/30 hover:bg-muted/60"}`}
+                  >
+                    <img
+                      src={preset.imageUrl}
+                      alt={preset.name}
+                      loading="lazy"
+                      className="w-full aspect-[3/4] object-cover object-top"
+                    />
+                    {selectedId === preset.id && (
+                      <span className="absolute right-2 top-2 rounded-full bg-primary p-1 text-primary-foreground">
+                        <Check className="h-4 w-4" />
                       </span>
-                    </p>
-                    <p className="text-xs text-primary">
-                      {t(presetMessages[preset.id].label)}
-                    </p>
-                    <p className="text-xs leading-relaxed text-muted-foreground">
-                      {t(presetMessages[preset.id].tagline)}
-                    </p>
-                  </div>
-                </RadioGroupChoice>
-              ))}
+                    )}
+                    <div className="p-2.5 space-y-1">
+                      <p className="font-medium">
+                        {preset.name}
+                        <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                          {t("characters:age", { age: preset.age })}
+                        </span>
+                      </p>
+                      <p className="text-xs text-primary">{preset.label}</p>
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        {preset.tagline}
+                      </p>
+                    </div>
+                  </RadioGroupChoice>
+                ))}
             </div>
             <RadioGroupChoice
               variant="segment"

@@ -3,7 +3,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { intimacyMessages } from "@/locales/domain";
 import { Edit, MessageCircle, Trash2 } from "lucide-react";
 import { getLevelGradient, getLevelInfo } from "../../../../shared/intimacy";
 import type { HomeController } from "./useHomeController";
@@ -57,6 +56,7 @@ const MOOD_CONFIG: Record<
 };
 type Props = Pick<
   HomeController,
+  | "levels"
   | "moodMap"
   | "selectedIds"
   | "batchMode"
@@ -73,6 +73,7 @@ type Props = Pick<
 /** 展示角色、当前心情与亲密度，并提供聊天和批量选择入口。 */
 export function CharacterGrid({
   girlfriends,
+  levels,
   moodMap,
   selectedIds,
   batchMode,
@@ -154,13 +155,14 @@ export function CharacterGrid({
                     {/* 亲密度等级徽章 */}
                     {(() => {
                       const intimacy = intimacyMap[gf.id];
-                      if (!intimacy) return null;
-                      const levelInfo = getLevelInfo(intimacy.level);
+                      if (!intimacy || !levels) return null;
+                      const levelInfo = getLevelInfo(intimacy.level, levels);
                       return (
                         <span
-                          className={`text-xs flex-shrink-0 flex items-center gap-0.5 ${levelInfo.color}`}
+                          className={`text-xs flex-shrink-0 flex items-center gap-0.5 `}
+                          style={{ color: levelInfo.color }}
                           title={t("home:lvXP", {
-                            name: t(intimacyMessages[levelInfo.level].name),
+                            name: levelInfo.name,
                             level: levelInfo.level,
                             points: intimacy.points,
                           })}
@@ -180,16 +182,17 @@ export function CharacterGrid({
                   {/* 亲密度进度条 */}
                   {(() => {
                     const intimacy = intimacyMap[gf.id];
-                    if (!intimacy) return null;
-                    const levelInfo = getLevelInfo(intimacy.level);
-                    const gradient = getLevelGradient(intimacy.level);
+                    if (!intimacy || !levels) return null;
+                    const levelInfo = getLevelInfo(intimacy.level, levels);
+                    const gradient = getLevelGradient(intimacy.level, levels);
                     return (
                       <div className="mt-1.5">
                         <div className="flex items-center justify-between mb-0.5">
                           <span
-                            className={`text-[10px] font-medium ${levelInfo.color}`}
+                            className="text-[10px] font-medium"
+                            style={{ color: levelInfo.color }}
                           >
-                            {t(intimacyMessages[levelInfo.level].name)}
+                            {levelInfo.name}
                           </span>
                           <span className="text-[10px] text-muted-foreground">
                             {intimacy.pointsToNext !== null
@@ -201,8 +204,11 @@ export function CharacterGrid({
                         </div>
                         <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full bg-gradient-to-r ${gradient} transition-all duration-500`}
-                            style={{ width: `${intimacy.progress}%` }}
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${intimacy.progress}%`,
+                              backgroundImage: gradient,
+                            }}
                           />
                         </div>
                       </div>

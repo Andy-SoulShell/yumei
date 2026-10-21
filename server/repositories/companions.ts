@@ -1,4 +1,6 @@
 /** companions 领域的数据访问与事务边界。 */
+import { getPublishedProductConfig } from "./productConfig";
+import { getLevelByPoints } from "../../shared/intimacy";
 import { TRPCError } from "@trpc/server";
 import {
   and,
@@ -80,9 +82,25 @@ async function insertGirlfriend(
 /** 锁定用户后原子校验数量、切换激活状态并创建角色。 */
 export async function createGirlfriend(
   data: InsertGirlfriend,
-  maximum: number | null = null
+  maximum: number | null = null,
+  reuseOfficial = false
 ): Promise<Girlfriend> {
   return withUserTransaction(data.userId, async tx => {
+    if (reuseOfficial && data.officialPresetId) {
+      const [existing] = await tx
+        .select()
+        .from(girlfriends)
+        .where(
+          and(
+            eq(girlfriends.userId, data.userId),
+            eq(girlfriends.officialPresetId, data.officialPresetId),
+            isNull(girlfriends.deletedAt)
+          )
+        )
+        .orderBy(desc(girlfriends.createdAt), desc(girlfriends.id))
+        .limit(1);
+      if (existing) return existing;
+    }
     await checkCompanionLimit(tx, data.userId, maximum);
     return insertGirlfriend(tx, data);
   });
@@ -110,7 +128,14 @@ export async function getActiveGirlfriend(
     )
     .limit(1);
 
-  return result[0];
+  const row = result[0];
+  if (!row) return undefined;
+  const policy = await getPublishedProductConfig();
+  return {
+    ...row,
+    intimacyLevel: getLevelByPoints(row.intimacyPoints, policy.intimacy.levels)
+      .level,
+  };
 }
 
 /** 按创建时间倒序列出用户未删除的角色。 */
@@ -120,11 +145,17 @@ export async function getUserGirlfriends(
   const db = await getDb();
   if (!db) return [];
 
-  return db
+  const rows = await db
     .select()
     .from(girlfriends)
     .where(and(eq(girlfriends.userId, userId), isNull(girlfriends.deletedAt)))
     .orderBy(desc(girlfriends.createdAt));
+  const policy = await getPublishedProductConfig();
+  return rows.map(row => ({
+    ...row,
+    intimacyLevel: getLevelByPoints(row.intimacyPoints, policy.intimacy.levels)
+      .level,
+  }));
 }
 
 /** 首页只取最近聊过的十个角色；从未聊天的角色按创建时间补在末尾。 */
@@ -220,7 +251,12 @@ export async function updateGirlfriend(
           JSON.stringify(data[key]) !== JSON.stringify(target[key])
       )
     )
-      await awardIntimacy(tx, id, userId, 5, "edit_profile");
+      await awardIntimacy(tx, id, userId, "edit_profile", {
+        profileEnhanced:
+          (data.personality !== undefined &&
+            data.personality !== target.personality) ||
+          (!!data.avatarKey && data.avatarKey !== target.avatarKey),
+      });
   });
 }
 
@@ -511,7 +547,8 @@ export async function cleanupExpiredTrash(userId: string): Promise<number> {
  */
 export async function createDefaultGirlfriend(
   userId: string,
-  createData: () => Promise<InsertGirlfriend>
+  createData: () => Promise<InsertGirlfriend>,
+  maxGirlfriends: number | null = null
 ): Promise<Girlfriend> {
   let prepared: Promise<InsertGirlfriend> | undefined;
   return withUserTransaction(userId, async tx => {
@@ -521,6 +558,7 @@ export async function createDefaultGirlfriend(
       .where(and(eq(girlfriends.userId, userId), isNull(girlfriends.deletedAt)))
       .limit(1);
     if (existing) return existing;
+    await checkCompanionLimit(tx, userId, maxGirlfriends);
     const data = await (prepared ??= createData());
     return insertGirlfriend(tx, { ...data, userId });
   });

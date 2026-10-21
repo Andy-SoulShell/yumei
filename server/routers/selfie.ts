@@ -12,6 +12,7 @@ import {
 import { keyProvider } from "../_core/keyProvider";
 import { log, providerErrorSummary } from "../_core/log";
 import { checkRateLimit, getDailyMeter, getMonthlyMeter } from "../_core/quota";
+import { getPublishedProductConfig } from "../repositories/productConfig";
 import { protectedProcedure, router } from "../_core/trpc";
 import { decodeBase64Upload } from "../_core/uploads";
 import { getTierLimits, isBillingEnforced, upsellHint } from "../billing";
@@ -63,7 +64,8 @@ export const selfieRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       ensureAgeConfirmed(ctx.user);
-      await checkRateLimit(ctx.user.id, "selfie");
+      const policy = await getPublishedProductConfig();
+      await checkRateLimit(ctx.user.id, "selfie", policy);
 
       const conversation = await getConversation(
         input.conversationId,
@@ -86,11 +88,11 @@ export const selfieRouter = router({
         });
       }
 
-      // 档位门：Pro 专属（BYOK fal 或自托管除外）。
+      // 合照权限由当前套餐决定，用户密钥或自托管模式除外。
       const imageProvider = await resolveImageProvider(ctx.user.id);
       const byokFal = imageProvider.isByok;
-      const coupleTier = await getTierLimits(ctx.user.id);
-      if (isBillingEnforced() && !byokFal && coupleTier.tier !== "pro") {
+      const coupleTier = await getTierLimits(ctx.user.id, policy);
+      if (isBillingEnforced() && !byokFal && !coupleTier.limits.couplePhoto) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "UPGRADE_REQUIRED",
@@ -137,7 +139,7 @@ export const selfieRouter = router({
                 period: "day",
                 limit: coupleTier.limits.dailySelfies,
                 what: "selfies",
-                hint: upsellHint(coupleTier.tier),
+                hint: upsellHint(coupleTier.tier, coupleTier.configuration),
               }
             : coupleTier.limits.monthlySelfies !== null
               ? {
@@ -145,7 +147,7 @@ export const selfieRouter = router({
                   period: "month",
                   limit: coupleTier.limits.monthlySelfies,
                   what: "selfies",
-                  hint: upsellHint(coupleTier.tier),
+                  hint: upsellHint(coupleTier.tier, coupleTier.configuration),
                 }
               : undefined
           : undefined;
@@ -256,6 +258,14 @@ export const selfieRouter = router({
       };
     }
     const { limits } = await getTierLimits(ctx.user.id);
+    if (limits.dailySelfies === null && limits.monthlySelfies === null)
+      return {
+        unlimited: true as const,
+        used: 0,
+        limit: 0,
+        remaining: null,
+        period: null,
+      };
     if (limits.dailySelfies !== null) {
       const used = await getDailyMeter(ctx.user.id, METERS.selfie);
       return {

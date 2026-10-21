@@ -15,19 +15,10 @@ import {
 } from "@shared/i18n";
 import { apiErrorMessage } from "./errors";
 import en from "@shared/locales/en";
-import {
-  intimacyMessages,
-  memoryMessages,
-  poseMessages,
-  presetMessages,
-  themeMessages,
-} from "@/locales/domain";
-import { INTIMACY_LEVELS } from "@shared/intimacy";
-import { SELFIE_POSES } from "@shared/selfiePoses";
-import { CHARACTER_PRESETS } from "@shared/characterPresets";
+import { memoryMessages, themeMessages } from "@/locales/domain";
 import { THEMES } from "./themes";
 import { formatPrice, formatRelativeTime } from "./formatters";
-import { TIER_PRICES } from "@shared/quotas";
+import { TIER_PRICES } from "../../../server/testProductConfig";
 
 const parameters = (text: string) =>
   Array.from(text.matchAll(/\{\{([^}]+)\}\}/g))
@@ -92,29 +83,8 @@ describe("interface localization", () => {
     }
   });
   it("covers domain labels by stable business identifiers", () => {
-    for (const level of INTIMACY_LEVELS) {
-      const labels = intimacyMessages[level.level];
-      expect(labels.unlocks).toHaveLength(level.unlocks.length);
-      for (const key of [
-        labels.name,
-        labels.description,
-        labels.petName,
-        ...labels.unlocks,
-      ])
-        for (const locale of LOCALES)
-          expect(
-            i18n.exists(key, { lng: locale, fallbackLng: false }),
-            key
-          ).toBe(true);
-    }
     expect(Object.keys(themeMessages).sort()).toEqual(
       Object.keys(THEMES).sort()
-    );
-    expect(Object.keys(poseMessages).sort()).toEqual(
-      SELFIE_POSES.map(pose => pose.id).sort()
-    );
-    expect(Object.keys(presetMessages).sort()).toEqual(
-      CHARACTER_PRESETS.map(preset => preset.id).sort()
     );
     expect(Object.keys(memoryMessages).sort()).toEqual(
       ["event", "preference", "relationship", "fact"].sort()

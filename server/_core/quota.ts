@@ -3,21 +3,29 @@
 import { TRPCError } from "@trpc/server";
 import { sql } from "drizzle-orm";
 import { rateWindows, usageMeters } from "../../drizzle/schema";
-import {
-  RATE_LIMITS_PER_MINUTE,
-  type RateLimitedAction,
-} from "../../shared/quotas";
+import type {
+  RateLimitedAction,
+  ProductConfig,
+} from "../../shared/productConfig";
+import { getPublishedProductConfig } from "../repositories/productConfig";
 import { getDb, type DbTransaction } from "../database";
 
 /** 以数据库行锁保护滑动窗口，多进程和重启共享同一请求频率。 */
 export async function checkRateLimit(
   userId: string,
-  action: RateLimitedAction
+  action: RateLimitedAction,
+  configuration?: ProductConfig
 ): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const limit = RATE_LIMITS_PER_MINUTE[action],
+  const policy = configuration ?? (await getPublishedProductConfig());
+  const limit = policy.billing.rateLimits[action],
     now = Date.now();
+  if (limit === 0)
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: "This action is currently disabled by the request limit",
+    });
   await db.transaction(async tx => {
     await tx
       .insert(rateWindows)
@@ -124,7 +132,7 @@ export async function tryConsumeMeterInTransaction(
   if (count > limit - amount) return { allowed: false, count, limit };
   await tx
     .update(usageMeters)
-    .set({ count: count + amount })
+    .set({ count: count + amount, updatedAt: new Date() })
     .where(where);
   return { allowed: true, count: count + amount, limit };
 }

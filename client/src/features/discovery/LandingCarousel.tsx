@@ -8,55 +8,18 @@ import {
   Pause,
   Play,
 } from "lucide-react";
-import type { StaticMessageKey } from "@shared/i18n";
+import type { localizeDiscovery } from "@shared/discovery";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 
-type Slide = {
-  title: StaticMessageKey;
-  highlight: StaticMessageKey;
-  action: StaticMessageKey;
-  href: string;
-  images: readonly string[];
-};
-const slides: readonly Slide[] = [
-  {
-    title: "explore:heroTitle",
-    highlight: "explore:heroHighlight",
-    action: "explore:heroAction",
-    href: "/explore",
-    images: [
-      "/characters/char_mature.jpg",
-      "/characters/char_cute.jpg",
-      "/characters/char_anime_cute.jpg",
-    ],
-  },
-  {
-    title: "landing:createTitle",
-    highlight: "landing:createHighlight",
-    action: "explore:heroSecondary",
-    href: "/setup",
-    images: [
-      "/characters/linxi.jpg",
-      "/characters/hikari.jpg",
-      "/characters/shiyu.jpg",
-    ],
-  },
-  {
-    title: "landing:photosTitle",
-    highlight: "landing:photosHighlight",
-    action: "landing:photosAction",
-    href: "/generate",
-    images: [
-      "/characters/zhixia.jpg",
-      "/characters/kaede.jpg",
-      "/characters/jiangyue.jpg",
-    ],
-  },
-];
-
 /** 自动轮播在鼠标悬停、焦点进入或用户主动暂停时停止。 */
-export function LandingCarousel() {
+export function LandingCarousel({
+  slides,
+  intervalMs,
+}: {
+  slides: ReturnType<typeof localizeDiscovery>["home"]["slides"];
+  intervalMs: number;
+}) {
   const { t } = useI18n();
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -74,16 +37,29 @@ export function LandingCarousel() {
     return () => media?.removeEventListener("change", update);
   }, []);
   useEffect(() => {
-    if (paused || hovered || focused || reducedMotion) return;
+    if (paused || hovered || focused || reducedMotion || slides.length < 2)
+      return;
     const timer = window.setInterval(() => {
       if (document.visibilityState !== "hidden")
         setIndex(value => (value + 1) % slides.length);
-    }, 6500);
+    }, intervalMs);
     return () => window.clearInterval(timer);
-  }, [paused, hovered, focused, reducedMotion, index]);
+  }, [
+    paused,
+    hovered,
+    focused,
+    reducedMotion,
+    index,
+    slides.length,
+    intervalMs,
+  ]);
   const move = (delta: number) =>
-    setIndex(value => (value + delta + slides.length) % slides.length);
-  const slide = slides[index];
+    setIndex(value =>
+      slides.length ? (value + delta + slides.length) % slides.length : 0
+    );
+  const activeIndex = slides.length ? index % slides.length : 0;
+  const slide = slides[activeIndex];
+  if (!slide) return null;
   return (
     <section
       className="explore-hero landing-carousel"
@@ -112,7 +88,11 @@ export function LandingCarousel() {
         pointer.current = null;
       }}
     >
-      <div className="hero-art" aria-hidden="true">
+      <div
+        className="hero-art"
+        data-image-count={slide.images.length}
+        aria-hidden="true"
+      >
         {slide.images.map(src => (
           <img key={src} src={src} alt="" draggable={false} />
         ))}
@@ -124,63 +104,65 @@ export function LandingCarousel() {
           aria-atomic="true"
         >
           <h1>
-            {t(slide.title)}
-            <span>{t(slide.highlight)}</span>
+            {slide.title}
+            <span>{slide.highlight}</span>
           </h1>
         </div>
         <div className="hero-actions">
           <Button asChild className="hero-primary">
             <Link href={slide.href}>
-              {t(slide.action)}
+              {slide.action}
               <ArrowRight />
             </Link>
           </Button>
         </div>
       </div>
-      <div className="carousel-controls">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => move(-1)}
-          aria-label={t("landing:previousSlide")}
-        >
-          <ChevronLeft />
-        </Button>
-        <div className="carousel-dots">
-          {slides.map((_, number) => (
-            <Button
-              key={number}
-              variant="plain"
-              size="none"
-              aria-label={t("landing:goToSlide", { count: number + 1 })}
-              aria-pressed={index === number}
-              onClick={() => setIndex(number)}
-            >
-              <span />
-            </Button>
-          ))}
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => move(1)}
-          aria-label={t("landing:nextSlide")}
-        >
-          <ChevronRight />
-        </Button>
-        {!reducedMotion && (
+      {slides.length > 1 && (
+        <div className="carousel-controls">
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setPaused(value => !value)}
-            aria-label={t(
-              paused ? "landing:playSlides" : "landing:pauseSlides"
-            )}
+            onClick={() => move(-1)}
+            aria-label={t("landing:previousSlide")}
           >
-            {paused ? <Play /> : <Pause />}
+            <ChevronLeft />
           </Button>
-        )}
-      </div>
+          <div className="carousel-dots">
+            {slides.map((_, number) => (
+              <Button
+                key={slides[number].id}
+                variant="plain"
+                size="none"
+                aria-label={t("landing:goToSlide", { count: number + 1 })}
+                aria-pressed={activeIndex === number}
+                onClick={() => setIndex(number)}
+              >
+                <span />
+              </Button>
+            ))}
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => move(1)}
+            aria-label={t("landing:nextSlide")}
+          >
+            <ChevronRight />
+          </Button>
+          {!reducedMotion && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setPaused(value => !value)}
+              aria-label={t(
+                paused ? "landing:playSlides" : "landing:pauseSlides"
+              )}
+            >
+              {paused ? <Play /> : <Pause />}
+            </Button>
+          )}
+        </div>
+      )}
     </section>
   );
 }

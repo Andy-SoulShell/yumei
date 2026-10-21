@@ -1,6 +1,7 @@
 /** 解析聊天服务地址、模型及凭据，保持运营方默认与用户 BYOK 的优先关系。 */
 
-import { FREE_TIER_DEFAULT_MODEL } from "../../shared/quotas";
+import type { ProductConfig } from "../../shared/productConfig";
+import { getPublishedProductConfig } from "../repositories/productConfig";
 import { keyProvider } from "./keyProvider";
 
 /** 一次聊天实际使用的 Provider、模型、基础地址与服务端密钥。 */
@@ -14,7 +15,10 @@ export type ChatProvider = {
 };
 
 /** 按环境选择 DeepSeek 或 OpenRouter 的运营方默认配置。 */
-export function getOperatorChatProvider(): ChatProvider {
+export async function getOperatorChatProvider(
+  configuration?: ProductConfig
+): Promise<ChatProvider> {
+  const policy = configuration ?? (await getPublishedProductConfig());
   if (process.env.LLM_PROVIDER === "deepseek") {
     return {
       name: "deepseek",
@@ -31,7 +35,7 @@ export function getOperatorChatProvider(): ChatProvider {
     baseUrl:
       process.env.OPERATOR_CHAT_BASE_URL?.replace(/\/$/, "") ||
       "https://openrouter.ai/api/v1",
-    model: FREE_TIER_DEFAULT_MODEL,
+    model: policy.billing.defaultChatModel,
     apiKey: process.env.OPERATOR_OPENROUTER_KEY || null,
     isByok: false,
   };
@@ -43,15 +47,17 @@ export function getOperatorChatProvider(): ChatProvider {
  * @remarks DeepSeek 与 OpenRouter 密钥分别使用，禁止交叉转发。
  */
 export async function resolveChatProvider(
-  userId: string
+  userId: string,
+  configuration?: ProductConfig
 ): Promise<ChatProvider> {
-  const operator = getOperatorChatProvider();
+  const policy = configuration ?? (await getPublishedProductConfig());
+  const operator = await getOperatorChatProvider(policy);
   const key = await keyProvider.resolve({ userId }, "openrouter");
   if (key.source !== "user") return operator;
   return {
     name: "openrouter",
     baseUrl: "https://openrouter.ai/api/v1",
-    model: FREE_TIER_DEFAULT_MODEL,
+    model: policy.billing.defaultChatModel,
     apiKey: key.value,
     isByok: key.source === "user",
   };

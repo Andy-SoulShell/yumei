@@ -5,9 +5,29 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useSetupController } from "./useSetupController";
 import { DEFAULT_COMPANION_BEHAVIOR } from "@shared/companionBehavior";
-import { getCharacterPreset } from "@shared/characterPresets";
-import { getPresetBehavior } from "@shared/presetBehavior";
+import { discoveryFixture } from "@/features/discovery/testFixtures";
+const getCharacterPreset = (id: string) =>
+  discoveryFixture.characters.find(item => item.id === id);
+import { getPresetBehavior } from "../../../../server/seeds/presetBehavior";
+vi.mock("@/features/discovery/useDiscovery", async () => {
+  const { discoveryFixture } =
+    await import("@/features/discovery/testFixtures");
+  return {
+    useDiscovery: () => ({
+      data: mock.discoveryLoading
+        ? undefined
+        : (mock.discoveryData ?? discoveryFixture),
+      isLoading: mock.discoveryLoading,
+      error: mock.discoveryError,
+      refetch: mock.discoveryRefetch,
+    }),
+  };
+});
 const mock = vi.hoisted(() => ({
+  discoveryData: undefined as any,
+  discoveryLoading: false,
+  discoveryError: null as Error | null,
+  discoveryRefetch: vi.fn(),
   roles: [] as any[],
   update: vi.fn(),
   create: vi.fn(),
@@ -64,6 +84,9 @@ let remount: () => Promise<void>;
 beforeEach(async () => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   vi.clearAllMocks();
+  mock.discoveryData = undefined;
+  mock.discoveryLoading = false;
+  mock.discoveryError = null;
   mock.calls = 0;
   mock.editId = "1";
   mock.search = "";
@@ -286,4 +309,25 @@ it("blocks incomplete and excessive examples, then allows corrected behavior", a
   });
   expect(controller.behaviorError).toBe(false);
   expect(mock.update).toHaveBeenCalledOnce();
+});
+
+it("initializes an asynchronously loaded preset once and preserves subsequent form edits", async () => {
+  mock.editId = undefined;
+  mock.search = "?preset=xiaotao";
+  mock.discoveryLoading = true;
+  await remount();
+  expect(controller.presetLoading).toBe(true);
+  expect(controller.name).toBe("");
+  mock.discoveryLoading = false;
+  await render();
+  expect(controller.name).toBe(getCharacterPreset("xiaotao")!.name);
+  await act(async () => controller.setName("用户正在编辑的名字"));
+  mock.discoveryData = {
+    ...discoveryFixture,
+    characters: discoveryFixture.characters.map(item =>
+      item.id === "xiaotao" ? { ...item, name: "已更新的官方名称" } : item
+    ),
+  };
+  await render();
+  expect(controller.name).toBe("用户正在编辑的名字");
 });

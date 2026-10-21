@@ -9,7 +9,8 @@ import {
   subscriptions,
   type Subscription,
 } from "../drizzle/schema";
-import { TIER_LIMITS, type Tier, type TierLimits } from "../shared/quotas";
+import type { Tier, ProductConfig } from "../shared/productConfig";
+import { getPublishedProductConfig } from "./repositories/productConfig";
 import { log } from "./_core/log";
 import { getDb, withUserTransaction } from "./database";
 import { getUserById } from "./repositories/users";
@@ -55,47 +56,61 @@ export async function getSubscription(
  *
  * @remarks 已过 endsAt 或明确终止的订阅不授权；欠费宽限最多七天，取消续费可保留未到期权益。
  */
-export async function getUserTier(userId: string): Promise<Tier> {
+export async function getUserTier(
+  userId: string,
+  configuration?: ProductConfig
+): Promise<Tier> {
+  const policy = configuration ?? (await getPublishedProductConfig());
+  const fallback = policy.billing.defaultTierId;
   const mode = getBillingMode();
-  if (mode === "none") return "pro";
-  if (mode === "free") return "free";
+  if (mode === "none") return policy.billing.selfHostedTierId;
+  if (mode === "free") return fallback;
 
   const sub = await getSubscription(userId);
-  if (!sub) return "free";
+  if (!sub) return fallback;
 
+  if (!policy.billing.plans.some(plan => plan.id === sub.plan && plan.enabled))
+    return fallback;
   const now = Date.now();
-  if (sub.endsAt && sub.endsAt.getTime() <= now) return "free";
+  if (sub.endsAt && sub.endsAt.getTime() <= now) return fallback;
   if (
     sub.status === "expired" ||
     sub.status === "unpaid" ||
     sub.status === "paused"
   )
-    return "free";
+    return fallback;
   if (sub.status === "past_due") {
     const since = sub.pastDueSince ?? sub.providerUpdatedAt ?? sub.updatedAt;
-    return now - since.getTime() < 7 * 86_400_000 ? sub.plan : "free";
+    return now - since.getTime() < 7 * 86_400_000 ? sub.plan : fallback;
   }
   if (ACTIVE_STATUSES.includes(sub.status)) return sub.plan;
 
   // 已取消续费但仍处于已支付周期内，继续保留对应权益。
   if (sub.endsAt && new Date(sub.endsAt) > new Date()) return sub.plan;
 
-  return "free";
+  return fallback;
 }
 
 /** 返回用户当前档位和对应的默认权益定义。 */
 export async function getTierLimits(
-  userId: string
-): Promise<{ tier: Tier; limits: TierLimits }> {
-  const tier = await getUserTier(userId);
-  return { tier, limits: TIER_LIMITS[tier] };
+  userId: string,
+  configuration?: ProductConfig
+) {
+  const policy = configuration ?? (await getPublishedProductConfig());
+  const tier = await getUserTier(userId, policy);
+  const plan = policy.billing.plans.find(item => item.id === tier)!;
+  return { tier, limits: plan.limits, plan, configuration: policy };
 }
 
-/** 在已启用订阅且用户尚未达到 Pro 时返回升级提示。 */
-export function upsellHint(tier: Tier): string {
+/** 仅在订阅模式且存在更高启用套餐时提示升级。 */
+export function upsellHint(tier: Tier, configuration: ProductConfig): string {
   if (getBillingMode() !== "lemonsqueezy") return "";
-  if (tier === "pro") return "";
-  return " Upgrade in Settings for higher limits.";
+  const index = configuration.billing.plans.findIndex(plan => plan.id === tier);
+  return configuration.billing.plans.some(
+    (plan, i) => i > index && plan.enabled
+  )
+    ? " Upgrade in Settings for higher limits."
+    : "";
 }
 
 // ---------------------------------------------------------------------------
@@ -161,27 +176,23 @@ type LemonPayload = {
 };
 
 /**
- * 优先按配置的变体编号匹配套餐，再按变体或产品名称推断。
+ * 按发布配置中的支付变体编号精确匹配套餐。
  *
  * @returns 无法识别套餐时返回 null
  */
-export function resolvePlan(attributes: {
-  variant_id?: number;
-  variant_name?: string;
-  product_name?: string;
-}): "plus" | "pro" | null {
-  const plusId = process.env.LEMONSQUEEZY_VARIANT_PLUS;
-  const proId = process.env.LEMONSQUEEZY_VARIANT_PRO;
-  const variantId =
-    attributes.variant_id != null ? String(attributes.variant_id) : null;
-  if (variantId && plusId && variantId === plusId) return "plus";
-  if (variantId && proId && variantId === proId) return "pro";
-
-  const name =
-    `${attributes.variant_name ?? ""} ${attributes.product_name ?? ""}`.toLowerCase();
-  if (name.includes("pro")) return "pro";
-  if (name.includes("plus")) return "plus";
-  return null;
+export function resolvePlan(
+  attributes: { variant_id?: number },
+  billing: ProductConfig["billing"]
+): Tier | null {
+  if (attributes.variant_id === undefined) return null;
+  return (
+    billing.plans.find(
+      plan =>
+        plan.enabled &&
+        plan.id !== billing.defaultTierId &&
+        plan.lemonVariantId === String(attributes.variant_id)
+    )?.id ?? null
+  );
 }
 
 const LS_STATUSES = new Set([
@@ -221,7 +232,9 @@ export async function handleLemonEvent(
     (occurredAt && Number.isNaN(occurredAt.getTime()))
   )
     return { ok: false, error: "valid provider timestamp required" };
-  const plan = payment ? null : resolvePlan(attributes);
+  const plan = payment
+    ? null
+    : resolvePlan(attributes, (await getPublishedProductConfig()).billing);
   const status = attributes.status as Subscription["status"];
   if (!payment && (!plan || !LS_STATUSES.has(status)))
     return { ok: false, error: "unresolvable plan or status" };
@@ -354,10 +367,13 @@ export function registerBillingRoutes(app: Express) {
   );
 }
 
-/** 读取运营方配置的 Plus 与 Pro 托管结账地址，未配置时返回 null。 */
-export function getCheckoutUrls(): { plus: string | null; pro: string | null } {
-  return {
-    plus: process.env.LEMONSQUEEZY_CHECKOUT_PLUS || null,
-    pro: process.env.LEMONSQUEEZY_CHECKOUT_PRO || null,
-  };
+/** 按启用套餐 ID 返回发布配置中的托管结账地址，未配置时为 null。 */
+export function getCheckoutUrls(
+  configuration: ProductConfig
+): Record<string, string | null> {
+  return Object.fromEntries(
+    configuration.billing.plans
+      .filter(plan => plan.enabled)
+      .map(plan => [plan.id, plan.checkoutUrl])
+  );
 }

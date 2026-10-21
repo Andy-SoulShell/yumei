@@ -1,12 +1,31 @@
 // @vitest-environment jsdom
 /** 探索页搜索、画风筛选、无结果提示和角色详情的交互回归。 */
 import { act } from "react";
+import { discoveryFixture } from "@/features/discovery/testFixtures";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { i18n, type Translator } from "@shared/i18n";
 import Explore from "./Explore";
 
+vi.mock("@/features/discovery/useDiscovery", async () => {
+  const { discoveryFixture } =
+    await import("@/features/discovery/testFixtures");
+  return {
+    useDiscovery: () => ({
+      data: mock.discoveryLoading
+        ? undefined
+        : (mock.discoveryData ?? discoveryFixture),
+      isLoading: mock.discoveryLoading,
+      error: mock.discoveryError,
+      refetch: mock.discoveryRefetch,
+    }),
+  };
+});
 const mock = vi.hoisted(() => ({
+  discoveryData: undefined as any,
+  discoveryLoading: false,
+  discoveryError: null as Error | null,
+  discoveryRefetch: vi.fn(),
   query: "",
   navigate: vi.fn(),
   open: vi.fn(),
@@ -42,6 +61,9 @@ beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   mock.query = "";
   vi.clearAllMocks();
+  mock.discoveryData = undefined;
+  mock.discoveryLoading = false;
+  mock.discoveryError = null;
   vi.stubGlobal(
     "ResizeObserver",
     class {
@@ -168,4 +190,44 @@ describe("exploration", () => {
       expect.objectContaining({ id: "rin" })
     );
   });
+});
+
+it("uses API page size and accepts newly published role IDs", async () => {
+  const character = {
+    ...discoveryFixture.characters[0],
+    id: "api-new-role",
+    name: "新上架角色",
+    label: "新标签",
+  };
+  mock.discoveryData = {
+    ...discoveryFixture,
+    characters: [character, ...discoveryFixture.characters],
+    home: { ...discoveryFixture.home, pageSize: 1 },
+  };
+  await settle(() => root.render(<Explore />));
+  expect(container.querySelectorAll(".character-card")).toHaveLength(1);
+  expect(container.textContent).toContain("新上架角色");
+  await settle(() =>
+    (
+      container.querySelector(".catalogue-more button") as HTMLButtonElement
+    ).click()
+  );
+  expect(container.querySelectorAll(".character-card")).toHaveLength(2);
+  await settle(() =>
+    (container.querySelector(".character-card") as HTMLButtonElement).click()
+  );
+  expect(mock.query).toContain("character=api-new-role");
+});
+
+it("keeps failed and pending API requests distinct from an empty catalogue", async () => {
+  mock.discoveryLoading = true;
+  await settle(() => root.render(<Explore />));
+  expect(container.querySelector('[role="status"]')).not.toBeNull();
+  expect(container.querySelector(".explore-empty")).toBeNull();
+  mock.discoveryLoading = false;
+  mock.discoveryError = new Error("Offline");
+  await settle(() => root.render(<Explore />));
+  expect(container.querySelector('[role="alert"]')).not.toBeNull();
+  await settle(() => container.querySelector("button")!.click());
+  expect(mock.discoveryRefetch).toHaveBeenCalledOnce();
 });

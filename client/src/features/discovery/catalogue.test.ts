@@ -1,8 +1,11 @@
 /** 内置目录的公开资料与实际参考图必须完整，确保新增角色可以直接创建。 */
 import { describe, expect, it } from "vitest";
-import { CHARACTER_PRESETS } from "@shared/characterPresets";
-import { readPresetReference } from "../../../../server/characterPresets";
-import { FEATURED_CHARACTERS, HOME_CHARACTER_LIMIT } from "./catalogue";
+import { CHARACTER_PRESETS } from "../../../../server/seeds/characterPresets";
+import { readOfficialImage } from "../../../../server/characterPresets";
+import { initialDiscovery } from "../../../../server/seeds/discovery";
+const { home } = initialDiscovery();
+const HOME_CHARACTER_LIMIT = home.homeCharacterLimit;
+const FEATURED_CHARACTERS = home.featuredIds;
 
 describe("bundled character catalogue", () => {
   it("contains enough distinct adult characters for the homepage and ten valid featured picks", () => {
@@ -24,7 +27,7 @@ describe("bundled character catalogue", () => {
   });
   it("loads every bundled portrait as actual JPEG bytes through the server reader", async () => {
     for (const role of CHARACTER_PRESETS) {
-      const bytes = await readPresetReference(role.id);
+      const bytes = (await readOfficialImage(role.imageUrl)).data;
       expect(bytes.byteLength).toBeGreaterThan(1000);
       expect(Array.from(bytes.subarray(0, 3))).toEqual([255, 216, 255]);
     }

@@ -22,10 +22,13 @@ export function formatRelativeTime(
 
 /** 金额保持数字；币种和计费周期均作为数据传入。 */
 export function formatPrice(
-  price: { amount: number; currency: string; period: "month" },
+  price: { amount: number; currency: string; period: "month" | "year" },
   locale: Locale
 ) {
-  const periods = { month: "billing:monthlyPrice" } as const;
+  const periods = {
+    month: "billing:monthlyPrice",
+    year: "billing:yearlyPrice",
+  } as const;
   const amount = new Intl.NumberFormat(locale, {
     style: "currency",
     currency: price.currency,

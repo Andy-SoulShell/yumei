@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { detectSelfHarm } from "../../shared/safety";
+import { getPublishedProductConfig } from "../repositories/productConfig";
 import { detectSelfieRequest } from "../../shared/selfieRequest";
 import { checkRateLimit } from "../_core/quota";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -20,14 +21,19 @@ export const chatRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       ensureAgeConfirmed(ctx.user);
-      const selfieRequest = detectSelfieRequest(input.content);
+      const policy = await getPublishedProductConfig();
+      const selfieRequest = detectSelfieRequest(
+        input.content,
+        policy.selfies.poses,
+        policy.selfies.defaultPoseId
+      );
       if (!selfieRequest || detectSelfHarm(input.content)) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Text messages must use the streaming chat endpoint.",
         });
       }
-      await checkRateLimit(ctx.user.id, "chat");
+      await checkRateLimit(ctx.user.id, "chat", policy);
       if (input.transcriptionId)
         await validateTranscription(
           ctx.user.id,

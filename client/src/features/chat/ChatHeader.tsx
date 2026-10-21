@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SPEED_OPTIONS } from "@/hooks/useTTS";
-import { intimacyMessages } from "@/locales/domain";
+import { useProductConfig } from "@/features/product/useProductConfig";
 import {
   ArrowLeft,
   BookHeart,
@@ -28,7 +28,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getLevelInfo } from "../../../../shared/intimacy";
+import { getLevelByPoints } from "../../../../shared/intimacy";
 
 import type { ChatController } from "./useChatController";
 type Props = Pick<
@@ -79,6 +79,7 @@ export function ChatHeader({
   toggleTheme,
   theme,
 }: Props) {
+  const policy = useProductConfig();
   const goBack = usePageBack("/chats");
   const newConversationDisabled =
     !currentConversationId ||
@@ -143,17 +144,22 @@ export function ChatHeader({
           )}
           {/* 亲密度徽章 */}
           {(() => {
-            const level = girlfriend.intimacyLevel || 1;
-            const info = getLevelInfo(level);
+            if (!policy.data) return null;
+            const info = getLevelByPoints(
+              girlfriend.intimacyPoints,
+              policy.data.intimacy.levels
+            );
+            const level = info.level;
             return (
               <Button
                 variant="plain"
                 size="none"
                 type="button"
-                className={`chat-intimacy-button text-xs flex items-center ${info.color} hover:opacity-80 transition-opacity`}
+                className={`chat-intimacy-button text-xs flex items-center hover:opacity-80 transition-opacity`}
+                style={{ color: info.color }}
                 onClick={() => setShowIntimacyPanel(true)}
                 title={t("chat:intimacyLv", {
-                  name: t(intimacyMessages[info.level].name),
+                  name: info.name,
                   level: level,
                 })}
               >

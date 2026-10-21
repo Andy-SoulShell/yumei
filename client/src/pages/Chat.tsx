@@ -124,14 +124,14 @@ export default function Chat() {
       <SelfiePoseDialog
         open={showPoseDialog}
         onOpenChange={setShowPoseDialog}
-        intimacyLevel={girlfriend.intimacyLevel || 1}
+        intimacyLevel={state.effectiveIntimacyLevel}
         supportsTextToImage={
           apiConfig?.imageProvider.supportsTextToImage === true
         }
         canCouplePhoto={
           billingInfo?.mode === "none" ||
           billingInfo?.byok.selfie === true ||
-          billingInfo?.tier === "pro"
+          billingInfo?.limits.couplePhoto === true
         }
         onSelectPose={handleSelectPose}
         onCouplePhoto={handleCouplePhoto}
@@ -141,7 +141,7 @@ export default function Chat() {
       <IntimacyPanel
         open={showIntimacyPanel}
         onOpenChange={setShowIntimacyPanel}
-        intimacyLevel={girlfriend.intimacyLevel || 1}
+        intimacyLevel={state.effectiveIntimacyLevel}
         intimacyPoints={girlfriend.intimacyPoints || 0}
         consecutiveDays={girlfriend.consecutiveDays || 0}
         girlfriendName={girlfriend.name}

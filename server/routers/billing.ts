@@ -13,7 +13,7 @@ export const billingRouter = router({
   /** 读取当前用户档位、订阅快照、BYOK 标识和用量，按模式提供结账地址。 */
   getInfo: protectedProcedure.query(async ({ ctx }) => {
     const mode = getBillingMode();
-    const { tier, limits } = await getTierLimits(ctx.user.id);
+    const { tier, limits, configuration } = await getTierLimits(ctx.user.id);
     const subscription = await getSubscription(ctx.user.id);
     const keys = await keyProvider.describeUserKeys(ctx.user.id);
     const byok = {
@@ -29,6 +29,8 @@ export const billingRouter = router({
 
     return {
       mode,
+      plans: configuration.billing.plans,
+      defaultTierId: configuration.billing.defaultTierId,
       tier,
       limits,
       byok,
@@ -49,7 +51,7 @@ export const billingRouter = router({
           }
         : null,
       checkoutUrls:
-        mode === "lemonsqueezy" ? getCheckoutUrls() : { plus: null, pro: null },
+        mode === "lemonsqueezy" ? getCheckoutUrls(configuration) : {},
     };
   }),
 });

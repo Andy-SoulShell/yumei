@@ -1,14 +1,17 @@
 /** 通过当前页面的查询参数打开角色详情，保留搜索、筛选和加载进度。 */
 import { useRef } from "react";
 import { useLocation, useSearch } from "wouter";
-import { getCharacterPreset } from "@shared/characterPresets";
+import { useDiscovery } from "@/features/discovery/useDiscovery";
 
 /** 首页和探索页共用的角色预览及焦点恢复状态。 */
 export function useCharacterPreview() {
   const [location, navigate] = useLocation();
   const search = useSearch();
   const params = new URLSearchParams(search);
-  const selected = getCharacterPreset(params.get("character") ?? "");
+  const { data } = useDiscovery();
+  const selected = data?.characters.find(
+    item => item.id === params.get("character")
+  );
   const returnFocus = useRef<HTMLElement | null>(null);
   const showCharacter = (id: string, trigger?: HTMLElement) => {
     // 触摸或部分浏览器的鼠标点击不会先聚焦按钮，直接记录真实触发入口。

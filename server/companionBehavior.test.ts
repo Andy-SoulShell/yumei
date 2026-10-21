@@ -10,8 +10,8 @@ import {
   classifyCompanionEmotion,
   evolveCompanionEmotion,
 } from "../shared/companionEmotion";
-import { getPresetBehavior } from "../shared/presetBehavior";
-import { CHARACTER_PRESETS } from "../shared/characterPresets";
+import { getPresetBehavior } from "./seeds/presetBehavior";
+import { CHARACTER_PRESETS } from "./seeds/characterPresets";
 import { buildChatSystemPrompt, CHAT_PROMPT_VERSION } from "./chatPrompt";
 import { getDb } from "./database";
 import {

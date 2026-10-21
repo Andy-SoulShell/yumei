@@ -5,6 +5,13 @@ import { createRoot } from "react-dom/client";
 import { expect, it, vi } from "vitest";
 import { LevelUpNotice } from "./LevelUpNotice";
 vi.mock("@/lib/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
+vi.mock("@/features/product/useProductConfig", async () => {
+  const { productFixture, productView } =
+    await import("../../../server/testProductConfig");
+  return {
+    useProductConfig: () => ({ data: productView, raw: productFixture }),
+  };
+});
 it("dismisses on schedule despite typing rerenders and keeps input focused", async () => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   vi.useFakeTimers();

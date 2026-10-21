@@ -7,12 +7,9 @@ import {
   type Girlfriend,
   type Message,
 } from "../drizzle/schema";
-import {
-  DAILY_POINTS_LIMIT,
-  getLevelByPoints,
-  isNightTime,
-  POINTS_RULES,
-} from "../shared/intimacy";
+import { getLevelByPoints, isNightTime } from "../shared/intimacy";
+import type { RewardAction } from "../shared/productConfig";
+import { getPublishedProductConfig } from "./repositories/productConfig";
 import { METERS } from "../shared/quotas";
 import { evolveCompanionEmotion } from "../shared/companionEmotion";
 import { todayUTC, tryConsumeMeterInTransaction } from "./_core/quota";
@@ -68,79 +65,156 @@ async function recordInteraction(
   return { ...gf, ...changes };
 }
 
-/** 在调用方持有的用户事务锁内结算互动与奖励；额度不足只跳过奖励。 */
+/** 事件上下文只包含可验证的事实，不接收客户端传入的奖励数值。 */
+export type RewardContext = {
+  textLength?: number;
+  durationMs?: number;
+  profileEnhanced?: boolean;
+  completedRounds?: number;
+};
+const rewardedNight = new WeakMap<DbTransaction, Set<number>>();
+
+/** 按同一发布快照结算事件、每日首次和夜间奖励，日上限不足时整个奖励组均不消费。 */
 export async function awardIntimacy(
   tx: DbTransaction,
   girlfriendId: number,
   userId: string,
-  points: number,
-  reason: string
+  reason: RewardAction,
+  context: RewardContext = {}
 ) {
-  const rule = POINTS_RULES[reason];
-  if (!rule || !Number.isSafeInteger(points) || points <= 0)
-    throw new Error("Invalid intimacy points");
+  const policy = await getPublishedProductConfig(tx);
+  const rules = policy.intimacy;
   const now = new Date();
   const gf = await recordInteraction(tx, girlfriendId, userId, now);
+  gf.intimacyLevel = getLevelByPoints(gf.intimacyPoints, rules.levels).level;
   const period = todayUTC();
-  const meter = METERS.intimacyReason(girlfriendId, reason);
-  const [previous] = await tx
-    .select()
-    .from(usageMeters)
-    .where(
-      and(
-        eq(usageMeters.userId, userId),
-        eq(usageMeters.period, period),
-        eq(usageMeters.meter, meter)
+  const primary = rules.rules[reason];
+  if (
+    !primary.enabled ||
+    (reason === "text_message" &&
+      (context.textLength ?? 0) < rules.minimumTextLength) ||
+    (reason === "long_conversation" &&
+      context.completedRounds !== primary.bonusThreshold! + 1) ||
+    (reason === "night_chat" && !isNightTime(now, rules.night))
+  )
+    return skippedPoints(gf, "该事件当前不奖励经验");
+  const load = async (action: RewardAction) => {
+    const [row] = await tx
+      .select()
+      .from(usageMeters)
+      .where(
+        and(
+          eq(usageMeters.userId, userId),
+          eq(usageMeters.period, period),
+          eq(usageMeters.meter, METERS.intimacyReason(girlfriendId, action))
+        )
+      );
+    return row;
+  };
+  const available = (
+    action: RewardAction,
+    previous: typeof usageMeters.$inferSelect | undefined
+  ) => {
+    const rule = rules.rules[action];
+    return (
+      rule.enabled &&
+      (rule.dailyLimit === null || (previous?.count ?? 0) < rule.dailyLimit) &&
+      !(
+        previous?.count &&
+        rule.cooldownMinutes &&
+        now.getTime() - previous.updatedAt.getTime() <
+          rule.cooldownMinutes * 60000
       )
     );
-  if (
-    previous?.count &&
-    rule.cooldownMinutes &&
-    now.getTime() - previous.updatedAt.getTime() < rule.cooldownMinutes * 60_000
-  )
-    return skippedPoints(gf, "冷却中，稍后再获得经验值");
-  const totalPoints =
-    points + (isNightTime(now) && reason !== "night_chat" ? 3 : 0);
-  if (
-    previous &&
-    previous.count >= (rule.dailyLimit ?? Number.MAX_SAFE_INTEGER)
-  )
-    return skippedPoints(gf, "该行为今日经验值已达上限");
-  const total = await tryConsumeMeterInTransaction(
+  };
+  const calculate = (action: RewardAction, previousCount: number) => {
+    const rule = rules.rules[action];
+    const bonus =
+      action === "text_message"
+        ? (context.textLength ?? 0) > rule.bonusThreshold!
+        : action === "voice_message"
+          ? (context.durationMs ?? 0) > rule.bonusThreshold!
+          : action === "selfie"
+            ? previousCount === 0
+            : action === "daily_first"
+              ? gf.consecutiveDays >= rule.bonusThreshold!
+              : action === "edit_profile"
+                ? !!context.profileEnhanced
+                : action === "long_conversation"
+                  ? (context.completedRounds ?? 0) > rule.bonusThreshold!
+                  : false;
+    return rule.basePoints + (bonus ? rule.bonusPoints : 0);
+  };
+  const previous = await load(reason);
+  if (!available(reason, previous))
+    return skippedPoints(gf, "该行为处于冷却中或今日奖励次数已达上限");
+  const rewards: { action: RewardAction; points: number }[] = [
+    { action: reason, points: calculate(reason, previous?.count ?? 0) },
+  ];
+  if (reason !== "daily_first" && reason !== "night_chat") {
+    const first = await load("daily_first");
+    if (available("daily_first", first))
+      rewards.push({
+        action: "daily_first",
+        points: calculate("daily_first", first?.count ?? 0),
+      });
+    const nightSet = rewardedNight.get(tx);
+    if (
+      isNightTime(now, rules.night) &&
+      !nightSet?.has(girlfriendId) &&
+      available("night_chat", await load("night_chat"))
+    )
+      rewards.push({
+        action: "night_chat",
+        points: calculate("night_chat", 0),
+      });
+  }
+  const active = rewards.filter(reward => reward.points > 0);
+  const totalPoints = active.reduce((sum, reward) => sum + reward.points, 0);
+  if (!totalPoints) return skippedPoints(gf, "当前奖励为零");
+  const admitted = await tryConsumeMeterInTransaction(
     tx,
     userId,
     METERS.intimacyPoints(girlfriendId),
-    DAILY_POINTS_LIMIT,
+    rules.dailyPointsLimit,
     period,
     totalPoints
   );
-  if (!total.allowed) return skippedPoints(gf, "今日经验值总量已达上限");
-  const perReason = await tryConsumeMeterInTransaction(
-    tx,
-    userId,
-    meter,
-    rule.dailyLimit ?? Number.MAX_SAFE_INTEGER,
-    period
-  );
-  if (!perReason.allowed) return skippedPoints(gf, "该行为今日经验值已达上限");
-  const intimacyPoints = gf.intimacyPoints + totalPoints;
-  const intimacyLevel = getLevelByPoints(intimacyPoints).level;
+  if (!admitted.allowed) return skippedPoints(gf, "今日经验值总量已达上限");
+  for (const reward of active) {
+    const result = await tryConsumeMeterInTransaction(
+      tx,
+      userId,
+      METERS.intimacyReason(girlfriendId, reward.action),
+      rules.rules[reward.action].dailyLimit ?? Number.MAX_SAFE_INTEGER,
+      period
+    );
+    if (!result.allowed)
+      throw new Error(
+        "Intimacy reason admission changed inside user transaction"
+      );
+  }
+  if (active.some(reward => reward.action === "night_chat")) {
+    const set = rewardedNight.get(tx) ?? new Set<number>();
+    set.add(girlfriendId);
+    rewardedNight.set(tx, set);
+  }
+  const points = gf.intimacyPoints + totalPoints;
+  const level = getLevelByPoints(points, rules.levels).level;
   await tx
     .update(girlfriends)
-    .set({
-      intimacyPoints,
-      intimacyLevel,
-    })
+    .set({ intimacyPoints: points, intimacyLevel: level })
     .where(eq(girlfriends.id, gf.id));
   return {
-    intimacyLevel,
-    intimacyPoints,
+    intimacyLevel: level,
+    intimacyPoints: points,
     previousLevel: gf.intimacyLevel,
-    leveledUp: intimacyLevel > gf.intimacyLevel,
+    leveledUp: level > gf.intimacyLevel,
     consecutiveDays: gf.consecutiveDays,
     pointsAdded: totalPoints,
     skipped: false,
     skipReason: null,
+    rewards: active,
   };
 }
 
@@ -212,18 +286,10 @@ export async function applyMessageRelationship(
     .insert(girlfriendMoods)
     .values(data)
     .onDuplicateKeyUpdate({ set: data });
-  if (message.role === "user" && message.content.trim().length >= 5) {
-    const rule = POINTS_RULES.text_message;
-    await awardIntimacy(
-      tx,
-      girlfriendId,
-      userId,
-      rule.basePoints +
-        (message.content.trim().length > 50 ? (rule.bonusPoints ?? 0) : 0),
-      "text_message"
-    );
-  } else if (message.role === "user") {
-    await recordInteraction(tx, girlfriendId, userId, now);
+  if (message.role === "user") {
+    await awardIntimacy(tx, girlfriendId, userId, "text_message", {
+      textLength: message.content.trim().length,
+    });
   }
 }
 /** 返回事务完成后的真实关系状态，供前端刷新和升级反馈。 */
@@ -236,9 +302,14 @@ export async function relationshipSummary(
     .select()
     .from(girlfriends)
     .where(eq(girlfriends.id, girlfriendId));
+  const policy = await getPublishedProductConfig(tx);
+  const level = getLevelByPoints(
+    gf.intimacyPoints,
+    policy.intimacy.levels
+  ).level;
   return {
-    intimacyLevel: gf.intimacyLevel,
+    intimacyLevel: level,
     intimacyPoints: gf.intimacyPoints,
-    leveledUp: gf.intimacyLevel > previousLevel,
+    leveledUp: level > previousLevel,
   };
 }

@@ -51,7 +51,7 @@ export default function Setup() {
     isUploadingAvatar,
   } = state;
 
-  if (isEditing && editLoading)
+  if ((isEditing && editLoading) || state.presetLoading)
     return (
       <div className="flex min-h-full items-center justify-center">
         <Loader2
@@ -62,7 +62,9 @@ export default function Setup() {
     );
   if (isEditing && editError)
     return <PageError onRetry={() => void retryEdit()} />;
-  if (editNotFound)
+  if (state.presetError)
+    return <PageError onRetry={() => void state.retryPresets()} />;
+  if (editNotFound || state.presetNotFound)
     return (
       <PageError
         title={t("common:contentUnavailable")}
@@ -94,6 +96,7 @@ export default function Setup() {
               <fieldset disabled={isPending} className="space-y-6">
                 {!isEditing && (
                   <CharacterPresetPicker
+                    characters={state.characters}
                     selectedId={presetId}
                     onSelect={handleSelectPreset}
                   />

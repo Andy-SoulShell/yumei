@@ -9,7 +9,7 @@ import {
   usageMeters,
   users,
 } from "../drizzle/schema";
-import { TIER_LIMITS } from "../shared/quotas";
+import { TIER_LIMITS, productFixture } from "./testProductConfig";
 import * as chat from "./_core/chatProvider";
 import type { TrpcContext } from "./_core/context";
 import * as images from "./_core/imageProvider";
@@ -293,6 +293,8 @@ describe("generation settlement", () => {
     vi.spyOn(billing, "getTierLimits").mockResolvedValue({
       tier: "pro",
       limits: TIER_LIMITS.pro,
+      plan: productFixture.billing.plans.find(plan => plan.id === "pro")!,
+      configuration: productFixture,
     });
     vi.spyOn(images, "generateProviderImage").mockRejectedValue(
       new Error("upstream down")

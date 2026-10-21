@@ -816,8 +816,8 @@ export default {
     planUsage: "订阅与用量",
     selfHostedModeAllFeaturesUnlockedWithNo:
       "自托管模式：全部功能已解锁，不计量。",
-    freePlan30MessagesAnd1SelfiePer:
-      "免费档：每天 30 条消息、1 张自拍。配置自己的 API Key 可绕过限额。",
+    defaultPlanDescription:
+      "当前套餐额度如下，配置自己的 API Key 可绕过用量限额。",
     cancelledAccessContinuesUntil: "已取消，服务保留至 {{date}}",
     thankYouForSubscribing: "感谢订阅！",
     messagesToday: "今日消息",
@@ -832,6 +832,7 @@ export default {
     nearLimit: "用量已超过 80%。",
     nearLimitUpgrade: "用量已超过 80%，升级可获得更高额度。",
     free: "免费",
+    yearlyPrice: "{{price}}/年",
     monthlyPrice: "{{price}}/月",
   },
   characters: {
@@ -901,11 +902,22 @@ export default {
     editCompanionProfile: "✏️ 编辑女友资料",
     haveADeeperConversation: "💭 深度对话",
     chatAtNight: "🌙 夜间互动",
+    dailyXpCap: "每日最多 {{points}} 经验，离线不会扣除已有经验。",
+    rewardText: "消息超过 {{count}} 字时额外获得 {{points}} 经验",
+    rewardVoice: "语音超过 {{count}} 秒时额外获得 {{points}} 经验",
+    rewardSelfie: "每日首次生成图片额外获得 {{points}} 经验",
+    rewardStreak: "连续互动达到 {{count}} 天时额外获得 {{points}} 经验",
+    rewardProfile: "更新性格或头像时额外获得 {{points}} 经验",
+    rewardLong: "每段对话完成第 {{count}} 轮时获得此奖励",
+    rewardNight: "{{zone}} 时间 {{start}}:00–{{end}}:00 的有效互动",
+    rewardLimits: "每日最多 {{count}} 次；冷却 {{minutes}} 分钟",
+    minimumText: "文字至少 {{count}} 字才计入经验奖励",
     upTo200XPPerDayDecaysAfter:
       "每日最多获得 200 经验；暂时离开不会扣除已有经验。",
     intimacyLevelUp: "亲密度升级！",
     relationship: "你与 {{name}} 的关系",
-    nickname: "她现在叫你「{{name}}」💕",
+    stageNickname: "阶段称呼：「{{name}}」",
+    unlimitedRewards: "不限",
     lockedLevel: "Lv.{{level}} {{name}}（{{points}} 经验值）",
     "levels.1.name": "初识",
     "levels.1.description": "刚刚认识，礼貌但有距离感",
@@ -963,6 +975,8 @@ export default {
       "优先按输入文字生成，角色外貌只补充未指定的细节。",
     unlocksAtIntimacyLv: "亲密度 Lv.{{level}} 解锁",
     uploadYourPhotoToAppearTogether: "上传照片，生成合照",
+    couplePhotosRequireEligiblePlan:
+      "当前套餐未开放合照，可升级或使用自己的图片服务 Key",
     couplePhotosRequireProOrYourOwnFal:
       "合照是 Pro 功能（或配置自己的 fal.ai Key）",
     couplePhotoUploadYourPhotoToAppearTogether: "上传照片，生成合照",

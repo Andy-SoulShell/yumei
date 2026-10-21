@@ -3,7 +3,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CHARACTER_PRESETS } from "@shared/characterPresets";
+import { discoveryFixture } from "@/features/discovery/testFixtures";
 import { useCompanionChat } from "./useCompanionChat";
 
 const mock = vi.hoisted(() => ({
@@ -15,6 +15,7 @@ const mock = vi.hoisted(() => ({
     name: string;
     personality: string;
     appearance: string;
+    officialPresetId?: string;
   }>,
   navigate: vi.fn(),
   create: vi.fn(),
@@ -40,7 +41,7 @@ vi.mock("@/lib/trpc", () => ({
     }),
     girlfriend: {
       list: { useQuery: () => ({ data: mock.roles, isLoading: false }) },
-      create: { useMutation: () => ({ mutateAsync: mock.create }) },
+      createFromPreset: { useMutation: () => ({ mutateAsync: mock.create }) },
     },
     conversation: {
       resume: { useMutation: () => ({ mutateAsync: mock.resume }) },
@@ -51,7 +52,7 @@ vi.mock("@/lib/trpc", () => ({
 let root: Root;
 let container: HTMLDivElement;
 let chat: ReturnType<typeof useCompanionChat>;
-const preset = CHARACTER_PRESETS[0];
+const preset = discoveryFixture.characters[0];
 function Harness() {
   chat = useCompanionChat();
   return null;
@@ -66,7 +67,7 @@ beforeEach(async () => {
   mock.invalidate.mockResolvedValue(undefined);
   mock.fetch.mockImplementation(async () => mock.roles);
   mock.create.mockImplementation(async () => {
-    const role = { ...preset, id: 9 };
+    const role = { ...preset, id: 9, officialPresetId: preset.id };
     mock.roles.push(role);
     return role;
   });
@@ -93,7 +94,7 @@ describe("companion chat entry", () => {
     expect(mock.resume).not.toHaveBeenCalled();
   });
   it("continues an existing matching character without creating another", async () => {
-    mock.roles = [{ ...preset, id: 7 }];
+    mock.roles = [{ ...preset, id: 7, officialPresetId: preset.id }];
     let opened = false;
     await act(async () => {
       opened = await chat.open(preset);
@@ -119,8 +120,6 @@ describe("companion chat entry", () => {
     expect(mock.create).toHaveBeenCalledWith(
       expect.objectContaining({
         presetId: preset.id,
-        personality: preset.personality,
-        appearance: preset.appearance,
       })
     );
     expect(mock.resume).toHaveBeenCalledWith({ girlfriendId: 9 });
@@ -168,4 +167,22 @@ describe("companion chat entry", () => {
     expect(mock.resume).toHaveBeenCalledWith({ girlfriendId: 7 });
     expect(mock.navigate).toHaveBeenCalledWith("/chat/42?selfie=1");
   });
+});
+
+it("continues by source ID after either the user or official profile changes", async () => {
+  mock.roles = [
+    {
+      ...preset,
+      id: 70,
+      officialPresetId: preset.id,
+      name: "用户修改后的名字",
+      personality: "用户修改的人设",
+      appearance: "用户修改的外貌",
+    },
+  ];
+  await act(async () => root.render(<Harness />));
+  expect(chat.findPreset({ ...preset, name: "官方新名称" })?.id).toBe(70);
+  await act(async () => chat.open({ ...preset, personality: "官方新设定" }));
+  expect(mock.create).not.toHaveBeenCalled();
+  expect(mock.resume).toHaveBeenCalledWith({ girlfriendId: 70 });
 });

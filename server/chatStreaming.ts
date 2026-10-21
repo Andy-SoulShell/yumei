@@ -11,11 +11,7 @@ import {
   type User,
 } from "../drizzle/schema";
 import type { ChatTurnSnapshot } from "../shared/chatStreaming";
-import {
-  FREE_TIER_DEFAULT_MODEL,
-  METERS,
-  RATE_LIMITS_PER_MINUTE,
-} from "../shared/quotas";
+import { METERS } from "../shared/quotas";
 import { detectSelfHarm, SAFETY_SYSTEM_CLAUSE } from "../shared/safety";
 import { resolveChatProvider } from "./_core/chatProvider";
 import { parseChatProviderStream } from "./_core/chatStreamProvider";
@@ -41,6 +37,7 @@ import {
   settleChatTurnInTransaction,
 } from "./generations";
 import { buildMemoryPromptBlock, maybeExtractMemories } from "./memory";
+import { getPublishedProductConfig } from "./repositories/productConfig";
 import { getUserApiConfig } from "./repositories/apiConfig";
 import { getActiveGirlfriend } from "./repositories/companions";
 import { ensureAgeConfirmed } from "./routers/guards";
@@ -114,7 +111,7 @@ function requireSameInput(row: Request, input: ChatTurnInput) {
 }
 
 /** 在接收消息事务内计入滑动窗口；幂等重试在此之前返回，不消耗频率。 */
-async function consumeRate(tx: DbTransaction, userId: string) {
+async function consumeRate(tx: DbTransaction, userId: string, limit: number) {
   const now = Date.now();
   await tx
     .insert(rateWindows)
@@ -126,7 +123,7 @@ async function consumeRate(tx: DbTransaction, userId: string) {
   );
   const [row] = await tx.select().from(rateWindows).where(where).for("update");
   const requests = row.requests.filter(time => now - time < 60_000);
-  if (requests.length >= RATE_LIMITS_PER_MINUTE.chat)
+  if (requests.length >= limit)
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
       message: "Too many chat requests",
@@ -208,13 +205,14 @@ export async function submitChatTurn(
     return getChatTurnSnapshot(user.id, existing.id);
   }
   await ownConversation(user.id, input.conversationId);
-  const provider = await resolveChatProvider(user.id);
+  const policy = await getPublishedProductConfig();
+  const provider = await resolveChatProvider(user.id, policy);
   if (!provider.apiKey)
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
       message: "Chat provider is not configured",
     });
-  const { tier, limits } = await getTierLimits(user.id);
+  const { tier, limits } = await getTierLimits(user.id, policy);
   const config = await getUserApiConfig(user.id);
   const routing = {
     provider: provider.name,
@@ -224,8 +222,8 @@ export async function submitChatTurn(
       provider.name === "deepseek"
         ? provider.model
         : isBillingEnforced() && limits.modelLocked && !provider.isByok
-          ? FREE_TIER_DEFAULT_MODEL
-          : config?.llmModel || FREE_TIER_DEFAULT_MODEL,
+          ? policy.billing.defaultChatModel
+          : config?.llmModel || policy.billing.defaultChatModel,
   };
   const id = await withUserTransaction(user.id, async tx => {
     const [duplicate] = await tx
@@ -282,7 +280,7 @@ export async function submitChatTurn(
         code: "TOO_MANY_REQUESTS",
         message: "Too many active conversations",
       });
-    await consumeRate(tx, user.id);
+    await consumeRate(tx, user.id, policy.billing.rateLimits.chat);
     if (input.transcriptionId)
       await consumeTranscription(
         tx,
@@ -304,7 +302,7 @@ export async function submitChatTurn(
               period: "day",
               limit: limits.dailyMessages,
               what: "messages",
-              hint: upsellHint(tier),
+              hint: upsellHint(tier, policy),
             }
           : undefined,
     });

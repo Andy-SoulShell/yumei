@@ -1,12 +1,31 @@
 // @vitest-environment jsdom
 /** 首页模块、角色预览、轮播暂停与注册入口的交互回归。 */
 import { act } from "react";
+import { discoveryFixture } from "@/features/discovery/testFixtures";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { i18n, type Translator } from "@shared/i18n";
 import Landing from "./Landing";
 
+vi.mock("@/features/discovery/useDiscovery", async () => {
+  const { discoveryFixture } =
+    await import("@/features/discovery/testFixtures");
+  return {
+    useDiscovery: () => ({
+      data: mock.discoveryLoading
+        ? undefined
+        : (mock.discoveryData ?? discoveryFixture),
+      isLoading: mock.discoveryLoading,
+      error: mock.discoveryError,
+      refetch: mock.discoveryRefetch,
+    }),
+  };
+});
 const mock = vi.hoisted(() => ({
+  discoveryData: undefined as any,
+  discoveryLoading: false,
+  discoveryError: null as Error | null,
+  discoveryRefetch: vi.fn(),
   query: "",
   navigate: vi.fn(),
   user: null as { name: string } | null,
@@ -67,6 +86,9 @@ async function settle(action: () => void) {
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   vi.clearAllMocks();
+  mock.discoveryData = undefined;
+  mock.discoveryLoading = false;
+  mock.discoveryError = null;
   mock.user = null;
   mock.roles = [];
   mock.rolesLoading = false;
@@ -280,4 +302,103 @@ describe("public landing page", () => {
         ?.getAttribute("aria-label")
     ).toBe("切换到第 3 张");
   });
+});
+
+it("renders arbitrary API role IDs, banners and FAQ text without static translation mappings", async () => {
+  const character = {
+    ...discoveryFixture.characters[0],
+    id: "new-api-character",
+    name: "动态角色",
+    label: "动态标签",
+    tagline: "动态介绍",
+  };
+  mock.discoveryData = {
+    characters: [character],
+    home: {
+      ...discoveryFixture.home,
+      featuredIds: [character.id],
+      homeCharacterLimit: 1,
+      slides: [
+        {
+          ...discoveryFixture.home.slides[0],
+          id: "api-banner",
+          images: [character.imageUrl],
+          title: "API 轮播标题",
+          highlight: "动态亮点",
+          action: "动态按钮",
+        },
+      ],
+      faqs: [
+        {
+          id: "api-question",
+          question: "API 动态问题？",
+          answer: "API 动态回答",
+        },
+      ],
+    },
+  };
+  await settle(() => root.render(<Landing />));
+  expect(container.textContent).toContain("动态角色");
+  expect(container.textContent).toContain("动态标签");
+  expect(container.querySelector("h1")?.textContent).toContain("API 轮播标题");
+  expect(container.querySelectorAll(".character-card")).toHaveLength(1);
+  await settle(() =>
+    (container.querySelector(".faq-question") as HTMLButtonElement).click()
+  );
+  expect(container.textContent).toContain("API 动态回答");
+  await settle(() =>
+    (
+      container.querySelector(".featured-character") as HTMLButtonElement
+    ).click()
+  );
+  expect(mock.query).toContain("character=new-api-character");
+  expect(document.body.textContent).toContain("动态介绍");
+});
+
+it("removes disabled modules and handles a publication shrinking the active carousel", async () => {
+  await settle(() => root.render(<Landing />));
+  await settle(() =>
+    (
+      container.querySelector('[aria-label="下一张"]') as HTMLButtonElement
+    )?.click()
+  );
+  mock.discoveryData = {
+    ...discoveryFixture,
+    home: {
+      ...discoveryFixture.home,
+      slides: [discoveryFixture.home.slides[0]],
+    },
+  };
+  await settle(() => root.render(<Landing />));
+  expect(container.querySelectorAll(".landing-carousel")).toHaveLength(1);
+  expect(container.querySelector(".carousel-controls")).toBeNull();
+  mock.discoveryData = {
+    ...discoveryFixture,
+    home: {
+      ...discoveryFixture.home,
+      slides: [],
+      featuredIds: [],
+      faqs: [],
+      homeCharacterLimit: 0,
+    },
+  };
+  await settle(() => root.render(<Landing />));
+  expect(
+    container.querySelector(
+      ".landing-carousel, .featured-section, .landing-faq, .landing-catalogue"
+    )
+  ).toBeNull();
+});
+
+it("shows loading and retry states without falling back to bundled content", async () => {
+  mock.discoveryLoading = true;
+  await settle(() => root.render(<Landing />));
+  expect(container.querySelector('[role="status"]')).not.toBeNull();
+  expect(container.querySelector(".featured-section")).toBeNull();
+  mock.discoveryLoading = false;
+  mock.discoveryError = new Error("Offline");
+  await settle(() => root.render(<Landing />));
+  expect(container.querySelector('[role="alert"]')).not.toBeNull();
+  await settle(() => container.querySelector("button")!.click());
+  expect(mock.discoveryRefetch).toHaveBeenCalledOnce();
 });

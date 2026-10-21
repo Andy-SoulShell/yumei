@@ -1,3 +1,5 @@
+import { getLevelByPoints } from "@shared/intimacy";
+import { useProductConfig } from "@/features/product/useProductConfig";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useTTS } from "@/hooks/useTTS";
@@ -28,6 +30,7 @@ type FailedChatMessage = {
 
 /** 页面查询、草稿与操作流程；展示组件只消费此状态。 */
 export function useChatController() {
+  const productRules = useProductConfig();
   const { t } = useI18n();
 
   const { user } = useAuth();
@@ -446,10 +449,16 @@ export function useChatController() {
   }, [chatStream.snapshot?.safetyNotice]);
 
   // 今日自拍额度（BYOK fal 用户无限制）
-  const selfieQuota = trpc.selfie.quota.useQuery();
+  const selfieQuota = trpc.selfie.quota.useQuery(undefined, {
+    refetchInterval: 60000,
+    refetchOnWindowFocus: true,
+  });
 
-  // 档位信息（合照 Pro 门控展示用）
-  const { data: billingInfo } = trpc.billing.getInfo.useQuery();
+  // 合照权限读取当前套餐配置。
+  const { data: billingInfo } = trpc.billing.getInfo.useQuery(undefined, {
+    refetchInterval: 60000,
+    refetchOnWindowFocus: true,
+  });
 
   const selfieRemaining = selfieQuota.data?.unlimited
     ? Infinity
@@ -601,8 +610,25 @@ export function useChatController() {
     async (draft: ChatStreamDraft) => {
       if (!currentConversationId || !isCurrentScope()) return;
       stop();
+      let rules = productRules.raw;
+      try {
+        rules ??= await utils.productConfig.get.fetch();
+      } catch (error) {
+        if (!isCurrentScope()) return;
+        setFailedMessages(current => [
+          ...current,
+          { ...draft, conversationId: currentConversationId },
+        ]);
+        toast.error(apiErrorMessage(error as Error, t));
+        return;
+      }
+      if (!isCurrentScope()) return;
       if (
-        detectSelfieRequest(draft.content) &&
+        detectSelfieRequest(
+          draft.content,
+          rules.selfies.poses,
+          rules.selfies.defaultPoseId
+        ) &&
         !detectSelfHarm(draft.content)
       ) {
         const stopped = await stopChatStream();
@@ -626,6 +652,9 @@ export function useChatController() {
       await submitStream(draft);
     },
     [
+      productRules.raw,
+      utils.productConfig.get,
+      t,
       currentConversationId,
       stop,
       stopChatStream,
@@ -839,6 +868,12 @@ export function useChatController() {
   const currentMoodInfo = moodData ? MOOD_CONFIG[moodData.mood] : null;
 
   return {
+    effectiveIntimacyLevel: productRules.data
+      ? getLevelByPoints(
+          girlfriend?.intimacyPoints ?? 0,
+          productRules.data.intimacy.levels
+        ).level
+      : 0,
     ttsLabel,
     currentMoodInfo,
     conversationId,

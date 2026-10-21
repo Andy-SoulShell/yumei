@@ -7,7 +7,7 @@ import { apiErrorMessage } from "@/lib/errors";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { loginUrl } from "@/lib/navigation";
-import type { CharacterPreset } from "@shared/characterPresets";
+import type { CharacterPreset } from "@shared/discovery";
 
 /** 添加预设后恢复会话；接口失败时保留已创建角色以便重试。 */
 export function useCompanionChat() {
@@ -22,17 +22,12 @@ export function useCompanionChat() {
     error,
     refetch,
   } = trpc.girlfriend.list.useQuery(undefined, { enabled: isAuthenticated });
-  const create = trpc.girlfriend.create.useMutation();
+  const create = trpc.girlfriend.createFromPreset.useMutation();
   const resume = trpc.conversation.resume.useMutation();
   const busy = useRef(false);
   const [pending, setPending] = useState<string | number | null>(null);
   const findPreset = (preset: CharacterPreset) =>
-    companions?.find(
-      role =>
-        role.name === preset.name &&
-        role.personality === preset.personality &&
-        role.appearance === preset.appearance
-    );
+    companions?.find(role => role.officialPresetId === preset.id);
   const open = async (role: number | CharacterPreset, selfie = false) => {
     if (busy.current) return false;
     if (!isAuthenticated) {
@@ -58,19 +53,12 @@ export function useCompanionChat() {
         // 操作时读取最新列表，避免列表尚在加载或另一页刚创建时重复添加。
         const current = await utils.girlfriend.list.fetch();
         const existing = current.find(
-          item =>
-            item.name === role.name &&
-            item.personality === role.personality &&
-            item.appearance === role.appearance
+          item => item.officialPresetId === role.id
         );
         if (existing) id = existing.id;
         else {
           const created = await create.mutateAsync({
             presetId: role.id,
-            name: role.name,
-            personality: role.personality,
-            appearance: role.appearance,
-            interests: role.interests,
           });
           id = created.id;
           await utils.girlfriend.invalidate();

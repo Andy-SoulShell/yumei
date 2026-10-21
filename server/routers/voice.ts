@@ -10,6 +10,7 @@ import { getTierLimits, isBillingEnforced } from "../billing";
 import { saveTranscription } from "../transcriptions";
 import { ensureAgeConfirmed } from "./guards";
 import { runMeteredAiTask } from "../aiTaskRuntime";
+import { getPublishedProductConfig } from "../repositories/productConfig";
 
 export const voiceRouter = router({
   /** 校验成年状态、套餐及上传大小后保存录音，再调用 OpenAI Whisper 转写。 */
@@ -24,7 +25,8 @@ export const voiceRouter = router({
     .mutation(async ({ input, ctx }) => {
       // 0. 年龄门 + 服务端限流。
       ensureAgeConfirmed(ctx.user);
-      await checkRateLimit(ctx.user.id, "transcribe");
+      const policy = await getPublishedProductConfig();
+      await checkRateLimit(ctx.user.id, "transcribe", policy);
 
       // 0b. 档位门槛：免费档不含语音转写；
       // BYOK openai key 或自托管模式除外。
@@ -33,7 +35,7 @@ export const voiceRouter = router({
         "openai"
       );
       if (isBillingEnforced() && sttKey.source !== "user") {
-        const stt = await getTierLimits(ctx.user.id);
+        const stt = await getTierLimits(ctx.user.id, policy);
         if (!stt.limits.voiceTranscription) {
           throw new TRPCError({
             code: "FORBIDDEN",

@@ -23,6 +23,19 @@ const profile = {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("companion lifecycle concurrency", () => {
+  it("rejects default creation at zero capacity before preparing media, but reuses an existing role", async () => {
+    const userId = await createTestUser();
+    const factory = vi.fn(async () => ({ ...profile, userId }));
+    await expect(
+      createDefaultGirlfriend(userId, factory, 0)
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(factory).not.toHaveBeenCalled();
+    const existing = await createGirlfriend({ ...profile, userId });
+    expect((await createDefaultGirlfriend(userId, factory, 0)).id).toBe(
+      existing.id
+    );
+    expect(factory).not.toHaveBeenCalled();
+  });
   it("serializes active switches and preserves state when the target is invalid", async () => {
     const userId = await createTestUser();
     const first = await createGirlfriend({ ...profile, userId });

@@ -17,6 +17,44 @@ import type { UiLanguage } from "../shared/preferences";
 import type { LocalizedMessage } from "../shared/i18n";
 import type { CompanionBehavior } from "../shared/companionBehavior";
 import type { CompanionEmotion } from "../shared/companionEmotion";
+import type { ProductConfig } from "../shared/productConfig";
+
+/** 三类业务规则的草稿和统一发布快照，前后端共用同一发布数据。 */
+export const productConfiguration = mysqlTable("productConfiguration", {
+  id: varchar("id", { length: 32 }).primaryKey(),
+  draft: json("draft").$type<ProductConfig>().notNull(),
+  published: json("published").$type<ProductConfig>().notNull(),
+  revision: int("revision").default(1).notNull(),
+  publishedRevision: int("publishedRevision").default(1).notNull(),
+  publishedAt: timestamp("publishedAt").defaultNow().notNull(),
+  updatedBy: varchar("updatedBy", { length: 255 }),
+});
+import type {
+  OfficialCharacter,
+  Homepage,
+  DiscoverySnapshot,
+} from "../shared/discovery";
+
+/** 官方角色草稿，归档后保留稳定 ID，用户角色的来源关联不会丢失。 */
+export const officialCharacters = mysqlTable("officialCharacters", {
+  id: varchar("id", { length: 100 }).primaryKey(),
+  data: json("data").$type<OfficialCharacter>().notNull(),
+  archived: boolean("archived").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+/** 首页草稿与原子发布快照；revision 用于防止多位管理员覆盖修改。 */
+export const discoveryContent = mysqlTable("discoveryContent", {
+  id: varchar("id", { length: 32 }).primaryKey(),
+  draft: json("draft").$type<Homepage>().notNull(),
+  published: json("published").$type<DiscoverySnapshot>(),
+  revision: int("revision").default(1).notNull(),
+  publishedRevision: int("publishedRevision").default(1).notNull(),
+  publishedAt: timestamp("publishedAt"),
+  updatedBy: varchar("updatedBy", { length: 255 }),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
 
 /** 用户资料、认证邮箱、应用角色与成年确认信息。 */
 export const users = mysqlTable("users", {
@@ -126,6 +164,7 @@ export const girlfriends = mysqlTable(
     id: int("id").autoincrement().primaryKey(),
     userId: varchar("userId", { length: 255 }).notNull(),
     name: varchar("name", { length: 100 }).notNull(),
+    officialPresetId: varchar("officialPresetId", { length: 100 }),
     personality: text("personality").notNull(), // 性格描述，用于 LLM 系统提示词
     appearance: text("appearance").notNull(), // 外貌描述，用于图片生成
     interests: text("interests"), // 兴趣爱好
@@ -150,6 +189,10 @@ export const girlfriends = mysqlTable(
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
   table => ({
+    byOfficialPreset: index("idx_girlfriends_official_preset").on(
+      table.userId,
+      table.officialPresetId
+    ),
     byUserAndDeleted: index("idx_girlfriends_user_deleted").on(
       table.userId,
       table.deletedAt
@@ -627,7 +670,7 @@ export const subscriptions = mysqlTable("subscriptions", {
   providerUpdatedAt: timestamp("providerUpdatedAt", { fsp: 3 }),
   /** 首次进入欠费状态的时间，后续通知不延长宽限期。 */
   pastDueSince: timestamp("pastDueSince", { fsp: 3 }),
-  plan: mysqlEnum("plan", ["plus", "pro"]).notNull(),
+  plan: varchar("plan", { length: 100 }).notNull(),
   status: mysqlEnum("status", [
     "on_trial",
     "active",

@@ -23,6 +23,8 @@ import { csrfCookieMiddleware, csrfVerifyMiddleware } from "./csrf";
 import { ENV } from "./env";
 import { registerFileRoutes } from "./files";
 import { serveStatic } from "./static";
+import { initializeDiscovery } from "../repositories/discovery";
+import { initializeProductConfig } from "../repositories/productConfig";
 
 /** 通过临时绑定检测目标 TCP 端口是否可用。 */
 function isPortAvailable(port: number): Promise<boolean> {
@@ -60,6 +62,8 @@ async function runBootChecks() {
     console.log("[boot] database migrations applied");
   }
   await db.execute(sql`SELECT 1`);
+  await initializeDiscovery();
+  await initializeProductConfig();
 
   // 本地存储执行写入探针；S3 此处仅有启动配置校验。
   if (ENV.storageDriver === "local") {
@@ -70,7 +74,7 @@ async function runBootChecks() {
   }
 
   // 缺少运营方密钥时告警，仍允许仅使用 BYOK 的自托管部署启动。
-  const chatProvider = getOperatorChatProvider();
+  const chatProvider = await getOperatorChatProvider();
   if (!chatProvider.apiKey) {
     console.warn(
       `[boot] WARNING: ${chatProvider.name === "deepseek" ? "OPERATOR_DEEPSEEK_KEY" : "OPERATOR_OPENROUTER_KEY"} is not set — chat only works for users who bring their own OpenRouter key in Settings.`

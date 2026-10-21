@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { trpc } from "@/lib/trpc";
-import { TIER_LABELS, TIER_PRICES } from "../../../shared/quotas";
+import { contentText } from "@shared/discovery";
 import { Crown, Sparkles } from "lucide-react";
 
 /**
@@ -25,18 +25,25 @@ import { Crown, Sparkles } from "lucide-react";
 export function BillingCard() {
   const { t, locale } = useI18n();
   const { user } = useAuth();
-  const { data: info } = trpc.billing.getInfo.useQuery();
+  const { data: info } = trpc.billing.getInfo.useQuery(undefined, {
+    refetchInterval: 60000,
+    refetchOnWindowFocus: true,
+  });
 
   if (!info) return null;
-  const priceLabel = (tier: "plus" | "pro") =>
-    formatPrice(TIER_PRICES[tier], locale);
+  const currentPlan = info.plans.find(plan => plan.id === info.tier)!;
+  const currentIndex = info.plans.indexOf(currentPlan);
+  const upgrades = info.plans.filter(
+    (plan, index) => plan.enabled && index > currentIndex && plan.checkoutUrl
+  );
+  const isDefault = info.tier === info.defaultTierId;
 
   const checkoutUrl = (base: string | null) => {
     if (!base || !user) return null;
     // Lemon Squeezy hosted checkout prefill: attribute the subscription
     // to this user via checkout[custom][user_id] (read by the webhook).
     const url = new URL(base);
-    url.searchParams.set("checkout[custom][user_id]", (user as any).id);
+    url.searchParams.set("checkout[custom][user_id]", user.id);
     return url.toString();
   };
 
@@ -58,15 +65,15 @@ export function BillingCard() {
         <CardTitle className="flex items-center gap-2">
           <Crown className="w-5 h-5 text-primary" />
           {t("billing:planUsage")}
-          <Badge variant={info.tier === "free" ? "secondary" : "default"}>
-            {info.tier === "free" ? t("billing:free") : TIER_LABELS[info.tier]}
+          <Badge variant={isDefault ? "secondary" : "default"}>
+            {contentText(currentPlan.label, locale)}
           </Badge>
         </CardTitle>
         <CardDescription>
           {info.mode === "none"
             ? t("billing:selfHostedModeAllFeaturesUnlockedWithNo")
-            : info.tier === "free"
-              ? t("billing:freePlan30MessagesAnd1SelfiePer")
+            : isDefault
+              ? t("billing:defaultPlanDescription")
               : info.subscription?.status === "cancelled"
                 ? t("billing:cancelledAccessContinuesUntil", {
                     date: info.subscription.endsAt
@@ -83,7 +90,7 @@ export function BillingCard() {
           {nearLimit && (
             <p className="text-xs rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-100 border border-amber-400/50 px-3 py-2">
               {t(
-                info.mode === "lemonsqueezy" && info.tier !== "pro"
+                info.mode === "lemonsqueezy" && upgrades.length > 0
                   ? "billing:nearLimitUpgrade"
                   : "billing:nearLimit"
               )}
@@ -129,37 +136,23 @@ export function BillingCard() {
             </p>
           )}
 
-          {info.mode === "lemonsqueezy" && info.tier !== "pro" && (
+          {info.mode === "lemonsqueezy" && upgrades.length > 0 && (
             <div className="flex flex-col sm:flex-row gap-2 pt-1">
-              {info.tier === "free" && info.checkoutUrls.plus && (
+              {upgrades.map(plan => (
                 <Button
+                  key={plan.id}
                   className="flex-1"
                   onClick={() =>
-                    window.open(checkoutUrl(info.checkoutUrls.plus)!, "_blank")
+                    window.open(checkoutUrl(plan.checkoutUrl)!, "_blank")
                   }
                 >
                   <Sparkles className="w-4 h-4 mr-1.5" />
                   {t("billing:upgrade", {
-                    plan: TIER_LABELS.plus,
-                    price: priceLabel("plus"),
+                    plan: contentText(plan.label, locale),
+                    price: formatPrice(plan.price, locale),
                   })}
                 </Button>
-              )}
-              {info.checkoutUrls.pro && (
-                <Button
-                  variant={info.tier === "free" ? "outline" : "default"}
-                  className="flex-1"
-                  onClick={() =>
-                    window.open(checkoutUrl(info.checkoutUrls.pro)!, "_blank")
-                  }
-                >
-                  <Crown className="w-4 h-4 mr-1.5" />
-                  {t("billing:upgrade", {
-                    plan: TIER_LABELS.pro,
-                    price: priceLabel("pro"),
-                  })}
-                </Button>
-              )}
+              ))}
             </div>
           )}
           {info.mode === "free" && (

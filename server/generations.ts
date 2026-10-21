@@ -1,3 +1,5 @@
+import { getPublishedProductConfig } from "./repositories/productConfig";
+import { getLevelByPoints } from "../shared/intimacy";
 import { shouldExtractMemories } from "../shared/memory";
 import { memoryFeatureEnabled } from "./aiTaskRuntime";
 /** 持久化生成请求，原子结算消息与额度，并补偿失败和过期预留。 */
@@ -48,6 +50,7 @@ export async function requireGenerationConversation(
     .select({
       girlfriendId: girlfriends.id,
       intimacyLevel: girlfriends.intimacyLevel,
+      intimacyPoints: girlfriends.intimacyPoints,
       memoryEpoch: girlfriends.memoryEpoch,
       memoryForgottenThroughId: girlfriends.memoryForgottenThroughId,
     })
@@ -67,7 +70,12 @@ export async function requireGenerationConversation(
       code: "NOT_FOUND",
       message: "Conversation or companion is no longer available",
     });
-  return row;
+  const policy = await getPublishedProductConfig(tx);
+  return {
+    ...row,
+    intimacyLevel: getLevelByPoints(row.intimacyPoints, policy.intimacy.levels)
+      .level,
+  };
 }
 
 /** 记录预留请求和原始计量周期；外部 Provider 调用在事务提交后进行。 */
@@ -279,6 +287,7 @@ export async function settleChatTurnInTransaction(
       .select({
         girlfriendId: girlfriends.id,
         intimacyLevel: girlfriends.intimacyLevel,
+        intimacyPoints: girlfriends.intimacyPoints,
         memoryEnabled: girlfriends.memoryEnabled,
         memoryEpoch: girlfriends.memoryEpoch,
         memoryForgottenThroughId: girlfriends.memoryForgottenThroughId,
@@ -295,6 +304,10 @@ export async function settleChatTurnInTransaction(
       )
       .for("update");
     if (role) {
+      role.intimacyLevel = getLevelByPoints(
+        role.intimacyPoints,
+        (await getPublishedProductConfig(tx)).intimacy.levels
+      ).level;
       await applyMessageRelationship(
         tx,
         request.userId,
@@ -323,15 +336,10 @@ export async function settleChatTurnInTransaction(
             tx,
             role.girlfriendId,
             request.userId,
-            5 + (transcription.durationMs > 30_000 ? 3 : 0),
-            "voice_message"
+            "voice_message",
+            { durationMs: transcription.durationMs }
           );
       }
-      relationship = await relationshipSummary(
-        tx,
-        role.girlfriendId,
-        role.intimacyLevel
-      );
       if (status === "succeeded") {
         const [rounds] = await tx
           .select({ count: sql<number>`COUNT(*)` })
@@ -343,6 +351,18 @@ export async function settleChatTurnInTransaction(
               eq(generationRequests.status, "succeeded")
             )
           );
+        await awardIntimacy(
+          tx,
+          role.girlfriendId,
+          request.userId,
+          "long_conversation",
+          { completedRounds: Number(rounds.count) + 1 }
+        );
+        relationship = await relationshipSummary(
+          tx,
+          role.girlfriendId,
+          role.intimacyLevel
+        );
         if (
           role.memoryEnabled &&
           memoryFeatureEnabled() &&
@@ -359,6 +379,12 @@ export async function settleChatTurnInTransaction(
             memoryEpoch: role.memoryEpoch,
           });
       }
+      if (status !== "succeeded")
+        relationship = await relationshipSummary(
+          tx,
+          role.girlfriendId,
+          role.intimacyLevel
+        );
     }
   }
   if (assistantMessage)
@@ -459,15 +485,11 @@ export async function completeImageGeneration(
         userMessage
       );
     await applyMessageRelationship(tx, userId, role.girlfriendId, message);
-    await awardIntimacy(tx, role.girlfriendId, userId, 10, "selfie");
+    await awardIntimacy(tx, role.girlfriendId, userId, "selfie");
     if (transcription)
-      await awardIntimacy(
-        tx,
-        role.girlfriendId,
-        userId,
-        5 + (transcription.durationMs > 30_000 ? 3 : 0),
-        "voice_message"
-      );
+      await awardIntimacy(tx, role.girlfriendId, userId, "voice_message", {
+        durationMs: transcription.durationMs,
+      });
     const relationship = await relationshipSummary(
       tx,
       role.girlfriendId,

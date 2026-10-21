@@ -1,16 +1,13 @@
 import { apiErrorMessage } from "@/lib/errors";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
-import {
-  getCharacterPreset,
-  type CharacterPreset,
-} from "@shared/characterPresets";
+import type { CharacterPreset } from "@shared/discovery";
+import { useDiscovery } from "@/features/discovery/useDiscovery";
 import {
   companionBehaviorSchema,
   DEFAULT_COMPANION_BEHAVIOR,
   type CompanionBehavior,
 } from "@shared/companionBehavior";
-import { getPresetBehavior } from "@shared/presetBehavior";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useLocation, useParams, useSearch } from "wouter";
@@ -38,9 +35,14 @@ export function useSetupController() {
   const submissionBusy = useRef(false);
   const [isReadingImage, setIsReadingImage] = useState(false);
   const search = useSearch();
+  const discovery = useDiscovery();
+  const characters =
+    discovery.data?.characters.filter(item => item.listed) ?? [];
+  const requestedPresetId = new URLSearchParams(search).get("preset") || "";
+  const initializedPreset = useRef<string | null>(null);
 
   const initialPreset = !editId
-    ? getCharacterPreset(new URLSearchParams(search).get("preset") || "")
+    ? characters.find(item => item.id === requestedPresetId)
     : undefined;
 
   const [name, setName] = useState(initialPreset?.name || "");
@@ -55,7 +57,7 @@ export function useSetupController() {
 
   const [behavior, setBehavior] = useState<CompanionBehavior>(() =>
     initialPreset
-      ? getPresetBehavior(initialPreset.id)
+      ? structuredClone(initialPreset.behavior)
       : structuredClone(DEFAULT_COMPANION_BEHAVIOR)
   );
   const [behaviorError, setBehaviorError] = useState(false);
@@ -77,6 +79,24 @@ export function useSetupController() {
   const [showCustomPrompt, setShowCustomPrompt] = useState(false);
 
   const [showPromptPreview, setShowPromptPreview] = useState(false);
+
+  // 预设查询异步完成后仅初始化一次，后台刷新不能覆盖表单中的未保存修改。
+  useEffect(() => {
+    if (
+      editId ||
+      !requestedPresetId ||
+      !initialPreset ||
+      initializedPreset.current === requestedPresetId
+    )
+      return;
+    initializedPreset.current = requestedPresetId;
+    setPresetId(initialPreset.id);
+    setName(initialPreset.name);
+    setPersonality(initialPreset.personality);
+    setAppearance(initialPreset.appearance);
+    setInterests(initialPreset.interests);
+    setBehavior(structuredClone(initialPreset.behavior));
+  }, [editId, requestedPresetId, initialPreset]);
 
   // 头像相关状态
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -238,7 +258,7 @@ export function useSetupController() {
     setInterests(preset?.interests || "");
     setBehavior(
       preset
-        ? getPresetBehavior(preset.id)
+        ? structuredClone(preset.behavior)
         : structuredClone(DEFAULT_COMPANION_BEHAVIOR)
     );
     setBehaviorError(false);
@@ -390,6 +410,7 @@ export function useSetupController() {
           appearance: appearance.trim(),
           interests: interests || undefined,
           customPrompt: customPrompt || undefined,
+          presetId: presetId || undefined,
           behavior: parsedBehavior.data,
           referenceImageBase64: base64,
           referenceImageMimeType: imageFile.type as
@@ -415,10 +436,16 @@ export function useSetupController() {
   const displayImage =
     imagePreview ||
     existingImageUrl ||
-    (presetId ? getCharacterPreset(presetId)?.imageUrl : null);
+    (presetId ? characters.find(item => item.id === presetId)?.imageUrl : null);
 
   const displayAvatar = avatarPreview || existingAvatarUrl;
   return {
+    characters,
+    presetLoading: !isEditing && discovery.isLoading,
+    presetError: !isEditing ? discovery.error : null,
+    retryPresets: discovery.refetch,
+    presetNotFound:
+      !isEditing && !!requestedPresetId && !!discovery.data && !initialPreset,
     setLocation,
     t,
     isEditing,

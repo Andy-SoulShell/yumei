@@ -10,6 +10,7 @@ import { CharacterDetailDialog } from "@/components/CharacterDetailDialog";
 import { DiscoveryFooter } from "@/components/DiscoveryFooter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PageError } from "@/components/PageError";
 import { RadioGroup, RadioGroupChoice } from "@/components/ui/radio-group";
 
 /** 首屏直接展示搜索和目录，首页的产品介绍在独立路由展示。 */
@@ -22,6 +23,13 @@ export default function Explore() {
     state.reset();
     input.current?.focus();
   };
+  if (state.isLoading)
+    return (
+      <div role="status" className="p-8 text-center">
+        {t("auth:working")}
+      </div>
+    );
+  if (state.error) return <PageError onRetry={() => void state.refetch()} />;
   return (
     <div className="explore-page explore-directory">
       <section

@@ -1,9 +1,9 @@
-/** 为内置角色提供不同的说话方式和原创示例，后续用户修改不改变模板。 */
+/** 为官方角色初始种子生成表达方式和示例，运行时使用数据库中的行为配置。 */
 import { getCharacterPreset } from "./characterPresets";
 import {
   resolveCompanionBehavior,
   type CompanionBehavior,
-} from "./companionBehavior";
+} from "../../shared/companionBehavior";
 
 /** 按已存在的预设选择表达与示例，未知预设返回稳定默认。 */
 export function getPresetBehavior(id: string): CompanionBehavior {

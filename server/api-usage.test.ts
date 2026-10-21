@@ -34,7 +34,7 @@ describe("usage APIs", () => {
       selfieLimit: 1,
       selfiePeriod: "day",
     });
-    expect(info.checkoutUrls).toEqual({ plus: null, pro: null });
+    expect(info.checkoutUrls).toEqual({});
     expect(await caller.selfie.quota()).toMatchObject({
       used: 1,
       remaining: 0,

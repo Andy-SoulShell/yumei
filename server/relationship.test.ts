@@ -169,7 +169,7 @@ describe("server-owned relationship settlement", () => {
       const first = await a.send(content);
       const second = await b.send(content);
       const saved = await getIntimacyInfo(a.gf.id, a.userId);
-      expect(saved.intimacyPoints).toBe(content.length < 5 ? 1234 : 1236);
+      expect(saved.intimacyPoints).toBe(content.length < 5 ? 1234 : 1246);
       expect(first.relationship).toEqual(second.relationship);
       expect((await getIntimacyInfo(a.gf.id, a.userId)).intimacyPoints).toBe(
         saved.intimacyPoints

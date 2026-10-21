@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { X } from "lucide-react";
 import { getLevelInfo } from "@shared/intimacy";
 import { useI18n } from "@/lib/i18n";
-import { intimacyMessages } from "@/locales/domain";
+import { useProductConfig } from "@/features/product/useProductConfig";
 import { usePersistFn } from "@/hooks/usePersistFn";
 import { Button } from "@/components/ui/button";
 
@@ -17,20 +17,20 @@ export function LevelUpNotice({
   onClose: () => void;
 }) {
   const { t } = useI18n();
+  const policy = useProductConfig();
   const close = usePersistFn(onClose);
   useEffect(() => {
     if (!show) return;
     const timer = setTimeout(close, 3500);
     return () => clearTimeout(timer);
   }, [show, newLevel, close]);
-  if (!show) return null;
-  const level = getLevelInfo(newLevel);
+  if (!show || !policy.data) return null;
+  const level = getLevelInfo(newLevel, policy.data.intimacy.levels);
   return (
     <div className="chat-level-notice">
       <p role="status">
         <span aria-hidden="true">{level.emoji}</span>{" "}
-        {t("intimacy:intimacyLevelUp")} · Lv.{level.level}{" "}
-        {t(intimacyMessages[level.level].name)}
+        {t("intimacy:intimacyLevelUp")} · Lv.{level.level} {level.name}
       </p>
       <Button
         type="button"

@@ -5,7 +5,20 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useChatController } from "./useChatController";
 
+vi.mock("@/features/product/useProductConfig", async () => {
+  const { productFixture, productView } =
+    await import("../../../../server/testProductConfig");
+  return {
+    useProductConfig: () => ({
+      raw: mock.productReady ? productFixture : undefined,
+      data: mock.productReady ? productView : undefined,
+    }),
+  };
+});
+
 const mock = vi.hoisted(() => ({
+  productReady: true,
+  productFetch: vi.fn(),
   pending: false,
   imagePending: false,
   generating: false,
@@ -142,6 +155,7 @@ vi.mock("@/lib/trpc", () => {
       },
       billing: { getInfo: query({ mode: "none" }) },
       useUtils: () => ({
+        productConfig: { get: { fetch: mock.productFetch } },
         conversation: {
           invalidate: mock.refresh,
           listWithDetails: { invalidate: mock.refresh },
@@ -168,6 +182,7 @@ beforeEach(async () => {
   localStorage.clear();
   sessionStorage.clear();
   mock.pending = false;
+  mock.productReady = true;
   mock.imagePending = false;
   mock.generating = false;
   mock.userId = "qa";
@@ -220,6 +235,33 @@ async function sendFirst(content = variables.content) {
     controller.handleSendMessage({ preventDefault: vi.fn() } as any)
   );
 }
+it("drops configuration results and errors arriving after a conversation switch", async () => {
+  const { productFixture } =
+    await import("../../../../server/testProductConfig");
+  for (const reject of [false, true]) {
+    mock.productReady = false;
+    let resolve!: (value: unknown) => void;
+    let fail!: (error: Error) => void;
+    mock.productFetch.mockReturnValue(
+      new Promise((yes, no) => {
+        resolve = yes;
+        fail = no;
+      })
+    );
+    await render();
+    await sendFirst("发一张自拍");
+    mock.conversationId = String(Number(mock.conversationId) + 1);
+    await render();
+    await act(async () => {
+      if (reject) fail(new Error("late config error"));
+      else resolve(productFixture);
+    });
+    expect(mock.send).not.toHaveBeenCalled();
+    expect(mock.streamSubmit).not.toHaveBeenCalled();
+    expect(mock.error).not.toHaveBeenCalled();
+    expect(controller.failedMessages).toHaveLength(0);
+  }
+});
 it("keeps the next draft when a pending reply completes", async () => {
   await sendFirst();
   expect(mock.streamSubmit).toHaveBeenCalledWith({

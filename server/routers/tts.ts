@@ -5,6 +5,7 @@ import { z } from "zod";
 import { BusinessRuleError } from "../_core/businessError";
 import { keyProvider } from "../_core/keyProvider";
 import { checkRateLimit } from "../_core/quota";
+import { getPublishedProductConfig } from "../repositories/productConfig";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getTierLimits, isBillingEnforced } from "../billing";
 import { putStagedMedia } from "../managedMedia";
@@ -23,7 +24,8 @@ export const ttsRouter = router({
     .mutation(async ({ ctx, input }) => {
       ensureAgeConfirmed(ctx.user);
       // 服务端限流。
-      await checkRateLimit(ctx.user.id, "tts");
+      const policy = await getPublishedProductConfig();
+      await checkRateLimit(ctx.user.id, "tts", policy);
 
       const apiConfig = await getUserApiConfig(ctx.user.id);
       if (!apiConfig) {
@@ -39,15 +41,14 @@ export const ttsRouter = router({
               provider === "elevenlabs" ? "elevenlabs" : "fish-audio"
             )
           : null;
-      // 档位门槛：ElevenLabs 需 Plus+，Fish Audio 需
-      // Pro；对应 BYOK key 或自托管模式除外。
+      // 语音服务权限由当前套餐决定，用户密钥或自托管模式除外。
       if (
         isBillingEnforced() &&
         (provider === "elevenlabs" || provider === "fishaudio")
       ) {
         const byokForProvider = ttsKey?.source === "user";
         if (!byokForProvider) {
-          const ttsTier = await getTierLimits(ctx.user.id);
+          const ttsTier = await getTierLimits(ctx.user.id, policy);
           if (!ttsTier.limits.ttsProviders.includes(provider)) {
             throw new TRPCError({
               code: "FORBIDDEN",

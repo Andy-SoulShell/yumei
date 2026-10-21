@@ -1,7 +1,6 @@
 /** 首页和探索页共用的公开角色目录，统一卡片资料和图片加载策略。 */
-import type { CharacterPreset } from "@shared/characterPresets";
+import type { CharacterPreset } from "@shared/discovery";
 import { useI18n } from "@/lib/i18n";
-import { presetMessages } from "@/locales/domain";
 import { CharacterCard } from "./CharacterCard";
 
 /** 展示指定顺序的角色，并将选择交给所在页面处理。 */
@@ -23,8 +22,8 @@ export function CharacterCatalogueGrid({
           name={preset.name}
           age={preset.age}
           image={preset.imageUrl}
-          label={t(presetMessages[preset.id].label)}
-          description={t(presetMessages[preset.id].tagline)}
+          label={preset.label}
+          description={preset.tagline}
           styleLabel={t(
             preset.style === "anime" ? "explore:anime" : "explore:realistic"
           )}

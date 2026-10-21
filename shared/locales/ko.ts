@@ -851,8 +851,8 @@ export default {
     planUsage: "요금제 및 사용량",
     selfHostedModeAllFeaturesUnlockedWithNo:
       "자체 호스팅: 모든 기능을 사용할 수 있으며 사용량을 집계하지 않아요.",
-    freePlan30MessagesAnd1SelfiePer:
-      "무료 요금제: 하루 메시지 30개, 셀카 1장. 개인 API 키를 추가하면 한도 제한 없이 이용할 수 있어요.",
+    defaultPlanDescription:
+      "현재 요금제의 이용 한도는 아래와 같아요. 개인 API 키를 추가하면 사용량 제한을 해제할 수 있어요.",
     cancelledAccessContinuesUntil:
       "해지되었어요. {{date}}까지 이용할 수 있어요.",
     thankYouForSubscribing: "구독해 주셔서 감사해요!",
@@ -869,6 +869,7 @@ export default {
     nearLimitUpgrade:
       "이용 한도의 80%를 초과했어요. 업그레이드하면 한도가 늘어나요.",
     free: "무료",
+    yearlyPrice: "{{price}}/년",
     monthlyPrice: "{{price}}/월",
   },
   characters: {
@@ -943,11 +944,23 @@ export default {
     editCompanionProfile: "✏️ 동반자 프로필 편집",
     haveADeeperConversation: "💭 깊이 있는 대화",
     chatAtNight: "🌙 밤에 대화하기",
+    dailyXpCap:
+      "하루 최대 {{points}} XP. 자리를 비워도 획득한 XP는 줄지 않습니다.",
+    rewardText: "{{count}}자 초과 메시지에 {{points}} XP 추가",
+    rewardVoice: "{{count}}초 초과 음성에 {{points}} XP 추가",
+    rewardSelfie: "하루 첫 이미지 생성에 {{points}} XP 추가",
+    rewardStreak: "{{count}}일 연속 교류 시 {{points}} XP 추가",
+    rewardProfile: "성격 또는 아바타 변경 시 {{points}} XP 추가",
+    rewardLong: "각 대화의 {{count}}번째 라운드 완료 시 지급",
+    rewardNight: "{{zone}} 기준 {{start}}:00–{{end}}:00의 유효한 교류",
+    rewardLimits: "하루 최대 {{count}}회, 대기 시간 {{minutes}}분",
+    minimumText: "XP를 받으려면 최소 {{count}}자의 텍스트가 필요합니다",
     upTo200XPPerDayDecaysAfter:
       "하루 최대 200 XP를 얻을 수 있어요. 잠시 쉬어도 이미 얻은 XP는 줄어들지 않아요.",
     intimacyLevelUp: "친밀도가 올랐어요!",
     relationship: "{{name}} 님과 나의 관계",
-    nickname: "이제 애칭은 “{{name}}”예요 💕",
+    stageNickname: "단계별 애칭: “{{name}}”",
+    unlimitedRewards: "무제한",
     lockedLevel: "Lv.{{level}} {{name}}({{points}} XP)",
     "levels.1.name": "첫 만남",
     "levels.1.description": "막 만난 사이, 예의 바르지만 조금 거리감이 있어요",
@@ -1005,6 +1018,8 @@ export default {
       "입력한 글을 우선하고, 지정하지 않은 특징만 캐릭터 외모 설명으로 채워요.",
     unlocksAtIntimacyLv: "친밀도 Lv.{{level}}에서 해제",
     uploadYourPhotoToAppearTogether: "사진을 올려 함께 찍기",
+    couplePhotosRequireEligiblePlan:
+      "함께 찍는 사진에는 지원 요금제 또는 개인 이미지 서비스 키가 필요합니다",
     couplePhotosRequireProOrYourOwnFal:
       "함께 찍은 사진은 Pro 또는 개인 fal.ai 키가 필요해요",
     couplePhotoUploadYourPhotoToAppearTogether: "사진을 올려 함께 찍기",

@@ -2,7 +2,8 @@
 
 import { nanoid } from "nanoid";
 import { afterEach, describe, expect, it } from "vitest";
-import { SELFIE_POSES, getPose, posesForLevel } from "../shared/selfiePoses";
+import { getPose, posesForLevel } from "../shared/selfiePoses";
+import { SELFIE_POSES, productFixture } from "./testProductConfig";
 import type { TrpcContext } from "./_core/context";
 import { getDb } from "./database";
 import {
@@ -52,6 +53,8 @@ async function seedGirlfriendAndConversation(
     referenceImageUrl: "https://example.com/ref.png",
     referenceImageKey: "m4-ref",
     intimacyLevel,
+    intimacyPoints:
+      productFixture.intimacy.levels[intimacyLevel - 1].requiredPoints,
     isActive: true,
   });
   const convo = await createConversation({ userId, girlfriendId: gf.id });
@@ -64,14 +67,14 @@ afterEach(() => {
 
 describe("selfie pose library", () => {
   it("exposes the intimacy-promised poses at the right levels", () => {
-    expect(getPose("aegyo")?.minLevel).toBe(2); // 解锁「撒娇」Lv2
-    expect(getPose("intimate")?.minLevel).toBe(3); // 解锁「亲密」Lv3
-    expect(getPose("alluring")?.minLevel).toBe(5); // 解锁「诱惑」Lv5
+    expect(getPose("aegyo", SELFIE_POSES)?.minLevel).toBe(2); // 解锁「撒娇」Lv2
+    expect(getPose("intimate", SELFIE_POSES)?.minLevel).toBe(3); // 解锁「亲密」Lv3
+    expect(getPose("alluring", SELFIE_POSES)?.minLevel).toBe(5); // 解锁「诱惑」Lv5
   });
 
   it("posesForLevel filters by level and grows with it", () => {
-    const lvl1 = posesForLevel(1);
-    const lvl10 = posesForLevel(10);
+    const lvl1 = posesForLevel(1, SELFIE_POSES);
+    const lvl10 = posesForLevel(10, SELFIE_POSES);
     expect(lvl1.every(p => p.minLevel <= 1)).toBe(true);
     expect(lvl1.length).toBeGreaterThanOrEqual(2);
     expect(lvl10.length).toBe(SELFIE_POSES.length);

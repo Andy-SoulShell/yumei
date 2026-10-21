@@ -680,6 +680,12 @@
   object-position: 50% 24%;
   filter: saturate(0.85);
 }
+.hero-art[data-image-count="1"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+.hero-art[data-image-count="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 .hero-art img:nth-child(2) {
   object-position: 50% 18%;
 }
@@ -1534,7 +1540,7 @@
   .hero-art img {
     object-position: 45% 20%;
   }
-  .hero-art img:first-child {
+  .hero-art[data-image-count="3"] img:first-child {
     display: none;
   }
   .hero-art img {

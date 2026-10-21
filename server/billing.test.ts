@@ -3,9 +3,10 @@
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { createHmac } from "node:crypto";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { billingEvents } from "../drizzle/schema";
-import { TIER_LIMITS } from "../shared/quotas";
+import { TIER_LIMITS, productFixture } from "./testProductConfig";
+import * as productRepository from "./repositories/productConfig";
 import {
   getBillingMode,
   getSubscription,
@@ -54,7 +55,7 @@ function subscriptionPayload(overrides: {
         status: overrides.status ?? "active",
         renews_at: "2027-01-01T00:00:00.000000Z",
         ends_at: overrides.endsAt ?? null,
-        variant_id: 999,
+        variant_id: overrides.variantName?.includes("Pro") ? 998 : 999,
         variant_name: overrides.variantName ?? "Plus Monthly",
         product_name: "YUMEI",
       },
@@ -63,12 +64,21 @@ function subscriptionPayload(overrides: {
 }
 
 beforeEach(() => {
+  const config = structuredClone(productFixture);
+  config.billing.plans.find(plan => plan.id === "plus")!.lemonVariantId = "999";
+  config.billing.plans.find(plan => plan.id === "pro")!.lemonVariantId = "998";
+  vi.spyOn(productRepository, "getPublishedProductConfig").mockResolvedValue({
+    ...config,
+    revision: 1,
+    publishedAt: new Date(),
+  });
   delete process.env.BILLING_PROVIDER;
   delete process.env.LEMONSQUEEZY_VARIANT_PLUS;
   delete process.env.LEMONSQUEEZY_VARIANT_PRO;
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   delete process.env.BILLING_PROVIDER;
 });
 
@@ -108,17 +118,14 @@ describe("verifyLemonSignature", () => {
 });
 
 describe("resolvePlan", () => {
-  it("prefers explicit variant-id mapping", () => {
-    process.env.LEMONSQUEEZY_VARIANT_PLUS = "111";
-    process.env.LEMONSQUEEZY_VARIANT_PRO = "222";
-    expect(resolvePlan({ variant_id: 111, variant_name: "Pro" })).toBe("plus");
-    expect(resolvePlan({ variant_id: 222, variant_name: "Plus" })).toBe("pro");
-  });
-
-  it("falls back to name matching", () => {
-    expect(resolvePlan({ variant_name: "YUMEI Plus (monthly)" })).toBe("plus");
-    expect(resolvePlan({ product_name: "Pro Annual" })).toBe("pro");
-    expect(resolvePlan({ variant_name: "Mystery Box" })).toBeNull();
+  it("uses explicit published variant mapping and rejects names or unknown variants", () => {
+    const billing = structuredClone(productFixture.billing);
+    billing.plans.find(plan => plan.id === "plus")!.lemonVariantId = "111";
+    billing.plans.find(plan => plan.id === "pro")!.lemonVariantId = "222";
+    expect(resolvePlan({ variant_id: 111 }, billing)).toBe("plus");
+    expect(resolvePlan({ variant_id: 222 }, billing)).toBe("pro");
+    expect(resolvePlan({}, billing)).toBeNull();
+    expect(resolvePlan({ variant_id: 999 }, billing)).toBeNull();
   });
 });
 

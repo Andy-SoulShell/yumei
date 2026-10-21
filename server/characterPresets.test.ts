@@ -1,7 +1,7 @@
 /** 覆盖内置预设、图片读取及套餐数量约束。 */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CHARACTER_PRESETS } from "../shared/characterPresets";
+import { CHARACTER_PRESETS } from "./seeds/characterPresets";
 import * as companionsDb from "./repositories/companions";
 import { appRouter } from "./routers";
 import * as storage from "./storage";

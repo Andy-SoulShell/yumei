@@ -1,3 +1,4 @@
+import { useProductConfig } from "@/features/product/useProductConfig";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { usePullToRefresh } from "@/hooks/useGestures";
 import { apiErrorMessage } from "@/lib/errors";
@@ -9,11 +10,13 @@ import { toast } from "sonner";
 import { useLocation } from "wouter";
 import {
   getLevelProgress,
+  getLevelByPoints,
   getPointsToNextLevel,
 } from "../../../../shared/intimacy";
 /** 页面查询、草稿与操作流程；展示组件只消费此状态。 */
 export function useHomeController() {
   const { t, locale } = useI18n();
+  const product = useProductConfig();
 
   const { user, loading, isAuthenticated } = useAuth();
 
@@ -44,7 +47,7 @@ export function useHomeController() {
   // 下拉刷新（必须在所有 early return 之前声明）
   const { isPulling, pullDistance, isRefreshing } = usePullToRefresh({
     onRefresh: async () => {
-      await refetch();
+      await Promise.all([refetch(), product.refetch()]);
     },
     enabled: isAuthenticated,
   });
@@ -101,17 +104,6 @@ export function useHomeController() {
   });
 
   // 亲密度信息缓存 map
-  const [intimacyMap, setIntimacyMap] = useState<
-    Record<
-      number,
-      {
-        level: number;
-        points: number;
-        progress: number;
-        pointsToNext: number | null;
-      }
-    >
-  >({});
 
   // 心情 map：girlfriendId -> mood
   const moodMap = useMemo(() => {
@@ -136,30 +128,36 @@ export function useHomeController() {
   }, [searchKeyword]);
 
   // 计算亲密度信息（从女友数据中直接读取）
-  useEffect(() => {
-    if (girlfriends && girlfriends.length > 0) {
-      const map: Record<
-        number,
-        {
-          level: number;
-          points: number;
-          progress: number;
-          pointsToNext: number | null;
-        }
-      > = {};
+  const intimacyMap = useMemo(() => {
+    const map: Record<
+      number,
+      {
+        level: number;
+        points: number;
+        progress: number;
+        pointsToNext: number | null;
+      }
+    > = {};
+    if (girlfriends && product.data) {
       for (const gf of girlfriends) {
-        const level = gf.intimacyLevel || 1;
+        const level = getLevelByPoints(
+          gf.intimacyPoints,
+          product.data.intimacy.levels
+        ).level;
         const points = gf.intimacyPoints || 0;
         map[gf.id] = {
           level,
           points,
-          progress: getLevelProgress(points),
-          pointsToNext: getPointsToNextLevel(points),
+          progress: getLevelProgress(points, product.data.intimacy.levels),
+          pointsToNext: getPointsToNextLevel(
+            points,
+            product.data.intimacy.levels
+          ),
         };
       }
-      setIntimacyMap(map);
     }
-  }, [girlfriends]);
+    return map;
+  }, [girlfriends, product.data]);
 
   // 软删除（移入回收站）
   const deleteGirlfriend = trpc.girlfriend.delete.useMutation({
@@ -291,6 +289,8 @@ export function useHomeController() {
 
   const isSearchMode = !!debouncedKeyword;
   return {
+    product,
+    levels: product.data?.intimacy.levels,
     loading,
     t,
     setHistoryOpen,

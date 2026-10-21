@@ -1,10 +1,9 @@
+import { getPublishedProductConfig } from "../repositories/productConfig";
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { getCharacterPreset } from "../../shared/characterPresets";
-import { DEFAULT_GIRLFRIEND } from "../../shared/defaultGirlfriend";
+import { officialIdSchema } from "../../shared/discovery";
 import { companionBehaviorSchema } from "../../shared/companionBehavior";
-import { getPresetBehavior } from "../../shared/presetBehavior";
 import {
   getLevelInfo,
   getLevelProgress,
@@ -16,7 +15,11 @@ import { log, providerErrorSummary } from "../_core/log";
 import { protectedProcedure, router } from "../_core/trpc";
 import { decodeBase64Upload } from "../_core/uploads";
 import { getTierLimits, isBillingEnforced } from "../billing";
-import { readDefaultReference, readPresetReference } from "../characterPresets";
+import { readOfficialImage } from "../characterPresets";
+import {
+  getPublishedCharacter,
+  getPublishedDiscovery,
+} from "../repositories/discovery";
 import { putStagedMedia } from "../managedMedia";
 import { flushMediaDeletions, queueMediaDeletion } from "../mediaCleanup";
 import {
@@ -36,6 +39,44 @@ import {
 import { getIntimacyInfo } from "../repositories/intimacy";
 
 export const girlfriendRouter = router({
+  /** 使用最新已发布官方资料创建，按用户及预设 ID 原子复用已有角色。 */
+  createFromPreset: protectedProcedure
+    .input(z.object({ presetId: officialIdSchema }).strict())
+    .mutation(async ({ ctx, input }) => {
+      const preset = await getPublishedCharacter(input.presetId);
+      const { limits } = await getTierLimits(ctx.user.id);
+      const image = await readOfficialImage(preset.imageUrl);
+      const ext =
+        image.mimeType === "image/jpeg" ? "jpg" : image.mimeType.split("/")[1];
+      const key = `girlfriend-${ctx.user.id}-${nanoid()}.${ext}`;
+      const reference = await putStagedMedia(
+        ctx.user.id,
+        key,
+        image.data,
+        image.mimeType
+      );
+      try {
+        return await createGirlfriend(
+          {
+            userId: ctx.user.id,
+            officialPresetId: preset.id,
+            name: preset.name,
+            personality: preset.personality,
+            appearance: preset.appearance,
+            interests: preset.interests,
+            behavior: preset.behavior,
+            referenceImageUrl: reference.url,
+            referenceImageKey: key,
+            isActive: true,
+          },
+          isBillingEnforced() ? limits.maxGirlfriends : null,
+          true
+        );
+      } catch (error) {
+        await queueMediaDeletion(ctx.user.id, [key]);
+        throw error;
+      }
+    }),
   /** 校验当前套餐角色数量，保存选定或上传的参考图并创建角色。 */
   create: protectedProcedure
     .input(
@@ -47,10 +88,7 @@ export const girlfriendRouter = router({
           interests: z.string().max(1000).optional(),
           customPrompt: z.string().max(300).optional(),
           behavior: companionBehaviorSchema.optional(),
-          presetId: z
-            .string()
-            .refine(id => !!getCharacterPreset(id), "角色预设不存在")
-            .optional(),
+          presetId: officialIdSchema.optional(),
           referenceImageBase64: z.string().min(1).optional(),
           referenceImageMimeType: z
             .enum(["image/jpeg", "image/png", "image/gif", "image/webp"])
@@ -65,6 +103,9 @@ export const girlfriendRouter = router({
         )
     )
     .mutation(async ({ ctx, input }) => {
+      const preset = input.presetId
+        ? await getPublishedCharacter(input.presetId)
+        : undefined;
       // 档位上限：Free 1 个、Plus 3 个、Pro 不限。
       // 自托管（BILLING_PROVIDER=none）不限。
       const gfTier = await getTierLimits(ctx.user.id);
@@ -83,12 +124,15 @@ export const girlfriendRouter = router({
       }
 
       // 上传参考图片到存储
+      const presetImage = input.referenceImageBase64
+        ? undefined
+        : await readOfficialImage(preset!.imageUrl);
       const imageBuffer = input.referenceImageBase64
         ? decodeBase64Upload(input.referenceImageBase64)
-        : await readPresetReference(input.presetId!);
+        : presetImage!.data;
       const mimeType = input.referenceImageBase64
         ? input.referenceImageMimeType!
-        : "image/jpeg";
+        : presetImage!.mimeType;
       if (imageBuffer.length > 10 * 1024 * 1024) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -110,12 +154,13 @@ export const girlfriendRouter = router({
         girlfriend = await createGirlfriend(
           {
             userId: ctx.user.id,
+            officialPresetId: preset?.id ?? null,
             name: input.name,
             personality: input.personality,
             appearance: input.appearance,
             interests: input.interests,
             customPrompt: input.customPrompt || null,
-            behavior: input.behavior ?? getPresetBehavior(input.presetId ?? ""),
+            behavior: input.behavior ?? preset?.behavior,
             referenceImageUrl: imageUrl,
             referenceImageKey: fileKey,
             isActive: true,
@@ -280,24 +325,40 @@ export const girlfriendRouter = router({
 
   /** 复用已有角色，或在需要时上传内置参考图并创建默认 YUMEI。 */
   ensureDefault: protectedProcedure.mutation(async ({ ctx }) => {
-    const girlfriend = await createDefaultGirlfriend(ctx.user.id, async () => {
-      const reference = await putStagedMedia(
-        ctx.user.id,
-        `default-yumei-${ctx.user.id}-${nanoid()}.jpg`,
-        await readDefaultReference(),
-        "image/jpeg"
-      );
-      return {
-        userId: ctx.user.id,
-        name: DEFAULT_GIRLFRIEND.name,
-        personality: DEFAULT_GIRLFRIEND.personality,
-        appearance: DEFAULT_GIRLFRIEND.appearance,
-        interests: DEFAULT_GIRLFRIEND.interests,
-        referenceImageUrl: reference.url,
-        referenceImageKey: reference.key,
-        isActive: true,
-      };
-    });
+    const tier = await getTierLimits(ctx.user.id);
+    const snapshot = await getPublishedDiscovery();
+    const preset = snapshot.characters.find(
+      item => item.id === snapshot.home.defaultPresetId
+    )!;
+    const girlfriend = await createDefaultGirlfriend(
+      ctx.user.id,
+      async () => {
+        const image = await readOfficialImage(preset.imageUrl);
+        const extension =
+          image.mimeType === "image/jpeg"
+            ? "jpg"
+            : image.mimeType.split("/")[1];
+        const reference = await putStagedMedia(
+          ctx.user.id,
+          `default-yumei-${ctx.user.id}-${nanoid()}.${extension}`,
+          image.data,
+          image.mimeType
+        );
+        return {
+          userId: ctx.user.id,
+          officialPresetId: preset.id,
+          name: preset.name,
+          personality: preset.personality,
+          appearance: preset.appearance,
+          interests: preset.interests,
+          behavior: preset.behavior,
+          referenceImageUrl: reference.url,
+          referenceImageKey: reference.key,
+          isActive: true,
+        };
+      },
+      isBillingEnforced() ? tier.limits.maxGirlfriends : null
+    );
     return girlfriend;
   }),
 
@@ -307,11 +368,28 @@ export const girlfriendRouter = router({
   getIntimacy: protectedProcedure
     .input(z.object({ girlfriendId: z.number() }))
     .query(async ({ ctx, input }) => {
-      const info = await getIntimacyInfo(input.girlfriendId, ctx.user.id);
-      const levelInfo = getLevelInfo(info.intimacyLevel);
-      const nextLevel = getNextLevel(info.intimacyLevel);
-      const progress = getLevelProgress(info.intimacyPoints);
-      const pointsToNext = getPointsToNextLevel(info.intimacyPoints);
+      const policy = await getPublishedProductConfig();
+      const info = await getIntimacyInfo(
+        input.girlfriendId,
+        ctx.user.id,
+        policy
+      );
+      const levelInfo = getLevelInfo(
+        info.intimacyLevel,
+        policy.intimacy.levels
+      );
+      const nextLevel = getNextLevel(
+        info.intimacyLevel,
+        policy.intimacy.levels
+      );
+      const progress = getLevelProgress(
+        info.intimacyPoints,
+        policy.intimacy.levels
+      );
+      const pointsToNext = getPointsToNextLevel(
+        info.intimacyPoints,
+        policy.intimacy.levels
+      );
 
       return {
         ...info,

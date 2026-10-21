@@ -2,6 +2,7 @@
 import { and, eq } from "drizzle-orm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { usageMeters } from "../drizzle/schema";
+import { productFixture } from "./testProductConfig";
 import { getLevelByPoints } from "../shared/intimacy";
 import { METERS } from "../shared/quotas";
 import { getDailyMeter, todayUTC } from "./_core/quota";
@@ -35,7 +36,7 @@ describe("intimacy persistence", () => {
     });
     const award = (id: number) =>
       withUserTransaction(userId, tx =>
-        awardIntimacy(tx, id, userId, 10, "selfie")
+        awardIntimacy(tx, id, userId, "selfie")
       );
     expect((await award(a.id)).pointsAdded).toBe(0);
     expect((await award(b.id)).pointsAdded).toBeGreaterThan(0);
@@ -51,7 +52,8 @@ describe("intimacy persistence", () => {
       ...profile,
       userId,
       intimacyPoints: 1234,
-      intimacyLevel: getLevelByPoints(1234).level,
+      intimacyLevel: getLevelByPoints(1234, productFixture.intimacy.levels)
+        .level,
       lastInteractionAt: new Date("2026-10-09T12:00:00Z"),
     });
     const first = await getIntimacyInfo(gf.id, userId);
@@ -83,17 +85,17 @@ describe("intimacy persistence", () => {
     });
     const award = () =>
       withUserTransaction(userId, tx =>
-        awardIntimacy(tx, gf.id, userId, 5, "edit_profile")
+        awardIntimacy(tx, gf.id, userId, "edit_profile")
       );
     expect((await award()).pointsAdded).toBe(0);
     expect(await getDailyMeter(userId, METERS.intimacyPoints(gf.id))).toBe(195);
     expect(
       await getDailyMeter(userId, METERS.intimacyReason(gf.id, "edit_profile"))
     ).toBe(0);
-    await db.update(usageMeters).set({ count: 192 }).where(where);
+    await db.update(usageMeters).set({ count: 182 }).where(where);
     const results = await Promise.all(Array.from({ length: 3 }, () => award()));
-    expect(results.map(r => r.pointsAdded).sort()).toEqual([0, 0, 8]);
+    expect(results.map(r => r.pointsAdded).sort()).toEqual([0, 0, 18]);
     expect(await getDailyMeter(userId, METERS.intimacyPoints(gf.id))).toBe(200);
-    expect((await getIntimacyInfo(gf.id, userId)).intimacyPoints).toBe(8);
+    expect((await getIntimacyInfo(gf.id, userId)).intimacyPoints).toBe(18);
   });
 });

@@ -16,8 +16,12 @@ import { selfieRouter } from "./routers/selfie";
 import { ttsRouter } from "./routers/tts";
 import { voiceRouter } from "./routers/voice";
 import { operationsRouter } from "./routers/operations";
+import { discoveryRouter } from "./routers/discovery";
+import { productConfigRouter } from "./routers/productConfig";
 
 export const appRouter = router({
+  productConfig: productConfigRouter,
+  discovery: discoveryRouter,
   operations: operationsRouter,
   preferences: preferencesRouter,
   system: systemRouter,

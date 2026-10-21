@@ -1,6 +1,6 @@
 /** 从聊天文字中识别明确的自拍请求，并提取姿势意图。 */
 
-import { SELFIE_POSES } from "./selfiePoses";
+import type { SelfiePose } from "./productConfig";
 
 /**
  * 识别明确的自拍请求，排除常见否定、转述和功能讨论。
@@ -9,7 +9,9 @@ import { SELFIE_POSES } from "./selfiePoses";
  * @remarks 使用启发式正则识别，最终额度与姿势权限由服务端校验。
  */
 export function detectSelfieRequest(
-  content: string
+  content: string,
+  poses: readonly SelfiePose[],
+  defaultPoseId: string
 ): { poseId: string } | null {
   const text = content.trim();
   if (
@@ -48,12 +50,16 @@ export function detectSelfieRequest(
       text
     );
   if (!requested) return null;
-  const pose = [...SELFIE_POSES]
+  const searchable = text.toLowerCase();
+  const pose = [...poses]
     .reverse()
-    .find(
-      pose =>
-        text.includes(pose.label) &&
-        !new RegExp(`(?:不要|别|不用)\\s*${pose.label}`).test(text)
+    .filter(pose => pose.enabled)
+    .find(pose =>
+      [...pose.aliases, ...Object.values(pose.label)].some(label => {
+        if (!label) return false;
+        const index = searchable.indexOf(label.toLowerCase());
+        return index >= 0 && !/(?:不要|别|不用)\s*$/.test(text.slice(0, index));
+      })
     );
-  return { poseId: pose?.id || "casual" };
+  return { poseId: pose?.id ?? defaultPoseId };
 }

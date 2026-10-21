@@ -864,8 +864,8 @@ export default {
     planUsage: "Plan & usage",
     selfHostedModeAllFeaturesUnlockedWithNo:
       "Self-hosted mode: all features unlocked, with no quota tracking.",
-    freePlan30MessagesAnd1SelfiePer:
-      "Free plan: 30 messages and 1 selfie per day. Add your own API keys to bypass quotas.",
+    defaultPlanDescription:
+      "Your plan’s current quotas are shown below. Add your own API keys to bypass usage quotas.",
     cancelledAccessContinuesUntil:
       "Cancelled. Access continues until {{date}}.",
     thankYouForSubscribing: "Thank you for subscribing!",
@@ -882,6 +882,7 @@ export default {
     nearLimitUpgrade:
       "You have used over 80% of your quota. Upgrade for a higher allowance.",
     free: "Free",
+    yearlyPrice: "{{price}}/year",
     monthlyPrice: "{{price}}/month",
   },
   characters: {
@@ -961,11 +962,29 @@ export default {
     editCompanionProfile: "✏️ Edit companion profile",
     haveADeeperConversation: "💭 Have a deeper conversation",
     chatAtNight: "🌙 Chat at night",
+    dailyXpCap:
+      "Up to {{points}} XP per day. Time away does not remove earned XP.",
+    rewardText:
+      "Earn {{points}} extra XP for messages longer than {{count}} characters",
+    rewardVoice:
+      "Earn {{points}} extra XP for voice messages longer than {{count}} seconds",
+    rewardSelfie: "Earn {{points}} extra XP for the first image of the day",
+    rewardStreak:
+      "Earn {{points}} extra XP after {{count}} consecutive days of interaction",
+    rewardProfile:
+      "Earn {{points}} extra XP when changing personality or avatar",
+    rewardLong:
+      "Earn this reward on completed round {{count}} of each conversation",
+    rewardNight:
+      "Eligible interactions between {{start}}:00–{{end}}:00 in {{zone}}",
+    rewardLimits: "Up to {{count}} times a day; {{minutes}} minute cooldown",
+    minimumText: "Text must contain at least {{count}} characters to earn XP",
     upTo200XPPerDayDecaysAfter:
       "Earn up to 200 XP per day. Taking a break never removes XP you have earned.",
     intimacyLevelUp: "Intimacy level up!",
     relationship: "Your relationship with {{name}}",
-    nickname: "Your companion now calls you “{{name}}” 💕",
+    stageNickname: "Stage nickname: “{{name}}”",
+    unlimitedRewards: "Unlimited",
     lockedLevel: "Lv.{{level}} {{name}} ({{points}} XP)",
     "levels.1.name": "First meeting",
     "levels.1.description": "Just met: polite, with a little distance",
@@ -1023,6 +1042,8 @@ export default {
       "Follows your text first. The character description fills in unspecified details.",
     unlocksAtIntimacyLv: "Unlocks at intimacy Lv.{{level}}",
     uploadYourPhotoToAppearTogether: "Upload a photo for a couple portrait",
+    couplePhotosRequireEligiblePlan:
+      "Couple photos require an eligible plan or your own image service key",
     couplePhotosRequireProOrYourOwnFal:
       "Couple photos require Pro or your own fal.ai key",
     couplePhotoUploadYourPhotoToAppearTogether:

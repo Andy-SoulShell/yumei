@@ -95,6 +95,18 @@ CREATE TABLE `conversations` (
 	CONSTRAINT `conversations_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
+CREATE TABLE `discoveryContent` (
+	`id` varchar(32) NOT NULL,
+	`draft` json NOT NULL,
+	`published` json,
+	`revision` int NOT NULL DEFAULT 1,
+	`publishedRevision` int NOT NULL DEFAULT 1,
+	`publishedAt` timestamp,
+	`updatedBy` varchar(255),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `discoveryContent_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
 CREATE TABLE `generationRequests` (
 	`id` varchar(36) NOT NULL,
 	`userId` varchar(255) NOT NULL,
@@ -148,6 +160,7 @@ CREATE TABLE `girlfriends` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`userId` varchar(255) NOT NULL,
 	`name` varchar(100) NOT NULL,
+	`officialPresetId` varchar(100),
 	`personality` text NOT NULL,
 	`appearance` text NOT NULL,
 	`interests` text,
@@ -267,6 +280,15 @@ CREATE TABLE `notifications` (
 	CONSTRAINT `notifications_contactId_unique` UNIQUE(`contactId`)
 );
 --> statement-breakpoint
+CREATE TABLE `officialCharacters` (
+	`id` varchar(100) NOT NULL,
+	`data` json NOT NULL,
+	`archived` boolean NOT NULL DEFAULT false,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `officialCharacters_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
 CREATE TABLE `proactiveContacts` (
 	`id` varchar(36) NOT NULL,
 	`userId` varchar(255) NOT NULL,
@@ -302,6 +324,17 @@ CREATE TABLE `proactiveDeliveries` (
 	`deliveredAt` timestamp(3),
 	CONSTRAINT `proactiveDeliveries_id` PRIMARY KEY(`id`),
 	CONSTRAINT `uniq_proactive_device` UNIQUE(`contactId`,`subscriptionId`,`deviceHash`)
+);
+--> statement-breakpoint
+CREATE TABLE `productConfiguration` (
+	`id` varchar(32) NOT NULL,
+	`draft` json NOT NULL,
+	`published` json NOT NULL,
+	`revision` int NOT NULL DEFAULT 1,
+	`publishedRevision` int NOT NULL DEFAULT 1,
+	`publishedAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedBy` varchar(255),
+	CONSTRAINT `productConfiguration_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
 CREATE TABLE `pushSubscriptions` (
@@ -357,7 +390,7 @@ CREATE TABLE `subscriptions` (
 	`lsCustomerId` varchar(64),
 	`providerUpdatedAt` timestamp(3),
 	`pastDueSince` timestamp(3),
-	`plan` enum('plus','pro') NOT NULL,
+	`plan` varchar(100) NOT NULL,
 	`status` enum('on_trial','active','paused','past_due','unpaid','cancelled','expired') NOT NULL,
 	`renewsAt` timestamp,
 	`endsAt` timestamp,
@@ -440,6 +473,7 @@ CREATE INDEX `idx_conversations_user_role` ON `conversations` (`userId`,`girlfri
 CREATE INDEX `idx_generation_turn_lease` ON `generationRequests` (`turnStatus`,`leaseUntil`);--> statement-breakpoint
 CREATE INDEX `idx_generation_conversation` ON `generationRequests` (`conversationId`);--> statement-breakpoint
 CREATE INDEX `idx_generation_expiry` ON `generationRequests` (`status`,`expiresAt`);--> statement-breakpoint
+CREATE INDEX `idx_girlfriends_official_preset` ON `girlfriends` (`userId`,`officialPresetId`);--> statement-breakpoint
 CREATE INDEX `idx_girlfriends_user_deleted` ON `girlfriends` (`userId`,`deletedAt`);--> statement-breakpoint
 CREATE INDEX `idx_media_cleanup_updated` ON `mediaDeletions` (`updatedAt`);--> statement-breakpoint
 CREATE INDEX `idx_memory_job_next` ON `memoryExtractionJobs` (`status`,`nextRunAt`);--> statement-breakpoint

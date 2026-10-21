@@ -2,7 +2,7 @@
 
 import { nanoid } from "nanoid";
 import { describe, expect, it, vi } from "vitest";
-import { RATE_LIMITS_PER_MINUTE } from "../../shared/quotas";
+import { RATE_LIMITS_PER_MINUTE } from "../testProductConfig";
 import { getDb } from "../database";
 import {
   checkRateLimit,

@@ -4,7 +4,9 @@ import { BusinessRuleError } from "./_core/businessError";
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 import { METERS } from "../shared/quotas";
+import { getPublishedProductConfig } from "./repositories/productConfig";
 import { getPose } from "../shared/selfiePoses";
+import { getLevelByPoints } from "../shared/intimacy";
 import {
   generateProviderImage,
   imageGenerationModel,
@@ -53,7 +55,8 @@ export async function generateConversationSelfie(
       code: "PRECONDITION_FAILED",
       message: "AGE_CONFIRMATION_REQUIRED",
     });
-  await checkRateLimit(user.id, "selfie");
+  const policy = await getPublishedProductConfig();
+  await checkRateLimit(user.id, "selfie", policy);
 
   // 0b. 验证对话所有权。selfie.generate 此前会无条件
   // INSERT 一条 assistant message 到 input.conversationId，攻击者可借此
@@ -79,20 +82,24 @@ export async function generateConversationSelfie(
   }
 
   // 1b. 姿势等级门：解锁进度由亲密度决定，服务端强制。
+  const currentLevel = getLevelByPoints(
+    girlfriend.intimacyPoints,
+    policy.intimacy.levels
+  ).level;
   let pose: ReturnType<typeof getPose> | undefined;
   if (input.poseId) {
-    pose = getPose(input.poseId);
+    pose = getPose(input.poseId, policy.selfies.poses);
     if (!pose) {
       throw new TRPCError({ code: "BAD_REQUEST", message: "Unknown pose" });
     }
-    if (pose.minLevel > (girlfriend.intimacyLevel || 1)) {
+    if (pose.minLevel > currentLevel) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message: "LEVEL_LOCKED",
         cause: new BusinessRuleError({
           reason: "LEVEL_LOCKED",
           requiredLevel: pose.minLevel,
-          currentLevel: girlfriend.intimacyLevel || 1,
+          currentLevel,
         }),
       });
     }
@@ -116,7 +123,7 @@ export async function generateConversationSelfie(
     });
   }
 
-  const selfieTier = await getTierLimits(user.id);
+  const selfieTier = await getTierLimits(user.id, policy);
   // 3. 本次输入决定画面；无输入时才使用所选姿势，不读取旧对白或情绪。
   const promptResult = buildImagePrompt({
     userContext: input.userContext,
@@ -135,7 +142,7 @@ export async function generateConversationSelfie(
             period: "day",
             limit: selfieTier.limits.dailySelfies,
             what: "selfies",
-            hint: upsellHint(selfieTier.tier),
+            hint: upsellHint(selfieTier.tier, policy),
           }
         : selfieTier.limits.monthlySelfies !== null
           ? {
@@ -143,7 +150,7 @@ export async function generateConversationSelfie(
               period: "month",
               limit: selfieTier.limits.monthlySelfies,
               what: "selfies",
-              hint: upsellHint(selfieTier.tier),
+              hint: upsellHint(selfieTier.tier, policy),
             }
           : undefined
       : undefined;

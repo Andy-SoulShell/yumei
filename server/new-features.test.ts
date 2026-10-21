@@ -5,7 +5,8 @@ import { createTestUser } from "./testFixtures";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 import { storageRead } from "./storage";
-import { readDefaultReference } from "./characterPresets";
+import { readOfficialImage } from "./characterPresets";
+import { DEFAULT_GIRLFRIEND } from "./seeds/defaultGirlfriend";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 // 每次执行使用新账号，避免复用旧数据库记录中指向上次临时目录的文件键。
@@ -58,7 +59,9 @@ describe("girlfriend.ensureDefault", () => {
       `/files/${result.referenceImageKey}`
     );
     const storedReference = await storageRead(result.referenceImageKey);
-    expect(storedReference).toEqual(await readDefaultReference());
+    expect(storedReference).toEqual(
+      (await readOfficialImage(DEFAULT_GIRLFRIEND.referenceImageUrl)).data
+    );
     expect(storedReference.subarray(0, 2)).toEqual(Buffer.from([255, 216]));
   });
 

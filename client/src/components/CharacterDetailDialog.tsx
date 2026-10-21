@@ -2,9 +2,8 @@
 import type { RefObject } from "react";
 import { Link } from "wouter";
 import { ArrowRight, Check, Heart, Loader2, Sparkles } from "lucide-react";
-import type { CharacterPreset } from "@shared/characterPresets";
+import type { CharacterPreset } from "@shared/discovery";
 import { useI18n } from "@/lib/i18n";
-import { presetMessages } from "@/locales/domain";
 import { useCompanionChat } from "@/hooks/useCompanionChat";
 import { Button } from "./ui/button";
 import {
@@ -58,9 +57,7 @@ export function CharacterDetailDialog({
               </span>
             </div>
             <div className="detail-content">
-              <span className="section-eyebrow">
-                {t(presetMessages[selected.id].label)}
-              </span>
+              <span className="section-eyebrow">{selected.label}</span>
               <DialogHeader>
                 <DialogTitle>
                   {selected.name}
@@ -68,9 +65,7 @@ export function CharacterDetailDialog({
                     {t("explore:age", { age: selected.age })}
                   </span>
                 </DialogTitle>
-                <DialogDescription>
-                  {t(presetMessages[selected.id].tagline)}
-                </DialogDescription>
+                <DialogDescription>{selected.tagline}</DialogDescription>
               </DialogHeader>
               {!findPreset(selected) && (
                 <p className="detail-disclosure">

@@ -1,7 +1,5 @@
-/** 覆盖亲密度等级、经验与夜间时段计算。 */
-
+/** 配置驱动的等级边界、变长等级表、时区窗口和动态姿势解锁。 */
 import { describe, it, expect } from "vitest";
-import { SELFIE_POSES } from "../shared/selfiePoses";
 import {
   getLevelByPoints,
   getLevelInfo,
@@ -10,239 +8,83 @@ import {
   getLevelProgress,
   isNightTime,
   getLevelGradient,
-  INTIMACY_LEVELS,
-  POINTS_RULES,
-  DAILY_POINTS_LIMIT,
 } from "../shared/intimacy";
+import {
+  localizeProductConfig,
+  productConfigSchema,
+} from "../shared/productConfig";
+import { productFixture, productView } from "./testProductConfig";
+const levels = productView.intimacy.levels;
 
-describe("Intimacy System - Constants", () => {
-  it("should have 10 levels defined", () => {
-    expect(INTIMACY_LEVELS).toHaveLength(10);
+describe("published intimacy calculations", () => {
+  it.each([
+    [0, 1],
+    [49, 1],
+    [50, 2],
+    [149, 2],
+    [150, 3],
+    [500, 5],
+    [3500, 10],
+    [99999, 10],
+  ])("maps %i XP to level %i", (points, level) => {
+    expect(getLevelByPoints(points, levels).level).toBe(level);
   });
-
-  it("should have levels in ascending order of required points", () => {
-    for (let i = 1; i < INTIMACY_LEVELS.length; i++) {
-      expect(INTIMACY_LEVELS[i].requiredPoints).toBeGreaterThan(
-        INTIMACY_LEVELS[i - 1].requiredPoints
-      );
-    }
+  it("uses supplied thresholds and level count for every derived value", () => {
+    const custom = levels
+      .slice(0, 3)
+      .map((level, index) => ({ ...level, requiredPoints: index * 10 }));
+    expect(getLevelByPoints(10, custom).level).toBe(2);
+    expect(getLevelInfo(99, custom).level).toBe(3);
+    expect(getLevelInfo(0, custom).level).toBe(1);
+    expect(getNextLevel(3, custom)).toBeNull();
+    expect(getPointsToNextLevel(15, custom)).toBe(5);
+    expect(getLevelProgress(15, custom)).toBe(50);
+    expect(getLevelProgress(100, custom)).toBe(100);
+    expect(getLevelByPoints(NaN, custom).level).toBe(1);
   });
-
-  it("should have level 1 starting at 0 points", () => {
-    expect(INTIMACY_LEVELS[0].requiredPoints).toBe(0);
-    expect(INTIMACY_LEVELS[0].level).toBe(1);
+  it("builds colors from data rather than ungenerated Tailwind classes", () => {
+    const custom = levels.map(level => ({
+      ...level,
+      gradientFrom: "#123456",
+      gradientTo: "#abcdef",
+    }));
+    expect(getLevelGradient(4, custom)).toBe(
+      "linear-gradient(to right, #123456, #abcdef)"
+    );
   });
-
-  it("should have level 10 as the highest", () => {
-    expect(INTIMACY_LEVELS[9].level).toBe(10);
-    expect(INTIMACY_LEVELS[9].requiredPoints).toBe(3500);
+  it("interprets the configured time zone across midnight", () => {
+    const night = { timeZone: "Asia/Shanghai", startHour: 22, endHour: 2 };
+    expect(isNightTime(new Date("2026-10-21T14:00:00Z"), night)).toBe(true);
+    expect(isNightTime(new Date("2026-10-21T18:00:00Z"), night)).toBe(false);
+    expect(isNightTime(new Date("2026-10-21T17:59:00Z"), night)).toBe(true);
+    expect(
+      isNightTime(new Date("2026-10-21T12:00:00Z"), {
+        ...night,
+        startHour: 20,
+        endHour: 21,
+      })
+    ).toBe(true);
   });
-
-  it("should have daily points limit of 200", () => {
-    expect(DAILY_POINTS_LIMIT).toBe(200);
+  it("derives advertised unlocks from enabled pose rules", () => {
+    const config = structuredClone(productFixture);
+    config.selfies.poses.find(pose => pose.id === "aegyo")!.minLevel = 4;
+    config.selfies.poses.find(pose => pose.id === "intimate")!.enabled = false;
+    const view = localizeProductConfig(config, "zh-CN");
+    expect(view.intimacy.levels[1].unlocks).not.toContain("撒娇");
+    expect(view.intimacy.levels[3].unlocks).toContain("撒娇");
+    expect(view.intimacy.levels.flatMap(level => level.unlocks)).not.toContain(
+      "亲密"
+    );
   });
-
-  it("advertises the selfie poses actually available at each unlock level", () => {
-    for (const level of INTIMACY_LEVELS.filter(level => level.level > 1)) {
-      const poses = SELFIE_POSES.filter(pose => pose.minLevel === level.level);
-      expect(level.unlocks).toHaveLength(poses.length);
-      poses.forEach((pose, index) => {
-        expect(level.unlocks[index]).toContain(pose.label);
-      });
-    }
-  });
-
-  it("should define all expected point rules", () => {
-    const expectedTypes = [
-      "text_message",
-      "voice_message",
-      "selfie",
-      "daily_first",
-      "edit_profile",
-      "long_conversation",
-      "night_chat",
-    ];
-    for (const type of expectedTypes) {
-      expect(POINTS_RULES[type]).toBeDefined();
-      expect(POINTS_RULES[type].basePoints).toBeGreaterThan(0);
-    }
-  });
-});
-
-describe("Intimacy System - getLevelByPoints", () => {
-  it("should return level 1 for 0 points", () => {
-    const level = getLevelByPoints(0);
-    expect(level.level).toBe(1);
-    expect(level.name).toBe("初识");
-  });
-
-  it("should return level 2 for 50 points", () => {
-    const level = getLevelByPoints(50);
-    expect(level.level).toBe(2);
-    expect(level.name).toBe("熟悉");
-  });
-
-  it("should return level 5 for 500 points", () => {
-    const level = getLevelByPoints(500);
-    expect(level.level).toBe(5);
-    expect(level.name).toBe("暧昧");
-  });
-
-  it("should return level 10 for 3500+ points", () => {
-    const level = getLevelByPoints(3500);
-    expect(level.level).toBe(10);
-    expect(level.name).toBe("灵魂伴侣");
-  });
-
-  it("should return level 10 for very high points", () => {
-    const level = getLevelByPoints(99999);
-    expect(level.level).toBe(10);
-  });
-
-  it("should return level 1 for points between 0 and 49", () => {
-    const level = getLevelByPoints(49);
-    expect(level.level).toBe(1);
-  });
-
-  it("should handle boundary values correctly", () => {
-    expect(getLevelByPoints(149).level).toBe(2);
-    expect(getLevelByPoints(150).level).toBe(3);
-    expect(getLevelByPoints(299).level).toBe(3);
-    expect(getLevelByPoints(300).level).toBe(4);
-  });
-});
-
-describe("Intimacy System - getLevelInfo", () => {
-  it("should return correct info for level 1", () => {
-    const info = getLevelInfo(1);
-    expect(info.name).toBe("初识");
-    expect(info.petName).toBe("你");
-  });
-
-  it("should return correct info for level 6", () => {
-    const info = getLevelInfo(6);
-    expect(info.name).toBe("恋人");
-    expect(info.petName).toBe("老公");
-  });
-
-  it("should clamp to level 1 for invalid low values", () => {
-    const info = getLevelInfo(0);
-    expect(info.level).toBe(1);
-  });
-
-  it("should clamp to level 10 for invalid high values", () => {
-    const info = getLevelInfo(99);
-    expect(info.level).toBe(10);
-  });
-});
-
-describe("Intimacy System - getNextLevel", () => {
-  it("should return level 2 for current level 1", () => {
-    const next = getNextLevel(1);
-    expect(next).not.toBeNull();
-    expect(next!.level).toBe(2);
-  });
-
-  it("should return null for max level 10", () => {
-    const next = getNextLevel(10);
-    expect(next).toBeNull();
-  });
-
-  it("should return level 6 for current level 5", () => {
-    const next = getNextLevel(5);
-    expect(next).not.toBeNull();
-    expect(next!.level).toBe(6);
-  });
-});
-
-describe("Intimacy System - getPointsToNextLevel", () => {
-  it("should return 50 for 0 points (level 1 → 2)", () => {
-    const points = getPointsToNextLevel(0);
-    expect(points).toBe(50);
-  });
-
-  it("should return 25 for 25 points (level 1 → 2)", () => {
-    const points = getPointsToNextLevel(25);
-    expect(points).toBe(25);
-  });
-
-  it("should return null for max level", () => {
-    const points = getPointsToNextLevel(3500);
-    expect(points).toBeNull();
-  });
-
-  it("should calculate correctly at level boundaries", () => {
-    // At 50 points (just reached level 2), next is level 3 at 150
-    const points = getPointsToNextLevel(50);
-    expect(points).toBe(100);
-  });
-});
-
-describe("Intimacy System - getLevelProgress", () => {
-  it("should return 0% at the start of level 1", () => {
-    const progress = getLevelProgress(0);
-    expect(progress).toBe(0);
-  });
-
-  it("should return 50% halfway through level 1", () => {
-    const progress = getLevelProgress(25);
-    expect(progress).toBe(50);
-  });
-
-  it("should return 100% at max level", () => {
-    const progress = getLevelProgress(3500);
-    expect(progress).toBe(100);
-  });
-
-  it("should return 0% at the start of a new level", () => {
-    const progress = getLevelProgress(50); // Just reached level 2
-    expect(progress).toBe(0);
-  });
-});
-
-describe("Intimacy System - isNightTime", () => {
-  it("should return true for 22:00", () => {
-    const date = new Date();
-    date.setHours(22, 0, 0, 0);
-    expect(isNightTime(date)).toBe(true);
-  });
-
-  it("should return true for 23:30", () => {
-    const date = new Date();
-    date.setHours(23, 30, 0, 0);
-    expect(isNightTime(date)).toBe(true);
-  });
-
-  it("should return true for 01:00", () => {
-    const date = new Date();
-    date.setHours(1, 0, 0, 0);
-    expect(isNightTime(date)).toBe(true);
-  });
-
-  it("should return false for 12:00", () => {
-    const date = new Date();
-    date.setHours(12, 0, 0, 0);
-    expect(isNightTime(date)).toBe(false);
-  });
-
-  it("should return false for 08:00", () => {
-    const date = new Date();
-    date.setHours(8, 0, 0, 0);
-    expect(isNightTime(date)).toBe(false);
-  });
-});
-
-describe("Intimacy System - getLevelGradient", () => {
-  it("should return gradient for all levels", () => {
-    for (let i = 1; i <= 10; i++) {
-      const gradient = getLevelGradient(i);
-      expect(gradient).toContain("from-");
-      expect(gradient).toContain("to-");
-    }
-  });
-
-  it("should return default gradient for invalid level", () => {
-    const gradient = getLevelGradient(0);
-    expect(gradient).toContain("from-");
+  it("rejects incomplete or contradictory executable rules", () => {
+    const duplicate = structuredClone(productFixture);
+    duplicate.intimacy.levels[1].requiredPoints = 0;
+    expect(productConfigSchema.safeParse(duplicate).success).toBe(false);
+    const unavailable = structuredClone(productFixture);
+    unavailable.selfies.poses[0].minLevel = 100;
+    expect(productConfigSchema.safeParse(unavailable).success).toBe(false);
+    const threshold = structuredClone(productFixture);
+    threshold.intimacy.rules.voice_message.bonusThreshold = null;
+    expect(productConfigSchema.safeParse(threshold).success).toBe(false);
   });
 });

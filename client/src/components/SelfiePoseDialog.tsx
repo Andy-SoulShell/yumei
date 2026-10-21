@@ -1,4 +1,5 @@
-import { poseMessages } from "@/locales/domain";
+import { useProductConfig } from "@/features/product/useProductConfig";
+import { PageError } from "@/components/PageError";
 /** 自拍姿势、生图方式与合照上传的选择弹窗。 */
 
 import { Input } from "@/components/ui/input";
@@ -14,7 +15,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { SELFIE_POSES } from "../../../shared/selfiePoses";
 import { Lock, Users } from "lucide-react";
 
 /**
@@ -47,6 +47,7 @@ export function SelfiePoseDialog({
   onCouplePhoto: (file: File) => void;
 }) {
   const { t } = useI18n();
+  const policy = useProductConfig();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState("");
   const [generationMode, setGenerationMode] = useState<"reference" | "text">(
@@ -54,6 +55,21 @@ export function SelfiePoseDialog({
   );
   const selectedMode = supportsTextToImage ? generationMode : "reference";
 
+  if (!policy.data)
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("selfie:askForAPhoto")}</DialogTitle>
+          </DialogHeader>
+          {policy.error ? (
+            <PageError onRetry={() => void policy.refetch()} />
+          ) : (
+            <p role="status">{t("auth:working")}</p>
+          )}
+        </DialogContent>
+      </Dialog>
+    );
   return (
     <Dialog
       open={open}
@@ -96,7 +112,7 @@ export function SelfiePoseDialog({
         )}
 
         <div className="grid grid-cols-3 gap-2">
-          {SELFIE_POSES.map(pose => {
+          {policy.data.selfies.poses.map(pose => {
             const locked = pose.minLevel > intimacyLevel;
             return (
               <Button
@@ -108,7 +124,7 @@ export function SelfiePoseDialog({
                 title={
                   locked
                     ? t("selfie:unlocksAtIntimacyLv", { level: pose.minLevel })
-                    : t(poseMessages[pose.id])
+                    : pose.label
                 }
                 className={`flex flex-col items-center gap-1 rounded-2xl p-3 text-sm transition-colors ${
                   locked
@@ -122,7 +138,7 @@ export function SelfiePoseDialog({
               >
                 <span className="text-2xl leading-none">{pose.emoji}</span>
                 <span className="truncate w-full text-center">
-                  {t(poseMessages[pose.id])}
+                  {pose.label}
                 </span>
                 {locked ? (
                   <Badge
@@ -183,19 +199,11 @@ export function SelfiePoseDialog({
             title={
               canCouplePhoto
                 ? t("selfie:uploadYourPhotoToAppearTogether")
-                : t("selfie:couplePhotosRequireProOrYourOwnFal")
+                : t("selfie:couplePhotosRequireEligiblePlan")
             }
           >
             <Users className="w-4 h-4 mr-1.5" />
             {t("selfie:couplePhotoUploadYourPhotoToAppearTogether")}
-            {!canCouplePhoto && (
-              <Badge
-                variant="secondary"
-                className="ml-2 text-[10px] px-1.5 py-0"
-              >
-                {t("selfie:pro")}
-              </Badge>
-            )}
           </Button>
         </div>
       </DialogContent>

@@ -167,10 +167,12 @@ export default function MyCharacters() {
         )}
 
         {/* 女友列表 */}
-        {girlfriendsLoading ? (
+        {girlfriendsLoading || (!state.product.data && !state.product.error) ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
+        ) : state.product.error && !state.product.data ? (
+          <PageError onRetry={() => void state.product.refetch()} />
         ) : girlfriendsError && !girlfriends ? (
           <PageError onRetry={() => void refetch()} />
         ) : !girlfriends || girlfriends.length === 0 ? (

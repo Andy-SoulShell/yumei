@@ -1,10 +1,17 @@
+import { getPublishedProductConfig } from "./productConfig";
+import { getLevelByPoints } from "../../shared/intimacy";
+import type { ProductConfig } from "../../shared/productConfig";
 /** intimacy 领域的数据访问与事务边界。 */
 import { and, eq } from "drizzle-orm";
 import { girlfriends } from "../../drizzle/schema";
 import { getDb } from "../database";
 
 /** 只读已获得的关系经验，离线和查询不会扣除经验。 */
-export async function getIntimacyInfo(girlfriendId: number, userId: string) {
+export async function getIntimacyInfo(
+  girlfriendId: number,
+  userId: string,
+  configuration?: ProductConfig
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const [gf] = await db
@@ -14,8 +21,10 @@ export async function getIntimacyInfo(girlfriendId: number, userId: string) {
       and(eq(girlfriends.id, girlfriendId), eq(girlfriends.userId, userId))
     );
   if (!gf) throw new Error("Girlfriend not found");
+  const policy = configuration ?? (await getPublishedProductConfig());
   return {
-    intimacyLevel: gf.intimacyLevel,
+    intimacyLevel: getLevelByPoints(gf.intimacyPoints, policy.intimacy.levels)
+      .level,
     intimacyPoints: gf.intimacyPoints,
     lastInteractionAt: gf.lastInteractionAt,
     consecutiveDays: gf.consecutiveDays,

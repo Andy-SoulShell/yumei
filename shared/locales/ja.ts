@@ -866,8 +866,8 @@ export default {
     planUsage: "プランと利用状況",
     selfHostedModeAllFeaturesUnlockedWithNo:
       "セルフホスト：すべての機能が利用可能で、利用量の計測はありません。",
-    freePlan30MessagesAnd1SelfiePer:
-      "無料プラン：1日30件のメッセージと自撮り1枚。ご自身の API キーで利用枠の制限を解除できます。",
+    defaultPlanDescription:
+      "現在のプランの利用枠は以下のとおりです。ご自身の API キーで利用枠の制限を解除できます。",
     cancelledAccessContinuesUntil: "解約済み。{{date}}まで利用できます。",
     thankYouForSubscribing: "ご登録ありがとうございます！",
     messagesToday: "今日のメッセージ",
@@ -883,6 +883,7 @@ export default {
     nearLimitUpgrade:
       "利用枠の80%を超えました。アップグレードで利用枠を増やせます。",
     free: "無料",
+    yearlyPrice: "{{price}}/年",
     monthlyPrice: "{{price}}/月",
   },
   characters: {
@@ -957,11 +958,22 @@ export default {
     editCompanionProfile: "✏️ パートナーのプロフィールを編集",
     haveADeeperConversation: "💭 じっくり会話する",
     chatAtNight: "🌙 夜に会話する",
+    dailyXpCap: "1日最大{{points}} XP。離れている間も獲得済みXPは減りません。",
+    rewardText: "{{count}}文字を超えるメッセージで追加{{points}} XP",
+    rewardVoice: "{{count}}秒を超える音声で追加{{points}} XP",
+    rewardSelfie: "その日の最初の画像生成で追加{{points}} XP",
+    rewardStreak: "{{count}}日連続の交流で追加{{points}} XP",
+    rewardProfile: "性格またはアバターの変更で追加{{points}} XP",
+    rewardLong: "各会話の{{count}}ラウンド完了時に獲得",
+    rewardNight: "{{zone}}の{{start}}:00〜{{end}}:00の有効な交流",
+    rewardLimits: "1日最大{{count}}回、待機時間{{minutes}}分",
+    minimumText: "XP獲得には{{count}}文字以上のテキストが必要です",
     upTo200XPPerDayDecaysAfter:
       "1日最大200 XPを獲得できます。しばらく離れても、獲得済みのXPは減りません。",
     intimacyLevelUp: "親密度がレベルアップ！",
     relationship: "あなたと{{name}}の関係",
-    nickname: "今の呼び名は「{{name}}」です 💕",
+    stageNickname: "段階の呼び名：「{{name}}」",
+    unlimitedRewards: "無制限",
     lockedLevel: "Lv.{{level}} {{name}}（{{points}} XP）",
     "levels.1.name": "初めての出会い",
     "levels.1.description": "出会ったばかり。礼儀正しく、少し距離がある",
@@ -1019,6 +1031,8 @@ export default {
       "入力した文章を優先し、未指定の特徴だけキャラクターの外見説明で補います。",
     unlocksAtIntimacyLv: "親密度 Lv.{{level}} で解放",
     uploadYourPhotoToAppearTogether: "写真をアップしてツーショット",
+    couplePhotosRequireEligiblePlan:
+      "ツーショットには対応プランまたはご自身の画像サービスキーが必要です",
     couplePhotosRequireProOrYourOwnFal:
       "ツーショットには Pro またはご自身の fal.ai キーが必要です",
     couplePhotoUploadYourPhotoToAppearTogether: "写真をアップしてツーショット",

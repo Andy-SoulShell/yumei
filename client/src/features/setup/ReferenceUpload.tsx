@@ -36,18 +36,19 @@ export function ReferenceUpload({
       </Label>
       <div className="flex flex-col items-center gap-3 sm:gap-4">
         {displayImage ? (
-          <div className="relative w-36 h-36 sm:w-48 sm:h-48 rounded-lg overflow-hidden border-2 border-border">
-            <img
-              src={displayImage}
-              alt={t("setup:preview")}
-              className="w-full h-full object-cover"
-            />
+          <>
+            <div className="w-36 max-w-full overflow-hidden rounded-lg border-2 border-border bg-muted/30 sm:w-48">
+              <img
+                src={displayImage}
+                alt={t("setup:preview")}
+                className="block h-auto max-h-64 w-full object-contain sm:max-h-80"
+              />
+            </div>
             {!isEditing && (
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
-                className="absolute bottom-2 right-2"
                 onClick={() => {
                   imageInputRef.current?.click();
                 }}
@@ -55,7 +56,7 @@ export function ReferenceUpload({
                 {t("setup:change")}
               </Button>
             )}
-          </div>
+          </>
         ) : (
           <Button
             type="button"

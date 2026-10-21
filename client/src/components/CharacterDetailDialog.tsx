@@ -1,5 +1,5 @@
 /** 首页和探索页共用的角色详情、定制与聊天入口。 */
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 import { Link } from "wouter";
 import { ArrowRight, Check, Heart, Loader2, Sparkles } from "lucide-react";
 import type { CharacterPreset } from "@shared/discovery";
@@ -13,6 +13,44 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
+
+/** 前台详情和后台草稿预览共用展示部分，预览不会触发角色创建。 */
+export function CharacterDetailContent({
+  selected,
+  children,
+}: {
+  selected: CharacterPreset;
+  children: ReactNode;
+}) {
+  const { t } = useI18n();
+  return (
+    <>
+      <div className="detail-portrait">
+        <img src={selected.imageUrl} alt={selected.name} />
+        <span className="detail-style">
+          <Sparkles size={12} />
+          {t(
+            selected.style === "anime" ? "explore:anime" : "explore:realistic"
+          )}{" "}
+          · AI
+        </span>
+      </div>
+      <div className="detail-content">
+        <span className="section-eyebrow">{selected.label}</span>
+        <DialogHeader>
+          <DialogTitle>
+            {selected.name}
+            <span className="detail-age">
+              {t("explore:age", { age: selected.age })}
+            </span>
+          </DialogTitle>
+          <DialogDescription>{selected.tagline}</DialogDescription>
+        </DialogHeader>
+        {children}
+      </div>
+    </>
+  );
+}
 
 /** 显示当前角色，关闭后将键盘焦点交还打开详情的卡片。 */
 export function CharacterDetailDialog({
@@ -43,61 +81,37 @@ export function CharacterDetailDialog({
         }}
       >
         {selected && (
-          <>
-            <div className="detail-portrait">
-              <img src={selected.imageUrl} alt={selected.name} />
-              <span className="detail-style">
-                <Sparkles size={12} />
-                {t(
-                  selected.style === "anime"
-                    ? "explore:anime"
-                    : "explore:realistic"
-                )}{" "}
-                · AI
-              </span>
-            </div>
-            <div className="detail-content">
-              <span className="section-eyebrow">{selected.label}</span>
-              <DialogHeader>
-                <DialogTitle>
-                  {selected.name}
-                  <span className="detail-age">
-                    {t("explore:age", { age: selected.age })}
-                  </span>
-                </DialogTitle>
-                <DialogDescription>{selected.tagline}</DialogDescription>
-              </DialogHeader>
-              {!findPreset(selected) && (
-                <p className="detail-disclosure">
-                  {t("explore:detailDisclosure")}
-                </p>
+          <CharacterDetailContent selected={selected}>
+            {!findPreset(selected) && (
+              <p className="detail-disclosure">
+                {t("explore:detailDisclosure")}
+              </p>
+            )}
+            <Button
+              className="detail-start"
+              disabled={pending !== null}
+              onClick={() => void open(selected)}
+            >
+              {pending !== null ? (
+                <Loader2 className="animate-spin" />
+              ) : findPreset(selected) ? (
+                <Check />
+              ) : (
+                <Heart />
               )}
-              <Button
-                className="detail-start"
-                disabled={pending !== null}
-                onClick={() => void open(selected)}
-              >
-                {pending !== null ? (
-                  <Loader2 className="animate-spin" />
-                ) : findPreset(selected) ? (
-                  <Check />
-                ) : (
-                  <Heart />
-                )}
-                {pending !== null
-                  ? t("explore:opening")
-                  : findPreset(selected)
-                    ? t("explore:continueChat")
-                    : t("explore:addChat")}
-                <ArrowRight />
-              </Button>
-              <Button variant="ghost" asChild>
-                <Link href={"/setup?preset=" + selected.id}>
-                  {t("explore:customizeCharacter")}
-                </Link>
-              </Button>
-            </div>
-          </>
+              {pending !== null
+                ? t("explore:opening")
+                : findPreset(selected)
+                  ? t("explore:continueChat")
+                  : t("explore:addChat")}
+              <ArrowRight />
+            </Button>
+            <Button variant="ghost" asChild>
+              <Link href={"/setup?preset=" + selected.id}>
+                {t("explore:customizeCharacter")}
+              </Link>
+            </Button>
+          </CharacterDetailContent>
         )}
       </DialogContent>
     </Dialog>

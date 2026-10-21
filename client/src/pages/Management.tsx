@@ -10,7 +10,6 @@ import {
   ChevronRight,
   Code2,
   FileText,
-  ImagePlus,
   LayoutDashboard,
   Loader2,
   LockKeyhole,
@@ -30,15 +29,19 @@ import { usePreferences } from "@/contexts/PreferencesContext";
 import { trpc } from "@/lib/trpc";
 import { useProductConfig } from "@/features/product/useProductConfig";
 import { productConfigSchema, type ProductConfig } from "@shared/productConfig";
-import {
-  homepageSchema,
-  officialCharacterSchema,
-  officialImageSchema,
-} from "@shared/discovery";
+import { homepageSchema, officialCharacterSchema } from "@shared/discovery";
 import { ConfigForm, type FormSchema } from "@/features/management/ConfigForm";
 import { ThemeEditor } from "@/features/management/ThemeEditor";
 import { useOfficialUpload } from "@/features/management/useOfficialUpload";
 import { sameConfigValue } from "@/features/management/editorState";
+import { OfficialCharacterForm } from "@/features/management/OfficialCharacterForm";
+import { OfficialCharacterPreview } from "@/features/management/OfficialCharacterPreview";
+import { DiscoveryPublishReview } from "@/features/management/DiscoveryPublishReview";
+import {
+  createOfficialCharacter,
+  prepareOfficialCharacter,
+  officialCharacterIssues,
+} from "@/features/management/officialEditor";
 import "@/features/management/management.css";
 import { Button } from "@/components/ui/button";
 import {
@@ -150,9 +153,6 @@ const productForm = z.toJSONSchema(productConfigSchema, {
 const homeForm = z.toJSONSchema(homepageSchema, {
   unrepresentable: "any",
 }) as FormSchema;
-const characterForm = z.toJSONSchema(officialCharacterSchema, {
-  unrepresentable: "any",
-}) as FormSchema;
 function message(error: unknown) {
   const value = error as { message?: string; data?: { code?: string } };
   return value.data?.code === "CONFLICT"
@@ -190,6 +190,8 @@ function WorkspaceHeader({
   onSave,
   onPublish,
   onReload,
+  saveDisabled = false,
+  publishLabel = "发布",
 }: {
   title: string;
   description: string;
@@ -200,6 +202,8 @@ function WorkspaceHeader({
   onSave: () => void;
   onPublish: () => void;
   onReload: () => void;
+  saveDisabled?: boolean;
+  publishLabel?: string;
 }) {
   return (
     <>
@@ -234,7 +238,7 @@ function WorkspaceHeader({
           <Button
             size="sm"
             variant="outline"
-            disabled={busy || !dirty}
+            disabled={busy || !dirty || saveDisabled}
             onClick={onSave}
           >
             {busy ? (
@@ -251,7 +255,7 @@ function WorkspaceHeader({
             title={dirty ? "请先保存草稿" : undefined}
           >
             <Send className="mr-1.5 size-3.5" />
-            发布
+            {publishLabel}
           </Button>
         </div>
       </div>
@@ -457,6 +461,8 @@ function HomeWorkspace({
   operations: WorkspaceOperations;
 }) {
   const [value, setValue] = useState(() => structuredClone(draft.home));
+  const policy = useProductConfig();
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [mode, setMode] = useState<"form" | "json">("form"),
     [raw, setRaw] = useState(() => JSON.stringify(value, null, 2)),
     [error, setError] = useState("");
@@ -515,7 +521,11 @@ function HomeWorkspace({
         busy={busy}
         dirty={dirty}
         onSave={() => void operations.run(submit)}
-        onPublish={() => void operations.run(publishDraft)}
+        publishLabel="查看发布变更"
+        onPublish={() => {
+          setError("");
+          setReviewOpen(true);
+        }}
         onReload={() => {
           if (!dirty || window.confirm("放弃未保存修改？"))
             void operations
@@ -524,6 +534,17 @@ function HomeWorkspace({
         }}
       />
       <ErrorText error={error} />
+      {reviewOpen && policy.raw && (
+        <DiscoveryPublishReview
+          open
+          onClose={() => setReviewOpen(false)}
+          draft={draft}
+          rules={policy.raw.characters}
+          busy={busy}
+          error={error}
+          onPublish={() => void operations.run(publishDraft)}
+        />
+      )}
       <Card>
         <CardContent className="p-4 sm:p-6">
           <EditorMode
@@ -625,16 +646,24 @@ function CharacterWorkspace({
     source = draft.characters.find(item => item.id === selected);
   const [value, setValue] = useState(() => {
       if (source) return structuredClone(source.data);
-      return {
-        ...structuredClone(draft.characters[0].data),
-        id: `character-${crypto.randomUUID().slice(0, 8)}`,
-        name: "新角色",
-        listed: true,
-        behavior: structuredClone(policy.raw!.characters.defaultBehavior),
-      };
+      const template =
+        draft.characters.find(item => item.id === draft.home.defaultPresetId)
+          ?.data || draft.characters[0].data;
+      return createOfficialCharacter(
+        template,
+        policy.raw!.characters,
+        Math.min(
+          100000,
+          Math.max(...draft.characters.map(item => item.data.sortOrder)) + 1
+        )
+      );
     }),
     [error, setError] = useState(""),
-    [search, setSearch] = useState("");
+    [reviewOpen, setReviewOpen] = useState(false);
+  const candidate = prepareOfficialCharacter(value);
+  const issues = policy.raw
+    ? officialCharacterIssues(candidate, policy.raw.characters)
+    : {};
   const save = trpc.discovery.admin.saveCharacter.useMutation(),
     archive = trpc.discovery.admin.archiveCharacter.useMutation(),
     publish = trpc.discovery.admin.publish.useMutation(),
@@ -660,7 +689,7 @@ function CharacterWorkspace({
   };
   const submit = async () => {
     try {
-      const parsed = officialCharacterSchema.safeParse(value);
+      const parsed = officialCharacterSchema.safeParse(candidate);
       if (!parsed.success) {
         setError(validation(parsed.error));
         return;
@@ -701,24 +730,22 @@ function CharacterWorkspace({
       /* 共用上传入口已展示错误。 */
     }
   };
-  const schema = {
-    ...characterForm,
-    properties: {
-      ...characterForm.properties,
-      id: { ...characterForm.properties?.id, readOnly: !!source },
-    },
-  } as FormSchema;
   return (
     <>
       <WorkspaceHeader
         title="官方角色"
-        description="编辑官方预设、上传图片或归档角色。用户角色继续通过稳定 ID 关联预设，发布时统一校验首页引用。"
+        description="填写角色资料 → 保存草稿 → 预览并核对变更 → 发布。只有名字和人物设定必填。"
         revision={draft.revision}
         publishedRevision={draft.publishedRevision}
         busy={busy}
         dirty={dirty}
         onSave={() => void operations.run(submit)}
-        onPublish={() => void operations.run(publishDraft)}
+        saveDisabled={!policy.raw || Object.keys(issues).length > 0}
+        publishLabel="查看发布变更"
+        onPublish={() => {
+          setError("");
+          setReviewOpen(true);
+        }}
         onReload={() => {
           if (!dirty || window.confirm("放弃未保存修改？"))
             void operations
@@ -727,11 +754,22 @@ function CharacterWorkspace({
         }}
       />
       <ErrorText error={error} />
-      <div className="grid gap-4 xl:grid-cols-[240px_minmax(0,1fr)]">
+      {reviewOpen && policy.raw && (
+        <DiscoveryPublishReview
+          open
+          onClose={() => setReviewOpen(false)}
+          draft={draft}
+          rules={policy.raw.characters}
+          busy={busy}
+          error={error}
+          onPublish={() => void operations.run(publishDraft)}
+        />
+      )}
+      <div className="space-y-4">
         <Card className="self-start">
-          <CardContent className="space-y-3 p-3">
+          <CardContent className="flex flex-wrap items-center gap-3 p-3">
             <Button
-              className="w-full"
+              className="shrink-0"
               variant="outline"
               disabled={busy || !policy.raw || selected === "new"}
               onClick={newCharacter}
@@ -744,7 +782,7 @@ function CharacterWorkspace({
               value={selected}
               disabled={busy}
               onChange={event => select(event.target.value)}
-              className="h-10 w-full rounded-xl border bg-background px-3 text-sm xl:hidden"
+              className="h-10 min-w-0 flex-1 rounded-xl border bg-background px-3 text-sm"
             >
               {selected === "new" && <option value="new">新角色草稿</option>}
               {draft.characters.map(item => (
@@ -754,120 +792,96 @@ function CharacterWorkspace({
                 </option>
               ))}
             </select>
-            <Input
-              aria-label="搜索官方角色"
-              className="hidden xl:block"
-              value={search}
-              onChange={event => setSearch(event.target.value)}
-              placeholder="搜索名称或 ID"
-            />
-            <div className="hidden max-h-[65vh] space-y-1 overflow-y-auto xl:block">
-              {draft.characters
-                .filter(item =>
-                  `${item.id} ${item.data.name}`
-                    .toLowerCase()
-                    .includes(search.toLowerCase())
-                )
-                .map(item => (
+            <Button asChild variant="ghost" size="sm">
+              <a href="#official-preview">查看预览</a>
+            </Button>
+          </CardContent>
+        </Card>
+        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
+          <Card className="min-w-0">
+            <CardContent className="space-y-4 p-4 sm:p-6">
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="mr-auto text-xs text-muted-foreground">
+                  {source?.archived
+                    ? "已归档"
+                    : !source
+                      ? "新角色 · 尚未保存"
+                      : "编辑后先保存，确认变更再发布"}
+                </p>
+                {source && !source.archived && (
                   <Button
-                    key={item.id}
-                    variant={selected === item.id ? "secondary" : "ghost"}
-                    className="h-auto w-full justify-start gap-2 px-2 py-2 text-left"
-                    disabled={busy}
-                    onClick={() => select(item.id)}
+                    variant="ghost"
+                    size="sm"
+                    disabled={
+                      busy || dirty || source.id === draft.home.defaultPresetId
+                    }
+                    onClick={() => {
+                      void operations
+                        .run(() =>
+                          archive
+                            .mutateAsync({
+                              expectedRevision: draft.revision,
+                              id: source.id,
+                            })
+                            .then(() => onReload())
+                        )
+                        .catch(error => setError(message(error)));
+                    }}
                   >
-                    <img
-                      src={item.data.imageUrl}
-                      alt=""
-                      className="size-9 rounded-lg object-cover"
-                    />
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm">
-                        {item.data.name}
-                      </span>
-                      <span className="block truncate text-[10px] text-muted-foreground">
-                        {item.archived ? "已归档 · " : ""}
-                        {item.id}
-                      </span>
-                    </span>
+                    <Trash2 className="mr-1.5 size-3.5" />
+                    归档
                   </Button>
-                ))}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="space-y-4 p-4 sm:p-6">
-            <div className="flex flex-wrap items-center gap-3">
-              {officialImageSchema.safeParse(value.imageUrl).success && (
-                <img
-                  src={value.imageUrl}
-                  alt={value.name}
-                  className="size-20 rounded-2xl object-cover"
-                />
-              )}
-              <Label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm">
-                <ImagePlus className="size-4" />
-                {imageUpload.pending ? "正在上传…" : "上传官方图片"}
-                <Input
-                  aria-label="上传官方图片"
-                  type="file"
-                  className="sr-only"
-                  accept={policy.raw?.uploads.official.mimeTypes.join(",")}
-                  disabled={busy || !policy.raw}
-                  onChange={event => {
-                    const file = event.target.files?.[0];
-                    event.target.value = "";
-                    if (file) void operations.run(() => uploadFile(file));
+                )}
+                {source?.archived && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy || Object.keys(issues).length > 0}
+                    onClick={() => void operations.run(submit)}
+                  >
+                    恢复到草稿
+                  </Button>
+                )}
+              </div>
+              {policy.raw ? (
+                <OfficialCharacterForm
+                  value={value}
+                  issues={issues}
+                  rules={policy.raw.characters}
+                  uploadRule={policy.raw.uploads.official}
+                  busy={busy}
+                  uploading={imageUpload.pending}
+                  images={Array.from(
+                    new Map(
+                      draft.characters.map(item => [
+                        item.data.imageUrl,
+                        { imageUrl: item.data.imageUrl, name: item.data.name },
+                      ])
+                    ).values()
+                  )}
+                  onUpload={file => void operations.run(() => uploadFile(file))}
+                  onChange={next => {
+                    setValue(next);
+                    setError("");
                   }}
                 />
-              </Label>
-              {source && !source.archived && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={
-                    busy || dirty || source.id === draft.home.defaultPresetId
-                  }
-                  onClick={() => {
-                    void operations
-                      .run(() =>
-                        archive
-                          .mutateAsync({
-                            expectedRevision: draft.revision,
-                            id: source.id,
-                          })
-                          .then(() => onReload())
-                      )
-                      .catch(error => setError(message(error)));
-                  }}
-                >
-                  <Trash2 className="mr-1.5 size-3.5" />
-                  归档
-                </Button>
+              ) : (
+                <p role="status" className="text-sm text-muted-foreground">
+                  正在读取字段规则，请稍候…
+                </p>
               )}
-              {source?.archived && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() => void operations.run(submit)}
-                >
-                  恢复到草稿
-                </Button>
-              )}
-            </div>
-            <ConfigForm
-              value={value}
-              path="character"
-              schema={schema}
-              disabled={busy}
-              onChange={next => {
-                setValue(next as typeof value);
-                setError("");
-              }}
+            </CardContent>
+          </Card>
+          <div
+            id="official-preview"
+            className="min-w-0 scroll-mt-36 xl:sticky xl:top-36"
+          >
+            <OfficialCharacterPreview
+              value={candidate}
+              archived={source?.archived}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </>
   );

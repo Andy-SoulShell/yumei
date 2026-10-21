@@ -151,8 +151,20 @@ describe("dynamic official content", () => {
     });
     await initializeDiscovery();
     expect(await guest.discovery.get()).toEqual(previous);
+    // 发布确认必须拿到与草稿一起读取的旧快照，不能把草稿误当成已发布值。
+    const review = await admin.discovery.admin.getDraft();
+    expect(review.published.home).toEqual(previous.home);
+    expect(review.published.characters).toEqual(previous.characters);
+    expect(review.home.pageSize).toBe(2);
+    expect(review.characters.some(item => item.id === character.id)).toBe(true);
+    expect(
+      review.published.characters.some(item => item.id === character.id)
+    ).toBe(false);
     await publish();
     const data = await guest.discovery.get();
+    expect(
+      (await admin.discovery.admin.getDraft()).published.characters
+    ).toEqual(data.characters);
     expect(data.home.featuredIds).toEqual([character.id]);
     expect(data.home.pageSize).toBe(2);
     expect(

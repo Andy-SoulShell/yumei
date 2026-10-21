@@ -47,7 +47,7 @@ async function waitFor(check: () => boolean) {
   expect(check()).toBe(true);
 }
 function button(text: string) {
-  const result = Array.from(container.querySelectorAll("button")).find(
+  const result = Array.from(document.querySelectorAll("button")).find(
     item => item.textContent?.trim() === text
   );
   expect(result).toBeTruthy();
@@ -85,6 +85,13 @@ function editor(value: string) {
   expect(result).toBeTruthy();
   return result!;
 }
+function field(label: string) {
+  const element = Array.from(container.querySelectorAll("label")).find(
+    item => item.textContent === label
+  );
+  expect(element).toBeTruthy();
+  return document.getElementById(element!.htmlFor) as HTMLInputElement;
+}
 
 type Workspace = "product" | "home" | "character";
 async function mount(
@@ -102,6 +109,7 @@ async function mount(
   };
   const seed = initialDiscovery();
   const content = {
+    published: structuredClone(seed),
     home: structuredClone(seed.home),
     characters: seed.characters.map(data => ({
       id: data.id,
@@ -112,18 +120,25 @@ async function mount(
     publishedRevision: 1,
     publishedAt: new Date(),
   };
+  if (action === "publish") {
+    content.characters[0].data.name += "（待发布）";
+    content.characters[1].data.tagline["zh-CN"] = "另一个角色的待发布介绍";
+    content.home.pageSize++;
+  }
   const target =
     workspace === "product" ? "productConfig.admin" : "discovery.admin";
   const procedure = `${target}.${action === "publish" ? "publish" : workspace === "product" ? "save" : workspace === "home" ? "saveHomepage" : "saveCharacter"}`;
   let writing = false,
     reloading = false,
     reads = 0;
+  const calls: string[] = [];
   const client = trpc.createClient({
     links: [
       () =>
         ({ op }) =>
           observable(observer => {
             void (async () => {
+              calls.push(op.path);
               let data: unknown;
               if (op.path === "management.status")
                 data = { configured: true, authenticated: true };
@@ -150,7 +165,18 @@ async function mount(
                 if (action === "save") {
                   if (workspace === "product") product.config = input.config;
                   else if (workspace === "home") content.home = input.home;
-                  else content.characters[0].data = input.character;
+                  else {
+                    const existing = content.characters.find(
+                      item => item.id === input.character.id
+                    );
+                    if (existing) existing.data = input.character;
+                    else
+                      content.characters.push({
+                        id: input.character.id,
+                        data: input.character,
+                        archived: false,
+                      });
+                  }
                 }
                 const draft = workspace === "product" ? product : content;
                 draft.revision++;
@@ -193,12 +219,15 @@ async function mount(
         ? "首页、轮播与 FAQ"
         : title
   );
+  if (workspace === "character")
+    await waitFor(() => !!container.querySelector('input[id$="-name"]'));
   return {
     write,
     reload,
     product,
     content,
     title,
+    calls,
     writing: () => writing,
     reloading: () => reloading,
   };
@@ -246,7 +275,19 @@ it.each<Workspace>(["product", "home", "character"])(
   "prevents %s publication from clearing edits in a later section",
   async workspace => {
     const state = await mount(workspace, "publish");
-    await click("发布");
+    if (workspace === "product") await click("发布");
+    else {
+      await click("查看发布变更");
+      expect(button("确认发布全部变更").disabled).toBe(true);
+      await act(async () =>
+        document
+          .querySelector<HTMLInputElement>(
+            '[role="dialog"] input[type="checkbox"]'
+          )!
+          .click()
+      );
+      await click("确认发布全部变更");
+    }
     await waitFor(state.writing);
     expect(button("套餐与额度").disabled).toBe(true);
     expect(
@@ -306,4 +347,72 @@ it("retains the local draft when saving succeeds but the following reload fails"
   expect(editor(value).disabled).toBe(false);
   expect(container.textContent).toContain("有未保存修改");
   expect(button("套餐与额度").disabled).toBe(false);
+});
+
+it("creates a clean official draft with only name and personality and previews before saving", async () => {
+  const state = await mount("character", "save");
+  await click("新增角色");
+  expect(field("名字（必填）").value).toBe("");
+  expect(field("人物设定（必填）").value).toBe("");
+  expect(button("保存草稿").disabled).toBe(true);
+  await change(field("名字（必填）"), "最少填写的新角色");
+  await change(
+    field("人物设定（必填）"),
+    "温柔的摄影师，喜欢观察城市，也耐心倾听。带着好奇心与你相处。"
+  );
+  expect(button("保存草稿").disabled).toBe(false);
+  expect(container.querySelector(".character-name")!.textContent).toContain(
+    "最少填写的新角色"
+  );
+  expect(container.querySelector(".character-label")!.textContent).toBe(
+    "AI 伙伴"
+  );
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>(".character-card")!.click()
+  );
+  expect(document.querySelector('[role="dialog"]')!.textContent).toContain(
+    "草稿预览 · 不会创建角色或开始聊天"
+  );
+  expect(state.calls).not.toContain("girlfriend.createFromPreset");
+  await click("返回编辑");
+  await click("保存草稿");
+  await act(async () => {
+    state.write.resolve();
+    state.reload.resolve();
+  });
+  await waitFor(() => !button("套餐与额度").disabled);
+  const created = state.content.characters.find(
+    item => item.data.name === "最少填写的新角色"
+  )!.data;
+  expect(created.appearance).toContain("参考图片");
+  expect(created.tagline["zh-CN"]).toBe(created.personality);
+  expect(created.label.en).toBeUndefined();
+});
+
+it("validates nickname immediately and enables saving once the user corrects it", async () => {
+  const state = await mount("character", "save");
+  await change(field("对用户的称呼"), "称".repeat(41));
+  expect(container.textContent).toContain("称呼最多 40 字，当前 41 字");
+  expect(field("对用户的称呼").getAttribute("aria-invalid")).toBe("true");
+  expect(button("保存草稿").disabled).toBe(true);
+  expect(state.writing()).toBe(false);
+  await change(field("对用户的称呼"), "称".repeat(40));
+  expect(container.textContent).not.toContain("称呼最多 40 字");
+  expect(button("保存草稿").disabled).toBe(false);
+});
+
+it("requires review of other roles and homepage changes before any publication request", async () => {
+  const state = await mount("character", "publish");
+  await click("查看发布变更");
+  const dialog = document.querySelector('[role="dialog"]')!;
+  expect(dialog.textContent).toContain("另一个角色的待发布介绍");
+  expect(dialog.textContent).toContain("每页数量");
+  expect(dialog.textContent).toContain("已经创建的用户角色保留原有资料");
+  expect(dialog.textContent).toContain("发布前");
+  expect(dialog.textContent).toContain("发布后");
+  expect(button("确认发布全部变更").disabled).toBe(true);
+  expect(state.writing()).toBe(false);
+  await click("返回编辑");
+  expect(state.calls).not.toContain("discovery.admin.publish");
+  expect(container.querySelector("h1")!.textContent).toBe("官方角色");
 });

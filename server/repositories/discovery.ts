@@ -100,6 +100,7 @@ export async function getDiscoveryDraft() {
       revision: state.revision,
       publishedRevision: state.publishedRevision,
       publishedAt: state.publishedAt,
+      published: state.published!,
       home: state.draft,
       characters,
     };

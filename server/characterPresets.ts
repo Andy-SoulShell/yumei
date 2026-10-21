@@ -1,6 +1,4 @@
 /** 读取受限公开角色资源，支持内置图片与管理员上传到存储的官方图片。 */
-import { enforceUpload } from "./_core/uploads";
-import { getPublishedProductConfig } from "./repositories/productConfig";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { officialImageSchema } from "../shared/discovery";
@@ -23,7 +21,7 @@ export function officialImageMime(data: Buffer) {
   throw new Error("请选择有效的 JPEG、PNG、GIF 或 WebP 图片");
 }
 
-/** 只读允许的资源路径，不发起远端请求，不接受任意本地文件路径。 */
+/** 只读允许的资源路径并校验签名；新上传限制不追溯已保存的官方资源。 */
 export async function readOfficialImage(imageUrl: string) {
   const image = officialImageSchema.parse(imageUrl);
   const data = image.startsWith("/files/")
@@ -38,10 +36,5 @@ export async function readOfficialImage(imageUrl: string) {
         )
       );
   const mimeType = officialImageMime(data);
-  enforceUpload(
-    (await getPublishedProductConfig()).uploads.official,
-    data,
-    mimeType
-  );
   return { data, mimeType };
 }

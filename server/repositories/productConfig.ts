@@ -1,13 +1,14 @@
 /** 业务配置的初始化、并发编辑和统一发布；业务事务内固定使用一次读取的快照。 */
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { productConfiguration } from "../../drizzle/schema";
+import { discoveryContent, productConfiguration } from "../../drizzle/schema";
 import {
   productConfigSchema,
   type ProductConfig,
 } from "../../shared/productConfig";
 import { getDb, type DbTransaction } from "../database";
 import { initialProductConfig } from "../seeds/product";
+import { validateOfficialCharacterFields } from "./officialCompatibility";
 
 async function database() {
   const db = await getDb();
@@ -104,6 +105,19 @@ export async function editProductConfig(
         code: "BAD_REQUEST",
         message: next.error.issues.map(issue => issue.message).join("；"),
       });
+    if (!config) {
+      // 两套发布都先锁业务配置、再锁官方内容，校验与发布不能交错。
+      const [content] = await tx
+        .select({ published: discoveryContent.published })
+        .from(discoveryContent)
+        .where(eq(discoveryContent.id, "home"))
+        .for("update");
+      if (content?.published)
+        validateOfficialCharacterFields(
+          content.published.characters,
+          next.data.characters
+        );
+    }
     await tx
       .update(productConfiguration)
       .set(

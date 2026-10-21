@@ -1,7 +1,11 @@
 /** 官方内容的初始化、草稿编辑与原子发布；公开请求只读取已发布快照。 */
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { discoveryContent, officialCharacters } from "../../drizzle/schema";
+import {
+  discoveryContent,
+  officialCharacters,
+  productConfiguration,
+} from "../../drizzle/schema";
 import {
   discoverySnapshotSchema,
   type OfficialCharacter,
@@ -10,6 +14,9 @@ import {
 import { getDb, type DbTransaction } from "../database";
 import { initialDiscovery } from "../seeds/discovery";
 import { readOfficialImage } from "../characterPresets";
+import type { ProductConfig } from "../../shared/productConfig";
+import { initializeProductConfig } from "./productConfig";
+import { validateOfficialCharacterFields } from "./officialCompatibility";
 
 async function database() {
   const db = await getDb();
@@ -104,12 +111,20 @@ async function editDraft<T>(
   userId: string,
   action: (
     tx: DbTransaction,
-    state: typeof discoveryContent.$inferSelect
+    state: typeof discoveryContent.$inferSelect,
+    configuration: ProductConfig
   ) => Promise<T>
 ) {
   await initializeDiscovery();
+  await initializeProductConfig();
   const db = await database();
   return db.transaction(async tx => {
+    // 与业务配置发布使用同一锁顺序，校验始终针对最新已发布规则。
+    const [policy] = await tx
+      .select({ published: productConfiguration.published })
+      .from(productConfiguration)
+      .where(eq(productConfiguration.id, "main"))
+      .for("update");
     const [state] = await tx
       .select()
       .from(discoveryContent)
@@ -120,7 +135,7 @@ async function editDraft<T>(
         code: "CONFLICT",
         message: "内容已被修改，请重新读取草稿",
       });
-    const result = await action(tx, state);
+    const result = await action(tx, state, policy.published);
     await tx
       .update(discoveryContent)
       .set({ revision: revision + 1, updatedBy: userId })
@@ -141,7 +156,8 @@ export async function saveOfficialCharacter(
   character: OfficialCharacter
 ) {
   await validateImages([character.imageUrl]);
-  return editDraft(revision, userId, async tx => {
+  return editDraft(revision, userId, async (tx, _state, policy) => {
+    validateOfficialCharacterFields([character], policy.characters);
     await tx
       .insert(officialCharacters)
       .values({ id: character.id, data: character })
@@ -189,7 +205,7 @@ export async function saveHomepage(
 
 /** 校验所有引用并一次发布角色和首页，失败时完整保留上一发布版本。 */
 export async function publishDiscovery(userId: string, revision: number) {
-  return editDraft(revision, userId, async (tx, state) => {
+  return editDraft(revision, userId, async (tx, state, policy) => {
     const rows = await tx
       .select()
       .from(officialCharacters)
@@ -205,6 +221,7 @@ export async function publishDiscovery(userId: string, revision: number) {
         code: "BAD_REQUEST",
         message: parsed.error.issues.map(issue => issue.message).join("；"),
       });
+    validateOfficialCharacterFields(parsed.data.characters, policy.characters);
     await validateImages([
       ...parsed.data.characters.map(item => item.imageUrl),
       ...parsed.data.home.slides.flatMap(slide => slide.images),

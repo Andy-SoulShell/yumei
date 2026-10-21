@@ -29,6 +29,7 @@ import { getActiveGirlfriend } from "./repositories/companions";
 import { generateConversationSelfie } from "./selfieGeneration";
 import * as imageProvider from "./_core/imageProvider";
 import { buildImagePrompt } from "./testAiConfig";
+import { initializeDiscovery } from "./repositories/discovery";
 
 const guest = appRouter.createCaller({ user: null, req: {}, res: {} } as never);
 const caller = (id: string, role = "admin") =>
@@ -39,7 +40,10 @@ const caller = (id: string, role = "admin") =>
     res: {},
   } as never);
 
-beforeAll(initializeProductConfig);
+beforeAll(async () => {
+  await initializeProductConfig();
+  await initializeDiscovery();
+});
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
@@ -125,6 +129,128 @@ function rewardConfig() {
 }
 
 describe("published product configuration", () => {
+  it("rejects official drafts beyond the published field limits without changing saved or live content", () =>
+    isolated(async (_tx, admin) => {
+      await publish(admin, structuredClone(productFixture));
+      const draft = await admin.discovery.admin.getDraft();
+      const live = await guest.discovery.get();
+      const source = draft.characters.find(item => !item.archived)!.data;
+      for (const change of [
+        (character: typeof source) => {
+          character.behavior.userNickname = "称".repeat(41);
+        },
+        (character: typeof source) => {
+          character.behavior.examples = Array.from({ length: 6 }, () => ({
+            user: "你好",
+            assistant: "你好",
+          }));
+        },
+        (character: typeof source) => {
+          character.behavior.examples = [
+            { user: "字".repeat(301), assistant: "你好" },
+          ];
+        },
+      ]) {
+        const character = structuredClone(source);
+        change(character);
+        await expect(
+          admin.discovery.admin.saveCharacter({
+            expectedRevision: draft.revision,
+            character,
+          })
+        ).rejects.toMatchObject({
+          code: "BAD_REQUEST",
+          message: expect.stringContaining(source.id),
+        });
+      }
+      expect(await admin.discovery.admin.getDraft()).toEqual(draft);
+      expect(await guest.discovery.get()).toEqual(live);
+    }));
+
+  it("revalidates official publication against rules changed after the character draft was saved", () =>
+    isolated(async (_tx, admin) => {
+      const config = structuredClone(productFixture);
+      config.characters.limits.nickname = 60;
+      await publish(admin, config);
+      let draft = await admin.discovery.admin.getDraft();
+      const character = structuredClone(
+        draft.characters.find(item => !item.archived)!.data
+      );
+      character.behavior.userNickname = "称".repeat(50);
+      await admin.discovery.admin.saveCharacter({
+        expectedRevision: draft.revision,
+        character,
+      });
+      const live = await guest.discovery.get();
+      config.characters.limits.nickname = 40;
+      await publish(admin, config);
+      draft = await admin.discovery.admin.getDraft();
+      await expect(
+        admin.discovery.admin.publish({ expectedRevision: draft.revision })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      expect(await guest.discovery.get()).toEqual(live);
+      expect(await admin.discovery.admin.getDraft()).toEqual(draft);
+      character.behavior.userNickname = "称".repeat(40);
+      const saved = await admin.discovery.admin.saveCharacter({
+        expectedRevision: draft.revision,
+        character,
+      });
+      await admin.discovery.admin.publish({ expectedRevision: saved.revision });
+      expect(
+        (await guest.discovery.get()).characters.find(
+          item => item.id === character.id
+        )?.behavior.userNickname
+      ).toHaveLength(40);
+    }));
+
+  it("keeps incompatible business limits in draft until live official characters have been updated", () =>
+    isolated(async (_tx, admin) => {
+      const config = structuredClone(productFixture);
+      await publish(admin, config);
+      const content = await admin.discovery.admin.getDraft();
+      const character = structuredClone(
+        content.characters.find(item => !item.archived)!.data
+      );
+      character.behavior.userNickname = "称".repeat(40);
+      const savedCharacter = await admin.discovery.admin.saveCharacter({
+        expectedRevision: content.revision,
+        character,
+      });
+      await admin.discovery.admin.publish({
+        expectedRevision: savedCharacter.revision,
+      });
+      const liveConfig = await guest.productConfig.get();
+      const liveContent = await guest.discovery.get();
+      config.characters.limits.nickname = 39;
+      const draft = await admin.productConfig.admin.getDraft();
+      const saved = await admin.productConfig.admin.save({
+        expectedRevision: draft.revision,
+        config,
+      });
+      const pending = await admin.productConfig.admin.getDraft();
+      await expect(
+        admin.productConfig.admin.publish({ expectedRevision: saved.revision })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      expect(await admin.productConfig.admin.getDraft()).toEqual(pending);
+      expect(await guest.productConfig.get()).toEqual(liveConfig);
+      expect(await guest.discovery.get()).toEqual(liveContent);
+      character.behavior.userNickname = "称".repeat(39);
+      const next = await admin.discovery.admin.getDraft();
+      const updated = await admin.discovery.admin.saveCharacter({
+        expectedRevision: next.revision,
+        character,
+      });
+      await admin.discovery.admin.publish({
+        expectedRevision: updated.revision,
+      });
+      await admin.productConfig.admin.publish({
+        expectedRevision: saved.revision,
+      });
+      expect((await guest.productConfig.get()).characters.limits.nickname).toBe(
+        39
+      );
+    }));
+
   it("seeds once, hides drafts, and denies every management operation without admin permission", () =>
     isolated(async (_tx, admin, userId) => {
       const initial = await guest.productConfig.get();

@@ -302,6 +302,27 @@ describe("dynamic official content", () => {
       (await user.girlfriend.createFromPreset({ presetId: character.id }))
         .officialPresetId
     ).toBe(character.id);
+    // 收紧新上传规则后，旧上传素材仍能编辑、发布并被新用户使用。
+    stubProductConfig("uploads.official", {
+      maxBytes: 1024,
+      mimeTypes: ["image/png"],
+    });
+    await saveRole({
+      ...character,
+      imageUrl: uploaded.imageUrl,
+      behavior: { ...character.behavior, userNickname: "称".repeat(40) },
+    });
+    await publish();
+    const freshUser = await caller();
+    const freshRole = await freshUser.girlfriend.createFromPreset({
+      presetId: character.id,
+    });
+    expect(freshRole.behavior?.userNickname).toHaveLength(40);
+    await expect(
+      admin.discovery.admin.uploadImage({
+        imageBase64: image.data.toString("base64"),
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     await expect(
       admin.discovery.admin.uploadImage({ imageBase64: "aW1hZ2U=" })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });

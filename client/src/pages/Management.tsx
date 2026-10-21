@@ -1,5 +1,5 @@
 /** 单密码运营后台：直接调用既有管理 API 编辑草稿、校验并发布。 */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { z } from "zod";
 import { useQueryClient } from "@tanstack/react-query";
@@ -58,6 +58,11 @@ import type { AppRouter } from "../../../server/routers";
 type Outputs = inferRouterOutputs<AppRouter>;
 type ProductDraft = Outputs["productConfig"]["admin"]["getDraft"];
 type DiscoveryDraft = Outputs["discovery"]["admin"]["getDraft"];
+
+type WorkspaceOperations = {
+  busy: boolean;
+  run: <T>(work: () => Promise<T>) => Promise<T>;
+};
 type Pane = "overview" | "official" | "home" | keyof ProductConfig;
 const sections: {
   id: keyof ProductConfig;
@@ -301,11 +306,13 @@ function ProductWorkspace({
   section,
   onReload,
   onDirty,
+  operations,
 }: {
   draft: ProductDraft;
   section: keyof ProductConfig;
   onReload: () => Promise<unknown>;
   onDirty: (dirty: boolean) => void;
+  operations: WorkspaceOperations;
 }) {
   const [value, setValue] = useState(() => structuredClone(draft.config));
   const [mode, setMode] = useState<"form" | "json">("form");
@@ -321,7 +328,7 @@ function ProductWorkspace({
     onDirty(dirty);
     return () => onDirty(false);
   }, [dirty, onDirty]);
-  const busy = save.isPending || publish.isPending,
+  const busy = operations.busy || save.isPending || publish.isPending,
     info = sections.find(item => item.id === section)!;
   const submit = async () => {
     try {
@@ -384,11 +391,13 @@ function ProductWorkspace({
         publishedRevision={draft.publishedRevision}
         busy={busy}
         dirty={dirty}
-        onSave={() => void submit()}
-        onPublish={() => void publishDraft()}
+        onSave={() => void operations.run(submit)}
+        onPublish={() => void operations.run(publishDraft)}
         onReload={() => {
           if (!dirty || window.confirm("放弃当前未保存的修改并重新读取？"))
-            void onReload().catch(error => setError(message(error)));
+            void operations
+              .run(onReload)
+              .catch(error => setError(message(error)));
         }}
       />
       <ErrorText error={error} />
@@ -440,10 +449,12 @@ function HomeWorkspace({
   draft,
   onReload,
   onDirty,
+  operations,
 }: {
   draft: DiscoveryDraft;
   onReload: () => Promise<unknown>;
   onDirty: (dirty: boolean) => void;
+  operations: WorkspaceOperations;
 }) {
   const [value, setValue] = useState(() => structuredClone(draft.home));
   const [mode, setMode] = useState<"form" | "json">("form"),
@@ -453,7 +464,11 @@ function HomeWorkspace({
     publish = trpc.discovery.admin.publish.useMutation(),
     utils = trpc.useUtils();
   const imageUpload = useOfficialUpload(setError);
-  const busy = save.isPending || publish.isPending || imageUpload.pending;
+  const busy =
+    operations.busy ||
+    save.isPending ||
+    publish.isPending ||
+    imageUpload.pending;
   const dirty =
     !sameConfigValue(value, draft.home) ||
     (mode === "json" && raw !== JSON.stringify(value, null, 2));
@@ -499,11 +514,13 @@ function HomeWorkspace({
         publishedRevision={draft.publishedRevision}
         busy={busy}
         dirty={dirty}
-        onSave={() => void submit()}
-        onPublish={() => void publishDraft()}
+        onSave={() => void operations.run(submit)}
+        onPublish={() => void operations.run(publishDraft)}
         onReload={() => {
           if (!dirty || window.confirm("放弃未保存修改？"))
-            void onReload().catch(error => setError(message(error)));
+            void operations
+              .run(onReload)
+              .catch(error => setError(message(error)));
         }}
       />
       <ErrorText error={error} />
@@ -539,7 +556,9 @@ function HomeWorkspace({
               schema={homeForm}
               path="home"
               disabled={busy}
-              onUpload={imageUpload.uploadFile}
+              onUpload={file =>
+                operations.run(() => imageUpload.uploadFile(file))
+              }
               uploadAccept={imageUpload.accept}
               choices={path =>
                 path === "home.defaultPresetId" ||
@@ -593,12 +612,14 @@ function CharacterWorkspace({
   onSelect,
   onReload,
   onDirty,
+  operations,
 }: {
   draft: DiscoveryDraft;
   selected: string;
   onSelect: (id: string) => void;
   onReload: () => Promise<unknown>;
   onDirty: (dirty: boolean) => void;
+  operations: WorkspaceOperations;
 }) {
   const policy = useProductConfig(),
     source = draft.characters.find(item => item.id === selected);
@@ -625,6 +646,7 @@ function CharacterWorkspace({
     return () => onDirty(false);
   }, [dirty, onDirty]);
   const busy =
+    operations.busy ||
     imageUpload.pending ||
     save.isPending ||
     archive.isPending ||
@@ -695,11 +717,13 @@ function CharacterWorkspace({
         publishedRevision={draft.publishedRevision}
         busy={busy}
         dirty={dirty}
-        onSave={() => void submit()}
-        onPublish={() => void publishDraft()}
+        onSave={() => void operations.run(submit)}
+        onPublish={() => void operations.run(publishDraft)}
         onReload={() => {
           if (!dirty || window.confirm("放弃未保存修改？"))
-            void onReload().catch(error => setError(message(error)));
+            void operations
+              .run(onReload)
+              .catch(error => setError(message(error)));
         }}
       />
       <ErrorText error={error} />
@@ -793,7 +817,7 @@ function CharacterWorkspace({
                   onChange={event => {
                     const file = event.target.files?.[0];
                     event.target.value = "";
-                    if (file) void uploadFile(file);
+                    if (file) void operations.run(() => uploadFile(file));
                   }}
                 />
               </Label>
@@ -805,12 +829,15 @@ function CharacterWorkspace({
                     busy || dirty || source.id === draft.home.defaultPresetId
                   }
                   onClick={() => {
-                    void archive
-                      .mutateAsync({
-                        expectedRevision: draft.revision,
-                        id: source.id,
-                      })
-                      .then(() => onReload())
+                    void operations
+                      .run(() =>
+                        archive
+                          .mutateAsync({
+                            expectedRevision: draft.revision,
+                            id: source.id,
+                          })
+                          .then(() => onReload())
+                      )
                       .catch(error => setError(message(error)));
                   }}
                 >
@@ -823,7 +850,7 @@ function CharacterWorkspace({
                   size="sm"
                   variant="outline"
                   disabled={busy}
-                  onClick={() => void submit()}
+                  onClick={() => void operations.run(submit)}
                 >
                   恢复到草稿
                 </Button>
@@ -979,6 +1006,19 @@ function ManagementConsole({
     [dirty, setDirty] = useState(false),
     [epoch, setEpoch] = useState(0),
     [characterId, setCharacterId] = useState("");
+  const [operationBusy, setOperationBusy] = useState(false);
+  const pendingOperations = useRef(0);
+  // 锁定覆盖完整的上传/写入、公开缓存更新和草稿重读，避免迟到刷新重挂其他编辑器。
+  const runOperation = useCallback(async <T,>(work: () => Promise<T>) => {
+    pendingOperations.current++;
+    setOperationBusy(true);
+    try {
+      return await work();
+    } finally {
+      pendingOperations.current--;
+      setOperationBusy(pendingOperations.current > 0);
+    }
+  }, []);
   useEffect(() => {
     shell.current
       ?.closest<HTMLElement>("[data-management-scroll]")
@@ -996,6 +1036,9 @@ function ManagementConsole({
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
     });
+  // Query 缓存通知可能晚于 refetch 的 Promise；数据应用到组件前继续保护编辑器。
+  const busy = operationBusy || product.isFetching || discovery.isFetching;
+  const operations: WorkspaceOperations = { busy, run: runOperation };
   useEffect(() => {
     if (
       product.error?.data?.code === "FORBIDDEN" ||
@@ -1004,15 +1047,16 @@ function ManagementConsole({
       onExpired();
   }, [product.error, discovery.error, onExpired]);
   useEffect(() => {
-    if (!dirty) return;
+    if (!dirty && !busy) return;
     const warn = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
+  }, [dirty, busy]);
   const navigate = (next: Pane) => {
+    if (pendingOperations.current || busy) return;
     if (next === pane) return;
     if (dirty && !window.confirm("当前有未保存的修改，放弃并切换？")) return;
     setDirty(false);
@@ -1044,6 +1088,7 @@ function ManagementConsole({
           key={item.id}
           variant={pane === item.id ? "secondary" : "ghost"}
           className="w-full justify-start gap-2 rounded-xl text-sm"
+          disabled={busy}
           onClick={() => navigate(item.id)}
         >
           <item.icon className="size-4 shrink-0" />
@@ -1094,8 +1139,13 @@ function ManagementConsole({
             <Link
               href="/"
               aria-label="返回站点"
+              aria-disabled={busy}
               onClick={event => {
-                if (dirty && !window.confirm("放弃未保存修改并返回站点？"))
+                if (
+                  pendingOperations.current ||
+                  busy ||
+                  (dirty && !window.confirm("放弃未保存修改并返回站点？"))
+                )
                   event.preventDefault();
               }}
             >
@@ -1107,7 +1157,9 @@ function ManagementConsole({
             variant="outline"
             size="sm"
             aria-label="退出"
+            disabled={busy}
             onClick={() => {
+              if (pendingOperations.current || busy) return;
               if (!dirty || window.confirm("放弃未保存修改并退出？"))
                 onLogout();
             }}
@@ -1135,6 +1187,7 @@ function ManagementConsole({
               id="management-section"
               className="h-11 w-full rounded-xl border bg-card px-3 text-sm"
               value={pane}
+              disabled={busy}
               onChange={event => navigate(event.target.value as Pane)}
             >
               {menu.map(item => (
@@ -1268,6 +1321,7 @@ function ManagementConsole({
               onSelect={setCharacterId}
               onDirty={setDirty}
               onReload={reloadDiscovery}
+              operations={operations}
             />
           ) : pane === "home" ? (
             <HomeWorkspace
@@ -1275,6 +1329,7 @@ function ManagementConsole({
               draft={discovery.data}
               onDirty={setDirty}
               onReload={reloadDiscovery}
+              operations={operations}
             />
           ) : (
             <ProductWorkspace
@@ -1283,6 +1338,7 @@ function ManagementConsole({
               section={pane}
               onDirty={setDirty}
               onReload={reloadProduct}
+              operations={operations}
             />
           )}
         </main>

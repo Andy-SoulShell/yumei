@@ -28,6 +28,7 @@ import { getCompanionPreferences } from "./aiTaskRuntime";
 import { runProactiveContacts, planProactiveContact } from "./proactive";
 import { savePushSubscription } from "./push";
 import { renderNotification } from "../shared/notifications";
+import { readOfficialImage } from "./characterPresets";
 const push = vi.hoisted(() => ({ send: vi.fn() }));
 vi.mock("web-push", () => ({
   default: { setVapidDetails: vi.fn(), sendNotification: push.send },
@@ -38,6 +39,36 @@ afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
+it("keeps existing official images usable after publishing stricter upload limits while rejecting new uploads", () =>
+  configured(async ({ admin, publish }) => {
+    const discovery = await admin.discovery.get();
+    const preset = discovery.characters.find(
+      item => item.id === discovery.home.defaultPresetId
+    )!;
+    const original = await readOfficialImage(preset.imageUrl);
+    expect(original.data.length).toBeGreaterThan(1024);
+    expect(original.mimeType).toBe("image/jpeg");
+    const config = structuredClone(productFixture);
+    config.billing.mode = "none";
+    config.uploads.official = { maxBytes: 1024, mimeTypes: ["image/png"] };
+    await publish(config);
+    expect((await admin.productConfig.get()).uploads.official).toEqual(
+      config.uploads.official
+    );
+    expect(await readOfficialImage(preset.imageUrl)).toEqual(original);
+    const defaultRole = await admin.girlfriend.ensureDefault();
+    expect(defaultRole.officialPresetId).toBe(preset.id);
+    const listed = discovery.characters.find(item => item.listed)!;
+    const role = await admin.girlfriend.createFromPreset({
+      presetId: listed.id,
+    });
+    expect(role.officialPresetId).toBe(listed.id);
+    await expect(
+      admin.discovery.admin.uploadImage({
+        imageBase64: original.data.toString("base64"),
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  }));
 it("publishes frequency bounds, defaults, lifetime and templates used by the actual outbox and inbox", () =>
   configured(async ({ userId, publish }) => {
     const config = structuredClone(productFixture);

@@ -1,6 +1,7 @@
 /** 英文基准语言包；key 与插值参数构成类型契约。 */
 export default {
   landing: {
+    continueWithCharacter: "Continue chatting with {{name}}",
     bannerLabel: "Meet YUMEI",
     carousel: "carousel",
     previousSlide: "Previous slide",

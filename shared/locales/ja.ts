@@ -2,6 +2,7 @@
 import type { MessageCatalog } from "./types";
 export default {
   landing: {
+    continueWithCharacter: "{{name}}とチャットを続ける",
     bannerLabel: "YUMEI との出会い",
     carousel: "カルーセル",
     previousSlide: "前のスライド",

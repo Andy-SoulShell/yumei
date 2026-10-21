@@ -10,6 +10,13 @@ const mock = vi.hoisted(() => ({
   query: "",
   navigate: vi.fn(),
   user: null as { name: string } | null,
+  roles: [] as { id: number; name: string; referenceImageUrl: string }[],
+  rolesLoading: false,
+  rolesError: null as Error | null,
+  pending: null as number | null,
+  open: vi.fn(),
+  refetch: vi.fn(),
+  recent: vi.fn(),
 }));
 vi.mock("wouter", async importOriginal => ({
   ...(await importOriginal<typeof import("wouter")>()),
@@ -27,10 +34,27 @@ vi.mock("@/_core/hooks/useAuth", () => ({
 }));
 vi.mock("@/hooks/useCompanionChat", () => ({
   useCompanionChat: () => ({
-    pending: null,
+    pending: mock.pending,
     findPreset: () => undefined,
-    open: vi.fn(),
+    open: mock.open,
   }),
+}));
+vi.mock("@/lib/trpc", () => ({
+  trpc: {
+    girlfriend: {
+      recent: {
+        useQuery: () => {
+          mock.recent();
+          return {
+            data: mock.rolesError ? undefined : mock.roles,
+            isLoading: mock.rolesLoading,
+            error: mock.rolesError,
+            refetch: mock.refetch,
+          };
+        },
+      },
+    },
+  },
 }));
 let root: Root;
 let container: HTMLDivElement;
@@ -44,6 +68,10 @@ beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   vi.clearAllMocks();
   mock.user = null;
+  mock.roles = [];
+  mock.rolesLoading = false;
+  mock.rolesError = null;
+  mock.pending = null;
   mock.query = "";
   vi.stubGlobal(
     "matchMedia",
@@ -84,6 +112,8 @@ describe("public landing page", () => {
   it("shows curated companions, twenty catalog characters and an explore link without search", async () => {
     await settle(() => root.render(<Landing />));
     expect(container.querySelectorAll(".featured-character")).toHaveLength(10);
+    expect(mock.recent).not.toHaveBeenCalled();
+    expect(container.querySelector(".home-companions-add")).toBeNull();
     expect(container.querySelectorAll(".character-card")).toHaveLength(20);
     expect(
       container.querySelector('input[type="search"], .explore-filter-bar')
@@ -95,6 +125,67 @@ describe("public landing page", () => {
     expect(
       container.querySelector(".landing-signup a")?.getAttribute("href")
     ).toBe("/register?next=%2Fexplore");
+  });
+  it("shows up to ten owned roles above curated characters in server activity order", async () => {
+    mock.user = { name: "Andy" };
+    mock.roles = Array.from({ length: 12 }, (_, i) => ({
+      id: 12 - i,
+      name: `角色${12 - i}`,
+      referenceImageUrl: "/reference.jpg",
+    }));
+    await settle(() => root.render(<Landing />));
+    const section = container.querySelector(".home-companions-section")!;
+    const roles = section.querySelectorAll<HTMLButtonElement>(
+      ".featured-character"
+    );
+    expect(roles).toHaveLength(10);
+    expect(
+      Array.from(
+        roles,
+        role => role.querySelector(".featured-name")?.textContent
+      )
+    ).toEqual(mock.roles.slice(0, 10).map(role => role.name));
+    expect(section.nextElementSibling?.getAttribute("aria-labelledby")).toBe(
+      "featured-heading"
+    );
+    expect(section.querySelector("a")?.getAttribute("href")).toBe(
+      "/characters"
+    );
+    await settle(() => roles[0].click());
+    expect(mock.open).toHaveBeenCalledWith(12);
+    expect(mock.navigate).not.toHaveBeenCalled();
+    mock.pending = 12;
+    await settle(() => root.render(<Landing />));
+    expect(roles[0].getAttribute("aria-busy")).toBe("true");
+    expect(Array.from(roles).every(role => role.disabled)).toBe(true);
+    await settle(() => roles[1].click());
+    expect(mock.open).toHaveBeenCalledTimes(1);
+  });
+  it("shows a compact add entry only after an authenticated empty result", async () => {
+    mock.user = { name: "Andy" };
+    mock.rolesLoading = true;
+    await settle(() => root.render(<Landing />));
+    expect(container.querySelector(".home-companions-add")).toBeNull();
+    mock.rolesLoading = false;
+    await settle(() => root.render(<Landing />));
+    expect(container.querySelector(".home-companions-section")).toBeNull();
+    expect(
+      container.querySelector(".home-companions-add")?.textContent
+    ).toContain("添加角色");
+    expect(
+      container.querySelector(".home-companions-add")?.getAttribute("href")
+    ).toBe("/explore");
+  });
+  it("offers retry instead of treating a failed private query as an empty list", async () => {
+    mock.user = { name: "Andy" };
+    mock.rolesError = new Error("offline");
+    await settle(() => root.render(<Landing />));
+    expect(container.querySelector(".home-companions-add")).toBeNull();
+    const retry = container.querySelector<HTMLButtonElement>(
+      ".home-companions-notice button"
+    )!;
+    await settle(() => retry.click());
+    expect(mock.refetch).toHaveBeenCalledOnce();
   });
   it("opens a character on the homepage and returns focus after closing", async () => {
     await settle(() => root.render(<Landing />));

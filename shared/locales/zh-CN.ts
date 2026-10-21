@@ -2,6 +2,7 @@
 import type { MessageCatalog } from "./types";
 export default {
   landing: {
+    continueWithCharacter: "与{{name}}继续聊天",
     bannerLabel: "认识 YUMEI",
     carousel: "轮播",
     previousSlide: "上一张",

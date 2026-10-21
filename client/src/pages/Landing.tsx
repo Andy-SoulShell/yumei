@@ -13,6 +13,7 @@ import {
   HOME_CHARACTER_LIMIT,
 } from "@/features/discovery/catalogue";
 import { LandingCarousel } from "@/features/discovery/LandingCarousel";
+import { HomeCompanions } from "@/features/home/HomeCompanions";
 import { CharacterCatalogueGrid } from "@/components/CharacterCatalogueGrid";
 import { CharacterDetailDialog } from "@/components/CharacterDetailDialog";
 import { DiscoveryFooter } from "@/components/DiscoveryFooter";
@@ -53,6 +54,7 @@ export default function Landing() {
   return (
     <div className="explore-page landing-page">
       <LandingCarousel />
+      {user && <HomeCompanions />}
       <section className="featured-section" aria-labelledby="featured-heading">
         <div className="section-heading">
           <h2 id="featured-heading">{t("explore:featured")}</h2>

@@ -1,6 +1,6 @@
-# 套餐、姿势与亲密度管理 API
+# 业务规则、提示词与记忆管理 API
 
-套餐、自拍姿势与亲密度规则存储在 `productConfiguration` 的一条记录中。新库首次启动从 `server/seeds/product.json` 导入现有配置，包括 Free/Plus/Pro、9 个姿势、10 个亲密度等级、7 类奖励及四种语言文案。重复启动不覆盖草稿或发布内容。当前开发阶段直接使用新的初始化表结构，不提供旧数据转换或兼容接口。
+套餐、自拍姿势、亲密度、提示词与记忆规则存储在 `productConfiguration` 的一条记录中。新库首次启动从 `server/seeds/product.json` 导入现有配置，包括 Free/Plus/Pro、9 个姿势、10 个亲密度等级、7 类奖励、6 个快捷提示词模板、现有系统提示词及记忆参数。重复启动不覆盖草稿或发布内容。当前开发阶段直接使用新的初始化表结构，不提供旧数据转换或兼容接口。
 
 ## 读取与发布
 
@@ -72,3 +72,60 @@ await client.productConfig.admin.publish.mutate({
 夜间窗口支持跨午夜，起止小时相同表示关闭。每日计量和连续互动按 UTC 自然日。一次业务事务中的文字、语音、深度对话共享同一配置快照，每日首次和夜间奖励不会在同一事务重复叠加。每类事件分别执行冷却与每日次数；奖励组超过 `dailyPointsLimit` 时整组不发放，也不消费对应次数。面板的分值、条件、次数、冷却及每日总上限均由这些执行字段生成。
 
 初始化基线和快照已更新。新增配置回归在真实 MySQL 的回滚事务内修改配置，覆盖权限、草稿隔离、并发令牌、跨领域校验、动态套餐 ID、限额、姿势解锁、门槛变更和经验结算；前端回归验证新增 ID、多语言回退、动态展示及错误重试。
+
+## 提示词与预览
+
+第三批继续使用 `productConfig.admin.getDraft`、`save` 和 `publish`，一次发布完整的 `prompts` 与 `memory` 配置，并和前两批业务规则保持原子性。接口读取和权限不变。字段类型与校验见 [shared/aiConfig.ts](../shared/aiConfig.ts)。
+
+- `prompts.quickTemplates`：设置页的快捷模板，包含任意稳定 ID、多语言名称和正文、启用状态；数组决定展示顺序。正文最多 500 字，选中时原样复制到用户草稿，保存后实际进入聊天偏好。更新模板不会替换用户已经保存的自定义偏好。
+- `prompts.chat`：聊天主模板、表达方式、长度、主动性、情绪及原因、两种相处节奏下的关系阶段、称呼资料、语言和长度规则、记忆状态说明与安全提示。关系阶段按 `minLevel` 选择，等级由当前亲密度配置计算。
+- `prompts.image`：参考图、文生图、合照及空场景兜底模板。实际场景仍优先使用本次输入，空输入时再使用姿势或默认场景。
+- `prompts.extraction` / `summary`：记忆提取与摘要系统模板。提取模板中的 `{{maxLength}}` 从当前提取长度规则生成。
+- `prompts.memoryContext` / `memoryTemporal`：记忆注入包装模板与未知、无日期、历史、明确日期的时间说明。`{{records}}` 是有来源、经过 JSON 转义的记录。
+- `prompts.transcription`：语音转写的提示文案。
+- `prompts.context`：总字符预算、平台预留、已接受补充和历史预算；记忆上限统一来自 `memory.recall.maxChars`。平台预留不足或超出总预算时不能发布。低优先级资料按完整块取舍，不切断 JSON 或已接受的用户补充。
+
+模板使用 `{{变量名}}`，只能使用对应字段支持的具名变量，缺少或写错变量时返回 `BAD_REQUEST`；不执行 JavaScript、表达式或递归替换。参数中的同名花括号保持原文。角色和偏好通过转义后的 JSON 插入，源码中的结构、来源和用户归属校验继续执行。
+
+角色编辑页的预览与服务端请求共用 `shared/chatPrompt.ts`，读取相同发布数据。预览使用当前表单资料；真实聊天再加入当轮情绪、有效记忆及对话历史。后台任务和聊天计量中的 `promptVersion` 使用 `product-config/<revision>:<动作>` 标识本次执行依据。
+
+```ts
+const draft = await client.productConfig.admin.getDraft.query();
+const config = draft.config;
+config.prompts.image.reference = "以参考图保持人物身份。画面要求：{{scene}}";
+config.prompts.chat.expression.warm = "温和直接地回应，关注具体细节。";
+config.memory.extraction.everyRounds = 3;
+config.memory.maxEditedLength = 500;
+config.memory.levelRules[0] = { minLevel: 1, capacity: 50, recallCount: 8 };
+
+const saved = await client.productConfig.admin.save.mutate({
+  expectedRevision: draft.revision,
+  config,
+});
+await client.productConfig.admin.publish.mutate({
+  expectedRevision: saved.revision,
+});
+```
+
+## 记忆规则与执行
+
+`memory.enabled` 是全局记忆开关，角色仍有独立暂停状态。关闭时不发起新的提取、索引、语义查询或摘要任务；已有事实保留给用户查看、编辑和删除，页面不能通过角色开关覆盖全局关闭。
+
+| 配置                                     | 实际作用                                                                                             |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `categories`                             | 四种可执行类别 `fact` / `preference` / `event` / `relationship` 的多语言名称和顺序，每类必须出现一次 |
+| `levelRules`                             | 从等级 1 开始按门槛选择容量与日常召回数量；按累计经验推导当前等级，不信任缓存等级                    |
+| `maxExtractedLength` / `maxEditedLength` | 模型提取与用户编辑的独立长度上限；服务端验证实际文本，页面编辑长度读取相同配置                       |
+| `extraction`                             | 首轮提取、明确保存请求提取、每隔几轮提取、来源窗口、最多结果数、温度、输出上限和各服务的模型覆盖     |
+| `matching`                               | 去重与更正相似阈值、初始权重上下限及重复强化幅度                                                     |
+| `ranking`                                | 新鲜度下限、衰减天数、词面相关性系数／上限、置顶加分                                                 |
+| `semantic`                               | 当前 OpenRouter 服务内使用的语义模型、索引批量大小及语义排序权重；模型为空时使用词面召回             |
+| `summary`                                | 摘要启用状态、事实／消息窗口、话题数量、原句长度与输出上限                                           |
+| `recall`                                 | 明确回忆时是否可使用整个角色容量，以及完整记忆注入块的字符上限                                       |
+| `jobs`                                   | 后台每批任务数量、最多尝试次数及重试退避上下限                                                       |
+
+容量淘汰保留置顶记录；置顶条数超过容量时不自动删除置顶内容。来源归属、逐字原话、否定／转述排除、遗忘边界和引用版本验证仍由服务端代码执行，配置不能让模型直接写入任意事实。
+
+`memory.state` 返回当前发布的 `rules`、服务端计算的 `capacity` 与 `configurationRevision`。页面分类、容量和编辑上限直接消费这些字段。提取、索引和摘要在一个执行单元内固定使用同一快照；提交时核对发布标识，发现变化时不写回旧结果，提取任务按配置重试。摘要保存 `configurationRevision`，发布变化后旧摘要不再展示或注入，后台重新生成后才恢复。初始化 SQL 和快照包含该字段，不提供旧摘要回填。
+
+`COMPANION_MEMORY_ENABLED`、`MEMORY_EXTRACTION_MODEL`、`MEMORY_EMBEDDING_MODEL` 和 `CHAT_CONTEXT_CHAR_LIMIT` 只在新库首次初始化时导入；之后通过 API 管理。服务地址、凭据、通用 AI 任务预算／超时及进程并发仍由环境配置管理。

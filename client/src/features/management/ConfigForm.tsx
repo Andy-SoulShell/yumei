@@ -385,7 +385,13 @@ export function ConfigForm({
   const id = useId(),
     [newKey, setNewKey] = useState("");
   const key = path.split(".").at(-1)!,
-    label = /^\d+$/.test(key) ? itemName(value, Number(key)) : fieldLabel(key),
+    label = /^\d+$/.test(key)
+      ? itemName(value, Number(key))
+      : /\.background\.(light|dark)$/.test(path)
+        ? key === "light"
+          ? "浅色背景"
+          : "深色背景"
+        : fieldLabel(key),
     s = normalized(schema, value);
   const options = { choices, onUpload, uploadAccept };
   const header = (
@@ -534,7 +540,8 @@ export function ConfigForm({
   }
   if (typeof value === "object") {
     const object = value as Record<string, unknown>,
-      languages = s.propertyNames?.enum?.includes("zh-CN");
+      languages = s.propertyNames?.enum?.includes("zh-CN"),
+      editableRecord = !languages && typeof s.additionalProperties === "object";
     // MySQL JSON 会重排对象键；表单始终遵循共享契约的字段和语言顺序。
     const ordered = Array.from(
       new Set([
@@ -551,8 +558,31 @@ export function ConfigForm({
           return (
             <div
               key={name}
-              className={`min-w-0 ${!languages && (typeof item === "object" || longField(`${path}.${name}`, item)) ? "sm:col-span-2" : ""}`}
+              className={`min-w-0 ${editableRecord ? "rounded-xl border border-border/60 bg-muted/15 p-3" : ""} ${!languages && (typeof item === "object" || longField(`${path}.${name}`, item)) ? "sm:col-span-2" : ""}`}
             >
+              {editableRecord && (
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="truncate font-mono text-[10px] text-muted-foreground">
+                    {name}
+                  </span>
+                  <Button
+                    type="button"
+                    size="icon-sm"
+                    variant="ghost"
+                    aria-label={`删除 ${path}.${name}`}
+                    disabled={disabled}
+                    onClick={() =>
+                      onChange(
+                        Object.fromEntries(
+                          Object.entries(object).filter(([key]) => key !== name)
+                        )
+                      )
+                    }
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </div>
+              )}
               <ConfigForm
                 {...options}
                 value={item}
@@ -650,7 +680,14 @@ export function ConfigForm({
     choices?.(path) ??
     s.enum?.map(item => ({
       value: String(item),
-      label: optionLabels[String(item)] ?? String(item),
+      label:
+        (/^selfies\.poses\.\d+\.mode$/.test(path)
+          ? { mirror: "镜中自拍", direct: "直视镜头", auto: "自动选择" }[
+              String(item) as "mirror" | "direct" | "auto"
+            ]
+          : undefined) ??
+        optionLabels[String(item)] ??
+        String(item),
     }));
   const selected = values?.find(item => item.value === value);
   const color =

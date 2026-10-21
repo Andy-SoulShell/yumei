@@ -117,6 +117,12 @@ it("previews the draft theme and edits the fixed three-color palette without arr
   ).toContain("深色预览");
   expect(container.querySelectorAll('input[type="color"]')).toHaveLength(8);
   expect(
+    container.querySelector('[aria-label="浅色背景 颜色选择器"]')
+  ).not.toBeNull();
+  expect(
+    container.querySelectorAll('[aria-label="浅色主色 颜色选择器"]')
+  ).toHaveLength(1);
+  expect(
     container.querySelector('[aria-label^="删除 themes.items.0.colors"]')
   ).toBeNull();
   const first = container.querySelector<HTMLInputElement>(
@@ -127,4 +133,48 @@ it("previews the draft theme and edits the fixed three-color palette without arr
   expect(container.querySelector('[aria-pressed="true"]')!.innerHTML).toContain(
     "rgb(51, 102, 153)"
   );
+});
+
+it("adds and removes workflow record entries while keeping fixed object fields", async () => {
+  let value: Record<string, { class_type: string }> = {
+    encoder: { class_type: "TextEncoder" },
+  };
+  function Probe() {
+    const [nodes, setNodes] = useState(value);
+    value = nodes;
+    return (
+      <ConfigForm
+        value={nodes}
+        path="models.image.workflows.text.nodes"
+        schema={{
+          type: "object",
+          additionalProperties: {
+            type: "object",
+            properties: { class_type: { type: "string" } },
+          },
+        }}
+        onChange={next => setNodes(next as typeof nodes)}
+      />
+    );
+  }
+  await act(async () => root.render(<Probe />));
+  expect(container.querySelectorAll('[aria-label^="删除 "]')).toHaveLength(1);
+  await change(
+    container.querySelector('input[placeholder="新标识"]')!,
+    "sampler"
+  );
+  await act(async () =>
+    Array.from(container.querySelectorAll("button"))
+      .find(button => button.textContent === "添加")!
+      .click()
+  );
+  expect(value.sampler).toEqual({ class_type: "" });
+  await act(async () =>
+    container
+      .querySelector<HTMLButtonElement>(
+        '[aria-label="删除 models.image.workflows.text.nodes.sampler"]'
+      )!
+      .click()
+  );
+  expect(value).toEqual({ encoder: { class_type: "TextEncoder" } });
 });

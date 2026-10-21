@@ -2,6 +2,7 @@
 import { z } from "zod";
 import { contentTextSchema, contentText, officialIdSchema } from "./discovery";
 import type { Locale } from "./locales";
+import { proactiveConfigSchema } from "./operationalConfig";
 import { memoryConfigSchema, promptsConfigSchema } from "./aiConfig";
 
 export const REWARD_ACTIONS = [
@@ -209,6 +210,7 @@ export type ThemesConfig = z.infer<typeof themesConfigSchema>;
 export const productConfigSchema = z
   .object({
     themes: themesConfigSchema,
+    proactive: proactiveConfigSchema,
     billing: billingConfigSchema,
     selfies: z
       .object({

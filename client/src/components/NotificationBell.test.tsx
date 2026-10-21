@@ -6,6 +6,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { i18n, type Translator } from "@shared/i18n";
 import { NotificationBell } from "./NotificationBell";
 
+import { productFixture } from "../../../server/testProductConfig";
 const mock = vi.hoisted(() => ({
   search: "",
   slots: 0,
@@ -37,6 +38,7 @@ vi.mock("wouter", () => ({
 vi.mock("sonner", () => ({ toast: { error: mock.error } }));
 vi.mock("@/lib/trpc", () => ({
   trpc: {
+    productConfig: { get: { useQuery: () => ({ data: productFixture }) } },
     notification: {
       unreadCount: {
         useQuery: () => ({ data: 1, refetch: mock.refetchCount }),

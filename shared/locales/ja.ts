@@ -356,7 +356,7 @@ export default {
       "関連する出来事がなくても、ときどき日常の話題や挨拶を送れます。",
     proactiveFrequency: "連絡の最短間隔（日数）",
     proactiveFrequencyHelp:
-      "1〜14日から選べます。返信がない場合は連絡の頻度が下がることがあります。",
+      "{{min}}～{{max}}日から選べます。返信がない場合は連絡頻度を減らします。",
     proactiveQuietStart: "通知休止の開始",
     proactiveQuietEnd: "通知休止の終了",
     proactiveQuietHelp:
@@ -370,7 +370,8 @@ export default {
       "名前や会話内容は表示せず、「新しいメッセージがあります」のみ表示します。全文はアプリ内で確認できます。",
     proactiveInvalidTimeZone:
       "Asia/Tokyo や Europe/London など、有効な IANA タイムゾーンを入力してください。",
-    proactiveInvalidFrequency: "1から14までの整数の日数を選んでください。",
+    proactiveInvalidFrequency:
+      "{{min}}から{{max}}までの整数の日数を選んでください。",
     proactiveInvalidQuiet: "有効な開始時刻と終了時刻を入力してください。",
     proactiveSaveFailed:
       "連絡設定を保存できませんでした。下書きは残っています。もう一度お試しください。",

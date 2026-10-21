@@ -2,14 +2,9 @@
 import axios from "axios";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import {
-  productConfiguration,
-  users,
-  memoryExtractionJobs,
-} from "../drizzle/schema";
+import { users, memoryExtractionJobs } from "../drizzle/schema";
 import { buildChatSystemPrompt } from "../shared/chatPrompt";
 import { shouldExtractMemories } from "../shared/memory";
-import type { ProductConfig } from "../shared/productConfig";
 import * as database from "./database";
 import * as repository from "./repositories/productConfig";
 import * as providers from "./_core/chatProvider";
@@ -21,8 +16,7 @@ import {
   createMessage,
 } from "./repositories/conversations";
 import { submitChatTurn, runChatTurns } from "./chatStreaming";
-import { appRouter } from "./routers";
-import { createTestUser } from "./testFixtures";
+import { configured } from "./testConfiguredProduct";
 import { productFixture } from "./testProductConfig";
 import { buildImagePrompt } from "./promptTemplates";
 import { generateMemorySummary, readMemorySummary } from "./memoryDerived";
@@ -33,68 +27,6 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-/** 配置单独回滚，业务使用真实提交和用户锁；其他测试进程看不到这里的发布。 */
-async function configured(
-  work: (context: {
-    userId: string;
-    admin: ReturnType<typeof appRouter.createCaller>;
-    publish: (config: ProductConfig) => Promise<void>;
-  }) => Promise<void>
-) {
-  const db = (await database.getDb())!;
-  const userId = await createTestUser();
-  const admin = appRouter.createCaller({
-    user: { id: userId, role: "admin", birthDate: new Date("1990-01-01") },
-    req: {},
-    res: {},
-  } as never);
-  const rollback = new Error("rollback isolated AI configuration");
-  try {
-    await db.transaction(
-      async tx => {
-        const published = vi
-          .spyOn(repository, "getPublishedProductConfig")
-          .mockImplementation(async () => {
-            const [row] = await tx
-              .select()
-              .from(productConfiguration)
-              .where(eq(productConfiguration.id, "main"));
-            return {
-              ...row.published,
-              revision: row.publishedRevision,
-              publishedAt: row.publishedAt,
-            };
-          });
-        const publish = async (config: ProductConfig) => {
-          const connection = vi
-            .spyOn(database, "getDb")
-            .mockResolvedValue(tx as never);
-          try {
-            const draft = await admin.productConfig.admin.getDraft();
-            const saved = await admin.productConfig.admin.save({
-              expectedRevision: draft.revision,
-              config,
-            });
-            await admin.productConfig.admin.publish({
-              expectedRevision: saved.revision,
-            });
-          } finally {
-            connection.mockRestore();
-          }
-        };
-        try {
-          await work({ userId, admin, publish });
-        } finally {
-          published.mockRestore();
-        }
-        throw rollback;
-      },
-      { isolationLevel: "read committed" }
-    );
-  } catch (error) {
-    if (error !== rollback) throw error;
-  }
-}
 async function companion(userId: string, points = 0) {
   const girlfriend = await createGirlfriend({
     userId,

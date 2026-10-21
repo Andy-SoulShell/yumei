@@ -4,7 +4,8 @@ import { and, eq } from "drizzle-orm";
 import { pushSubscriptions, type PushSubscription } from "../drizzle/schema";
 import { log } from "./_core/log";
 import { getDb } from "./database";
-import { runtimeInteger } from "./aiTaskRuntime";
+import { getPublishedProductConfig } from "./repositories/productConfig";
+import type { ProductConfig } from "../shared/productConfig";
 
 /** 外推仅包含已经本地化的有限内容和稳定投递身份。 */
 export type PushPayload = {
@@ -17,14 +18,10 @@ export type PushPayload = {
 };
 
 /** 先完成库初始化，调用方随后在发送前核对共享租约和设备凭据指纹。 */
-export async function createPushSender() {
+export async function createPushSender(configuration?: ProductConfig) {
   const webpush = await getWebPush();
-  const timeoutMs = runtimeInteger(
-    "PROACTIVE_PUSH_TIMEOUT_MS",
-    8_000,
-    100,
-    20_000
-  );
+  const timeoutMs = (configuration ?? (await getPublishedProductConfig()))
+    .proactive.pushTimeoutMs;
   return async (
     subscription: Pick<PushSubscription, "endpoint" | "p256dh" | "auth">,
     payload: PushPayload,

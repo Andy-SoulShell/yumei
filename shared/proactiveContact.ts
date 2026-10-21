@@ -20,21 +20,11 @@ export const proactivePreferencesSchema = z
     proactiveMode: z.enum(["events", "daily"]),
     quietStart: z.number().int().min(0).max(1439),
     quietEnd: z.number().int().min(0).max(1439),
-    frequencyDays: z.number().int().min(1).max(14),
+    frequencyDays: z.number().int().min(1).max(365),
     hidePrivatePreview: z.boolean(),
   })
   .strict();
 export type ProactivePreferences = z.infer<typeof proactivePreferencesSchema>;
-
-export const DEFAULT_PROACTIVE_PREFERENCES: ProactivePreferences = {
-  timeZone: "UTC",
-  proactiveEnabled: false,
-  proactiveMode: "events",
-  quietStart: 1320,
-  quietEnd: 480,
-  frequencyDays: 1,
-  hidePrivatePreview: true,
-};
 
 export function proactiveLocalClock(now: Date, timeZone: string) {
   if (!Number.isFinite(now.getTime()) || !validCompanionTimeZone(timeZone))
@@ -107,16 +97,25 @@ export function proactiveDeliveryExpiresAt(
 }
 
 /** 以本地日历日频控；另设六小时下限，避免切换时区立即重复联系。 */
-export function proactiveContactWindow(input: {
-  preferences: ProactivePreferences;
-  now: Date;
-  lastContactAt?: Date | null;
-  unreadContacts?: number;
-  lastInteractionAt?: Date | null;
-  hasActiveChat?: boolean;
-}) {
+export function proactiveContactWindow(
+  input: {
+    preferences: ProactivePreferences;
+    now: Date;
+    lastContactAt?: Date | null;
+    unreadContacts?: number;
+    lastInteractionAt?: Date | null;
+    hasActiveChat?: boolean;
+  },
+  rules: import("./operationalConfig").ProactiveConfig
+) {
   const prefs = proactivePreferencesSchema.safeParse(input.preferences);
-  if (!prefs.success || !prefs.data.proactiveEnabled)
+  if (
+    !rules.enabled ||
+    !prefs.success ||
+    !prefs.data.proactiveEnabled ||
+    prefs.data.frequencyDays < rules.frequencyDays.min ||
+    prefs.data.frequencyDays > rules.frequencyDays.max
+  )
     return { allowed: false, reason: "disabled" as const, day: null };
   const clock = proactiveLocalClock(input.now, prefs.data.timeZone);
   if (!clock) return { allowed: false, reason: "disabled" as const, day: null };
@@ -127,20 +126,25 @@ export function proactiveContactWindow(input: {
   if (
     input.hasActiveChat ||
     (input.lastInteractionAt &&
-      input.now.getTime() - input.lastInteractionAt.getTime() < 6 * 3_600_000)
+      input.now.getTime() - input.lastInteractionAt.getTime() <
+        rules.minimumGapMs)
   )
     return { allowed: false, reason: "active" as const, day: clock.day };
   if (input.lastContactAt) {
     const last = proactiveLocalClock(input.lastContactAt, prefs.data.timeZone);
     const cadence = Math.min(
-      30,
+      rules.unreadBackoff.maxDays,
       prefs.data.frequencyDays *
-        2 ** Math.min(3, Math.max(0, input.unreadContacts ?? 0))
+        rules.unreadBackoff.base **
+          Math.min(
+            rules.unreadBackoff.maxExponent,
+            Math.max(0, input.unreadContacts ?? 0)
+          )
     );
     if (
       !last ||
       calendarDayDistance(last.day, clock.day) < cadence ||
-      input.now.getTime() - input.lastContactAt.getTime() < 6 * 3_600_000
+      input.now.getTime() - input.lastContactAt.getTime() < rules.minimumGapMs
     )
       return { allowed: false, reason: "cadence" as const, day: clock.day };
   }

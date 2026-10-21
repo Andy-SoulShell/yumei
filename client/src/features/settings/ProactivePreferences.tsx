@@ -23,7 +23,6 @@ import { Switch } from "@/components/ui/switch";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
 import {
-  DEFAULT_PROACTIVE_PREFERENCES,
   proactivePreferencesSchema,
   type ProactivePreferences as Preferences,
 } from "@shared/proactiveContact";
@@ -53,6 +52,11 @@ function minutes(value: string) {
 /** 显式保存主动联系授权；冲突和请求失败均保留草稿，不自动覆盖其他会话的设置。 */
 export function ProactivePreferences() {
   const { t } = useI18n();
+  const product = trpc.productConfig.get.useQuery(undefined, {
+    staleTime: 15000,
+    refetchInterval: 60000,
+  });
+  const rules = product.data?.proactive;
   const query = trpc.notification.preferences.useQuery();
   const utils = trpc.useUtils();
   const [draft, setDraft] = useState<Preferences | null>(null);
@@ -72,7 +76,7 @@ export function ProactivePreferences() {
     };
   }, []);
   const saved = query.data;
-  const values = draft ?? editable(saved ?? DEFAULT_PROACTIVE_PREFERENCES);
+  const values = draft ?? (saved ? editable(saved) : null);
   const mutation = trpc.notification.updatePreferences.useMutation({
     onSuccess: data => {
       submitting.current = false;
@@ -103,13 +107,28 @@ export function ProactivePreferences() {
   };
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!saved || !draft || busy || conflict || submitting.current) return;
+    if (
+      !saved ||
+      !draft ||
+      !values ||
+      !rules ||
+      busy ||
+      conflict ||
+      submitting.current
+    )
+      return;
     const parsed = proactivePreferencesSchema.safeParse({
       ...values,
       timeZone: values.timeZone.trim(),
     });
-    if (!parsed.success) {
-      const field = parsed.error.issues[0]?.path[0];
+    if (
+      !parsed.success ||
+      values.frequencyDays < rules.frequencyDays.min ||
+      values.frequencyDays > rules.frequencyDays.max
+    ) {
+      const field = parsed.success
+        ? "frequencyDays"
+        : parsed.error.issues[0]?.path[0];
       setValidation(
         field === "frequencyDays"
           ? "frequencyDays"
@@ -157,6 +176,23 @@ export function ProactivePreferences() {
     }
   };
 
+  if (!values || !rules)
+    return (
+      <Card>
+        <CardContent>
+          {query.isLoading || product.isLoading ? (
+            <Loader2 className="size-6 animate-spin" />
+          ) : (
+            <PageError
+              onRetry={() => {
+                void query.refetch();
+                void product.refetch();
+              }}
+            />
+          )}
+        </CardContent>
+      </Card>
+    );
   return (
     <Card>
       <CardHeader>
@@ -250,8 +286,8 @@ export function ProactivePreferences() {
                 <Input
                   id="proactive-frequency"
                   type="number"
-                  min={1}
-                  max={14}
+                  min={rules.frequencyDays.min}
+                  max={rules.frequencyDays.max}
                   step={1}
                   value={
                     Number.isFinite(values.frequencyDays)
@@ -276,7 +312,7 @@ export function ProactivePreferences() {
                   id="proactive-frequency-help"
                   className="text-xs text-muted-foreground"
                 >
-                  {t("settings:proactiveFrequencyHelp")}
+                  {t("settings:proactiveFrequencyHelp", rules.frequencyDays)}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -404,7 +440,8 @@ export function ProactivePreferences() {
                     ? "settings:proactiveInvalidTimeZone"
                     : validation === "frequencyDays"
                       ? "settings:proactiveInvalidFrequency"
-                      : "settings:proactiveInvalidQuiet"
+                      : "settings:proactiveInvalidQuiet",
+                  rules.frequencyDays
                 )}
               </p>
             )}

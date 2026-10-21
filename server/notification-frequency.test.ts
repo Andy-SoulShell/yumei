@@ -1,6 +1,7 @@
+import { DEFAULT_PROACTIVE_PREFERENCES } from "./testProductConfig";
 /** 验证主动联系显式同意、本地日期、六小时间隔及并发唯一创建。 */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_PROACTIVE_PREFERENCES } from "../shared/proactiveContact";
+
 import { saveCompanionPreferences } from "./companionPreferences";
 import {
   checkAndCreateProactiveNotification,

@@ -345,7 +345,7 @@ export default {
       "관련 일정이 없어도 가끔 일상 이야기나 안부를 전할 수 있어요.",
     proactiveFrequency: "연락 사이의 최소 일수",
     proactiveFrequencyHelp:
-      "1~14일로 선택하세요. 답변하지 않은 메시지가 쌓이면 연락 빈도가 줄어들 수 있어요.",
+      "{{min}}~{{max}}일 중 선택하세요. 응답이 없으면 연락 빈도가 줄어듭니다.",
     proactiveQuietStart: "방해 금지 시작",
     proactiveQuietEnd: "방해 금지 종료",
     proactiveQuietHelp:
@@ -359,7 +359,7 @@ export default {
       "이름이나 대화 내용 없이 ‘새 메시지가 있어요’만 표시해요. 전체 메시지는 앱 안에서 볼 수 있어요.",
     proactiveInvalidTimeZone:
       "Asia/Seoul 또는 Europe/London 같은 올바른 IANA 시간대를 입력하세요.",
-    proactiveInvalidFrequency: "1~14 사이의 정수 일수를 선택하세요.",
+    proactiveInvalidFrequency: "{{min}}~{{max}} 사이의 정수 일수를 선택하세요.",
     proactiveInvalidQuiet: "올바른 시작 시각과 종료 시각을 입력하세요.",
     proactiveSaveFailed:
       "연락 설정을 저장하지 못했어요. 작성한 내용은 남아 있으니 다시 시도해 주세요.",

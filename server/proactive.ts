@@ -16,7 +16,6 @@ import {
   type PushSubscription,
 } from "../drizzle/schema";
 import {
-  DEFAULT_PROACTIVE_PREFERENCES,
   calendarDayDistance,
   proactiveContactWindow,
   proactiveLocalClock,
@@ -24,21 +23,20 @@ import {
   proactiveDeliveryExpiresAt,
   type ProactivePreferences,
 } from "../shared/proactiveContact";
-import { renderMessage, type LocalizedMessage } from "../shared/i18n";
+import {
+  renderNotification,
+  type NotificationMessage,
+} from "../shared/notifications";
+import { getPublishedProductConfig } from "./repositories/productConfig";
 import { resolveLocale } from "../shared/preferences";
 import { getDb, withUserTransaction, type DbTransaction } from "./database";
-import { memoryFeatureEnabled, runtimeInteger } from "./aiTaskRuntime";
+import { memoryFeatureEnabled } from "./aiTaskRuntime";
 import { createPushSender, isPushConfigured } from "./push";
 import { getInterfacePreferences } from "./preferences";
 import { log } from "./_core/log";
 
 type Contact = typeof proactiveContacts.$inferSelect;
 type Preferences = typeof companionPreferences.$inferSelect;
-const LEASE_MS = 30_000;
-const CONTACT_LIFETIME = 2 * 3_600_000;
-const proactiveFeatureEnabled = () =>
-  process.env.COMPANION_PROACTIVE_ENABLED !== "0";
-
 /** 不在任务中复制端点及推送凭据；设备轮换后旧确认不适用。 */
 export function proactiveDeviceHash(
   device: Pick<PushSubscription, "endpoint" | "p256dh" | "auth">
@@ -56,7 +54,13 @@ async function readPreferences(
     .select()
     .from(companionPreferences)
     .where(eq(companionPreferences.userId, userId));
-  return row ?? { userId, ...DEFAULT_PROACTIVE_PREFERENCES, revision: 0 };
+  return (
+    row ?? {
+      userId,
+      ...(await getPublishedProductConfig(tx)).proactive.defaults,
+      revision: 0,
+    }
+  );
 }
 async function contactWindow(
   tx: DbTransaction,
@@ -153,16 +157,19 @@ async function contactWindow(
   const parsedPreferences = proactivePreferencesSchema
     .strip()
     .safeParse(preferences);
-  return proactiveContactWindow({
-    preferences: parsedPreferences.success
-      ? parsedPreferences.data
-      : DEFAULT_PROACTIVE_PREFERENCES,
-    now,
-    lastContactAt: lastContact?.createdAt,
-    unreadContacts: consecutiveUnread,
-    lastInteractionAt: times.length ? new Date(Math.max(...times)) : null,
-    hasActiveChat: !!active,
-  });
+  return proactiveContactWindow(
+    {
+      preferences: parsedPreferences.success
+        ? parsedPreferences.data
+        : (await getPublishedProductConfig(tx)).proactive.defaults,
+      now,
+      lastContactAt: lastContact?.createdAt,
+      unreadContacts: consecutiveUnread,
+      lastInteractionAt: times.length ? new Date(Math.max(...times)) : null,
+      hasActiveChat: !!active,
+    },
+    (await getPublishedProductConfig(tx)).proactive
+  );
 }
 
 async function validEventSource(
@@ -195,12 +202,13 @@ async function validEventSource(
 export async function planProactiveContact(
   userId: string
 ): Promise<Notification | null> {
-  if (!proactiveFeatureEnabled()) return null;
+  if (!(await getPublishedProductConfig()).proactive.enabled) return null;
   return withUserTransaction(userId, async tx => {
+    const policy = await getPublishedProductConfig(tx);
     const now = new Date();
     const prefs = await readPreferences(tx, userId);
     const window = await contactWindow(tx, userId, prefs, now);
-    if (!proactiveFeatureEnabled() || !window.allowed || !window.day)
+    if (!policy.proactive.enabled || !window.allowed || !window.day)
       return null;
     const [already] = await tx
       .select({ id: proactiveContacts.id })
@@ -224,7 +232,7 @@ export async function planProactiveContact(
       memory: typeof memories.$inferSelect | null;
       reason: Contact["reason"];
     } | null = null;
-    if (await memoryFeatureEnabled()) {
+    if (await memoryFeatureEnabled(policy)) {
       const events = await tx
         .select()
         .from(memories)
@@ -244,7 +252,10 @@ export async function planProactiveContact(
             : NaN,
         }))
         .filter(
-          item => Number.isFinite(item.distance) && Math.abs(item.distance) <= 1
+          item =>
+            Number.isFinite(item.distance) &&
+            item.distance <= policy.proactive.events.upcomingDays &&
+            item.distance >= -policy.proactive.events.followupDays
         )
         .sort(
           (left, right) => Math.abs(left.distance) - Math.abs(right.distance)
@@ -262,7 +273,7 @@ export async function planProactiveContact(
           role,
           memory: item.memory,
           reason:
-            item.distance === 1
+            item.distance > 0
               ? "event_upcoming"
               : item.distance === 0
                 ? "event_today"
@@ -288,7 +299,7 @@ export async function planProactiveContact(
         memory: candidate.memory?.content ?? "",
         eventDay: candidate.memory?.eventDay ?? window.day,
       },
-    } as LocalizedMessage;
+    } as NotificationMessage;
     const [inserted] = await tx.insert(notifications).values({
       userId,
       girlfriendId: candidate.role.id,
@@ -318,7 +329,7 @@ export async function planProactiveContact(
       notificationId,
       createdAt: now,
       nextRunAt: now,
-      expiresAt: new Date(now.getTime() + CONTACT_LIFETIME),
+      expiresAt: new Date(now.getTime() + policy.proactive.contactLifetimeMs),
     });
     const [notification] = await tx
       .select()
@@ -349,7 +360,8 @@ async function validateContact(
     );
   if (notification?.isRead) return { kind: "read" };
   const prefs = await readPreferences(tx, contact.userId);
-  if (!proactiveFeatureEnabled()) return { kind: "invalid" };
+  const rules = (await getPublishedProductConfig(tx)).proactive;
+  if (!rules.enabled) return { kind: "invalid" };
   if (
     !prefs.proactiveEnabled ||
     prefs.revision !== contact.preferencesRevision ||
@@ -395,6 +407,10 @@ async function validateContact(
       event.eventStatus !== "planned" ||
       !event.eventDay ||
       event.eventDay !== contact.eventDay ||
+      calendarDayDistance(clock.day, event.eventDay) >
+        rules.events.upcomingDays ||
+      calendarDayDistance(clock.day, event.eventDay) <
+        -rules.events.followupDays ||
       event.contentVersion !== contact.memoryVersion ||
       event.sourceMessageId !== contact.memorySourceMessageId ||
       !(await validEventSource(tx, contact.userId, role.id, event))
@@ -448,6 +464,7 @@ async function deferContact(
   contact: Contact,
   quiet = false
 ) {
+  const rules = (await getPublishedProductConfig(tx)).proactive.retry;
   await tx
     .update(proactiveContacts)
     .set({
@@ -460,10 +477,11 @@ async function deferContact(
           contact.expiresAt.getTime(),
           Date.now() +
             (quiet
-              ? 5 * 60_000
+              ? rules.quietMs
               : Math.min(
-                  15 * 60_000,
-                  30_000 * 2 ** Math.min(contact.attempts, 5)
+                  rules.maxMs,
+                  rules.baseMs *
+                    2 ** Math.min(contact.attempts, rules.maxExponent)
                 ))
         )
       ),
@@ -551,7 +569,11 @@ async function prepareDevice(
       });
     await tx
       .update(proactiveContacts)
-      .set({ leaseUntil: new Date(Date.now() + LEASE_MS) })
+      .set({
+        leaseUntil: new Date(
+          Date.now() + (await getPublishedProductConfig(tx)).proactive.leaseMs
+        ),
+      })
       .where(
         and(
           eq(proactiveContacts.id, contact.id),
@@ -609,7 +631,11 @@ async function acknowledgeDevice(
         );
     await tx
       .update(proactiveContacts)
-      .set({ leaseUntil: new Date(Date.now() + LEASE_MS) })
+      .set({
+        leaseUntil: new Date(
+          Date.now() + (await getPublishedProductConfig(tx)).proactive.leaseMs
+        ),
+      })
       .where(
         and(
           eq(proactiveContacts.id, contact.id),
@@ -622,6 +648,7 @@ async function acknowledgeDevice(
 
 async function deliverContact(contact: Contact, token: string) {
   const db = (await getDb())!;
+  const policy = await getPublishedProductConfig();
   const preferences = await getInterfacePreferences(contact.userId);
   const locale = resolveLocale(preferences.language, []);
   const devices = await db
@@ -629,7 +656,7 @@ async function deliverContact(contact: Contact, token: string) {
     .from(pushSubscriptions)
     .where(eq(pushSubscriptions.userId, contact.userId));
   if (isPushConfigured() && devices.length) {
-    const send = await createPushSender();
+    const send = await createPushSender(policy);
     for (const device of devices) {
       const prepared = await prepareDevice(contact, token, device);
       if (prepared.kind === "stopped") return;
@@ -663,11 +690,27 @@ async function deliverContact(contact: Contact, token: string) {
       const privatePreview = prepared.preferences.hidePrivatePreview;
       const payload = {
         title: privatePreview
-          ? "YUMEI"
-          : renderMessage(prepared.notification.title, locale),
+          ? renderNotification(
+              policy.proactive,
+              { key: "notifications:privateTitle" },
+              locale
+            )
+          : renderNotification(
+              policy.proactive,
+              prepared.notification.title,
+              locale
+            ),
         body: privatePreview
-          ? renderMessage({ key: "notifications:privatePreview" }, locale)
-          : renderMessage(prepared.notification.content, locale),
+          ? renderNotification(
+              policy.proactive,
+              { key: "notifications:privatePreview" },
+              locale
+            )
+          : renderNotification(
+              policy.proactive,
+              prepared.notification.content,
+              locale
+            ),
         url: `/chats?notification=${contact.notificationId}`,
         tag: `proactive:${contact.id}`,
         notificationId: contact.notificationId,
@@ -776,7 +819,7 @@ export async function runProactiveContacts(userIds?: readonly string[]) {
       )
     )
     .orderBy(proactiveContacts.nextRunAt)
-    .limit(100);
+    .limit((await getPublishedProductConfig()).proactive.batchSize);
   for (const contact of due) {
     const token = crypto.randomUUID();
     try {
@@ -806,7 +849,10 @@ export async function runProactiveContacts(userIds?: readonly string[]) {
           .set({
             status: "delivering",
             leaseToken: token,
-            leaseUntil: new Date(Date.now() + LEASE_MS),
+            leaseUntil: new Date(
+              Date.now() +
+                (await getPublishedProductConfig(tx)).proactive.leaseMs
+            ),
           })
           .where(
             and(
@@ -833,25 +879,25 @@ export async function runProactiveContacts(userIds?: readonly string[]) {
 
 /** 规划不依赖推送配置；首次启动与每分钟均恢复持久任务。 */
 export function startProactiveScheduler() {
-  let running = false;
+  let stopped = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   const tick = async () => {
-    if (running) return;
-    running = true;
+    let interval = 1000;
     try {
+      interval = (await getPublishedProductConfig()).proactive.tickMs;
       await runProactiveContacts();
     } catch {
       log.warn("[proactive] scheduler will retry");
     } finally {
-      running = false;
+      if (!stopped) {
+        timer = setTimeout(() => void tick(), interval);
+        timer.unref();
+      }
     }
   };
-  const timer = setInterval(
-    () => {
-      void tick();
-    },
-    runtimeInteger("PROACTIVE_TICK_MS", 60_000, 1_000, 3_600_000)
-  );
-  timer.unref();
   void tick();
-  return () => clearInterval(timer);
+  return () => {
+    stopped = true;
+    clearTimeout(timer);
+  };
 }

@@ -14,7 +14,7 @@ import {
   index,
 } from "drizzle-orm/mysql-core";
 import type { UiLanguage } from "../shared/preferences";
-import type { LocalizedMessage } from "../shared/i18n";
+import type { NotificationMessage } from "../shared/notifications";
 import type { CompanionBehavior } from "../shared/companionBehavior";
 import type { CompanionEmotion } from "../shared/companionEmotion";
 import type { ProductConfig } from "../shared/productConfig";
@@ -388,8 +388,8 @@ export const notifications = mysqlTable(
     contactId: varchar("contactId", { length: 36 }).unique(),
     userId: varchar("userId", { length: 255 }).notNull(),
     girlfriendId: int("girlfriendId").notNull(),
-    title: json("title").$type<LocalizedMessage>().notNull(),
-    content: json("content").$type<LocalizedMessage>().notNull(),
+    title: json("title").$type<NotificationMessage>().notNull(),
+    content: json("content").$type<NotificationMessage>().notNull(),
     type: mysqlEnum("type", [
       "miss_you",
       "good_morning",

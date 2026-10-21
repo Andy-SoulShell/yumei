@@ -8,11 +8,11 @@ import {
   proactiveContacts,
 } from "../drizzle/schema";
 import {
-  DEFAULT_PROACTIVE_PREFERENCES,
   proactivePreferencesSchema,
   type ProactivePreferences,
 } from "../shared/proactiveContact";
 import { withUserTransaction } from "./database";
+import { getPublishedProductConfig } from "./repositories/productConfig";
 import { invalidateMemoryDerived } from "./memoryDerived";
 
 export async function saveCompanionPreferences(
@@ -20,9 +20,12 @@ export async function saveCompanionPreferences(
   expectedRevision: number,
   preferences: ProactivePreferences
 ) {
+  const rules = (await getPublishedProductConfig()).proactive;
   const parsed = proactivePreferencesSchema.safeParse(preferences);
   if (
     !parsed.success ||
+    preferences.frequencyDays < rules.frequencyDays.min ||
+    preferences.frequencyDays > rules.frequencyDays.max ||
     !Number.isInteger(expectedRevision) ||
     expectedRevision < 0
   )
@@ -38,7 +41,7 @@ export async function saveCompanionPreferences(
       .for("update");
     const current = stored ?? {
       userId,
-      ...DEFAULT_PROACTIVE_PREFERENCES,
+      ...rules.defaults,
       revision: 0,
     };
     if (current.revision !== expectedRevision)

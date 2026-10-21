@@ -10,7 +10,6 @@ import {
 import { getDb, withUserTransaction } from "./database";
 import { knownUsage } from "./generationTelemetry";
 import { log } from "./_core/log";
-import { DEFAULT_PROACTIVE_PREFERENCES } from "../shared/proactiveContact";
 
 export function runtimeInteger(
   name: string,
@@ -35,7 +34,13 @@ export async function getCompanionPreferences(userId: string) {
     .select()
     .from(companionPreferences)
     .where(eq(companionPreferences.userId, userId));
-  return row ?? { userId, ...DEFAULT_PROACTIVE_PREFERENCES, revision: 0 };
+  return (
+    row ?? {
+      userId,
+      ...(await getPublishedProductConfig()).proactive.defaults,
+      revision: 0,
+    }
+  );
 }
 
 export type AiTaskContext = {

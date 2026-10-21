@@ -1,46 +1,21 @@
-/** 系统通知保存消息标识和插值参数，显示时按用户语言渲染。 */
-import type { LocalizedMessage, StaticMessageKey } from "./i18n";
-export const PROACTIVE_MESSAGES: Record<
-  "miss_you" | "good_morning" | "good_night" | "random",
-  readonly StaticMessageKey[]
-> = {
-  miss_you: [
-    "notifications:whatAreYouUpToItSBeen",
-    "notifications:haveYouForgottenAboutMeComeChatFor",
-    "notifications:howWasYourDayIVeBeenLooking",
-    "notifications:feelingALittleBoredWhenCanWeChat",
-    "notifications:iDreamedAboutYouThenWokeUpMissing",
-  ],
-  good_morning: [
-    "notifications:goodMorningHereSToABrightNew",
-    "notifications:timeToWakeUpYouVeGotThis",
-    "notifications:morningHopeYourMoodIsAsLovelyAs",
-    "notifications:goodMorningDonTForgetBreakfast",
-  ],
-  good_night: [
-    "notifications:timeForBedGoodNightAndSweetDreams",
-    "notifications:itSGettingLateRestUpSoYou",
-    "notifications:goodNightSeeYouInYourDreams",
-    "notifications:youVeWorkedHardTodayHaveAGood",
-  ],
-  random: [
-    "notifications:iJustThoughtOfSomethingToShareAre",
-    "notifications:iJustSawSomethingFunAndWantedTo",
-    "notifications:guessWhatIMThinkingAbout",
-    "notifications:aLittleBoredWantToChat",
-    "notifications:todaySWeatherMadeMeThinkOfYou",
-    "notifications:heyAreYouFreeIDLoveTo",
-  ],
+/** 站内与外推按同一发布模板本地化，插值仅执行一次。 */
+import { contentText } from "./discovery";
+import type { Locale } from "./locales";
+import type { ProactiveConfig } from "./operationalConfig";
+export type NotificationMessage = {
+  key: string;
+  values?: Record<string, string | number>;
 };
-export function proactiveTitle(
-  type: keyof typeof PROACTIVE_MESSAGES,
-  name: string
-): LocalizedMessage {
-  const key = {
-    miss_you: "notifications:title.miss_you",
-    good_morning: "notifications:title.good_morning",
-    good_night: "notifications:title.good_night",
-    random: "notifications:title.random",
-  } as const;
-  return { key: key[type], values: { name } };
+/** 通知正文中的用户资料不会被递归解释成模板。 */
+export function renderNotification(
+  config: ProactiveConfig,
+  message: NotificationMessage,
+  locale: Locale
+) {
+  const template = config.templates[message.key];
+  if (!template) return "";
+  return contentText(template, locale).replace(
+    /\{\{(name|memory|eventDay)\}\}/g,
+    (_match, name: string) => String(message.values?.[name] ?? "")
+  );
 }

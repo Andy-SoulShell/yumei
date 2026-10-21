@@ -1,3 +1,7 @@
+import {
+  DEFAULT_PROACTIVE_PREFERENCES,
+  productFixture,
+} from "./testProductConfig";
 /** 真实 MySQL 与合成 Web Push 验证主动联系规划和每设备 outbox。 */
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -11,7 +15,6 @@ import {
   userPreferences,
 } from "../drizzle/schema";
 import {
-  DEFAULT_PROACTIVE_PREFERENCES,
   proactiveLocalClock,
   type ProactivePreferences,
 } from "../shared/proactiveContact";
@@ -31,12 +34,21 @@ import {
 import * as push from "./push";
 import * as memory from "./memory";
 
+import * as productRepository from "./repositories/productConfig";
+let policy = structuredClone(productFixture);
 const webpush = vi.hoisted(() => ({ send: vi.fn() }));
 vi.mock("web-push", () => ({
   default: { setVapidDetails: vi.fn(), sendNotification: webpush.send },
 }));
 beforeEach(() => {
-  vi.stubEnv("COMPANION_PROACTIVE_ENABLED", "1");
+  policy = structuredClone(productFixture);
+  vi.spyOn(productRepository, "getPublishedProductConfig").mockImplementation(
+    async () => ({
+      ...structuredClone(policy),
+      revision: 1,
+      publishedAt: new Date(),
+    })
+  );
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-20T12:00:00Z"));
   vi.stubEnv("VAPID_PUBLIC_KEY", "test-public");
@@ -84,7 +96,9 @@ async function fixture(
     girlfriendId: girlfriend.id,
   });
   const db = (await getDb())!;
-  await db.insert(userPreferences).values({ userId, language: "en", theme: "tokyo-sunset" });
+  await db
+    .insert(userPreferences)
+    .values({ userId, language: "en", theme: "tokyo-sunset" });
   let eventId: number | undefined;
   if (withEvent) {
     const day = proactiveLocalClock(new Date(), preferences.timeZone)!.day;
@@ -138,7 +152,7 @@ describe("consented proactive planning", () => {
   it("honors the global flag for both planning and already queued delivery", async () => {
     const a = await fixture();
     await planProactiveContact(a.userId);
-    vi.stubEnv("COMPANION_PROACTIVE_ENABLED", "0");
+    policy.proactive.enabled = false;
     const b = await fixture();
     expect(await planProactiveContact(b.userId)).toBeNull();
     await runProactiveContacts([a.userId]);
@@ -247,7 +261,7 @@ describe("consented proactive planning", () => {
 describe("durable device delivery", () => {
   it("bounds an external attempt below the lease and retries with the stable contact identity", async () => {
     const a = await fixture();
-    vi.stubEnv("PROACTIVE_PUSH_TIMEOUT_MS", "100");
+    policy.proactive.pushTimeoutMs = 100;
     webpush.send.mockImplementationOnce(() => new Promise(() => {}));
     const started = performance.now();
     await runProactiveContacts([a.userId]);
@@ -281,8 +295,7 @@ describe("durable device delivery", () => {
       });
       const running = runProactiveContacts([a.userId]);
       await started;
-      if (change === "global_flag")
-        vi.stubEnv("COMPANION_PROACTIVE_ENABLED", "0");
+      if (change === "global_flag") policy.proactive.enabled = false;
       if (change === "preference")
         await saveCompanionPreferences(a.userId, a.saved.revision, {
           ...a.preferences,

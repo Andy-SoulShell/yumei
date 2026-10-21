@@ -355,7 +355,7 @@ export default {
       "Can also send an occasional everyday check-in when there is no relevant event.",
     proactiveFrequency: "Minimum days between contacts",
     proactiveFrequencyHelp:
-      "Choose 1–14 days. Contacts may become less frequent when you leave messages unanswered.",
+      "Choose {{min}}–{{max}} days. Unanswered contacts reduce contact frequency.",
     proactiveQuietStart: "Quiet hours start",
     proactiveQuietEnd: "Quiet hours end",
     proactiveQuietHelp:
@@ -370,7 +370,8 @@ export default {
       "Shows only “You have a new message”, without names or chat details. Full messages remain inside the app.",
     proactiveInvalidTimeZone:
       "Enter a valid IANA time zone, such as Europe/London or Asia/Shanghai.",
-    proactiveInvalidFrequency: "Choose a whole number of days from 1 to 14.",
+    proactiveInvalidFrequency:
+      "Choose a whole number of days from {{min}} to {{max}}.",
     proactiveInvalidQuiet: "Enter valid start and end times for quiet hours.",
     proactiveSaveFailed:
       "Could not save contact preferences. Your draft has been kept. Please try again.",

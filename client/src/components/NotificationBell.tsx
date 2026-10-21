@@ -2,7 +2,7 @@ import { PageError } from "@/components/PageError";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { formatRelativeTime } from "@/lib/formatters";
-import { renderMessage } from "@shared/i18n";
+import { renderNotification } from "@shared/notifications";
 /** 站内通知入口，轮询未读数并定时请求生成主动通知。 */
 
 import { useI18n } from "@/lib/i18n";
@@ -44,6 +44,11 @@ const NOTIFICATION_ICONS: Record<string, React.ReactNode> = {
  */
 export function NotificationBell() {
   const { t, locale } = useI18n();
+  const product = trpc.productConfig.get.useQuery(undefined, {
+    staleTime: 15000,
+    refetchInterval: 60000,
+  });
+  const rules = product.data?.proactive;
   const [open, setOpen] = useState(false);
   const { open: openChat, pending } = useCompanionChat();
   const search = useSearch();
@@ -61,7 +66,7 @@ export function NotificationBell() {
   // 获取未读数量
   const { data: unreadCount = 0, refetch: refetchCount } =
     trpc.notification.unreadCount.useQuery(undefined, {
-      refetchInterval: 30000, // 每 30 秒刷新
+      refetchInterval: rules?.client.unreadPollMs ?? false, // 每 30 秒刷新
     });
 
   // 获取通知列表
@@ -87,21 +92,22 @@ export function NotificationBell() {
 
   // 定时触发主动通知检查
   useEffect(() => {
-    // 首次延迟 60 秒后检查
+    if (!rules?.enabled) return;
+    // 按发布配置调度
     const initialTimer = setTimeout(() => {
       checkForProactive();
-    }, 60000);
+    }, rules.client.initialCheckMs);
 
     // 之后每 5 分钟检查一次
     const interval = setInterval(() => {
       checkForProactive();
-    }, 300000);
+    }, rules.client.checkIntervalMs);
 
     return () => {
       clearTimeout(initialTimer);
       clearInterval(interval);
     };
-  }, [checkForProactive]);
+  }, [checkForProactive, rules]);
 
   // 标记已读
   const markRead = trpc.notification.markRead.useMutation({
@@ -280,14 +286,18 @@ export function NotificationBell() {
                                 : "text-muted-foreground"
                             }`}
                           >
-                            {renderMessage(notif.title, locale)}
+                            {rules
+                              ? renderNotification(rules, notif.title, locale)
+                              : ""}
                           </span>
                           {!notif.isRead && (
                             <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                          {renderMessage(notif.content, locale)}
+                          {rules
+                            ? renderNotification(rules, notif.content, locale)
+                            : ""}
                         </p>
                         <p className="text-[10px] text-muted-foreground/60 mt-1">
                           {formatTime(notif.createdAt)}

@@ -330,7 +330,8 @@ export default {
       "围绕你分享过的近期事件关心你，没有相关事件时不发消息。",
     proactiveDailyHelp: "没有相关事件时，也可以偶尔分享日常、问候近况。",
     proactiveFrequency: "两次联系至少间隔几天",
-    proactiveFrequencyHelp: "可选 1～14 天。连续未回应时，会减少联系频率。",
+    proactiveFrequencyHelp:
+      "可选 {{min}}～{{max}} 天。连续未回应时，会减少联系频率。",
     proactiveQuietStart: "免打扰开始",
     proactiveQuietEnd: "免打扰结束",
     proactiveQuietHelp:
@@ -344,7 +345,7 @@ export default {
       "只显示“你有一条新的消息”，不显示姓名或聊天详情。完整消息仍可在应用内查看。",
     proactiveInvalidTimeZone:
       "请输入有效的 IANA 时区，例如 Asia/Shanghai 或 Europe/London。",
-    proactiveInvalidFrequency: "请选择 1～14 的整数天数。",
+    proactiveInvalidFrequency: "请选择 {{min}}～{{max}} 的整数天数。",
     proactiveInvalidQuiet: "请填写有效的免打扰起止时间。",
     proactiveSaveFailed: "联系偏好未能保存，草稿已保留，请重试。",
     proactiveConflict:

@@ -1,3 +1,7 @@
+import {
+  DEFAULT_PROACTIVE_PREFERENCES,
+  productFixture,
+} from "./testProductConfig";
 /** 覆盖记忆评分、提取解析、持久化和主动消息引用。 */
 
 import { nanoid } from "nanoid";
@@ -5,8 +9,8 @@ import axios from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { conversations, messages } from "../drizzle/schema";
-import { renderMessage } from "../shared/i18n";
-import { DEFAULT_PROACTIVE_PREFERENCES } from "../shared/proactiveContact";
+import { renderNotification } from "../shared/notifications";
+
 import { bigramOverlap } from "../shared/memory";
 import {
   memoryCapacity,
@@ -956,7 +960,13 @@ describe("proactive notifications reference memories", () => {
         eventDay: "2026-10-21",
       },
     });
-    expect(renderMessage(notification!.content, "zh-CN")).toContain("婚礼");
+    expect(
+      renderNotification(
+        productFixture.proactive,
+        notification!.content,
+        "zh-CN"
+      )
+    ).toContain("婚礼");
 
     // Daily cap: second call the same day yields nothing.
     expect(await checkAndCreateProactiveNotification(userId)).toBeNull();

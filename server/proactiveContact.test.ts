@@ -1,8 +1,9 @@
+import { productFixture } from "./testProductConfig";
+import { DEFAULT_PROACTIVE_PREFERENCES } from "./testProductConfig";
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_PROACTIVE_PREFERENCES,
   isProactiveQuiet,
-  proactiveContactWindow,
+  proactiveContactWindow as windowWithRules,
   proactiveLocalClock,
   proactiveDeliveryExpiresAt,
   proactivePreferencesSchema,
@@ -98,3 +99,7 @@ describe("explicit proactive contact windows", () => {
     ).toBe("2026-10-20T16:00:00.000Z");
   });
 });
+
+function proactiveContactWindow(input: Parameters<typeof windowWithRules>[0]) {
+  return windowWithRules(input, productFixture.proactive);
+}

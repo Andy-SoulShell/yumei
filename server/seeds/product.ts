@@ -12,6 +12,13 @@ export function initialProductConfig() {
     plan.lemonVariantId =
       process.env[`LEMONSQUEEZY_VARIANT_${id.toUpperCase()}`] || null;
   }
+  config.proactive.enabled = process.env.COMPANION_PROACTIVE_ENABLED !== "0";
+  if (process.env.PROACTIVE_TICK_MS)
+    config.proactive.tickMs = Number(process.env.PROACTIVE_TICK_MS);
+  if (process.env.PROACTIVE_PUSH_TIMEOUT_MS)
+    config.proactive.pushTimeoutMs = Number(
+      process.env.PROACTIVE_PUSH_TIMEOUT_MS
+    );
   config.memory.enabled = process.env.COMPANION_MEMORY_ENABLED !== "0";
   const provider =
     process.env.LLM_PROVIDER === "deepseek" ? "deepseek" : "openrouter";

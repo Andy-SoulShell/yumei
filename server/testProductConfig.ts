@@ -24,3 +24,5 @@ export const DEFAULT_PREFERENCES = {
   colorMode: "system",
   theme: productFixture.themes.defaultThemeId,
 } as const;
+
+export const DEFAULT_PROACTIVE_PREFERENCES = productFixture.proactive.defaults;

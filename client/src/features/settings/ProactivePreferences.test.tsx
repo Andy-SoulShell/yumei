@@ -5,9 +5,13 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { i18n, type Translator } from "@shared/i18n";
 import { LOCALES, type Locale } from "@shared/locales";
-import { DEFAULT_PROACTIVE_PREFERENCES } from "@shared/proactiveContact";
+
 import { ProactivePreferences } from "./ProactivePreferences";
 
+import {
+  productFixture,
+  DEFAULT_PROACTIVE_PREFERENCES,
+} from "../../../../server/testProductConfig";
 const mock = vi.hoisted(() => ({
   record: null as any,
   pending: false,
@@ -29,6 +33,9 @@ vi.mock("@/lib/i18n", () => ({
 vi.mock("sonner", () => ({ toast: { success: mock.success } }));
 vi.mock("@/lib/trpc", () => ({
   trpc: {
+    productConfig: {
+      get: { useQuery: () => ({ data: productFixture, refetch: vi.fn() }) },
+    },
     notification: {
       preferences: {
         useQuery: () => ({
@@ -218,7 +225,10 @@ it.each(["0", "15", "1.5", ""])("rejects invalid frequency %j", async value => {
   await submit();
   expect(mock.mutate).not.toHaveBeenCalled();
   expect(container.textContent).toContain(
-    t()("settings:proactiveInvalidFrequency")
+    t()(
+      "settings:proactiveInvalidFrequency",
+      productFixture.proactive.frequencyDays
+    )
   );
 });
 it("converts quiet hours to local minute values and supports equal times to disable them", async () => {

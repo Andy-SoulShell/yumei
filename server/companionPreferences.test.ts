@@ -1,7 +1,8 @@
+import { DEFAULT_PROACTIVE_PREFERENCES } from "./testProductConfig";
 import { eq } from "drizzle-orm";
 import { expect, it } from "vitest";
 import { girlfriends } from "../drizzle/schema";
-import { DEFAULT_PROACTIVE_PREFERENCES } from "../shared/proactiveContact";
+
 import { getCompanionPreferences } from "./aiTaskRuntime";
 import { saveCompanionPreferences } from "./companionPreferences";
 import { getDb } from "./database";

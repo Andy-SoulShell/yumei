@@ -1,5 +1,6 @@
 /** 通过可视化选择与排序编排首页，保留完整多语言内容。 */
 import { useId, useState } from "react";
+import { z } from "zod";
 import { ArrowUp, ArrowDown, Trash2, Plus, Eye } from "lucide-react";
 import {
   homepageSchema,
@@ -22,8 +23,10 @@ import {
 import { LandingCarousel } from "@/features/discovery/LandingCarousel";
 import { CharacterCard } from "@/components/CharacterCard";
 import { CharacterDetailContent } from "@/components/CharacterDetailDialog";
-import { fieldLabel } from "./ConfigForm";
+import { fieldLabel, type FormSchema } from "./ConfigForm";
+import { NumberField } from "./NumberField";
 import type { CharacterRow } from "./managementModel";
+const homeFields = (z.toJSONSchema(homepageSchema) as FormSchema).properties!;
 
 export function homepageIssues(value: Homepage, rows: CharacterRow[]) {
   const parsed = homepageSchema.safeParse(value),
@@ -66,6 +69,7 @@ function CopyField({
     props = {
       id,
       autoFocus,
+      maxLength: 6000,
       value: value[locale] || "",
       placeholder:
         locale === "zh-CN" ? "请输入内容" : value["zh-CN"] || "留空使用中文",
@@ -733,33 +737,23 @@ export function HomepageEditor({
             ).map(item => (
               <label key={item.key} className="space-y-2 text-sm font-medium">
                 {item.label}
-                <Input
-                  aria-label={item.label}
-                  type="number"
+                <NumberField
+                  label={item.label}
+                  path={`home.${item.key}`}
+                  schema={homeFields[item.key]}
                   value={value[item.key]}
-                  min={item.min}
-                  max={item.max}
-                  onChange={event =>
-                    update(item.key, Number(event.target.value))
-                  }
+                  onChange={next => update(item.key, next)}
                 />
               </label>
             ))}
             <label className="space-y-2 text-sm font-medium">
               轮播切换间隔（秒）
-              <Input
-                aria-label="轮播切换间隔（秒）"
-                type="number"
-                min={3}
-                max={60}
-                step={0.5}
-                value={value.carouselIntervalMs / 1000}
-                onChange={event =>
-                  update(
-                    "carouselIntervalMs",
-                    Number(event.target.value) * 1000
-                  )
-                }
+              <NumberField
+                label="轮播切换间隔（秒）"
+                path="home.carouselIntervalMs"
+                schema={homeFields.carouselIntervalMs}
+                value={value.carouselIntervalMs}
+                onChange={next => update("carouselIntervalMs", next)}
               />
             </label>
           </div>

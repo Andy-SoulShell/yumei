@@ -261,11 +261,16 @@ function ProductWorkspace({
   const [error, setError] = useState("");
   const [reviewOpen, setReviewOpen] = useState(false);
   let issues: string[] = [];
+  const fieldIssues: Record<string, string> = {};
   try {
     const parsed = productConfigSchema.safeParse(
       mode === "json" ? { ...value, [section]: JSON.parse(raw) } : value
     );
-    if (!parsed.success) issues = validation(parsed.error).split("\n");
+    if (!parsed.success) {
+      issues = validation(parsed.error).split("\n");
+      for (const issue of parsed.error.issues)
+        fieldIssues[issue.path.join(".")] = issue.message;
+    }
   } catch {
     issues = ["JSON 格式无效，请修正后保存。"];
   }
@@ -397,6 +402,7 @@ function ProductWorkspace({
                 value={value[section]}
                 schema={productForm.properties?.[section]}
                 path={section}
+                issues={fieldIssues}
                 disabled={busy}
                 onChange={next => {
                   setValue({ ...value, [section]: next });

@@ -1,7 +1,10 @@
 /** 围绕角色内容组织常用字段，其余设置按需展开。 */
 import { useId, type ChangeEvent, type ReactNode } from "react";
 import type { OfficialCharacter, ContentText } from "@shared/discovery";
-import { officialImageSchema } from "@shared/discovery";
+import {
+  officialImageSchema,
+  officialCharacterSchema,
+} from "@shared/discovery";
 import { companionBehaviorSchema } from "@shared/companionBehavior";
 import { z } from "zod";
 import { Input } from "@/components/ui/input";
@@ -12,8 +15,11 @@ import { ConfigForm, type FormSchema } from "./ConfigForm";
 import { officialFieldNames, type CharacterRules } from "./officialEditor";
 import { uploadDescription } from "@shared/operationalConfig";
 import type { ProductConfig } from "@shared/productConfig";
+import { NumberField } from "./NumberField";
 
 const behaviorForm = z.toJSONSchema(companionBehaviorSchema) as FormSchema;
+const numberSchemas = (z.toJSONSchema(officialCharacterSchema) as FormSchema)
+  .properties!;
 function Field({
   id,
   label,
@@ -78,6 +84,7 @@ export function OfficialCharacterForm({
       props = {
         id,
         value: value[key],
+        maxLength: limit,
         disabled: busy,
         "aria-invalid": !!issues[key],
         "aria-describedby": `${id}-help`,
@@ -147,19 +154,17 @@ export function OfficialCharacterForm({
             id={`${prefix}-age`}
             label="年龄"
             error={issues.age}
-            hint="仅限成年角色"
+            hint="仅限成年角色，18–120 岁"
           >
-            <Input
+            <NumberField
               id={`${prefix}-age`}
-              type="number"
-              min={18}
-              max={120}
-              step={1}
+              label="年龄"
+              path="character.age"
+              schema={numberSchemas.age}
               disabled={busy}
               value={value.age}
-              aria-invalid={!!issues.age}
-              aria-describedby={`${prefix}-age-help`}
-              onChange={event => update("age", Number(event.target.value))}
+              error={issues.age}
+              onChange={next => update("age", next)}
             />
           </Field>
           <Field id={`${prefix}-style`} label="画面风格">
@@ -365,16 +370,15 @@ export function OfficialCharacterForm({
             error={issues.sortOrder}
             hint="数字越小越靠前，新角色自动排在末尾"
           >
-            <Input
+            <NumberField
               id={`${prefix}-sort`}
-              type="number"
-              min={0}
-              max={100000}
+              label="展示顺序"
+              path="character.sortOrder"
+              schema={numberSchemas.sortOrder}
               disabled={busy}
               value={value.sortOrder}
-              onChange={event =>
-                update("sortOrder", Number(event.target.value))
-              }
+              error={issues.sortOrder}
+              onChange={next => update("sortOrder", next)}
             />
           </Field>
           <details className="admin-config-group rounded-lg border p-3">

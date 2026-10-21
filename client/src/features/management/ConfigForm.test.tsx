@@ -4,7 +4,7 @@ import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it } from "vitest";
 import { z } from "zod";
-import { themesConfigSchema } from "@shared/productConfig";
+import { themesConfigSchema, productConfigSchema } from "@shared/productConfig";
 import { productFixture } from "../../../../server/testProductConfig";
 import { ConfigForm, type FormSchema } from "./ConfigForm";
 import { ThemeEditor } from "./ThemeEditor";
@@ -177,4 +177,109 @@ it("adds and removes workflow record entries while keeping fixed object fields",
       .click()
   );
   expect(value).toEqual({ encoder: { class_type: "TextEncoder" } });
+});
+
+it("changes duration display units without changing the draft and never turns an empty value into zero", async () => {
+  let value = 1500;
+  function Probe() {
+    const [duration, setDuration] = useState(value);
+    value = duration;
+    return (
+      <ConfigForm
+        path="runtime.chat.replyTimeoutMs"
+        value={duration}
+        schema={{ type: "integer", minimum: 100, maximum: 300000 }}
+        onChange={next => setDuration(next as number)}
+      />
+    );
+  }
+  await act(async () => root.render(<Probe />));
+  const input = container.querySelector<HTMLInputElement>(
+    'input[type="number"]'
+  )!;
+  expect(input.value).toBe("1.5");
+  expect(container.textContent).toContain("最多 300 秒");
+  await change(container.querySelector("select")!, "1");
+  expect(value).toBe(1500);
+  expect(input.value).toBe("1500");
+  await change(input, "300001");
+  expect(input.getAttribute("aria-invalid")).toBe("true");
+  expect(value).toBe(300001);
+  await change(input, "");
+  expect(value).toBeNaN();
+  expect(container.textContent).toContain("请填写有效数值");
+});
+
+it("uses a local clock for quiet hours and keeps the stored minute value", async () => {
+  let value = 1380;
+  function Probe() {
+    const [minute, setMinute] = useState(value);
+    value = minute;
+    return (
+      <ConfigForm
+        path="proactive.defaults.quietStart"
+        value={minute}
+        schema={{ type: "integer", minimum: 0, maximum: 1439 }}
+        onChange={next => setMinute(next as number)}
+      />
+    );
+  }
+  await act(async () => root.render(<Probe />));
+  const input =
+    container.querySelector<HTMLInputElement>('input[type="time"]')!;
+  expect(input.value).toBe("23:00");
+  await change(input, "06:30");
+  expect(value).toBe(390);
+  expect(container.textContent).toContain("支持跨午夜");
+});
+
+it("offers constrained format checkboxes and retains at least one allowed upload type", async () => {
+  let value = ["image/jpeg"];
+  const schema = (
+    z.toJSONSchema(productConfigSchema, {
+      unrepresentable: "any",
+    }) as FormSchema
+  ).properties!.uploads.properties!.avatar.properties!.mimeTypes;
+  function Probe() {
+    const [formats, setFormats] = useState(value);
+    value = formats;
+    return (
+      <ConfigForm
+        path="uploads.avatar.mimeTypes"
+        value={formats}
+        schema={schema}
+        onChange={next => setFormats(next as string[])}
+      />
+    );
+  }
+  await act(async () => root.render(<Probe />));
+  const boxes = container.querySelectorAll<HTMLInputElement>(
+    'input[type="checkbox"]'
+  );
+  expect(boxes).toHaveLength(4);
+  expect(boxes[0].disabled).toBe(true);
+  await act(async () => boxes[1].click());
+  expect(value).toEqual(["image/jpeg", "image/png"]);
+  expect(boxes[0].disabled).toBe(false);
+  await act(async () => boxes[0].click());
+  expect(value).toEqual(["image/png"]);
+});
+
+it("preserves numeric enum values rather than sending strings", async () => {
+  let value = 1;
+  function Probe() {
+    const [speed, setSpeed] = useState(value);
+    value = speed;
+    return (
+      <ConfigForm
+        path="experience.playback.defaultSpeed"
+        value={speed}
+        schema={{ type: "number", enum: [1, 1.5, 2] }}
+        onChange={next => setSpeed(next as number)}
+      />
+    );
+  }
+  await act(async () => root.render(<Probe />));
+  await change(container.querySelector("select")!, "1.5");
+  expect(value).toBe(1.5);
 });

@@ -8,6 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { officialImageSchema } from "@shared/discovery";
 import { ColorField, isHexColor } from "./ColorField";
+import { NumberField } from "./NumberField";
+import {
+  fieldHint,
+  nullableLabel,
+  textError,
+  textKind,
+} from "./fieldPresentation";
 export type FormSchema = {
   readOnly?: boolean;
   pattern?: string;
@@ -21,7 +28,12 @@ export type FormSchema = {
   enum?: unknown[];
   minimum?: number;
   maximum?: number;
+  exclusiveMinimum?: number;
+  exclusiveMaximum?: number;
+  multipleOf?: number;
+  minLength?: number;
   maxLength?: number;
+  minItems?: number;
   maxItems?: number;
   required?: string[];
   const?: unknown;
@@ -271,9 +283,110 @@ const labels: Record<string, string> = {
   ko: "한국어",
   min: "最小值",
   max: "最大值",
+  voiceTranscription: "语音转文字",
+  ttsProviders: "可用朗读服务",
+  modelLocked: "锁定默认聊天模型",
+  couplePhoto: "合照功能",
+  selfie: "图片生成",
+  transcribe: "语音转文字",
+  level: "等级",
+  history: "历史对话预算",
+  nickname: "用户称呼长度",
+  exampleLength: "单条示例长度",
+  exampleCount: "示例对话组数",
+  globalPrompt: "全局偏好长度",
+  replyLanguage: "语言偏好长度",
+  replyLength: "回复长度偏好",
+  steady: "平常互动",
+  affection: "表达喜欢",
+  conflict: "发生冲突",
+  repair: "关系修复",
+  text_message: "文字互动",
+  voice_message: "语音互动",
+  daily_first: "每日首次互动",
+  edit_profile: "完善资料",
+  long_conversation: "深入对话",
+  night_chat: "夜间陪伴",
+  maxExtractedLength: "单条提取长度",
+  everyRounds: "提取间隔",
+  sourceMessageLimit: "参考消息数",
+  maxResults: "单次提取数量",
+  firstRound: "首轮提取",
+  explicitRequests: "响应用户记忆请求",
+  factLimit: "摘要参考记忆数",
+  maxTopics: "摘要主题数量",
+  maxQuoteLength: "引用长度",
+  weight: "语义检索权重",
+  duplicateThreshold: "重复判定相似度",
+  correctionThreshold: "更正判定相似度",
+  initialWeightMin: "初始权重下限",
+  initialWeightMax: "初始权重上限",
+  reinforcement: "重复提及的权重增加",
+  freshnessFloor: "新鲜度最低保留比例",
+  decayDays: "衰减周期",
+  affinityMultiplier: "相关性加权系数",
+  affinityMax: "相关性加分上限",
+  pinnedBonus: "置顶加分",
+  recall: "记忆召回",
+  maxChars: "召回文本预算",
+  explicitUsesCapacity: "主动记录占用容量",
+  maxAttempts: "最大尝试次数",
+  retryBaseMs: "首次重试间隔",
+  retryMaxMs: "重试间隔上限",
+  baseMs: "首次重试间隔",
+  maxMs: "重试间隔上限",
+  quietMs: "免打扰后重试间隔",
+  base: "退避倍率",
+  maxExponent: "退避指数上限",
+  maxDays: "最长等待天数",
+  unreadPollMs: "未读通知检查间隔",
+  initialCheckMs: "首次检查等待",
+  checkIntervalMs: "定期检查间隔",
+  deepseekThinking: "DeepSeek 思考模式",
+  replyTimeoutMs: "回复总超时",
+  queueTimeoutMs: "排队最长等待",
+  heartbeatMs: "任务心跳间隔",
+  pollMs: "任务轮询间隔",
+  schedulerMs: "调度间隔",
+  burstMessages: "合并消息上限",
+  segmentChars: "单段输出长度",
+  flushMs: "输出刷新间隔",
+  flushPollMs: "刷新检查间隔",
+  comfyuiTimeoutMs: "ComfyUI 总超时",
+  comfyuiRequestTimeoutMs: "ComfyUI 单次请求超时",
+  comfyuiPollMs: "ComfyUI 结果检查间隔",
+  cancelTimeoutMs: "取消请求超时",
+  falTimeoutMs: "fal 生成超时",
+  downloadTimeoutMs: "结果下载超时",
+  maxImageBytes: "结果图片容量上限",
+  reservationGraceMs: "额度预留宽限",
+  transcriptionTimeoutMs: "转写超时",
+  ttsTimeoutMs: "语音合成超时",
+  ttsMaxChars: "单次朗读文本长度",
+  ttsRetentionMs: "语音保留时间",
+  credentialTtlMs: "临时凭据有效期",
+  timeoutMs: "请求超时",
+  fishPageSize: "Fish Audio 目录每页数量",
+  mediaBatchSize: "每批清理媒体数量",
+  mediaLeaseMs: "媒体清理租约",
+  mediaRetryBaseMs: "媒体首次重试间隔",
+  mediaRetryMaxMs: "媒体重试间隔上限",
+  mediaRetryMaxExponent: "媒体重试指数上限",
+  stagedRetentionMs: "临时素材保留时间",
+  companionTrashRetentionMs: "角色回收站保留时间",
+  rateWindowRetentionMs: "限流记录保留时间",
+  generationTimeoutMs: "过期生成任务清理时限",
+  observerPollMs: "后台任务检查间隔",
+  observerHeartbeatMs: "后台连接心跳",
+  clientPollMs: "客户端重连检查间隔",
+  defaultDays: "默认统计天数",
+  sampleSize: "统计样本数量",
 };
 export function fieldLabel(key: string) {
-  return labels[key] ?? key.replace(/([a-z])([A-Z])/g, "$1 $2");
+  return (labels[key] ?? key.replace(/([a-z])([A-Z])/g, "$1 $2")).replace(
+    /（(?:毫秒|字节|秒|分钟|Hz|天|本地分钟)）$/,
+    ""
+  );
 }
 function normalized(
   schema: FormSchema | undefined,
@@ -328,6 +441,9 @@ type FormOptions = {
   choices?: (path: string) => FieldChoice[] | undefined;
   onUpload?: (file: File) => Promise<string>;
   uploadAccept?: string;
+  issues?: Record<string, string>;
+  flat?: boolean;
+  currency?: string;
 };
 const optionLabels: Record<string, string> = {
   realistic: "写实",
@@ -355,6 +471,18 @@ const optionLabels: Record<string, string> = {
   fishaudio: "Fish Audio",
   disabled: "关闭",
   enabled: "开启",
+  month: "每月",
+  year: "每年",
+  openrouter: "OpenRouter",
+  deepseek: "DeepSeek",
+  fal: "fal.ai",
+  comfyui: "ComfyUI",
+  mirror: "镜中自拍",
+  auto: "自动选择",
+  fact: "事实",
+  preference: "偏好",
+  event: "事件",
+  relationship: "关系",
 };
 const longField = (path: string, value: unknown) =>
   typeof value === "string" &&
@@ -373,6 +501,9 @@ export function ConfigForm({
   choices,
   onUpload,
   uploadAccept,
+  issues,
+  flat = false,
+  currency,
 }: {
   value: unknown;
   onChange: (value: unknown) => void;
@@ -393,7 +524,8 @@ export function ConfigForm({
           : "深色背景"
         : fieldLabel(key),
     s = normalized(schema, value);
-  const options = { choices, onUpload, uploadAccept };
+  const options = { choices, onUpload, uploadAccept, issues, currency, flat };
+  const issue = issues?.[path];
   const header = (
     <span className="flex min-w-0 items-center justify-between gap-3">
       <span className="truncate text-sm font-medium">{label}</span>
@@ -405,9 +537,7 @@ export function ConfigForm({
         {header}
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground">
-            {/(?:Messages|Selfies|Girlfriends)$/.test(key)
-              ? "不限量"
-              : "未设置"}
+            {nullableLabel(path)}
           </span>
           <Button
             type="button"
@@ -428,6 +558,55 @@ export function ConfigForm({
       </div>
     );
   if (Array.isArray(value)) {
+    // 无顺序语义的格式与权益用多选，录音编码仍保留优先顺序编辑。
+    if (s.items?.enum && /(?:mimeTypes|ttsProviders)$/.test(key))
+      return (
+        <fieldset
+          className="space-y-3 rounded-xl border p-4"
+          disabled={disabled}
+          aria-describedby={`${id}-help`}
+        >
+          <legend className="px-1 text-sm font-medium">{label}</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {s.items.enum.map(option => {
+              const checked = value.includes(option);
+              return (
+                <label
+                  key={String(option)}
+                  className="flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={
+                      disabled || (checked && value.length <= (s.minItems ?? 0))
+                    }
+                    onChange={event =>
+                      onChange(
+                        event.target.checked
+                          ? [...value, option]
+                          : value.filter(item => item !== option)
+                      )
+                    }
+                  />
+                  {optionLabels[String(option)] ??
+                    String(option)
+                      .replace(/^image\//, "")
+                      .toUpperCase()}
+                </label>
+              );
+            })}
+          </div>
+          <p
+            id={`${id}-help`}
+            className={`text-xs ${issue ? "text-destructive" : "text-muted-foreground"}`}
+            aria-live="polite"
+          >
+            {issue ||
+              `至少 ${s.minItems ?? 0} 项${s.maxItems ? `，最多 ${s.maxItems} 项` : ""}；可多选`}
+          </p>
+        </fieldset>
+      );
     const fixedColors = key === "colors" && !!s.prefixItems;
     const move = (index: number, target: number) => {
       const next = [...value];
@@ -450,6 +629,18 @@ export function ConfigForm({
             fixedColors ? "mt-4 grid gap-4 sm:grid-cols-3" : "mt-4 space-y-3"
           }
         >
+          <p className="text-xs text-muted-foreground">
+            至少 {s.minItems ?? 0} 项
+            {s.maxItems !== undefined ? `，最多 ${s.maxItems} 项` : ""}
+            {key === "recordingMimeTypes"
+              ? "；从上到下按录音编码优先顺序使用"
+              : ""}
+          </p>
+          {issue && (
+            <p className="text-xs text-destructive" role="status">
+              {issue}
+            </p>
+          )}
           {value.map((item, index) => (
             <div
               key={index}
@@ -490,7 +681,7 @@ export function ConfigForm({
                       size="icon-sm"
                       variant="ghost"
                       aria-label={`删除 ${path} 第 ${index + 1} 项`}
-                      disabled={disabled}
+                      disabled={disabled || value.length <= (s.minItems ?? 0)}
                       onClick={() =>
                         onChange(value.filter((_, i) => i !== index))
                       }
@@ -522,7 +713,13 @@ export function ConfigForm({
                 disabled ||
                 (s.maxItems !== undefined && value.length >= s.maxItems)
               }
-              onClick={() => onChange([...value, empty(s.items)])}
+              onClick={() =>
+                onChange([
+                  ...value,
+                  s.items?.enum?.find(item => !value.includes(item)) ??
+                    empty(s.items),
+                ])
+              }
             >
               <Plus className="size-3.5" />
               新增一项
@@ -579,6 +776,11 @@ export function ConfigForm({
               )}
               <ConfigForm
                 {...options}
+                currency={
+                  typeof object.currency === "string"
+                    ? object.currency
+                    : currency
+                }
                 value={item}
                 schema={
                   s.properties?.[name] ??
@@ -646,6 +848,7 @@ export function ConfigForm({
           {fields}
         </div>
       );
+    if (flat && depth === 0) return <div className="min-w-0">{fields}</div>;
     return (
       <details
         open={depth < 1}
@@ -683,12 +886,18 @@ export function ConfigForm({
         optionLabels[String(item)] ??
         String(item),
     }));
-  const selected = values?.find(item => item.value === value);
+  const selected = values?.find(item => item.value === String(value));
   const color =
     typeof value === "string" &&
     (isHexColor(value) || s.pattern?.includes("0-9a-fA-F"));
   const image =
     typeof value === "string" && /imageUrl$|\.images\.\d+$/.test(path);
+  const kind = textKind(path);
+  const error =
+    issue ??
+    (typeof value === "string" ? textError(value, s, path) : undefined);
+  const hint = fieldHint(path);
+  const helpId = `${id}-help`;
   return (
     <div className="min-w-0 space-y-2">
       <Label htmlFor={id} className="block">
@@ -701,7 +910,15 @@ export function ConfigForm({
             disabled={disabled}
             className="h-10 w-full rounded-xl border bg-background px-3 text-sm"
             value={String(value)}
-            onChange={event => onChange(event.target.value)}
+            aria-invalid={!!error}
+            aria-describedby={helpId}
+            onChange={event =>
+              onChange(
+                typeof value === "number"
+                  ? Number(event.target.value)
+                  : event.target.value
+              )
+            }
           >
             {!selected && (
               <option value={String(value)}>
@@ -729,19 +946,16 @@ export function ConfigForm({
             )}
         </>
       ) : typeof value === "number" ? (
-        <Input
+        <NumberField
           id={id}
-          type="number"
-          step={s.type === "integer" ? 1 : "any"}
-          min={s.minimum}
-          max={s.maximum}
+          label={label}
+          schema={s}
+          path={path}
+          currency={currency}
           disabled={disabled}
-          value={Number.isFinite(value) ? value : ""}
-          onChange={event =>
-            onChange(
-              event.target.value === "" ? NaN : Number(event.target.value)
-            )
-          }
+          value={value}
+          error={issue}
+          onChange={onChange}
         />
       ) : color ? (
         <ColorField
@@ -758,6 +972,9 @@ export function ConfigForm({
           disabled={disabled}
           rows={Math.min(10, Math.max(3, String(value).split("\n").length))}
           maxLength={s.maxLength}
+          minLength={s.minLength}
+          aria-invalid={!!error}
+          aria-describedby={helpId}
           className="resize-y text-sm leading-6"
           onChange={event => onChange(event.target.value)}
         />
@@ -765,11 +982,62 @@ export function ConfigForm({
         <Input
           id={id}
           value={String(value)}
+          type={kind === "url" ? "url" : "text"}
+          inputMode={/lemonVariantId$/.test(path) ? "numeric" : undefined}
+          list={
+            kind === "timezone" || kind === "currency"
+              ? `${id}-options`
+              : undefined
+          }
           disabled={disabled}
           maxLength={s.maxLength}
+          minLength={s.minLength}
+          pattern={s.pattern}
+          aria-invalid={!!error}
+          aria-describedby={helpId}
           onChange={event => onChange(event.target.value)}
         />
       )}{" "}
+      {typeof value !== "number" && (
+        <div
+          id={helpId}
+          className="space-y-1 text-xs text-muted-foreground"
+          aria-live="polite"
+        >
+          {error && <p className="text-destructive">{error}</p>}
+          {typeof value === "string" && s.maxLength !== undefined && (
+            <p>
+              {value.length} / {s.maxLength} 字符
+              {s.minLength ? ` · 至少 ${s.minLength} 字符` : " · 可留空"}
+            </p>
+          )}
+          {hint && <p>{hint}</p>}
+          {kind === "url" && (
+            <p>
+              {path.startsWith("models.")
+                ? "完整的 HTTP / HTTPS 服务地址，不含账号密码"
+                : "完整的 HTTPS 公开链接，不含账号密码"}
+            </p>
+          )}
+        </div>
+      )}
+      {(kind === "timezone" || kind === "currency") && (
+        <datalist id={`${id}-options`}>
+          {(kind === "timezone"
+            ? [
+                "UTC",
+                "Asia/Shanghai",
+                "Asia/Tokyo",
+                "Asia/Seoul",
+                "America/New_York",
+                "Europe/London",
+              ]
+            : ["USD", "CNY", "EUR", "JPY", "KRW", "GBP", "HKD", "TWD", "SGD"]
+          ).map(item => (
+            <option key={item} value={item} />
+          ))}
+        </datalist>
+      )}
       {image && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed p-3">
           {officialImageSchema.safeParse(value).success ? (
@@ -814,9 +1082,9 @@ export function ConfigForm({
           disabled={disabled}
           onClick={() => onChange(null)}
         >
-          {/(?:Messages|Selfies|Girlfriends)$/.test(key)
+          {nullableLabel(path) === "不限量"
             ? "设为不限量"
-            : "清空设置"}
+            : nullableLabel(path)}
         </Button>
       )}
     </div>

@@ -1,4 +1,5 @@
 /** 待核对提交仅保留在当前标签页，按账号和会话隔离。 */
+import { CHAT_INPUT_CAPACITY } from "@shared/const";
 export type StoredChatSubmission = {
   conversationId: number;
   clientRequestId: string;
@@ -21,7 +22,7 @@ export function chatInputDraftKey(
 
 export function readChatInputDraft(key: string | null) {
   try {
-    return key ? (sessionStorage.getItem(key) || "").slice(0, 8000) : "";
+    return key ? sessionStorage.getItem(key) || "" : "";
   } catch {
     return "";
   }
@@ -30,7 +31,7 @@ export function readChatInputDraft(key: string | null) {
 export function writeChatInputDraft(key: string | null, text: string) {
   if (!key) return;
   try {
-    if (text) sessionStorage.setItem(key, text.slice(0, 8000));
+    if (text) sessionStorage.setItem(key, text);
     else sessionStorage.removeItem(key);
   } catch {
     /* 存储不可用时仍可编辑和发送本次页面的输入。 */
@@ -79,7 +80,7 @@ export function readChatStreamDrafts(
         /^[0-9a-f-]{36}$/i.test(item.clientRequestId) &&
         typeof item.content === "string" &&
         item.content.length > 0 &&
-        item.content.length <= 8000 &&
+        item.content.length <= CHAT_INPUT_CAPACITY &&
         (item.transcriptionId === undefined ||
           typeof item.transcriptionId === "string")
     );

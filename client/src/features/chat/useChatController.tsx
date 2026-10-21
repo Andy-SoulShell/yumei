@@ -88,7 +88,11 @@ export function useChatController() {
     updateSpeed,
   } = useTTS();
 
-  const [message, setMessage] = useChatInputDraft(user?.id, conversationId);
+  const [message, setMessage] = useChatInputDraft(
+    user?.id,
+    conversationId,
+    productRules.raw?.runtime.chat.maxInputChars
+  );
   const [failedMessages, setFailedMessages] = useState<FailedChatMessage[]>([]);
 
   const [inputMode, setInputMode] = useState<"text" | "voice">(() => {

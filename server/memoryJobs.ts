@@ -101,7 +101,11 @@ export async function runMemoryExtractionJobs(userId?: string): Promise<void> {
             leaseToken: token,
             leaseUntil: new Date(
               Date.now() +
-                Math.max(60_000, policy.runtime.ai.taskTimeoutMs + 5_000)
+                Math.max(
+                  policy.memory.jobs.leaseMinimumMs,
+                  policy.runtime.ai.taskTimeoutMs +
+                    policy.memory.jobs.leasePaddingMs
+                )
             ),
           })
           .where(eq(memoryExtractionJobs.id, job.id));

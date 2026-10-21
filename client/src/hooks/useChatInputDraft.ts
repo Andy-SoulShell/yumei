@@ -8,7 +8,8 @@ import {
 
 export function useChatInputDraft(
   accountId: string | undefined,
-  conversationId: number | null
+  conversationId: number | null,
+  maxChars?: number
 ) {
   const key = chatInputDraftKey(accountId, conversationId);
   const [draft, setDraft] = useState(() => ({
@@ -21,14 +22,14 @@ export function useChatInputDraft(
       setDraft(previous => {
         const current =
           previous.key === key ? previous.text : readChatInputDraft(key);
-        const next = (
-          typeof value === "function" ? value(current) : value
-        ).slice(0, 8000);
+        const candidate = typeof value === "function" ? value(current) : value;
+        const next =
+          maxChars === undefined ? candidate : candidate.slice(0, maxChars);
         writeChatInputDraft(key, next);
         return { key, text: next };
       });
     },
-    [key]
+    [key, maxChars]
   );
   return [text, setText] as const;
 }

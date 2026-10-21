@@ -259,6 +259,30 @@ it("removes pending jobs when the companion is permanently deleted", async () =>
   ).toEqual([]);
 });
 
+it("claims the configured minimum lease or task timeout plus padding, whichever is longer", async () => {
+  const a = await seed();
+  stubProductConfig("runtime.ai.taskTimeoutMs", 6000);
+  stubProductConfig("memory.jobs.leaseMinimumMs", 9000);
+  stubProductConfig("memory.jobs.leasePaddingMs", 4000);
+  vi.spyOn(memory, "callExtractionModel").mockImplementation(async () => {
+    const [job] = await a.db
+      .select()
+      .from(memoryExtractionJobs)
+      .where(eq(memoryExtractionJobs.userId, a.userId));
+    const remaining = job.leaseUntil!.getTime() - Date.now();
+    expect(remaining).toBeGreaterThan(8000);
+    expect(remaining).toBeLessThanOrEqual(10000);
+    return [];
+  });
+  await runMemoryExtractionJobs(a.userId);
+  expect(
+    await a.db
+      .select()
+      .from(memoryExtractionJobs)
+      .where(eq(memoryExtractionJobs.userId, a.userId))
+  ).toEqual([]);
+});
+
 it("uses the companion's current capacity when a delayed extraction finishes after a level-up", async () => {
   const a = await seed();
   await a.db.insert(memories).values(

@@ -1,3 +1,4 @@
+import { CHAT_INPUT_CAPACITY } from "../../shared/const";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { detectSelfHarm } from "../../shared/safety";
@@ -15,7 +16,7 @@ export const chatRouter = router({
     .input(
       z.object({
         conversationId: z.number().int().positive(),
-        content: z.string().trim().min(1).max(32_000),
+        content: z.string().trim().min(1).max(CHAT_INPUT_CAPACITY),
         transcriptionId: z.string().uuid().optional(),
       })
     )

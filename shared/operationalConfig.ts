@@ -1,5 +1,6 @@
 /** 主动联系与运行限制的可发布契约，不包含业务默认值。 */
 import { z } from "zod";
+import { CHAT_INPUT_CAPACITY } from "./const";
 import { contentTextSchema } from "./discovery";
 import { proactivePreferencesSchema } from "./proactiveContact";
 const integer = (min: number, max: number) =>
@@ -313,7 +314,7 @@ export const runtimeConfigSchema = z
       .strict(),
     chat: z
       .object({
-        maxInputChars: integer(1, 32000),
+        maxInputChars: integer(1, CHAT_INPUT_CAPACITY),
         maxOutputChars: integer(1, 32000),
         maxTokens: integer(1, 128000),
         deepseekThinking: z.enum(["disabled", "enabled"]),
@@ -359,6 +360,12 @@ export const runtimeConfigSchema = z
       .object({
         timeoutMs: integer(100, 120000),
         fishPageSize: integer(1, 1000),
+      })
+      .strict(),
+    storage: z
+      .object({
+        requestTimeoutMs: integer(100, 300000),
+        signedUrlTtlSeconds: integer(1, 86400),
       })
       .strict(),
     maintenance: z

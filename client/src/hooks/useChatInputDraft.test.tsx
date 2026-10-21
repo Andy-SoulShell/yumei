@@ -8,9 +8,10 @@ import { clearChatStreamDrafts } from "@/lib/chatStreamDrafts";
 let root: Root;
 let account = "a";
 let conversation = 1;
+let maxChars = 12000;
 let draft: ReturnType<typeof useChatInputDraft>;
 function Probe() {
-  draft = useChatInputDraft(account, conversation);
+  draft = useChatInputDraft(account, conversation, maxChars);
   return null;
 }
 const render = () => act(async () => root.render(<Probe />));
@@ -19,7 +20,22 @@ beforeEach(() => {
   sessionStorage.clear();
   account = "a";
   conversation = 1;
+  maxChars = 12000;
   root = createRoot(document.createElement("div"));
+});
+it("preserves long configured input on remount and applies updated published limits to edits", async () => {
+  await render();
+  const text = "长".repeat(9000);
+  await act(async () => draft[1](text));
+  await act(async () => root.unmount());
+  root = createRoot(document.createElement("div"));
+  await render();
+  expect(draft[0]).toBe(text);
+  maxChars = 5;
+  await render();
+  expect(draft[0]).toBe(text);
+  await act(async () => draft[1]("新修改内容超出五字"));
+  expect(draft[0]).toBe("新修改内容");
 });
 afterEach(async () => {
   await act(async () => root.unmount());

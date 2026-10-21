@@ -276,6 +276,8 @@ export const memoryConfigSchema = z
         maxAttempts: z.number().int().min(1).max(100),
         retryBaseMs: z.number().int().min(100).max(3600000),
         retryMaxMs: z.number().int().min(100).max(86400000),
+        leaseMinimumMs: z.number().int().min(1000).max(3600000),
+        leasePaddingMs: z.number().int().min(100).max(60000),
       })
       .strict(),
   })

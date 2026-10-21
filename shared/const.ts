@@ -4,3 +4,6 @@
 export const UNAUTHED_ERR_MSG = "Please login (10001)";
 /** 管理员权限不足时使用的错误文本。 */
 export const NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
+
+/** 请求协议与持久草稿可容纳的结构上限；实际输入权限读取 runtime.chat.maxInputChars。 */
+export const CHAT_INPUT_CAPACITY = 32000;

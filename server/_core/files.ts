@@ -1,4 +1,4 @@
-/** 通过存储键提供媒体访问，本地流式返回，S3 使用五分钟预签名跳转。 */
+/** 通过存储键提供媒体访问，本地流式返回，S3 签名有效期读取发布配置。 */
 
 import type { Express, Request, Response } from "express";
 import path from "node:path";

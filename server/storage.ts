@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { createReadStream, existsSync } from "node:fs";
 import path from "node:path";
 import { ENV } from "./_core/env";
+import { getPublishedProductConfig } from "./repositories/productConfig";
 
 /** 文件写入结果；key 用于服务端操作，url 用于前端或外部图片服务访问。 */
 export type StoragePutResult = { key: string; url: string };
@@ -98,26 +99,29 @@ async function s3Put(
 ): Promise<StoragePutResult> {
   const { client, mod } = await getS3();
   const body = typeof data === "string" ? Buffer.from(data) : data;
+  const rules = (await getPublishedProductConfig()).runtime.storage;
   await client.send(
     new mod.PutObjectCommand({
       Bucket: ENV.s3Bucket,
       Key: key,
       Body: body,
       ContentType: contentType,
-    })
+    }),
+    { abortSignal: AbortSignal.timeout(rules.requestTimeoutMs) }
   );
   return { key, url: publicFileUrl(key) };
 }
 
-/** 为私有 S3 对象生成有效期五分钟的临时 GET 地址。 */
+/** 为私有 S3 对象按发布配置生成临时 GET 地址。 */
 export async function s3PresignedGetUrl(relKey: string): Promise<string> {
   const key = normalizeKey(relKey);
   const { client, mod } = await getS3();
   const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
+  const rules = (await getPublishedProductConfig()).runtime.storage;
   return getSignedUrl(
     client,
     new mod.GetObjectCommand({ Bucket: ENV.s3Bucket, Key: key }),
-    { expiresIn: 300 }
+    { expiresIn: rules.signedUrlTtlSeconds }
   );
 }
 
@@ -162,14 +166,16 @@ export async function storageRead(relKey: string): Promise<Buffer> {
   const key = normalizeKey(relKey);
   if (ENV.storageDriver !== "s3") return localFileRead(key);
   const { client, mod } = await getS3();
+  const rules = (await getPublishedProductConfig()).runtime.storage;
   const result = await client.send(
-    new mod.GetObjectCommand({ Bucket: ENV.s3Bucket, Key: key })
+    new mod.GetObjectCommand({ Bucket: ENV.s3Bucket, Key: key }),
+    { abortSignal: AbortSignal.timeout(rules.requestTimeoutMs) }
   );
   if (!result.Body) throw new Error("Stored reference image is empty");
   return Buffer.from(await result.Body.transformToByteArray());
 }
 
-/** 幂等删除存储对象；本地文件缺失也视为成功，S3 删除最多等待三十秒。 */
+/** 幂等删除存储对象；本地文件缺失也视为成功，S3 使用发布超时。 */
 export async function storageDelete(relKey: string): Promise<void> {
   const key = normalizeKey(relKey);
   if (!key) throw new Error("Empty storage key");
@@ -178,8 +184,9 @@ export async function storageDelete(relKey: string): Promise<void> {
     return;
   }
   const { client, mod } = await getS3();
+  const rules = (await getPublishedProductConfig()).runtime.storage;
   await client.send(
     new mod.DeleteObjectCommand({ Bucket: ENV.s3Bucket, Key: key }),
-    { abortSignal: AbortSignal.timeout(30_000) }
+    { abortSignal: AbortSignal.timeout(rules.requestTimeoutMs) }
   );
 }

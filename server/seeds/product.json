@@ -952,7 +952,9 @@
       "batchSize": 10,
       "maxAttempts": 5,
       "retryBaseMs": 30000,
-      "retryMaxMs": 3600000
+      "retryMaxMs": 3600000,
+      "leaseMinimumMs": 60000,
+      "leasePaddingMs": 5000
     }
   },
   "themes": {
@@ -1750,6 +1752,10 @@
       "companionTrashRetentionMs": 604800000,
       "rateWindowRetentionMs": 600000,
       "generationTimeoutMs": 180000
+    },
+    "storage": {
+      "requestTimeoutMs": 30000,
+      "signedUrlTtlSeconds": 300
     }
   },
   "characters": {

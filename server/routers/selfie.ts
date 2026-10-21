@@ -1,3 +1,4 @@
+import { CHAT_INPUT_CAPACITY } from "../../shared/const";
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -41,7 +42,7 @@ export const selfieRouter = router({
     .input(
       z.object({
         conversationId: z.number(),
-        userContext: z.string().max(32_000), // 与聊天输入框上限一致，保留完整画面要求
+        userContext: z.string().max(CHAT_INPUT_CAPACITY), // 与聊天输入框上限一致，保留完整画面要求
         generationMode: z.enum(["reference", "text"]).default("reference"),
         // 亲密度解锁的姿势 id（shared/selfiePoses.ts）
         poseId: z.string().optional(),
@@ -56,7 +57,7 @@ export const selfieRouter = router({
         conversationId: z.number(),
         userPhotoBase64: z.string().min(1),
         userPhotoMimeType: z.string(),
-        userContext: z.string().max(32_000).optional(),
+        userContext: z.string().max(CHAT_INPUT_CAPACITY).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {

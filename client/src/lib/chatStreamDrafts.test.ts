@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 /** 未确认送达的草稿按账号隔离，退出清理不影响其他应用存储。 */
 import { beforeEach, expect, it } from "vitest";
+import { CHAT_INPUT_CAPACITY } from "@shared/const";
 import {
   chatStreamDraftKey,
   clearChatStreamDrafts,
@@ -48,9 +49,19 @@ it("ignores malformed or out-of-bounds stored values", () => {
       {
         conversationId: 42,
         clientRequestId: crypto.randomUUID(),
-        content: "x".repeat(8001),
+        content: "x".repeat(CHAT_INPUT_CAPACITY + 1),
       },
     ])
   );
   expect(readChatStreamDrafts(key, 42)).toEqual([]);
+});
+it("retains a long submission for UUID reconciliation after reload", () => {
+  const key = chatStreamDraftKey("long-input", 42);
+  const submission = {
+    conversationId: 42,
+    clientRequestId: crypto.randomUUID(),
+    content: "x".repeat(12000),
+  };
+  updateChatStreamDrafts(key, 42, submission);
+  expect(readChatStreamDrafts(key, 42)).toEqual([submission]);
 });

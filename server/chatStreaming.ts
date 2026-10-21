@@ -1,3 +1,4 @@
+import { CHAT_INPUT_CAPACITY } from "../shared/const";
 /** 独立于浏览器连接的持久聊天任务、租约执行和分句结算。 */
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
@@ -50,7 +51,7 @@ export const chatTurnInputSchema = z
   .object({
     clientRequestId: z.string().uuid(),
     conversationId: z.number().int().positive(),
-    content: z.string().trim().min(1).max(32_000),
+    content: z.string().trim().min(1).max(CHAT_INPUT_CAPACITY),
     transcriptionId: z.string().uuid().optional(),
   })
   .strict();

@@ -72,7 +72,7 @@ export const voiceRouter = router({
           provider: "openai",
           model: "whisper-1",
           isByok: sttKey.source === "user",
-          promptVersion: "companion-transcription/1",
+          promptVersion: `product-config/${policy.revision}:transcription`,
         },
         async signal => {
           const response = await transcribeWithOpenAI(
@@ -80,7 +80,7 @@ export const voiceRouter = router({
               signal,
               audio: { data: audioBuffer, mimeType: input.mimeType },
               language: input.language,
-              prompt: "这是一段与 AI 女友的日常对话语音消息",
+              prompt: policy.prompts.transcription,
             },
             whisperApiKey
           );

@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { chatContextLimits, planChatContext } from "./chatContextBudget";
+import { chatContextLimits, planChatContext } from "./testAiConfig";
 
 afterEach(() => vi.unstubAllEnvs());
 

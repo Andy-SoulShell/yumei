@@ -92,7 +92,7 @@ beforeEach(() => {
     apiKey: "fake-image-secret",
     isByok: false,
   });
-  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
+  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(async () => {});
 });
 afterEach(() => {
   vi.restoreAllMocks();

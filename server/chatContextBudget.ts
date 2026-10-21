@@ -1,34 +1,26 @@
 /** 接收和上下文组装共用字符预算，保留全部已接受的连续补充。 */
-import { runtimeInteger } from "./aiTaskRuntime";
+import type { ProductConfig } from "../shared/productConfig";
 
-export function chatContextLimits() {
-  const total = runtimeInteger(
-    "CHAT_CONTEXT_CHAR_LIMIT",
-    80_000,
-    64_000,
-    160_000
-  );
-  return {
-    total,
-    platform: 14_000,
-    followups: Math.min(48_000, total - 16_000),
-    memory: 6_000,
-    history: 16_000,
-  };
+/** 本轮接收和上下文规划共同使用发布的字符预算。 */
+export function chatContextLimits(config: ProductConfig) {
+  return { ...config.prompts.context, memory: config.memory.recall.maxChars };
 }
 
 type ContextMessage = { role: "user" | "assistant"; content: string };
 
 /** 只舍弃完整的低优先级历史和资料块，不裁切JSON/分隔符或用户输入。 */
-export function planChatContext(input: {
-  platform: string;
-  memory: string;
-  summary: string;
-  followups: ContextMessage[];
-  previous: ContextMessage[];
-  additionalSystemPrompt?: string;
-}) {
-  const limits = chatContextLimits();
+export function planChatContext(
+  config: ProductConfig,
+  input: {
+    platform: string;
+    memory: string;
+    summary: string;
+    followups: ContextMessage[];
+    previous: ContextMessage[];
+    additionalSystemPrompt?: string;
+  }
+) {
+  const limits = chatContextLimits(config);
   const platformSize =
     input.platform.length + (input.additionalSystemPrompt?.length ?? 0);
   if (platformSize > limits.platform)

@@ -25,10 +25,7 @@ import {
 import { flushMediaDeletions, queueMediaDeletion } from "../mediaCleanup";
 import { getActiveGirlfriend } from "../repositories/companions";
 import { getConversation } from "../repositories/conversations";
-import {
-  buildCoupleImagePrompt,
-  IMAGE_PROMPT_VERSION,
-} from "../promptTemplates";
+import { buildCoupleImagePrompt } from "../promptTemplates";
 import {
   deleteSelfie,
   getGirlfriendSelfies,
@@ -128,7 +125,7 @@ export const selfieRouter = router({
       const ext = input.userPhotoMimeType.split("/")[1];
       const photoKey = `couple-input-${ctx.user.id}-${nanoid()}.${ext}`;
 
-      const prompt = buildCoupleImagePrompt(input.userContext);
+      const prompt = buildCoupleImagePrompt(policy, input.userContext);
 
       const fileKey = `couple-${ctx.user.id}-${nanoid()}.png`;
       const meter: GenerationMeter | undefined =
@@ -226,7 +223,7 @@ export const selfieRouter = router({
         });
       } finally {
         await recordGenerationTelemetry(requestId, ctx.user.id, {
-          promptVersion: IMAGE_PROMPT_VERSION,
+          promptVersion: `product-config/${policy.revision}:image`,
           provider: imageProvider.name,
           model: imageGenerationModel(imageProvider.name, "reference", 2),
           isByok: imageProvider.isByok,

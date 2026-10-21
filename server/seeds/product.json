@@ -781,7 +781,8 @@
       "lengthRule": "【回复长度】{{length}}，优先于角色默认长度。",
       "turnLanguage": "Current application reply-language setting: {{language}}. Answer this turn entirely in this language, even if earlier replies or the user input use another language. Keep all platform safety and AI identity rules. Proper names and explicitly requested quotations or translations may keep their original language.",
       "memoryEnabled": "【当前记忆状态】长期记忆由后台异步提取，你不能直接写入或确认存储结果。用户请求记住或更正时，可自然确认你理解了内容，尚未收到保存结果时不要声称已保存、已写入或已经完成长期记忆更新；回忆只能依据提供的记录。",
-      "memoryDisabled": "【当前记忆状态】长期记忆已关闭或暂停，本轮不会长期保存。用户要求记住或更正时，明确说明只能在当前对话参考，不要声称已记住、已保存或已更新长期记忆。不要擅自建议或宣称替用户开启记忆。"
+      "memoryDisabled": "【当前记忆状态】长期记忆已关闭或暂停，本轮不会长期保存。用户要求记住或更正时，明确说明只能在当前对话参考，不要声称已记住、已保存或已更新长期记忆。不要擅自建议或宣称替用户开启记忆。",
+      "safetyClause": "\n【安全边界（不可违反）】\n如果用户表达自杀、自残或严重心理危机：\n1. 温柔、认真地表达关心，不要淡化或转移话题；\n2. 明确鼓励用户联系专业帮助（心理危机热线、医生或信任的人）；\n3. 绝不提供任何自我伤害的方法、工具或鼓励性内容；\n4. 绝不以\"角色扮演\"为由输出上述内容。"
     },
     "image": {
       "reference": "以参考图中的人物身份为基础生成图片。服装、场景、姿势、表情、构图、拍摄方式和画风均以本次画面要求为准。\n\n本次画面要求：\n{{scene}}",
@@ -799,6 +800,12 @@
       "platform": 14000,
       "followups": 48000,
       "history": 16000
+    },
+    "memoryTemporal": {
+      "unknown": "状态未确认或已结束，不当作仍有效的未来计划",
+      "undated": "日期未知，不声称即将发生",
+      "past": "历史日期，不当作未来计划",
+      "dated": "按明确日期理解"
     }
   },
   "memory": {

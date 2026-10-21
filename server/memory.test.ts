@@ -7,14 +7,14 @@ import { and, eq } from "drizzle-orm";
 import { conversations, messages } from "../drizzle/schema";
 import { renderMessage } from "../shared/i18n";
 import { DEFAULT_PROACTIVE_PREFERENCES } from "../shared/proactiveContact";
+import { bigramOverlap } from "../shared/memory";
 import {
-  bigramOverlap,
   memoryCapacity,
   memoryInjectionK,
   scoreMemory,
   shouldExtractMemories,
   timeDecayFactor,
-} from "../shared/memory";
+} from "./testAiConfig";
 import { getDb } from "./database";
 import { saveCompanionPreferences } from "./companionPreferences";
 import * as providers from "./_core/chatProvider";
@@ -25,11 +25,11 @@ import {
   enforceMemoryCapacity,
   getFreshEventMemory,
   listMemories,
-  parseExtractionResponse,
   setMemoryPinned,
   storeExtractedMemories as persistExtractedMemories,
   type ExtractedMemory,
 } from "./memory";
+import { parseExtractionResponse } from "./testAiConfig";
 import { checkAndCreateProactiveNotification } from "./repositories/notifications";
 import {
   createTestGirlfriend as createGirlfriend,

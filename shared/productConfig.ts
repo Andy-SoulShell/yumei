@@ -1,4 +1,4 @@
-/** 套餐、自拍姿势和亲密度规则共用的可执行业务配置。 */
+/** 套餐、养成、提示词与记忆共用的可执行业务配置。 */
 import { z } from "zod";
 import { contentTextSchema, contentText, officialIdSchema } from "./discovery";
 import type { Locale } from "./locales";
@@ -199,14 +199,14 @@ export const productConfigSchema = z
     const context = config.prompts.context;
     if (
       context.platform + context.followups > context.total ||
-      config.memory.recall.maxChars >
-        context.total - context.platform - context.followups
+      config.memory.recall.maxChars > context.total - context.platform
     )
       issue("提示词、补充消息和记忆预留超出总上下文预算");
     const chat = config.prompts.chat;
     const longest = (values: Record<string, string>) =>
       Math.max(...Object.values(values).map(v => v.length));
     const reserve =
+      chat.safetyClause.length +
       chat.system.length +
       longest(chat.expression) +
       longest(chat.verbosity) +

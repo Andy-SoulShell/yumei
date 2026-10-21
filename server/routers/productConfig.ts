@@ -1,4 +1,4 @@
-/** 套餐、姿势和亲密度规则的公开读取与管理员草稿发布 API。 */
+/** 业务规则和 AI 配置的公开读取与管理员草稿发布 API。 */
 import { z } from "zod";
 import { productConfigSchema } from "../../shared/productConfig";
 import { adminProcedure, publicProcedure, router } from "../_core/trpc";

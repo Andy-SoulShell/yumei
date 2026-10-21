@@ -28,7 +28,7 @@ import { reserveGenerationInTransaction } from "./generations";
 import { getActiveGirlfriend } from "./repositories/companions";
 import { generateConversationSelfie } from "./selfieGeneration";
 import * as imageProvider from "./_core/imageProvider";
-import { buildImagePrompt } from "./promptTemplates";
+import { buildImagePrompt } from "./testAiConfig";
 
 const guest = appRouter.createCaller({ user: null, req: {}, res: {} } as never);
 const caller = (id: string, role = "admin") =>

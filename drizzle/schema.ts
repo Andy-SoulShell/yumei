@@ -593,6 +593,8 @@ export const memoryEmbeddings = mysqlTable("memoryEmbeddings", {
 /** 有来源的会话摘要，原话保留说话者，事实绑定当前记忆版本。 */
 export const conversationSummaries = mysqlTable("conversationSummaries", {
   conversationId: int("conversationId").primaryKey(),
+  /** 摘要所依据的发布配置，配置变更后旧摘要不再用于展示或召回。 */
+  configurationRevision: int("configurationRevision").notNull(),
   userId: varchar("userId", { length: 255 }).notNull(),
   girlfriendId: int("girlfriendId").notNull(),
   memoryEpoch: int("memoryEpoch").notNull(),

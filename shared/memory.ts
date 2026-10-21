@@ -1,27 +1,7 @@
 /** 长期记忆的分类、容量限制、文本相似度与召回排序规则。 */
 
-/** 允许提取和持久化的记忆分类标识。 */
-
-export const MEMORY_CATEGORIES = [
-  "fact", // 用户的稳定事实，例如工作、城市、生日
-  "preference", // 喜好与厌恶
-  "event", // 已发生或计划中的事件，例如明天面试
-  "relationship", // 与角色共同经历的关系记忆
-] as const;
-
-/** 记忆分类，使用稳定英文标识与数据库对应。 */
-export type MemoryCategory = (typeof MEMORY_CATEGORIES)[number];
-
-/** 记忆分类在中文界面的展示名称。 */
-export const MEMORY_CATEGORY_LABELS: Record<MemoryCategory, string> = {
-  fact: "关于你",
-  preference: "你的喜好",
-  event: "最近的事",
-  relationship: "我们之间",
-};
-
-/** 常规记忆提取间隔，按成功文字对话的用户与助手消息总条数计算。 */
-export const EXTRACTION_EVERY_N_MESSAGES = 10;
+import type { MemoryConfig } from "./aiConfig";
+export type { MemoryCategory } from "./aiConfig";
 
 /** 明确保存或更正请求才加速提取，疑问和拒绝保存不作为指令。 */
 function hasExplicitMemoryRequest(message: string): boolean {
@@ -49,38 +29,47 @@ function hasExplicitMemoryRequest(message: string): boolean {
 /** 首轮、明确保存/更正请求或每五轮成功文字对话后提取，不受图片消息影响。 */
 export function shouldExtractMemories(
   completedChatRounds: number,
-  userMessage: string
+  userMessage: string,
+  config: MemoryConfig
 ): boolean {
-  if (completedChatRounds < 1) return false;
+  if (!config.enabled || completedChatRounds < 1) return false;
   return (
-    completedChatRounds === 1 ||
-    (completedChatRounds * 2) % EXTRACTION_EVERY_N_MESSAGES === 0 ||
-    hasExplicitMemoryRequest(userMessage)
+    (config.extraction.firstRound && completedChatRounds === 1) ||
+    completedChatRounds % config.extraction.everyRounds === 0 ||
+    (config.extraction.explicitRequests &&
+      hasExplicitMemoryRequest(userMessage))
   );
 }
 
-/** 单条记忆保存的最大文本长度，按 JavaScript 字符串长度计算。 */
-export const MEMORY_MAX_LENGTH = 200;
-
-/** 根据亲密度计算记忆容量，等级限制在 1 至 10，容量为 30 至 120 条。 */
-export function memoryCapacity(intimacyLevel: number): number {
-  const level = Math.min(Math.max(intimacyLevel, 1), 10);
-  return 20 + level * 10;
+/** 根据发布的等级门槛选择记忆容量与日常召回数量。 */
+export function memoryLevelRule(intimacyLevel: number, config: MemoryConfig) {
+  return (
+    [...config.levelRules]
+      .reverse()
+      .find(rule => rule.minLevel <= intimacyLevel) ?? config.levelRules[0]
+  );
 }
-
-/** 日常对话注入 5 至 9 条；回忆时读取角色容量内的全部记忆，避免字面排序漏掉同义事实。 */
+/** 读取当前等级的发布容量，置顶记忆不参与自动淘汰。 */
+export function memoryCapacity(
+  intimacyLevel: number,
+  config: MemoryConfig
+): number {
+  return memoryLevelRule(intimacyLevel, config).capacity;
+}
+/** 明确回忆请求可使用整个容量，其余使用等级配置中的日常数量。 */
 export function memoryInjectionK(
   intimacyLevel: number,
-  userMessage = ""
+  userMessage: string,
+  config: MemoryConfig
 ): number {
-  const level = Math.min(Math.max(intimacyLevel, 1), 10);
   if (
+    config.recall.explicitUsesCapacity &&
     /记得|记不记得|記得|提过|提過|约定|約定|暗号|暗號|我.{0,20}(?:什么|哪|多少|叫)|\b(?:remember|recall|my\s+\w+)\b|覚え|私の|기억|내가/i.test(
       userMessage
     )
   )
-    return memoryCapacity(intimacyLevel);
-  return Math.min(4 + Math.ceil(level / 2), 10);
+    return memoryCapacity(intimacyLevel, config);
+  return memoryLevelRule(intimacyLevel, config).recallCount;
 }
 
 // ---------------------------------------------------------------------------
@@ -122,19 +111,21 @@ export function bigramOverlap(a: string, b: string): number {
   return hits / ba.size;
 }
 
-/** 将相似记忆视为重复项的双字符重合阈值。 */
-export const DUPLICATE_THRESHOLD = 0.6;
-
 /** 按未触及时长计算新鲜度系数，结果从 1 指数衰减并趋近 0.5。 */
 export function timeDecayFactor(
   lastTouchedAt: Date,
+  config: MemoryConfig,
   now: Date = new Date()
 ): number {
   const days = Math.max(
     0,
     (now.getTime() - lastTouchedAt.getTime()) / 86_400_000
   );
-  return 0.5 + 0.5 * Math.exp(-days / 14);
+  return (
+    config.ranking.freshnessFloor +
+    (1 - config.ranking.freshnessFloor) *
+      Math.exp(-days / config.ranking.decayDays)
+  );
 }
 
 /** 记忆排序所需的最小字段集合，权重范围为 0 至 100。 */
@@ -150,10 +141,12 @@ export type ScorableMemory = {
 export function scoreMemory(
   memory: ScorableMemory,
   userMessage: string,
+  config: MemoryConfig,
   now: Date = new Date()
 ): number {
   const freshness = timeDecayFactor(
     memory.lastRecalledAt ?? memory.createdAt,
+    config,
     now
   );
   const base = (memory.weight / 100) * freshness;
@@ -161,7 +154,10 @@ export function scoreMemory(
     bigramOverlap(memory.content, userMessage),
     bigramOverlap(userMessage, memory.content)
   );
-  const affinity = Math.min(2.5, 5 * overlap);
-  const pin = memory.pinned ? 0.5 : 0;
+  const affinity = Math.min(
+    config.ranking.affinityMax,
+    config.ranking.affinityMultiplier * overlap
+  );
+  const pin = memory.pinned ? config.ranking.pinnedBonus : 0;
   return base + affinity + pin;
 }

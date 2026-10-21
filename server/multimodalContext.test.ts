@@ -37,7 +37,7 @@ beforeEach(() => {
     configured: true,
     isByok: false,
   });
-  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
+  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(async () => {});
 });
 afterEach(async () => {
   vi.restoreAllMocks();

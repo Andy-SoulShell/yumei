@@ -1,3 +1,5 @@
+import type { ProductConfig } from "../shared/productConfig";
+import { getPublishedProductConfig } from "./repositories/productConfig";
 /** 内部外部调用的预算、超时与脱敏计量。失败的真实调用仍占用预算。 */
 import { and, eq, gte, isNull, sql } from "drizzle-orm";
 import {
@@ -23,8 +25,8 @@ export function runtimeInteger(
   return value;
 }
 
-export function memoryFeatureEnabled() {
-  return process.env.COMPANION_MEMORY_ENABLED !== "0";
+export async function memoryFeatureEnabled(configuration?: ProductConfig) {
+  return (configuration ?? (await getPublishedProductConfig())).memory.enabled;
 }
 
 export async function getCompanionPreferences(userId: string) {
@@ -96,7 +98,7 @@ export async function runMeteredAiTask<T>(
         )
         .for("update");
       if (
-        !memoryFeatureEnabled() ||
+        !(await memoryFeatureEnabled()) ||
         !role?.enabled ||
         context.memoryEpoch === undefined ||
         role.epoch !== context.memoryEpoch

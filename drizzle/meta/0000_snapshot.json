@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "55bbd28c-9d26-4dae-91ee-300d810b898f",
+  "id": "09ad29ea-4057-4b17-971b-66f6ef7fe9f3",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "accounts": {
@@ -501,6 +501,13 @@
       "columns": {
         "conversationId": {
           "name": "conversationId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "configurationRevision": {
+          "name": "configurationRevision",
           "type": "int",
           "primaryKey": false,
           "notNull": true,

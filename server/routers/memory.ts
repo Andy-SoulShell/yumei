@@ -30,7 +30,7 @@ export const memoryRouter = router({
     .input(
       z.object({
         id: z.number().int().positive(),
-        content: z.string().trim().min(1).max(300),
+        content: z.string().trim().min(1).max(8000),
       })
     )
     .mutation(async ({ ctx, input }) => {

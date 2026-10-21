@@ -1,6 +1,6 @@
 /** 验证聊天实际使用的提示词生成器和路由输入边界。 */
 import { describe, expect, it } from "vitest";
-import { buildChatSystemPrompt } from "./chatPrompt";
+import { buildChatSystemPrompt } from "./testAiConfig";
 import { appRouter } from "./routers";
 
 const character = {

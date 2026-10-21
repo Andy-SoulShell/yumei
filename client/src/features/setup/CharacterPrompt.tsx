@@ -1,3 +1,6 @@
+import { useProductConfig } from "@/features/product/useProductConfig";
+import { buildChatSystemPrompt } from "@shared/chatPrompt";
+import { PageError } from "@/components/PageError";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,
@@ -18,9 +21,8 @@ type Props = Pick<
   | "showPromptPreview"
   | "setShowPromptPreview"
   | "apiConfig"
-  | "personality"
-  | "appearance"
-  | "interests"
+  | "previewCharacter"
+  | "previewMemoryEnabled"
 >;
 
 /** 编辑角色专属指令，折叠展示系统提示词预览。 */
@@ -33,10 +35,18 @@ export function CharacterPrompt({
   showPromptPreview,
   setShowPromptPreview,
   apiConfig,
-  personality,
-  appearance,
-  interests,
+  previewCharacter,
+  previewMemoryEnabled,
 }: Props) {
+  const policy = useProductConfig();
+  const preview = policy.raw
+    ? buildChatSystemPrompt(
+        policy.raw,
+        previewCharacter,
+        apiConfig?.preferences ?? {},
+        { memoryEnabled: previewMemoryEnabled }
+      )
+    : null;
   return (
     <Collapsible
       open={showCustomPrompt}
@@ -107,58 +117,15 @@ export function CharacterPrompt({
           </CollapsibleTrigger>
 
           <CollapsibleContent className="rounded-lg border bg-muted/30 p-3 space-y-2 text-sm">
-            {/* 全局提示词 */}
-            {apiConfig?.preferences?.globalPrompt ? (
-              <div className="rounded p-2 bg-blue-500/10 border border-blue-500/20">
-                <span className="text-[10px] font-semibold text-blue-500 uppercase">
-                  {t("setup:sharedPrompt")}
-                </span>
-                <p className="mt-1 text-foreground/80">
-                  {apiConfig.preferences?.globalPrompt}
-                </p>
-              </div>
+            {preview !== null ? (
+              <pre className="whitespace-pre-wrap break-words text-xs max-h-96 overflow-auto">
+                {preview}
+              </pre>
+            ) : policy.error ? (
+              <PageError onRetry={() => void policy.refetch()} />
             ) : (
-              <div className="rounded p-2 bg-muted/50 border border-dashed">
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase">
-                  {t("setup:sharedPrompt")}
-                </span>
-                <p className="mt-1 text-muted-foreground italic">
-                  {t("setup:notSetConfigureItInSettings")}
-                </p>
-              </div>
+              <p role="status">{t("auth:working")}</p>
             )}
-
-            {/* 个体提示词 */}
-            {customPrompt ? (
-              <div className="rounded p-2 bg-primary/10 border border-primary/20">
-                <span className="text-[10px] font-semibold text-primary uppercase">
-                  {t("setup:companionPrompt")}
-                </span>
-                <p className="mt-1 text-foreground/80">{customPrompt}</p>
-              </div>
-            ) : (
-              <div className="rounded p-2 bg-muted/50 border border-dashed">
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase">
-                  {t("setup:companionPrompt")}
-                </span>
-                <p className="mt-1 text-muted-foreground italic">
-                  {t("setup:notSet")}
-                </p>
-              </div>
-            )}
-
-            {/* 性格 + 外貌结构化字段 */}
-            <div className="rounded p-2 bg-purple-500/10 border border-purple-500/20">
-              <span className="text-[10px] font-semibold text-purple-500 uppercase">
-                {t("setup:characterProfile")}
-              </span>
-              <p className="mt-1 text-foreground/80">
-                {t("setup:personality2")}
-                {personality || t("setup:notProvided")} {t("setup:appearance2")}
-                {appearance || t("setup:notProvided")}
-                {interests && t("setup:interests", { interests: interests })}
-              </p>
-            </div>
           </CollapsibleContent>
         </Collapsible>
       </CollapsibleContent>

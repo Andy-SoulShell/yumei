@@ -15,10 +15,10 @@ import {
 } from "@shared/i18n";
 import { apiErrorMessage } from "./errors";
 import en from "@shared/locales/en";
-import { memoryMessages, themeMessages } from "@/locales/domain";
+import { themeMessages } from "@/locales/domain";
 import { THEMES } from "./themes";
 import { formatPrice, formatRelativeTime } from "./formatters";
-import { TIER_PRICES } from "../../../server/testProductConfig";
+import { TIER_PRICES, productFixture } from "../../../server/testProductConfig";
 
 const parameters = (text: string) =>
   Array.from(text.matchAll(/\{\{([^}]+)\}\}/g))
@@ -86,9 +86,9 @@ describe("interface localization", () => {
     expect(Object.keys(themeMessages).sort()).toEqual(
       Object.keys(THEMES).sort()
     );
-    expect(Object.keys(memoryMessages).sort()).toEqual(
-      ["event", "preference", "relationship", "fact"].sort()
-    );
+    expect(
+      productFixture.memory.categories.map(item => item.id).sort()
+    ).toEqual(["event", "preference", "relationship", "fact"].sort());
   });
   it("matches browser priority, region variants, and explicit choices", () => {
     expect(resolveLocale("system", ["zh-TW", "en-US"])).toBe("zh-CN");

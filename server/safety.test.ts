@@ -1,7 +1,8 @@
 /** 覆盖危机表达筛查、年龄门槛与系统提示。 */
 
 import { describe, expect, it } from "vitest";
-import { detectSelfHarm, SAFETY_SYSTEM_CLAUSE } from "../shared/safety";
+import { detectSelfHarm } from "../shared/safety";
+import { SAFETY_SYSTEM_CLAUSE } from "./testAiConfig";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 

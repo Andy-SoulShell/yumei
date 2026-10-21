@@ -74,6 +74,7 @@ CREATE TABLE `companionPreferences` (
 --> statement-breakpoint
 CREATE TABLE `conversationSummaries` (
 	`conversationId` int NOT NULL,
+	`configurationRevision` int NOT NULL,
 	`userId` varchar(255) NOT NULL,
 	`girlfriendId` int NOT NULL,
 	`memoryEpoch` int NOT NULL,

@@ -32,7 +32,7 @@ beforeEach(() => {
     apiKey: "fake",
     isByok: true,
   });
-  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
+  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(async () => {});
 });
 afterEach(() => {
   vi.restoreAllMocks();

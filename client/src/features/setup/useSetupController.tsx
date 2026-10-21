@@ -486,6 +486,18 @@ export function useSetupController() {
     showCustomPrompt,
     setShowCustomPrompt,
     customPrompt,
+    previewMemoryEnabled:
+      girlfriends?.find(g => g.id === editId)?.memoryEnabled ?? true,
+    previewCharacter: {
+      name,
+      personality,
+      appearance,
+      interests,
+      customPrompt,
+      behavior,
+      intimacyPoints:
+        girlfriends?.find(g => g.id === editId)?.intimacyPoints ?? 0,
+    },
     setCustomPrompt,
     showPromptPreview,
     setShowPromptPreview,

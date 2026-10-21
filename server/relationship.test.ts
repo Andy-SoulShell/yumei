@@ -42,7 +42,7 @@ beforeEach(() => {
     isByok: false,
   });
   vi.spyOn(memory, "buildMemoryPromptBlock").mockResolvedValue("");
-  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
+  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(async () => {});
   vi.stubGlobal(
     "fetch",
     vi.fn(async (_url: unknown, options: RequestInit) => {

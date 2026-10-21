@@ -18,9 +18,9 @@ export function renderPrompt(
 function template(variables: string[]) {
   return z
     .string()
-    .trim()
     .min(1)
     .max(20000)
+    .refine(value => value.trim().length > 0, "提示词不能为空白")
     .superRefine((value, ctx) => {
       const slots = Array.from(
         value.matchAll(/\{\{([^{}]*)\}\}/g),
@@ -29,7 +29,7 @@ function template(variables: string[]) {
       if (
         slots.some(slot => !variables.includes(slot)) ||
         variables.some(slot => !slots.includes(slot)) ||
-        /\{\{|\}\}/.test(value.replace(/\{\{[^{}]*\}\}/g, ""))
+        /\{\{/.test(value.replace(/\{\{[^{}]*\}\}/g, ""))
       )
         ctx.addIssue({
           code: "custom",
@@ -74,6 +74,7 @@ export const promptsConfigSchema = z
       .max(100),
     chat: z
       .object({
+        safetyClause: instruction,
         system: template([
           "characterData",
           "expression",
@@ -155,6 +156,14 @@ export const promptsConfigSchema = z
     summary: instruction,
     memoryContext: template(["records"]),
     transcription: instruction,
+    memoryTemporal: z
+      .object({
+        unknown: instruction,
+        undated: instruction,
+        past: instruction,
+        dated: instruction,
+      })
+      .strict(),
     context: z
       .object({
         total: z.number().int().min(16000).max(160000),

@@ -24,6 +24,7 @@ import {
   submitChatTurn,
 } from "./chatStreaming";
 import * as memory from "./memory";
+import * as productConfig from "./repositories/productConfig";
 import {
   permanentDeleteGirlfriend,
   softDeleteGirlfriend,
@@ -136,7 +137,7 @@ beforeEach(() => {
     isByok: false,
   });
   vi.spyOn(memory, "buildMemoryPromptBlock").mockResolvedValue("");
-  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
+  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(async () => {});
 });
 afterEach(() => {
   vi.restoreAllMocks();
@@ -153,7 +154,13 @@ describe("durable chat turns", () => {
     "passes actual role/global memory availability to the model: %s/%s",
     async (enabled, flag, expected) => {
       const { user, gf, input } = await seed();
-      vi.stubEnv("COMPANION_MEMORY_ENABLED", flag);
+      const policy = structuredClone(
+        await productConfig.getPublishedProductConfig()
+      );
+      policy.memory.enabled = flag === "1";
+      vi.spyOn(productConfig, "getPublishedProductConfig").mockResolvedValue(
+        policy
+      );
       await (await getDb())!
         .update(girlfriends)
         .set({ memoryEnabled: enabled })
@@ -288,7 +295,7 @@ describe("durable chat turns", () => {
       model: "test-stream-model",
       stream_options: { include_usage: true },
     });
-    expect(body.messages[0].content).toContain("companion/1.4");
+    expect(body.messages[0].content).toContain("平台行为规则");
     expect(body.messages[0].content).toContain("安全");
     expect(
       body.messages.filter(

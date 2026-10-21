@@ -50,7 +50,7 @@ async function seed() {
     isByok: false,
   });
   // 自动唤醒由测试接管；真实结算仍创建待提取任务，用显式 worker 验证遗忘互斥。
-  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
+  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(async () => {});
   vi.stubGlobal(
     "fetch",
     vi.fn(

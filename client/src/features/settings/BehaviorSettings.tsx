@@ -1,3 +1,5 @@
+import { useProductConfig } from "@/features/product/useProductConfig";
+import { PageError } from "@/components/PageError";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -52,32 +54,8 @@ export function BehaviorSettings({
   isSavingKeys,
   hasUnsavedAiChanges,
 }: Props) {
-  const promptTemplates = [
-    {
-      label: t("settings:everydayCompanionship"),
-      text: t("settings:replyWarmlyAndThoughtfullyShowInterestInEveryday"),
-    },
-    {
-      label: t("settings:roleplay"),
-      text: t("settings:stayInCharacterReflectTheCharacterSPersonality"),
-    },
-    {
-      label: t("settings:shortReplies"),
-      text: t("settings:keepRepliesConciseWithin23SentencesUse"),
-    },
-    {
-      label: t("settings:deeperConversations"),
-      text: t("settings:exploreTopicsInDepthAndShareThoughtfulPerspectives"),
-    },
-    {
-      label: t("settings:playfulAndLively"),
-      text: t("settings:beEnergeticAndHumorousUsePlayfulJokesAnd"),
-    },
-    {
-      label: t("settings:warmAndComforting"),
-      text: t("settings:replyWithWarmthCareAndEncouragementBeEspecially"),
-    },
-  ];
+  const policy = useProductConfig();
+  const promptTemplates = policy.data?.prompts.quickTemplates ?? [];
 
   return (
     <Card>
@@ -120,13 +98,19 @@ export function BehaviorSettings({
             <Sparkles className="w-3.5 h-3.5" />
             {t("settings:quickTemplates")}
           </Label>
+          {!policy.data &&
+            (policy.error ? (
+              <PageError onRetry={() => void policy.refetch()} />
+            ) : (
+              <p role="status">{t("auth:working")}</p>
+            ))}
           <div className="grid grid-cols-2 gap-2">
             {promptTemplates.map(tpl => (
               <Button
                 variant="plain"
                 size="none"
                 type="button"
-                key={tpl.label}
+                key={tpl.id}
                 aria-pressed={globalPrompt === tpl.text}
                 onClick={() => {
                   setGlobalPrompt(tpl.text);

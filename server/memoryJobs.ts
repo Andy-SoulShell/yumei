@@ -1,3 +1,4 @@
+import { getPublishedProductConfig } from "./repositories/productConfig";
 /** 使用有期限的数据库租约执行记忆任务，提取结果与任务确认原子提交。 */
 import { and, desc, eq, isNull, lte, or, sql } from "drizzle-orm";
 import {
@@ -6,7 +7,6 @@ import {
   memoryExtractionJobs,
   messages,
 } from "../drizzle/schema";
-import { EXTRACTION_EVERY_N_MESSAGES } from "../shared/memory";
 import { resolveChatProvider } from "./_core/chatProvider";
 import { log, providerErrorSummary } from "./_core/log";
 import { getDb, withUserTransaction } from "./database";
@@ -20,7 +20,8 @@ import { refreshMemoryDerived, sameMemoryRouting } from "./memoryDerived";
 
 /** 多实例可同时调用；过期租约会被重新认领，连续五次失败保留为待排查任务。 */
 export async function runMemoryExtractionJobs(userId?: string): Promise<void> {
-  if (!memoryFeatureEnabled()) return;
+  const policy = await getPublishedProductConfig();
+  if (!policy.memory.enabled) return;
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const jobs = await db
@@ -38,7 +39,7 @@ export async function runMemoryExtractionJobs(userId?: string): Promise<void> {
       )
     )
     .orderBy(memoryExtractionJobs.nextRunAt)
-    .limit(10);
+    .limit(policy.memory.jobs.batchSize);
   for (const job of jobs) {
     const token = crypto.randomUUID();
     try {
@@ -55,6 +56,13 @@ export async function runMemoryExtractionJobs(userId?: string): Promise<void> {
           (current.leaseUntil && current.leaseUntil.getTime() > Date.now())
         )
           return false;
+        if (current.attempts >= policy.memory.jobs.maxAttempts) {
+          await tx
+            .update(memoryExtractionJobs)
+            .set({ status: "failed", leaseToken: null, leaseUntil: null })
+            .where(eq(memoryExtractionJobs.id, current.id));
+          return false;
+        }
         const [role] = await tx
           .select()
           .from(girlfriends)
@@ -131,14 +139,21 @@ export async function runMemoryExtractionJobs(userId?: string): Promise<void> {
           )
         )
         .orderBy(desc(messages.id))
-        .limit(EXTRACTION_EVERY_N_MESSAGES);
-      const candidates = await callExtractionModel(provider, window.reverse(), {
-        userId: job.userId,
-        girlfriendId: job.girlfriendId,
-        memoryEpoch: job.memoryEpoch,
-      });
+        .limit(policy.memory.extraction.sourceMessageLimit);
+      const candidates = await callExtractionModel(
+        provider,
+        window.reverse(),
+        {
+          userId: job.userId,
+          girlfriendId: job.girlfriendId,
+          memoryEpoch: job.memoryEpoch,
+        },
+        policy
+      );
       if (!(await sameMemoryRouting(job.userId, provider)))
         throw new Error("Memory routing changed");
+      if ((await getPublishedProductConfig()).revision !== policy.revision)
+        throw new Error("Memory configuration changed during extraction");
       let committed = false;
       await withUserTransaction(job.userId, async tx => {
         const [current] = await tx
@@ -167,21 +182,23 @@ export async function runMemoryExtractionJobs(userId?: string): Promise<void> {
           companion?.memoryEnabled &&
           !companion.deletedAt &&
           companion.memoryEpoch === job.memoryEpoch &&
-          memoryFeatureEnabled()
+          (await memoryFeatureEnabled())
         ) {
           await storeExtractedMemoriesInTransaction(
             tx,
             job.userId,
             job.girlfriendId,
             candidates,
-            job.memoryEpoch
+            job.memoryEpoch,
+            policy
           );
           committed = true;
           await enforceMemoryCapacity(
             job.userId,
             job.girlfriendId,
             companion.intimacyLevel,
-            tx
+            tx,
+            policy
           );
         }
         await tx
@@ -193,18 +210,26 @@ export async function runMemoryExtractionJobs(userId?: string): Promise<void> {
           job.userId,
           job.girlfriendId,
           job.conversationId,
-          job.lastMessageId
+          job.lastMessageId,
+          policy
         );
     } catch (error) {
       await db
         .update(memoryExtractionJobs)
         .set({
           attempts: sql`${memoryExtractionJobs.attempts}+1`,
-          status: job.attempts >= 4 ? "failed" : "pending",
+          status:
+            job.attempts >= policy.memory.jobs.maxAttempts - 1
+              ? "failed"
+              : "pending",
           leaseToken: null,
           leaseUntil: null,
           nextRunAt: new Date(
-            Date.now() + Math.min(3_600_000, 30_000 * 2 ** job.attempts)
+            Date.now() +
+              Math.min(
+                policy.memory.jobs.retryMaxMs,
+                policy.memory.jobs.retryBaseMs * 2 ** job.attempts
+              )
           ),
         })
         .where(

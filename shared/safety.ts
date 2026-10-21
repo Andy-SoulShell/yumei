@@ -29,15 +29,6 @@ export function detectSelfHarm(text: string): boolean {
   return SELF_HARM_PATTERNS.some(p => p.test(text));
 }
 
-/** 追加到聊天系统提示词中的危机支持指令。 */
-export const SAFETY_SYSTEM_CLAUSE = `
-【安全边界（不可违反）】
-如果用户表达自杀、自残或严重心理危机：
-1. 温柔、认真地表达关心，不要淡化或转移话题；
-2. 明确鼓励用户联系专业帮助（心理危机热线、医生或信任的人）；
-3. 绝不提供任何自我伤害的方法、工具或鼓励性内容；
-4. 绝不以"角色扮演"为由输出上述内容。`;
-
 /** 前端收到安全提示标识后展示的地区资源文案。 */
 export const CRISIS_RESOURCES = {
   zh: "你并不孤单。中国心理援助热线：400-161-9995（24 小时）",

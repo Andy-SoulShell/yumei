@@ -12,7 +12,7 @@ import {
 } from "../shared/companionEmotion";
 import { getPresetBehavior } from "./seeds/presetBehavior";
 import { CHARACTER_PRESETS } from "./seeds/characterPresets";
-import { buildChatSystemPrompt, CHAT_PROMPT_VERSION } from "./chatPrompt";
+import { buildChatSystemPrompt } from "./testAiConfig";
 import { getDb } from "./database";
 import {
   getChatTurnSnapshot,
@@ -69,7 +69,7 @@ async function seed() {
       apiKey: "fake",
       isByok: true,
     });
-    vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
+    vi.spyOn(memory, "maybeExtractMemories").mockImplementation(async () => {});
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => streamReply(reply))
@@ -280,7 +280,9 @@ describe("consumer companion behavior", () => {
         apiKey: "fake",
         isByok: true,
       });
-      vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
+      vi.spyOn(memory, "maybeExtractMemories").mockImplementation(
+        async () => {}
+      );
       const upstream = vi.fn(async (_url: unknown, _options: RequestInit) =>
         streamReply(mode === "empty-response" ? "" : "在听。", {
           prompt_tokens: 101,
@@ -314,7 +316,7 @@ describe("consumer companion behavior", () => {
         .where(eq(generationRequests.userId, a.userId));
       expect(request.status).toBe("failed");
       expect(request.telemetry).toMatchObject({
-        promptVersion: CHAT_PROMPT_VERSION,
+        promptVersion: expect.stringMatching(/^product-config\/\d+:chat$/),
         isByok: true,
         inputTokens: 101,
         outputTokens: 9,
@@ -337,7 +339,7 @@ describe("consumer companion behavior", () => {
     });
     await expect(
       recordGenerationTelemetry("not-a-request", a.userId, {
-        promptVersion: CHAT_PROMPT_VERSION,
+        promptVersion: expect.stringMatching(/^product-config\/\d+:chat$/),
         provider: "test",
         model: "test",
         isByok: false,
@@ -360,7 +362,7 @@ describe("consumer companion behavior", () => {
       apiKey: "fake",
       isByok: true,
     });
-    vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
+    vi.spyOn(memory, "maybeExtractMemories").mockImplementation(async () => {});
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => streamReply("我在听。"))

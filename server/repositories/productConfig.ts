@@ -24,7 +24,10 @@ async function read(
     .where(eq(productConfiguration.id, "main"));
   if (!row) {
     const config = initialProductConfig();
-    await connection
+    // 初始化独立提交，业务事务中的后续读取不会被自身未提交的种子行阻塞。
+    await (
+      await database()
+    )
       .insert(productConfiguration)
       .values({ id: "main", draft: config, published: config })
       .onDuplicateKeyUpdate({ set: { id: "main" } });

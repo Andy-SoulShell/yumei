@@ -24,7 +24,7 @@ import {
   type GenerationMeter,
 } from "./generations";
 import { flushMediaDeletions, queueMediaDeletion } from "./mediaCleanup";
-import { buildImagePrompt, IMAGE_PROMPT_VERSION } from "./promptTemplates";
+import { buildImagePrompt } from "./promptTemplates";
 import { getActiveGirlfriend } from "./repositories/companions";
 import { getConversation } from "./repositories/conversations";
 import { storagePut } from "./storage";
@@ -125,7 +125,7 @@ export async function generateConversationSelfie(
 
   const selfieTier = await getTierLimits(user.id, policy);
   // 3. 本次输入决定画面；无输入时才使用所选姿势，不读取旧对白或情绪。
-  const promptResult = buildImagePrompt({
+  const promptResult = buildImagePrompt(policy, {
     userContext: input.userContext,
     generationMode: input.generationMode,
     appearance: girlfriend.appearance,
@@ -226,7 +226,7 @@ export async function generateConversationSelfie(
     });
   } finally {
     await recordGenerationTelemetry(requestId, user.id, {
-      promptVersion: IMAGE_PROMPT_VERSION,
+      promptVersion: `product-config/${policy.revision}:image`,
       provider: imageProvider.name,
       model: imageGenerationModel(imageProvider.name, input.generationMode, 1),
       isByok: imageProvider.isByok,

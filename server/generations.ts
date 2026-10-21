@@ -365,9 +365,13 @@ export async function settleChatTurnInTransaction(
         );
         if (
           role.memoryEnabled &&
-          memoryFeatureEnabled() &&
+          (await memoryFeatureEnabled()) &&
           userMessage.id > role.memoryForgottenThroughId &&
-          shouldExtractMemories(Number(rounds.count) + 1, userMessage.content)
+          shouldExtractMemories(
+            Number(rounds.count) + 1,
+            userMessage.content,
+            (await getPublishedProductConfig(tx)).memory
+          )
         )
           await tx.insert(memoryExtractionJobs).values({
             id: request.id,

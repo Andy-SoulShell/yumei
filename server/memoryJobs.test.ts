@@ -52,7 +52,7 @@ async function send(user: User, conversationId: number, content: string) {
 async function seed(rounds = 1) {
   vi.spyOn(derived, "refreshMemoryDerived").mockResolvedValue();
   vi.stubEnv("BILLING_PROVIDER", "none");
-  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
+  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(async () => {});
   vi.stubGlobal(
     "fetch",
     vi.fn(async () => streamReply())

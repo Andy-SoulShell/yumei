@@ -6,6 +6,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { i18n, type Translator } from "@shared/i18n";
 import { LOCALES, type Locale } from "@shared/locales";
 import Memories from "./Memories";
+import { productFixture } from "../../../server/testProductConfig";
 
 const mock = vi.hoisted(() => ({
   locale: "zh-CN" as Locale,
@@ -129,6 +130,8 @@ beforeEach(() => {
     },
   ];
   mock.state = {
+    rules: structuredClone(productFixture.memory),
+    capacity: 40,
     enabled: true,
     timeZone: "Asia/Shanghai",
     semantic: {
@@ -196,6 +199,21 @@ async function submit(selector: string) {
       .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
   });
 }
+
+it("uses API category labels, capacity and edit length instead of local constants", async () => {
+  mock.state.capacity = 7;
+  mock.state.rules.maxEditedLength = 42;
+  mock.state.rules.categories.find((item: any) => item.id === "event").label = {
+    "zh-CN": "API 事件分类",
+  };
+  await render();
+  expect(container.textContent).toContain("API 事件分类");
+  expect(container.textContent).toContain(
+    t()("memories:capacity", { count: 1, capacity: 7 })
+  );
+  await act(async () => button(t()("memories:editMemory")).click());
+  expect(container.querySelector("textarea")!.maxLength).toBe(42);
+});
 
 it.each(LOCALES)(
   "shows sources, event status, recap and speaker attribution in %s",

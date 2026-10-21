@@ -1,7 +1,7 @@
 import { DeleteConfirmation } from "@/components/DeleteConfirmation";
 import { usePageBack } from "@/hooks/usePageBack";
 import { PageError } from "@/components/PageError";
-import { memoryMessages } from "@/locales/domain";
+import { contentText } from "@shared/discovery";
 /** 指定角色的长期记忆列表与用户管理入口。 */
 
 import { useI18n } from "@/lib/i18n";
@@ -16,7 +16,6 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { apiErrorMessage } from "@/lib/errors";
 import { trpc } from "@/lib/trpc";
-import { memoryCapacity, type MemoryCategory } from "../../../shared/memory";
 import {
   ArrowLeft,
   BookHeart,
@@ -228,7 +227,7 @@ export default function Memories() {
       />
     );
 
-  const categories = Object.keys(memoryMessages) as MemoryCategory[];
+  const categories = memoryState!.rules.categories.map(category => category.id);
   const grouped = categories
     .map(category => ({
       category,
@@ -236,7 +235,7 @@ export default function Memories() {
     }))
     .filter(g => g.items.length > 0);
 
-  const capacity = memoryCapacity(girlfriend?.intimacyLevel || 1);
+  const capacity = memoryState!.capacity;
 
   return (
     <div className="memories-page min-h-full bg-background">
@@ -290,7 +289,7 @@ export default function Memories() {
             <Switch
               id="memory-enabled"
               checked={memoryState?.enabled ?? false}
-              disabled={busy || !memoryState}
+              disabled={busy || !memoryState || !memoryState.rules.enabled}
               aria-describedby="memory-enabled-help"
               onCheckedChange={enabled =>
                 setEnabled.mutate({ girlfriendId, enabled })
@@ -484,7 +483,12 @@ export default function Memories() {
           grouped.map(group => (
             <section key={group.category}>
               <h2 className="text-sm font-medium text-muted-foreground mb-2">
-                {t(memoryMessages[group.category])}
+                {contentText(
+                  memoryState!.rules.categories.find(
+                    category => category.id === group.category
+                  )!.label,
+                  locale
+                )}
                 <span className="ml-2 opacity-60">{group.items.length}</span>
               </h2>
               <div className="space-y-2">
@@ -517,7 +521,7 @@ export default function Memories() {
                             <Textarea
                               id={`memory-edit-${memory.id}`}
                               rows={3}
-                              maxLength={300}
+                              maxLength={memoryState!.rules.maxEditedLength}
                               value={editing.content}
                               disabled={busy}
                               autoFocus

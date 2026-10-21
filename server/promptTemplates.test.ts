@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { SELFIE_POSES } from "./testProductConfig";
-import { buildCoupleImagePrompt, buildImagePrompt } from "./promptTemplates";
+import { buildCoupleImagePrompt, buildImagePrompt } from "./testAiConfig";
 
 const request = "海边侧面全身照，穿红色长裙，双手自然下垂，不看镜头，不拿手机";
 const appearance = "成年女性，黑色长发，蓝色衬衫";

@@ -37,9 +37,3 @@ export const themeMessages: Record<
     description: "themes:pearl.description",
   },
 };
-export const memoryMessages: Record<string, StaticMessageKey> = {
-  fact: "memories:categories.fact",
-  preference: "memories:categories.preference",
-  event: "memories:categories.event",
-  relationship: "memories:categories.relationship",
-};

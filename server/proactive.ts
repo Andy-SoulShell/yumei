@@ -224,7 +224,7 @@ export async function planProactiveContact(
       memory: typeof memories.$inferSelect | null;
       reason: Contact["reason"];
     } | null = null;
-    if (memoryFeatureEnabled()) {
+    if (await memoryFeatureEnabled()) {
       const events = await tx
         .select()
         .from(memories)
@@ -373,7 +373,11 @@ async function validateContact(
   if (contact.reason === "daily") {
     if (prefs.proactiveMode !== "daily") return { kind: "invalid" };
   } else {
-    if (!role.memoryEnabled || !memoryFeatureEnabled() || !contact.memoryId)
+    if (
+      !role.memoryEnabled ||
+      !(await memoryFeatureEnabled()) ||
+      !contact.memoryId
+    )
       return { kind: "invalid" };
     const [event] = await tx
       .select()

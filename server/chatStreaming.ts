@@ -12,7 +12,7 @@ import {
 } from "../drizzle/schema";
 import type { ChatTurnSnapshot } from "../shared/chatStreaming";
 import { METERS } from "../shared/quotas";
-import { detectSelfHarm, SAFETY_SYSTEM_CLAUSE } from "../shared/safety";
+import { detectSelfHarm } from "../shared/safety";
 import { resolveChatProvider } from "./_core/chatProvider";
 import { parseChatProviderStream } from "./_core/chatStreamProvider";
 import { log, providerErrorSummary } from "./_core/log";
@@ -20,10 +20,9 @@ import { getTierLimits, isBillingEnforced, upsellHint } from "./billing";
 import {
   buildChatSystemPrompt,
   buildTurnLanguageReminder,
-  CHAT_PROMPT_VERSION,
-} from "./chatPrompt";
+} from "../shared/chatPrompt";
 import { chatContextLimits, planChatContext } from "./chatContextBudget";
-import { memoryFeatureEnabled, runtimeInteger } from "./aiTaskRuntime";
+import { runtimeInteger } from "./aiTaskRuntime";
 import { getChatBehaviorContext } from "./companionContext";
 import { getDb, withUserTransaction, type DbTransaction } from "./database";
 import {
@@ -167,7 +166,7 @@ async function requireFollowupCapacity(
     );
   if (
     burst.reduce((sum, item) => sum + item.content.length, content.length) >
-      chatContextLimits().followups ||
+      chatContextLimits(await getPublishedProductConfig(tx)).followups ||
     burst.filter(item => item.role === "user").length >= BURST_MESSAGE_LIMIT
   )
     throw new TRPCError({
@@ -701,8 +700,9 @@ async function executeChatTurn(request: Request, leaseToken: string) {
       throw new Error("Accepted chat routing is no longer available");
     const config = await getUserApiConfig(request.userId);
     const model = routing.model;
+    const policy = await getPublishedProductConfig();
     telemetry = {
-      promptVersion: CHAT_PROMPT_VERSION,
+      promptVersion: `product-config/${policy.revision}:chat`,
       provider: provider.name,
       model,
       isByok: provider.isByok,
@@ -752,9 +752,9 @@ async function executeChatTurn(request: Request, leaseToken: string) {
         providerErrorSummary(error)
       );
     }
-    const platformPrompt = buildChatSystemPrompt(girlfriend, config, {
+    const platformPrompt = buildChatSystemPrompt(policy, girlfriend, config, {
       ...behaviorContext,
-      memoryEnabled: memoryFeatureEnabled() && girlfriend.memoryEnabled,
+      memoryEnabled: policy.memory.enabled && girlfriend.memoryEnabled,
     });
     let memoryBlock = "";
     try {
@@ -765,7 +765,8 @@ async function executeChatTurn(request: Request, leaseToken: string) {
         girlfriend.intimacyLevel || 1,
         {
           conversationId: request.conversationId,
-          maxChars: chatContextLimits().memory,
+          maxChars: chatContextLimits(policy).memory,
+          configuration: policy,
         }
       );
     } catch (error) {
@@ -822,10 +823,10 @@ async function executeChatTurn(request: Request, leaseToken: string) {
       : [];
     const turnLanguage =
       provider.name === "deepseek"
-        ? buildTurnLanguageReminder(config?.replyLanguage)
+        ? buildTurnLanguageReminder(policy, config?.replyLanguage)
         : "";
-    const { systemPrompt, history } = planChatContext({
-      platform: platformPrompt + `\n${SAFETY_SYSTEM_CLAUSE}`,
+    const { systemPrompt, history } = planChatContext(policy, {
+      platform: platformPrompt,
       memory: memoryBlock,
       summary: "",
       previous: previous.reverse(),

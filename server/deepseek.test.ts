@@ -38,7 +38,7 @@ beforeEach(() => {
   vi.spyOn(keyProvider, "describeUserKeys").mockResolvedValue({
     openrouter: { isSet: false, lastFour: null, setAt: null },
   } as any);
-  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(() => {});
+  vi.spyOn(memory, "maybeExtractMemories").mockImplementation(async () => {});
 });
 
 afterEach(() => {

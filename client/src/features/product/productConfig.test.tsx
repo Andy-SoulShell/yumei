@@ -10,6 +10,9 @@ import { SelfiePoseDialog } from "@/components/SelfiePoseDialog";
 import { IntimacyPanel } from "@/components/IntimacyPanel";
 import { BillingCard } from "@/components/BillingCard";
 import { useProductConfig } from "./useProductConfig";
+import { BehaviorSettings } from "@/features/settings/BehaviorSettings";
+import { CharacterPrompt } from "@/features/setup/CharacterPrompt";
+import { buildChatSystemPrompt } from "@shared/chatPrompt";
 
 const mock = vi.hoisted(() => ({
   data: undefined as any,
@@ -57,6 +60,83 @@ afterEach(async () => {
   await act(async () => root.unmount());
   host.remove();
   vi.restoreAllMocks();
+});
+
+it("applies the exact API template text and uses the published renderer for the combined preview", async () => {
+  const apply = vi.fn();
+  mock.data.prompts.quickTemplates = [
+    {
+      id: "api-template",
+      enabled: true,
+      label: { "zh-CN": "API 模板按钮" },
+      text: { "zh-CN": "这是实际使用的提示词内容" },
+    },
+    {
+      id: "hidden",
+      enabled: false,
+      label: { "zh-CN": "隐藏模板" },
+      text: { "zh-CN": "隐藏内容" },
+    },
+  ];
+  const t = (key: any, values: any) => translate(key, "zh-CN", values);
+  await act(async () =>
+    root.render(
+      <BehaviorSettings
+        {...({
+          t,
+          globalPrompt: "",
+          setGlobalPrompt: apply,
+          updatePreferences: { isPending: false },
+        } as any)}
+      />
+    )
+  );
+  const button = Array.from(host.querySelectorAll("button")).find(
+    button => button.textContent === "API 模板按钮"
+  )!;
+  await act(async () => button.click());
+  expect(apply).toHaveBeenCalledWith("这是实际使用的提示词内容");
+  expect(host.textContent).not.toContain("隐藏模板");
+  const character = {
+    name: "预览角色",
+    personality: "温柔",
+    appearance: "自然",
+    customPrompt: "角色补充指令",
+    intimacyPoints: 0,
+  };
+  const preferences = {
+    globalPrompt: "这是实际使用的提示词内容",
+    replyLanguage: "中文",
+  };
+  const props = {
+    t,
+    showCustomPrompt: true,
+    setShowCustomPrompt: vi.fn(),
+    showPromptPreview: true,
+    setShowPromptPreview: vi.fn(),
+    customPrompt: character.customPrompt,
+    setCustomPrompt: vi.fn(),
+    previewCharacter: character,
+    previewMemoryEnabled: false,
+    apiConfig: { preferences },
+  };
+  const render = () =>
+    act(async () => root.render(<CharacterPrompt {...(props as any)} />));
+  await render();
+  expect(host.querySelector("pre")!.textContent).toBe(
+    buildChatSystemPrompt(mock.data, character, preferences, {
+      memoryEnabled: false,
+    })
+  );
+  mock.data = structuredClone(mock.data);
+  mock.data.prompts.chat.expression.warm = "发布后的新表达规则";
+  await render();
+  expect(host.querySelector("pre")!.textContent).toContain(
+    "发布后的新表达规则"
+  );
+  expect(host.querySelector("pre")!.textContent).toContain(
+    "长期记忆已关闭或暂停"
+  );
 });
 
 it("renders API pose IDs and changed unlock levels and removes disabled poses", async () => {

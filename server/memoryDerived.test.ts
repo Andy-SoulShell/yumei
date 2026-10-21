@@ -23,10 +23,17 @@ import {
 import { createTestGirlfriend } from "./testFixtures";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
+import * as productConfig from "./repositories/productConfig";
+let testPolicy: Awaited<
+  ReturnType<typeof productConfig.getPublishedProductConfig>
+>;
 
-beforeEach(() => {
-  vi.stubEnv("MEMORY_EMBEDDING_MODEL", "test/embedding");
-  vi.stubEnv("MEMORY_EXTRACTION_MODEL", "");
+beforeEach(async () => {
+  testPolicy = structuredClone(await productConfig.getPublishedProductConfig());
+  testPolicy.memory.semantic.model = "test/embedding";
+  vi.spyOn(productConfig, "getPublishedProductConfig").mockImplementation(
+    async () => testPolicy
+  );
   vi.spyOn(providers, "resolveChatProvider").mockResolvedValue({
     name: "openrouter",
     baseUrl: "https://memory.example.test/v1",
@@ -282,6 +289,7 @@ describe("trusted memory lifecycle", () => {
         vector: [1, 0],
       });
       await a.db.insert(conversationSummaries).values({
+        configurationRevision: testPolicy.revision,
         conversationId: a.conversation.id,
         userId: a.userId,
         girlfriendId: a.gf.id,
@@ -769,7 +777,7 @@ describe("actual semantic memory path", () => {
       .from(memoryEmbeddings)
       .where(eq(memoryEmbeddings.userId, a.userId));
     expect(indexes[0].baseUrl).toMatch(/^[a-f0-9]{64}$/);
-    vi.stubEnv("MEMORY_EMBEDDING_MODEL", "different/model");
+    testPolicy.memory.semantic.model = "different/model";
     expect(
       await derived.semanticMemoryScores(a.userId, a.gf.id, "睡不着")
     ).toEqual(new Map());

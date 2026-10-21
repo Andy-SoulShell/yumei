@@ -1,3 +1,5 @@
+import { enforceUpload } from "./_core/uploads";
+import { getPublishedProductConfig } from "./repositories/productConfig";
 /** 读取受限公开角色资源，支持内置图片与管理员上传到存储的官方图片。 */
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -6,7 +8,6 @@ import { storageRead } from "./storage";
 
 /** 校验真实文件签名和大小，避免上传内容与声明类型不一致。 */
 export function officialImageMime(data: Buffer) {
-  if (data.length > 10 * 1024 * 1024) throw new Error("官方图片不能超过 10MB");
   if (data.subarray(0, 3).equals(Buffer.from([255, 216, 255])))
     return "image/jpeg";
   if (
@@ -36,5 +37,11 @@ export async function readOfficialImage(imageUrl: string) {
           image.slice(1)
         )
       );
-  return { data, mimeType: officialImageMime(data) };
+  const mimeType = officialImageMime(data);
+  enforceUpload(
+    (await getPublishedProductConfig()).uploads.official,
+    data,
+    mimeType
+  );
+  return { data, mimeType };
 }

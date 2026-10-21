@@ -552,7 +552,10 @@ export default {
       "Recording is too short. Please try again.",
     couldNotReadTheAudio: "Could not read the audio",
     recordingUnsupported: "This browser does not support audio recording.",
-    recordingMaxDuration: "The 60-second recording limit has been reached.",
+    invalidRecording:
+      "Recording must use {{formats}} and be no larger than {{maxMB}}MB.",
+    recordingMaxDuration:
+      "The {{seconds}}-second recording limit has been reached.",
     microphonePermissionDenied:
       "Microphone access was denied. Allow it in your browser settings.",
     microphoneNotFound: "No microphone was found.",
@@ -793,7 +796,7 @@ export default {
     avatarUploaded: "Avatar uploaded!",
     avatarUploadFailed: "Avatar upload failed: {{error}}",
     chooseAJPGPNGGIFOrWebPImage:
-      "Choose a JPG, PNG, GIF or WebP image under 10 MB",
+      "Choose a {{formats}} image up to {{maxMB}} MB",
     unsupportedFormatChooseJPGPNGGIFOrWebP:
       "Unsupported format. Choose JPG, PNG, GIF or WebP.",
     imageIsTooLargeMBChooseAnImage:
@@ -805,7 +808,7 @@ export default {
     createYourCompanion: "Create a character",
 
     avatar: "Avatar",
-    uploadAnAvatarForTheHomeAndChat: "JPG / PNG / GIF / WebP, up to 10MB",
+    uploadAnAvatarForTheHomeAndChat: "{{formats}}, up to {{maxMB}}MB",
     upload: "Upload",
     uploading: "Uploading…",
     confirmUpload: "Confirm upload",
@@ -815,7 +818,7 @@ export default {
     referencePhoto: "Reference photo",
     change: "Change",
     clickToUploadAPhoto: "Click to upload a photo",
-    jpgPNGGIFOrWebPUpTo10: "JPG / PNG / GIF / WebP, up to 10MB",
+    jpgPNGGIFOrWebPUpTo10: "{{formats}}, up to {{maxMB}}MB",
     restorePresetReference: "Restore preset reference",
     referencePhotosCannotBeChangedWhileEditingCreate:
       "To change the reference photo, create a new character.",
@@ -1029,7 +1032,7 @@ export default {
     "levels.10.petName": "♡",
   },
   selfie: {
-    invalidCoupleImage: "Choose a JPG, PNG or WebP image up to 10MB.",
+    invalidCoupleImage: "Choose a {{formats}} image up to {{maxMB}}MB.",
     askForAPhoto: "Take a photo",
     unlockPosesAsYouGrowCloserTextIn:
       "Your message takes priority. The selected pose is used when the box is empty. Intimacy unlocks poses.",

@@ -101,3 +101,111 @@ export const proactiveConfigSchema = z
       ctx.addIssue({ code: "custom", message: "重试初始间隔不能大于上限" });
   });
 export type ProactiveConfig = z.infer<typeof proactiveConfigSchema>;
+
+const imageUpload = z
+  .object({
+    maxBytes: integer(1, 32 * 1024 * 1024),
+    mimeTypes: z
+      .array(z.enum(["image/jpeg", "image/png", "image/gif", "image/webp"]))
+      .min(1)
+      .max(4)
+      .refine(values => new Set(values).size === values.length),
+  })
+  .strict();
+/** 请求体按 Base64 膨胀后的上限校验，界面和服务端直接使用同一字节数。 */
+export const uploadsConfigSchema = z
+  .object({
+    requestMaxBytes: integer(1024 * 1024, 256 * 1024 * 1024),
+    avatar: imageUpload,
+    reference: imageUpload,
+    couple: imageUpload,
+    official: imageUpload,
+    audio: z
+      .object({
+        maxBytes: integer(1, 25 * 1024 * 1024),
+        mimeTypes: z
+          .array(
+            z.enum([
+              "audio/webm",
+              "audio/mp4",
+              "audio/mpeg",
+              "audio/mp3",
+              "audio/wav",
+              "audio/wave",
+              "audio/ogg",
+              "audio/m4a",
+            ])
+          )
+          .min(1)
+          .max(8)
+          .refine(values => new Set(values).size === values.length),
+        recordingMimeTypes: z
+          .array(
+            z.enum([
+              "audio/webm;codecs=opus",
+              "audio/webm",
+              "audio/mp4",
+              "audio/ogg;codecs=opus",
+            ])
+          )
+          .min(1)
+          .max(4),
+        maxDurationSeconds: integer(1, 1200),
+        sampleRate: integer(8000, 96000),
+        chunkMs: integer(20, 1000),
+      })
+      .strict(),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    const max = Math.max(
+      ...[
+        value.avatar,
+        value.reference,
+        value.couple,
+        value.official,
+        value.audio,
+      ].map(item => item.maxBytes)
+    );
+    if (Math.ceil(max / 3) * 4 + 65536 > value.requestMaxBytes)
+      ctx.addIssue({
+        code: "custom",
+        message: "请求体上限不足以容纳上传文件的 Base64 数据",
+      });
+    if (
+      value.audio.recordingMimeTypes.some(
+        mime =>
+          !value.audio.mimeTypes.includes(
+            mime.split(";")[0] as (typeof value.audio.mimeTypes)[number]
+          )
+      )
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "录音编码必须属于允许上传的音频类型",
+      });
+  });
+export type UploadLimit =
+  z.infer<typeof imageUpload> | z.infer<typeof uploadsConfigSchema>["audio"];
+/** 仅描述规则；所有数值从发布配置生成。 */
+export function uploadDescription(limit: UploadLimit) {
+  return {
+    formats: limit.mimeTypes
+      .map(mime => mime.split("/")[1].toUpperCase())
+      .join(" / "),
+    maxMB: Number((limit.maxBytes / 1024 / 1024).toFixed(2)),
+  };
+}
+/** 使用 MIME 主类型匹配录音编码参数。 */
+export function acceptsUpload(
+  limit: UploadLimit,
+  file: { type: string; size: number }
+) {
+  return (
+    file.size > 0 &&
+    file.size <= limit.maxBytes &&
+    (limit.mimeTypes as string[]).includes(
+      file.type.split(";")[0].trim().toLowerCase()
+    )
+  );
+}

@@ -1,3 +1,4 @@
+import { acceptsUpload, uploadDescription } from "@shared/operationalConfig";
 import { useProductConfig } from "@/features/product/useProductConfig";
 import { PageError } from "@/components/PageError";
 /** 自拍姿势、生图方式与合照上传的选择弹窗。 */
@@ -163,20 +164,25 @@ export function SelfiePoseDialog({
           <Input
             ref={fileInputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept={policy.raw?.uploads.couple.mimeTypes.join(",")}
+            disabled={!policy.raw}
             className="hidden"
             onChange={e => {
               const file = e.target.files?.[0];
               e.target.value = "";
               if (file) {
                 if (
-                  !["image/jpeg", "image/png", "image/webp"].includes(
-                    file.type
-                  ) ||
-                  !file.size ||
-                  file.size > 10 * 1024 * 1024
+                  !policy.raw ||
+                  !acceptsUpload(policy.raw.uploads.couple, file)
                 ) {
-                  setUploadError(t("selfie:invalidCoupleImage"));
+                  setUploadError(
+                    t(
+                      "selfie:invalidCoupleImage",
+                      policy.raw
+                        ? uploadDescription(policy.raw.uploads.couple)
+                        : { formats: "", maxMB: 0 }
+                    )
+                  );
                   return;
                 }
                 setUploadError("");

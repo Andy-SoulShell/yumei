@@ -23,6 +23,11 @@ vi.mock("@/features/discovery/useDiscovery", async () => {
     }),
   };
 });
+vi.mock("@/features/product/useProductConfig", async () => {
+  const { productFixture } =
+    await import("../../../../server/testProductConfig");
+  return { useProductConfig: () => ({ raw: productFixture }) };
+});
 const mock = vi.hoisted(() => ({
   discoveryData: undefined as any,
   discoveryLoading: false,

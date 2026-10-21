@@ -1,3 +1,4 @@
+import { getPublishedProductConfig } from "../repositories/productConfig";
 /** 公开内容读取与管理员草稿、上传、归档及统一发布 API。 */
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -8,7 +9,7 @@ import {
   officialIdSchema,
 } from "../../shared/discovery";
 import { adminProcedure, publicProcedure, router } from "../_core/trpc";
-import { decodeBase64Upload } from "../_core/uploads";
+import { decodeBase64Upload, enforceUpload } from "../_core/uploads";
 import { officialImageMime } from "../characterPresets";
 import { putStagedMedia, publishMedia } from "../managedMedia";
 import { withUserTransaction } from "../database";
@@ -56,14 +57,17 @@ export const discoveryRouter = router({
         publishDiscovery(ctx.user.id, input.expectedRevision)
       ),
     uploadImage: adminProcedure
-      .input(
-        z.object({ imageBase64: z.string().min(1).max(14_000_000) }).strict()
-      )
+      .input(z.object({ imageBase64: z.string().min(1) }).strict())
       .mutation(async ({ ctx, input }) => {
         const data = decodeBase64Upload(input.imageBase64);
         let mimeType: string;
         try {
           mimeType = officialImageMime(data);
+          enforceUpload(
+            (await getPublishedProductConfig()).uploads.official,
+            data,
+            mimeType
+          );
         } catch (cause) {
           throw new TRPCError({
             code: "BAD_REQUEST",

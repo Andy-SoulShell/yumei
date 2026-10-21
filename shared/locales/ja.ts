@@ -554,7 +554,8 @@ export default {
       "録音が短すぎます。もう一度お試しください。",
     couldNotReadTheAudio: "音声データを読み込めませんでした",
     recordingUnsupported: "このブラウザーは録音に対応していません。",
-    recordingMaxDuration: "録音の上限（60秒）に達しました。",
+    invalidRecording: "録音は{{formats}}形式、{{maxMB}}MB以下にしてください。",
+    recordingMaxDuration: "録音の上限（{{seconds}}秒）に達しました。",
     microphonePermissionDenied:
       "マイクへのアクセスが拒否されました。ブラウザーの設定で許可してください。",
     microphoneNotFound: "マイクが見つかりません。",
@@ -796,7 +797,7 @@ export default {
     avatarUploaded: "アバターをアップロードしました！",
     avatarUploadFailed: "アバターをアップロードできませんでした：{{error}}",
     chooseAJPGPNGGIFOrWebPImage:
-      "10 MB 以下の JPG、PNG、GIF、WebP 画像を選んでください",
+      "{{maxMB}} MB以下の{{formats}}画像を選んでください",
     unsupportedFormatChooseJPGPNGGIFOrWebP:
       "非対応の形式です。JPG、PNG、GIF、WebP を選んでください。",
     imageIsTooLargeMBChooseAnImage:
@@ -808,7 +809,7 @@ export default {
     createYourCompanion: "キャラクターを作る",
 
     avatar: "アイコン",
-    uploadAnAvatarForTheHomeAndChat: "JPG / PNG / GIF / WebP、10MB まで",
+    uploadAnAvatarForTheHomeAndChat: "{{formats}}、{{maxMB}}MBまで",
     upload: "アップロード",
     uploading: "アップロード中…",
     confirmUpload: "アップロードを確定",
@@ -818,7 +819,7 @@ export default {
     referencePhoto: "参考写真",
     change: "変更",
     clickToUploadAPhoto: "クリックして写真をアップロード",
-    jpgPNGGIFOrWebPUpTo10: "JPG / PNG / GIF / WebP、10MB まで",
+    jpgPNGGIFOrWebPUpTo10: "{{formats}}、{{maxMB}}MBまで",
     restorePresetReference: "プリセットの参考画像に戻す",
     referencePhotosCannotBeChangedWhileEditingCreate:
       "参考画像を変えるには、新しいキャラクターを作成してください。",
@@ -1018,7 +1019,7 @@ export default {
     "levels.10.petName": "♡",
   },
   selfie: {
-    invalidCoupleImage: "10MB以下のJPG、PNG、WebP画像を選んでください。",
+    invalidCoupleImage: "{{maxMB}}MB以下の{{formats}}画像を選んでください。",
     askForAPhoto: "写真を撮る",
     unlockPosesAsYouGrowCloserTextIn:
       "入力した文章を優先し、空欄の場合は選択したポーズを使います。ポーズは親密度で解放されます。",

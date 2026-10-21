@@ -56,9 +56,7 @@
           "monthlySelfies": 30,
           "maxGirlfriends": 3,
           "voiceTranscription": true,
-          "ttsProviders": [
-            "elevenlabs"
-          ],
+          "ttsProviders": ["elevenlabs"],
           "modelLocked": false,
           "couplePhoto": false
         },
@@ -85,10 +83,7 @@
           "monthlySelfies": 100,
           "maxGirlfriends": null,
           "voiceTranscription": true,
-          "ttsProviders": [
-            "elevenlabs",
-            "fishaudio"
-          ],
+          "ttsProviders": ["elevenlabs", "fishaudio"],
           "modelLocked": false,
           "couplePhoto": true
         },
@@ -114,9 +109,7 @@
         "promptFragment": "a casual relaxed selfie, natural genuine smile",
         "mode": "auto",
         "enabled": true,
-        "aliases": [
-          "随手一拍"
-        ]
+        "aliases": ["随手一拍"]
       },
       {
         "id": "sweet_smile",
@@ -131,9 +124,7 @@
         "promptFragment": "a bright sweet smile, cheerful sunny mood, close-up",
         "mode": "direct",
         "enabled": true,
-        "aliases": [
-          "甜甜微笑"
-        ]
+        "aliases": ["甜甜微笑"]
       },
       {
         "id": "aegyo",
@@ -148,9 +139,7 @@
         "promptFragment": "a cute playful aegyo pose, puffed cheeks and a V sign, adorable pleading expression",
         "mode": "direct",
         "enabled": true,
-        "aliases": [
-          "撒娇"
-        ]
+        "aliases": ["撒娇"]
       },
       {
         "id": "intimate",
@@ -165,9 +154,7 @@
         "promptFragment": "an intimate close-up selfie, soft warm gaze into the camera, cozy affectionate atmosphere",
         "mode": "direct",
         "enabled": true,
-        "aliases": [
-          "亲密"
-        ]
+        "aliases": ["亲密"]
       },
       {
         "id": "elegant",
@@ -182,9 +169,7 @@
         "promptFragment": "an elegant graceful full-body pose in a refined outfit, soft flattering lighting",
         "mode": "mirror",
         "enabled": true,
-        "aliases": [
-          "优雅"
-        ]
+        "aliases": ["优雅"]
       },
       {
         "id": "alluring",
@@ -199,9 +184,7 @@
         "promptFragment": "an alluring charming look, confident smoldering gaze, stylish tasteful outfit",
         "mode": "direct",
         "enabled": true,
-        "aliases": [
-          "诱惑"
-        ]
+        "aliases": ["诱惑"]
       },
       {
         "id": "pov_date",
@@ -216,9 +199,7 @@
         "promptFragment": "a POV girlfriend-view photo, reaching one hand toward the camera as if holding hands with the viewer, walking together",
         "mode": "direct",
         "enabled": true,
-        "aliases": [
-          "恋人视角"
-        ]
+        "aliases": ["恋人视角"]
       },
       {
         "id": "morning",
@@ -233,9 +214,7 @@
         "promptFragment": "a just-woke-up cozy morning selfie in bed, soft natural window light, casual homewear, sleepy warm smile",
         "mode": "direct",
         "enabled": true,
-        "aliases": [
-          "睡眼惺忪"
-        ]
+        "aliases": ["睡眼惺忪"]
       },
       {
         "id": "date_night",
@@ -250,9 +229,7 @@
         "promptFragment": "a dressed-up date night look, evening city lights bokeh in the background, romantic mood",
         "mode": "direct",
         "enabled": true,
-        "aliases": [
-          "约会夜"
-        ]
+        "aliases": ["约会夜"]
       }
     ]
   },
@@ -999,11 +976,7 @@
           "dark": "#0f0706"
         },
         "hue": 35,
-        "colors": [
-          "#fb923c",
-          "#fde68a",
-          "#c2410c"
-        ],
+        "colors": ["#fb923c", "#fde68a", "#c2410c"],
         "light": "#b94a0a",
         "dark": "#fb923c",
         "foreground": "#21130a"
@@ -1028,11 +1001,7 @@
           "dark": "#0e070a"
         },
         "hue": 350,
-        "colors": [
-          "#f472b6",
-          "#fb7185",
-          "#be185d"
-        ],
+        "colors": ["#f472b6", "#fb7185", "#be185d"],
         "light": "#c2185b",
         "dark": "#f472b6",
         "foreground": "#2a101b"
@@ -1057,11 +1026,7 @@
           "dark": "#09080f"
         },
         "hue": 295,
-        "colors": [
-          "#a78bfa",
-          "#60a5fa",
-          "#6d28d9"
-        ],
+        "colors": ["#a78bfa", "#60a5fa", "#6d28d9"],
         "light": "#7040c0",
         "dark": "#b39aff",
         "foreground": "#1c1230"
@@ -1086,11 +1051,7 @@
           "dark": "#040b08"
         },
         "hue": 165,
-        "colors": [
-          "#34d399",
-          "#4ade80",
-          "#0d9488"
-        ],
+        "colors": ["#34d399", "#4ade80", "#0d9488"],
         "light": "#087b60",
         "dark": "#34d399",
         "foreground": "#08271e"
@@ -1115,11 +1076,7 @@
           "dark": "#0f0707"
         },
         "hue": 20,
-        "colors": [
-          "#e11d48",
-          "#fb923c",
-          "#7f1d1d"
-        ],
+        "colors": ["#e11d48", "#fb923c", "#7f1d1d"],
         "light": "#b7183a",
         "dark": "#fb7185",
         "foreground": "#2d0b13"
@@ -1144,11 +1101,7 @@
           "dark": "#06090f"
         },
         "hue": 260,
-        "colors": [
-          "#3b82f6",
-          "#fbbf24",
-          "#1e3a8a"
-        ],
+        "colors": ["#3b82f6", "#fbbf24", "#1e3a8a"],
         "light": "#2358bd",
         "dark": "#7aaaff",
         "foreground": "#0c1a35"
@@ -1173,11 +1126,7 @@
           "dark": "#0f0706"
         },
         "hue": 30,
-        "colors": [
-          "#ff5b20",
-          "#facc15",
-          "#f472b6"
-        ],
+        "colors": ["#ff5b20", "#facc15", "#f472b6"],
         "light": "#be4412",
         "dark": "#ff915e",
         "foreground": "#2c140a"
@@ -1202,11 +1151,7 @@
           "dark": "#0d0804"
         },
         "hue": 75,
-        "colors": [
-          "#f5f0e9",
-          "#fb923c",
-          "#fbd38d"
-        ],
+        "colors": ["#f5f0e9", "#fb923c", "#fbd38d"],
         "light": "#9b5b19",
         "dark": "#fbd38d",
         "foreground": "#2c200e"
@@ -1483,6 +1428,46 @@
         "ja": "YUMEI",
         "ko": "YUMEI"
       }
+    }
+  },
+  "uploads": {
+    "requestMaxBytes": 52428800,
+    "avatar": {
+      "maxBytes": 10485760,
+      "mimeTypes": ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    },
+    "reference": {
+      "maxBytes": 10485760,
+      "mimeTypes": ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    },
+    "official": {
+      "maxBytes": 10485760,
+      "mimeTypes": ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    },
+    "couple": {
+      "maxBytes": 10485760,
+      "mimeTypes": ["image/jpeg", "image/png", "image/webp"]
+    },
+    "audio": {
+      "maxBytes": 16777216,
+      "mimeTypes": [
+        "audio/webm",
+        "audio/mp4",
+        "audio/mpeg",
+        "audio/mp3",
+        "audio/wav",
+        "audio/wave",
+        "audio/ogg",
+        "audio/m4a"
+      ],
+      "recordingMimeTypes": [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/mp4"
+      ],
+      "maxDurationSeconds": 60,
+      "sampleRate": 16000,
+      "chunkMs": 100
     }
   }
 }

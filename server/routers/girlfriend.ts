@@ -13,7 +13,7 @@ import {
 import { BusinessRuleError } from "../_core/businessError";
 import { log, providerErrorSummary } from "../_core/log";
 import { protectedProcedure, router } from "../_core/trpc";
-import { decodeBase64Upload } from "../_core/uploads";
+import { decodeBase64Upload, enforceUpload } from "../_core/uploads";
 import { getTierLimits, isBillingEnforced } from "../billing";
 import { readOfficialImage } from "../characterPresets";
 import {
@@ -133,12 +133,11 @@ export const girlfriendRouter = router({
       const mimeType = input.referenceImageBase64
         ? input.referenceImageMimeType!
         : presetImage!.mimeType;
-      if (imageBuffer.length > 10 * 1024 * 1024) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "参考照片不能超过 10MB",
-        });
-      }
+      enforceUpload(
+        (await getPublishedProductConfig()).uploads.reference,
+        imageBuffer,
+        mimeType
+      );
       const fileKey = `girlfriend-${ctx.user.id}-${nanoid()}.${mimeType.split("/")[1]}`;
 
       const { url: imageUrl } = await putStagedMedia(
@@ -238,13 +237,11 @@ export const girlfriendRouter = router({
           message: "Companion not found",
         });
       const imageBuffer = decodeBase64Upload(input.imageBase64);
-      // 按解码字节计量，避免填充字符让恰好 10MB 的图片被误拒绝。
-      if (imageBuffer.length > 10 * 1024 * 1024) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "图片文件过大，请选择 10MB 以内的图片",
-        });
-      }
+      enforceUpload(
+        (await getPublishedProductConfig()).uploads.avatar,
+        imageBuffer,
+        input.mimeType
+      );
 
       const ext =
         input.mimeType.split("/")[1] === "jpeg"

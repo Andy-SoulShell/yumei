@@ -1,3 +1,4 @@
+import { uploadBodyParser } from "./uploads";
 /** 应用启动入口，负责配置、迁移、健康探针、中间件顺序和优雅退出。 */
 
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -103,8 +104,7 @@ async function startServer() {
   // 支付签名校验依赖原始字节，必须先于 JSON 解析器注册。
   registerBillingRoutes(app);
   // 上传包含编码后的媒体内容，因此将请求体上限设为 50 MB。
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  app.use(uploadBodyParser());
 
   // healthz 检查进程存活；readyz 额外检查数据库，供流量调度使用。
   app.get("/healthz", (_req, res) => {

@@ -14,7 +14,7 @@ import { log, providerErrorSummary } from "../_core/log";
 import { checkRateLimit, getDailyMeter, getMonthlyMeter } from "../_core/quota";
 import { getPublishedProductConfig } from "../repositories/productConfig";
 import { protectedProcedure, router } from "../_core/trpc";
-import { decodeBase64Upload } from "../_core/uploads";
+import { decodeBase64Upload, enforceUpload } from "../_core/uploads";
 import { getTierLimits, isBillingEnforced, upsellHint } from "../billing";
 import {
   completeImageGeneration,
@@ -107,21 +107,12 @@ export const selfieRouter = router({
         });
       }
 
-      // 校验并上传用户照片（10MB 上限，与头像一致）。
-      const allowed = ["image/jpeg", "image/png", "image/webp"];
-      if (!allowed.includes(input.userPhotoMimeType)) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Unsupported photo format (use JPG/PNG/WebP)",
-        });
-      }
       const photoBuffer = decodeBase64Upload(input.userPhotoBase64);
-      if (photoBuffer.length > 10 * 1024 * 1024) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Photo exceeds 10MB",
-        });
-      }
+      enforceUpload(
+        policy.uploads.couple,
+        photoBuffer,
+        input.userPhotoMimeType
+      );
       const ext = input.userPhotoMimeType.split("/")[1];
       const photoKey = `couple-input-${ctx.user.id}-${nanoid()}.${ext}`;
 

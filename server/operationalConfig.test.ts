@@ -1,3 +1,6 @@
+import express from "express";
+import * as storage from "./storage";
+import { uploadBodyParser } from "./_core/uploads";
 /** 发布后以真实偏好、规划与推送验证运营配置，无需重新启动服务。 */
 import { afterEach, beforeAll, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
@@ -89,4 +92,83 @@ it("publishes frequency bounds, defaults, lifetime and templates used by the act
     config.proactive.enabled = false;
     await publish(config);
     expect(await planProactiveContact(userId)).toBeNull();
+  }));
+
+it("uses published upload byte and MIME restrictions in actual avatar and HTTP parser paths", () =>
+  configured(async ({ userId, admin, publish }) => {
+    const config = structuredClone(productFixture);
+    for (const name of [
+      "avatar",
+      "reference",
+      "couple",
+      "official",
+      "audio",
+    ] as const)
+      config.uploads[name].maxBytes = 3;
+    config.uploads.avatar.mimeTypes = ["image/png"];
+    config.uploads.requestMaxBytes = 1024 * 1024;
+    await publish(config);
+    const role = await createGirlfriend({
+      userId,
+      name: "上传验证",
+      personality: "自然",
+      appearance: "自然",
+      referenceImageKey: "ref",
+      referenceImageUrl: "https://example.test/ref",
+    });
+    const upload = (bytes: number, mimeType: "image/png" | "image/jpeg") =>
+      admin.girlfriend.uploadAvatar({
+        girlfriendId: role.id,
+        imageBase64: Buffer.alloc(bytes).toString("base64"),
+        mimeType,
+      });
+    const stored = vi
+      .spyOn(storage, "storagePut")
+      .mockImplementation(async key => ({
+        key,
+        url: "https://example.test/" + key,
+      }));
+    await expect(upload(4, "image/png")).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+    await expect(upload(3, "image/jpeg")).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+    expect(stored).not.toHaveBeenCalled();
+    await upload(3, "image/png");
+    expect(stored).toHaveBeenCalledOnce();
+    const app = express();
+    app.use(uploadBodyParser());
+    app.post("/upload", (_req, res) => {
+      res.json({ success: true });
+    });
+    app.use(
+      (
+        error: { status?: number },
+        _req: express.Request,
+        res: express.Response,
+        _next: express.NextFunction
+      ) => {
+        res.status(error.status ?? 500).end();
+      }
+    );
+    const server = app.listen(0, "127.0.0.1");
+    await new Promise<void>(resolve => server.once("listening", resolve));
+    try {
+      const address = server.address() as { port: number };
+      const request = () =>
+        fetch(`http://127.0.0.1:${address.port}/upload`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: "x".repeat(1024 * 1024) }),
+        });
+      expect((await request()).status).toBe(413);
+      config.uploads.requestMaxBytes = 2 * 1024 * 1024;
+      await publish(config);
+      expect((await request()).status).toBe(200);
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close(error => (error ? reject(error) : resolve()))
+      );
+    }
   }));

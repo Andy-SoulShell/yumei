@@ -1,3 +1,4 @@
+import { acceptsUpload, uploadDescription } from "@shared/operationalConfig";
 import { getLevelByPoints } from "@shared/intimacy";
 import { useProductConfig } from "@/features/product/useProductConfig";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -774,6 +775,19 @@ export function useChatController() {
       return;
     }
 
+    const audio = productRules.raw?.uploads.audio;
+    if (
+      !audio ||
+      !acceptsUpload(audio, { size: result.blob.size, type: result.mimeType })
+    ) {
+      toast.error(
+        t(
+          "chat:invalidRecording",
+          audio ? uploadDescription(audio) : { formats: "", maxMB: 0 }
+        )
+      );
+      return;
+    }
     setIsTranscribing(true);
 
     // Blob → Base64
@@ -827,6 +841,7 @@ export function useChatController() {
     };
     reader.readAsDataURL(result.blob);
   }, [
+    productRules.raw?.uploads.audio,
     t,
     stopRecording,
     currentConversationId,

@@ -5,6 +5,10 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useVoiceRecorder } from "./useVoiceRecorder";
 
+vi.mock("@/features/product/useProductConfig", async () => {
+  const { productFixture } = await import("../../../server/testProductConfig");
+  return { useProductConfig: () => ({ raw: productFixture }) };
+});
 const mock = vi.hoisted(() => ({ info: vi.fn(), error: vi.fn() }));
 vi.mock("sonner", () => ({ toast: mock }));
 vi.mock("@/lib/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));

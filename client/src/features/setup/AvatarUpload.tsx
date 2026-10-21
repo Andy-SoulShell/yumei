@@ -1,3 +1,4 @@
+import { uploadDescription } from "@shared/operationalConfig";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -5,6 +6,7 @@ import { Camera, Loader2, Upload, X } from "lucide-react";
 import type { SetupController } from "./useSetupController";
 type Props = Pick<
   SetupController,
+  | "uploads"
   | "t"
   | "avatarInputRef"
   | "displayAvatar"
@@ -20,6 +22,7 @@ type Props = Pick<
 
 /** 编辑角色头像，组合预览、文件选择和移除操作。 */
 export function AvatarUpload({
+  uploads,
   t,
   avatarInputRef,
   displayAvatar,
@@ -36,7 +39,12 @@ export function AvatarUpload({
     <div className="space-y-2">
       <Label>{t("setup:avatar")}</Label>
       <p className="text-xs text-muted-foreground">
-        {t("setup:uploadAnAvatarForTheHomeAndChat")}
+        {t(
+          "setup:uploadAnAvatarForTheHomeAndChat",
+          uploads
+            ? uploadDescription(uploads.avatar)
+            : { formats: "", maxMB: 0 }
+        )}
       </p>
       <div className="flex items-center gap-4">
         {/* 头像预览 */}
@@ -75,7 +83,8 @@ export function AvatarUpload({
           <Input
             ref={avatarInputRef}
             type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp"
+            accept={uploads?.avatar.mimeTypes.join(",")}
+            disabled={!uploads}
             className="hidden"
             onChange={handleAvatarChange}
           />

@@ -1,3 +1,4 @@
+import { uploadDescription } from "@shared/operationalConfig";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -5,6 +6,7 @@ import { Upload } from "lucide-react";
 import type { SetupController } from "./useSetupController";
 type Props = Pick<
   SetupController,
+  | "uploads"
   | "t"
   | "isEditing"
   | "displayImage"
@@ -18,6 +20,7 @@ type Props = Pick<
 
 /** 选择参考图并展示上传预览及尺寸要求。 */
 export function ReferenceUpload({
+  uploads,
   t,
   isEditing,
   displayImage,
@@ -71,7 +74,12 @@ export function ReferenceUpload({
               {t("setup:clickToUploadAPhoto")}
             </span>
             <span className="text-xs text-muted-foreground mt-1">
-              {t("setup:jpgPNGGIFOrWebPUpTo10")}
+              {t(
+                "setup:jpgPNGGIFOrWebPUpTo10",
+                uploads
+                  ? uploadDescription(uploads.reference)
+                  : { formats: "", maxMB: 0 }
+              )}
             </span>
           </Button>
         )}
@@ -80,7 +88,8 @@ export function ReferenceUpload({
             id="image"
             ref={imageInputRef}
             type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp"
+            accept={uploads?.reference.mimeTypes.join(",")}
+            disabled={!uploads}
             className="hidden"
             onChange={handleImageChange}
           />

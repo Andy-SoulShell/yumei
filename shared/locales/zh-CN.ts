@@ -518,7 +518,9 @@ export default {
     recordingIsTooShortPleaseTryAgain: "录音时间太短，请重试",
     couldNotReadTheAudio: "音频数据读取失败",
     recordingUnsupported: "当前浏览器不支持音频录制",
-    recordingMaxDuration: "已达到最大录音时长（60秒）",
+    invalidRecording:
+      "录音格式或大小无效，支持 {{formats}}，最大 {{maxMB}}MB。",
+    recordingMaxDuration: "已达到最大录音时长（{{seconds}}秒）",
     microphonePermissionDenied:
       "麦克风权限被拒绝，请在浏览器设置中允许麦克风访问",
     microphoneNotFound: "未检测到麦克风设备",
@@ -746,8 +748,7 @@ export default {
     couldNotUpdate: "更新失败：{{error}}",
     avatarUploaded: "头像上传成功！",
     avatarUploadFailed: "头像上传失败：{{error}}",
-    chooseAJPGPNGGIFOrWebPImage:
-      "请选择 10MB 以内的 JPG、PNG、GIF 或 WebP 图片",
+    chooseAJPGPNGGIFOrWebPImage: "请选择 {{maxMB}}MB 以内的 {{formats}} 图片",
     unsupportedFormatChooseJPGPNGGIFOrWebP:
       "不支持的图片格式，请选择 JPG、PNG、GIF 或 WebP 格式",
     imageIsTooLargeMBChooseAnImage:
@@ -759,7 +760,7 @@ export default {
     createYourCompanion: "创建角色",
 
     avatar: "头像",
-    uploadAnAvatarForTheHomeAndChat: "JPG / PNG / GIF / WebP，最大 10MB",
+    uploadAnAvatarForTheHomeAndChat: "{{formats}}，最大 {{maxMB}}MB",
     upload: "上传",
     uploading: "上传中...",
     confirmUpload: "确认上传",
@@ -769,7 +770,7 @@ export default {
     referencePhoto: "参考照片",
     change: "更换",
     clickToUploadAPhoto: "点击上传照片",
-    jpgPNGGIFOrWebPUpTo10: "JPG / PNG / GIF / WebP，最大 10MB",
+    jpgPNGGIFOrWebPUpTo10: "{{formats}}，最大 {{maxMB}}MB",
     restorePresetReference: "恢复预设参考图",
     referencePhotosCannotBeChangedWhileEditingCreate:
       "参考照片无法修改，需另建角色。",
@@ -962,7 +963,7 @@ export default {
     "levels.10.petName": "♡",
   },
   selfie: {
-    invalidCoupleImage: "请选择 10MB 以内的 JPG、PNG 或 WebP 图片。",
+    invalidCoupleImage: "请选择 {{maxMB}}MB 以内的 {{formats}} 图片。",
     askForAPhoto: "拍张照片",
     unlockPosesAsYouGrowCloserTextIn:
       "优先按输入框的文字生成，留空时使用所选姿势。姿势随亲密度解锁。",

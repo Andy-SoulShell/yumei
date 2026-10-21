@@ -88,7 +88,7 @@ describe("voice.transcribe", () => {
         audioBase64: largeBase64,
         mimeType: "audio/webm",
       })
-    ).rejects.toThrow(/音频文件过大/);
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
   it("should accept valid input with default mimeType", async () => {

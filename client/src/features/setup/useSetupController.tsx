@@ -1,3 +1,5 @@
+import { useProductConfig } from "@/features/product/useProductConfig";
+import { acceptsUpload, uploadDescription } from "@shared/operationalConfig";
 import { apiErrorMessage } from "@/lib/errors";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
@@ -12,17 +14,11 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useLocation, useParams, useSearch } from "wouter";
 
-const ALLOWED_AVATAR_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "image/webp",
-];
-
-const MAX_AVATAR_SIZE = 10 * 1024 * 1024;
 /** 页面查询、草稿与操作流程；展示组件只消费此状态。 */
 export function useSetupController() {
   const { t } = useI18n();
+  const product = useProductConfig();
+  const uploads = product.raw?.uploads;
 
   const [, setLocation] = useLocation();
 
@@ -233,11 +229,15 @@ export function useSetupController() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (
-        !ALLOWED_AVATAR_TYPES.includes(file.type) ||
-        file.size > MAX_AVATAR_SIZE
-      ) {
-        toast.error(t("setup:chooseAJPGPNGGIFOrWebPImage"));
+      if (!uploads || !acceptsUpload(uploads.reference, file)) {
+        toast.error(
+          t(
+            "setup:chooseAJPGPNGGIFOrWebPImage",
+            uploads
+              ? uploadDescription(uploads.reference)
+              : { formats: "", maxMB: 0 }
+          )
+        );
         e.target.value = "";
         return;
       }
@@ -274,18 +274,14 @@ export function useSetupController() {
     e.target.value = "";
     if (!file || isUploadingAvatar) return;
 
-    // 格式校验
-    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
-      toast.error(t("setup:unsupportedFormatChooseJPGPNGGIFOrWebP"));
-      return;
-    }
-
-    // 大小校验
-    if (file.size > MAX_AVATAR_SIZE) {
+    if (!uploads || !acceptsUpload(uploads.avatar, file)) {
       toast.error(
-        t("setup:imageIsTooLargeMBChooseAnImage", {
-          size: (file.size / 1024 / 1024).toFixed(1),
-        })
+        t(
+          "setup:chooseAJPGPNGGIFOrWebPImage",
+          uploads
+            ? uploadDescription(uploads.avatar)
+            : { formats: "", maxMB: 0 }
+        )
       );
       return;
     }
@@ -440,6 +436,7 @@ export function useSetupController() {
 
   const displayAvatar = avatarPreview || existingAvatarUrl;
   return {
+    uploads,
     characters,
     presetLoading: !isEditing && discovery.isLoading,
     presetError: !isEditing ? discovery.error : null,

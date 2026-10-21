@@ -5,7 +5,7 @@ import { keyProvider } from "../_core/keyProvider";
 import { transcribeWithOpenAI } from "../_core/openaiWhisper";
 import { checkRateLimit } from "../_core/quota";
 import { protectedProcedure, router } from "../_core/trpc";
-import { decodeBase64Upload } from "../_core/uploads";
+import { decodeBase64Upload, enforceUpload } from "../_core/uploads";
 import { getTierLimits, isBillingEnforced } from "../billing";
 import { saveTranscription } from "../transcriptions";
 import { ensureAgeConfirmed } from "./guards";
@@ -18,7 +18,7 @@ export const voiceRouter = router({
     .input(
       z.object({
         audioBase64: z.string().min(1, "音频数据不能为空"),
-        mimeType: z.string().default("audio/webm"),
+        mimeType: z.string().min(1).optional(),
         language: z.string().optional(),
       })
     )
@@ -45,17 +45,11 @@ export const voiceRouter = router({
         }
       }
 
+      const mimeType = input.mimeType ?? policy.uploads.audio.mimeTypes[0];
       // 1. Base64 解码
       const audioBuffer = decodeBase64Upload(input.audioBase64);
 
-      // 2. 文件大小校验（16MB 限制）
-      const sizeMB = audioBuffer.length / (1024 * 1024);
-      if (sizeMB > 16) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `音频文件过大（${sizeMB.toFixed(1)}MB），最大支持 16MB`,
-        });
-      }
+      enforceUpload(policy.uploads.audio, audioBuffer, mimeType);
 
       const whisperApiKey = sttKey.value;
       if (!whisperApiKey)
@@ -78,7 +72,7 @@ export const voiceRouter = router({
           const response = await transcribeWithOpenAI(
             {
               signal,
-              audio: { data: audioBuffer, mimeType: input.mimeType },
+              audio: { data: audioBuffer, mimeType },
               language: input.language,
               prompt: policy.prompts.transcription,
             },
@@ -93,6 +87,14 @@ export const voiceRouter = router({
         }
       );
 
+      if (
+        !Number.isFinite(result.duration) ||
+        result.duration > policy.uploads.audio.maxDurationSeconds
+      )
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `录音时长不能超过 ${policy.uploads.audio.maxDurationSeconds} 秒`,
+        });
       const transcriptionId = await saveTranscription(ctx.user.id, result);
       // 7. 返回转写结果及仅由服务端签发的一次性行为凭据。
       return {

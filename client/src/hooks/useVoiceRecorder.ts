@@ -1,3 +1,4 @@
+import { useProductConfig } from "@/features/product/useProductConfig";
 /** 浏览器麦克风录音与资源管理，返回录音字节供业务层上传转写。 */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -17,6 +18,8 @@ interface VoiceRecorderResult {
  */
 export function useVoiceRecorder() {
   const { t } = useI18n();
+  const product = useProductConfig();
+  const rules = product.raw?.uploads.audio;
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -72,24 +75,21 @@ export function useVoiceRecorder() {
   // 开始录音
   /** 申请麦克风并按支持情况选择编码，开始收集音频片段。 */
   const startRecording = useCallback(async () => {
+    if (!rules) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          sampleRate: 16000,
+          sampleRate: rules.sampleRate,
         },
       });
       streamRef.current = stream;
 
       // 选择最佳编码格式
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : MediaRecorder.isTypeSupported("audio/webm")
-          ? "audio/webm"
-          : MediaRecorder.isTypeSupported("audio/mp4")
-            ? "audio/mp4"
-            : "";
+      const mimeType = rules.recordingMimeTypes.find(mime =>
+        MediaRecorder.isTypeSupported(mime)
+      );
 
       if (!mimeType) {
         toast.error(t("chat:recordingUnsupported"));
@@ -108,7 +108,7 @@ export function useVoiceRecorder() {
         }
       };
 
-      recorder.start(100); // 每 100ms 收集一次数据
+      recorder.start(rules.chunkMs); // 每 100ms 收集一次数据
       setIsRecording(true);
       setDuration(0);
 
@@ -119,11 +119,13 @@ export function useVoiceRecorder() {
 
       // 最大录音时长 60 秒
       maxDurationRef.current = setTimeout(() => {
-        toast.info(t("chat:recordingMaxDuration"));
+        toast.info(
+          t("chat:recordingMaxDuration", { seconds: rules.maxDurationSeconds })
+        );
         if (onMaxDurationRef.current) {
           onMaxDurationRef.current();
         }
-      }, 60000);
+      }, rules.maxDurationSeconds * 1000);
 
       // 触觉反馈
       if (navigator.vibrate) {
@@ -139,7 +141,7 @@ export function useVoiceRecorder() {
       }
       cleanup();
     }
-  }, [cleanup, t]);
+  }, [cleanup, t, rules]);
 
   // 停止录音并返回音频数据
   /** 停止录音并等待完整 Blob，未开始录音时返回 null。 */

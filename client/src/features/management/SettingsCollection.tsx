@@ -1,6 +1,7 @@
 /** 套餐、姿势、等级和快捷模板使用内容卡片与独立编辑区。 */
 import { Plus, Trash2, ArrowUp, ArrowDown, Search } from "lucide-react";
 import type { ProductConfig } from "@shared/productConfig";
+import { memoryLevelRule } from "@shared/memory";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -167,6 +168,7 @@ export function SettingsCollection({
     (kind === "poses" && item?.id === defaultId);
   const lastLevelReferenced =
     kind === "levels" &&
+    index === items.length - 1 &&
     (config.selfies.poses.some(p => p.minLevel >= items.length) ||
       config.memory.levelRules.some(p => p.minLevel >= items.length) ||
       Object.values(config.prompts.chat.relationshipStages).some(stages =>
@@ -267,7 +269,7 @@ export function SettingsCollection({
                         : String(row.emoji || "♡")}
                   </span>
                   <div className="flex gap-1">
-                    {row.id === defaultId && (
+                    {row.id !== undefined && row.id === defaultId && (
                       <Badge variant="secondary">默认</Badge>
                     )}
                     {count > 0 ? (
@@ -380,6 +382,59 @@ export function SettingsCollection({
                 : "末级仍被姿势、记忆或关系阶段引用，请先调整关联规则。"}
             </p>
           )}
+          {kind === "plans" && (
+            <p
+              className="rounded-xl bg-primary/5 p-4 text-sm leading-6"
+              aria-live="polite"
+            >
+              {config.billing.mode === "none"
+                ? "当前为自托管不限额模式：套餐身份用于展示，套餐计量限制不执行。"
+                : config.billing.mode === "free"
+                  ? `当前为免费模式：所有用户使用「${config.billing.plans.find(plan => plan.id === config.billing.defaultTierId)?.label["zh-CN"]}」。其他套餐不会因启用或填写价格而自动授予用户。`
+                  : `当前为订阅模式：${item.id === config.billing.defaultTierId ? "没有有效订阅或订阅失效时，用户回到此套餐。" : "用户需要有效订阅关联到此套餐，才会获得这些权益。"} 套餐顺序也决定升级推荐顺序。`}
+              {!item.enabled && " 此套餐已停用，新权益判断不会授予此套餐。"}
+            </p>
+          )}
+          {kind === "levels" &&
+            (() => {
+              const level = Number(item.level),
+                memory = memoryLevelRule(level, config.memory),
+                poses = config.selfies.poses.filter(
+                  pose => pose.enabled && pose.minLevel === level
+                ),
+                pace = config.characters.defaultBehavior.relationshipPace,
+                stage = [...config.prompts.chat.relationshipStages[pace]]
+                  .reverse()
+                  .find(stage => stage.minLevel <= level);
+              return (
+                <div
+                  className="space-y-2 rounded-xl bg-primary/5 p-4 text-sm leading-6"
+                  aria-live="polite"
+                >
+                  <p className="font-medium">
+                    达到 {String(item.requiredPoints)} 分后，进入第 {level} 级
+                  </p>
+                  <p>
+                    本级新解锁：
+                    {poses.map(pose => pose.label["zh-CN"]).join("、") ||
+                      "没有额外自拍姿势"}
+                    。
+                  </p>
+                  <p>
+                    {config.memory.enabled
+                      ? `记忆容量 ${memory.capacity} 条，普通回复召回 ${memory.recallCount} 条（继承第 ${memory.minLevel} 级起的规则）。`
+                      : "记忆功能关闭，容量规则暂不使用。"}
+                  </p>
+                  <p>
+                    默认关系节奏使用第 {stage?.minLevel ?? 1}{" "}
+                    级起的相处指令；不同角色按自己的关系节奏选择。
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    可在下方「一起决定体验的设置」中编辑解锁姿势、记忆能力和关系指令。
+                  </p>
+                </div>
+              );
+            })()}
           {groups[kind].map(group => (
             <section key={group.title} className="space-y-3 border-t pt-4">
               <h4 className="text-sm font-semibold">{group.title}</h4>

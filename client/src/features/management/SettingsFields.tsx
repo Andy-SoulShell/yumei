@@ -11,6 +11,7 @@ import {
 import { SettingsRecord } from "./SettingsRecord";
 import { TierLimitsEditor } from "./TierLimitsEditor";
 import type { TierLimits } from "@shared/productConfig";
+import { MemoryCapacityEditor } from "./MemoryCapacityEditor";
 
 export function SettingsFields({
   value,
@@ -58,7 +59,18 @@ export function SettingsFields({
                   {fieldLabel(field.split(".").at(-1)!)}
                 </h3>
               )}
-            {/^billing\.plans\.\d+\.limits$/.test(fullPath) ? (
+            {fullPath === "memory.levelRules" ? (
+              <MemoryCapacityEditor
+                value={current as ProductConfig["memory"]["levelRules"]}
+                schema={contract}
+                config={config}
+                issues={issues}
+                disabled={disabled}
+                onChange={next => onChange(setSetting(value, field, next))}
+                view={view}
+                onViewChange={onViewChange}
+              />
+            ) : /^billing\.plans\.\d+\.limits$/.test(fullPath) ? (
               <TierLimitsEditor
                 value={current as TierLimits}
                 schema={contract}

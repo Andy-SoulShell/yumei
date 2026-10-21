@@ -11,6 +11,7 @@ import { characterStatus, type Pane } from "./managementModel";
 import { discoveryPublicationReview } from "./officialEditor";
 import { productPublicationReview } from "./productReview";
 import type { DiscoveryDraft, ProductDraft } from "./types";
+import { ExperienceMap } from "./ExperienceMap";
 export function ContentOverview({
   content,
   product,
@@ -72,6 +73,7 @@ export function ContentOverview({
         </div>
         <Sparkles className="admin-welcome-art" aria-hidden="true" />
       </section>
+      <ExperienceMap disabled={busy} onNavigate={onNavigate} />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
           {

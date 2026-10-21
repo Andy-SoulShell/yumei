@@ -61,6 +61,12 @@ export function OfficialLibrary({
           新增角色
         </Button>
       </div>
+      <p className="rounded-xl bg-muted/25 p-4 text-sm leading-6">
+        <strong>角色内容 → 探索页或首页入口 → 用户创建自己的角色</strong>
+        <span className="mt-1 block text-xs text-muted-foreground">
+          公开控制探索页展示，首页精选需要单独编排。发布更新供后续创建使用，用户已创建的角色保留自己的资料与聊天。
+        </span>
+      </p>
       {pending > 0 && (
         <button
           disabled={busy}

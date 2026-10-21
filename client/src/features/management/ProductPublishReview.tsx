@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { productPublicationReview } from "./productReview";
 import { Changes } from "./DiscoveryPublishReview";
+import { settingsJourneys } from "./settingsRelations";
 export function ProductPublishReview({
   config,
   published,
@@ -70,6 +71,14 @@ export function ProductPublishReview({
                 {group.name} · {group.fields.length} 项变化
               </summary>
               <Changes fields={group.fields} />
+              {group.id in settingsJourneys && (
+                <p className="mt-3 rounded-lg bg-muted/30 p-3 text-xs leading-6 text-muted-foreground">
+                  {
+                    settingsJourneys[group.id as keyof typeof settingsJourneys]
+                      .scope
+                  }
+                </p>
+              )}
             </details>
           ))}
           {!review.changed && (

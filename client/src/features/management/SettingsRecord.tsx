@@ -3,6 +3,7 @@ import type { ProductConfig } from "@shared/productConfig";
 import { Badge } from "@/components/ui/badge";
 import { ConfigForm, fieldLabel, type FormSchema } from "./ConfigForm";
 import type { SettingsNavigation } from "./settingsModel";
+import { RewardRuleEditor } from "./RewardRuleEditor";
 const notificationNames: Record<string, string> = {
   "notifications:title.thinkingOfYou": "想念通知标题",
   "notifications:privateTitle": "隐私通知标题",
@@ -21,6 +22,7 @@ export function SettingsRecord({
   onChange,
   view,
   onViewChange,
+  config,
 }: {
   value: Record<string, unknown>;
   schema?: FormSchema;
@@ -80,21 +82,36 @@ export function SettingsRecord({
       {selected && (
         <section className="space-y-3 rounded-xl border p-4">
           <h3 className="font-semibold">{label(selected)}</h3>
-          <ConfigForm
-            key={selected}
-            flat
-            value={item}
-            schema={
-              schema?.properties?.[selected] ??
-              (typeof schema?.additionalProperties === "object"
-                ? schema.additionalProperties
-                : undefined)
-            }
-            path={`${path}.${selected}`}
-            issues={issues}
-            disabled={disabled}
-            onChange={next => onChange({ ...value, [selected]: next })}
-          />
+          {path === "intimacy.rules" ? (
+            <RewardRuleEditor
+              action={selected}
+              value={
+                item as ProductConfig["intimacy"]["rules"][keyof ProductConfig["intimacy"]["rules"]]
+              }
+              config={config}
+              schema={schema?.properties?.[selected]}
+              path={`${path}.${selected}`}
+              issues={issues}
+              disabled={disabled}
+              onChange={next => onChange({ ...value, [selected]: next })}
+            />
+          ) : (
+            <ConfigForm
+              key={selected}
+              flat
+              value={item}
+              schema={
+                schema?.properties?.[selected] ??
+                (typeof schema?.additionalProperties === "object"
+                  ? schema.additionalProperties
+                  : undefined)
+              }
+              path={`${path}.${selected}`}
+              issues={issues}
+              disabled={disabled}
+              onChange={next => onChange({ ...value, [selected]: next })}
+            />
+          )}
         </section>
       )}
     </div>

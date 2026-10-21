@@ -300,6 +300,38 @@ export function HomepageEditor({
     <>
       <fieldset disabled={busy} className="min-w-0 space-y-5">
         <legend className="sr-only">首页编排</legend>
+        <section
+          aria-label="首页内容之间的关系"
+          className="rounded-xl bg-muted/25 p-4 text-sm leading-6"
+        >
+          <h2 className="font-semibold">先挑选角色，再安排推荐入口</h2>
+          <p className="mt-2 text-xs text-muted-foreground">
+            精选决定首页推荐顺序，默认角色决定默认进入的角色，轮播是独立宣传入口，常见问题帮助用户理解产品。它们与官方角色草稿统一核对、一起发布。
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setTab("featured")}
+            >
+              安排推荐顺序
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setTab("display")}
+            >
+              设置默认入口
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setTab("slides")}
+            >
+              编辑宣传画面
+            </Button>
+          </div>
+        </section>
         <div className="admin-toolbar">
           <div
             className="flex flex-wrap gap-1"

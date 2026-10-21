@@ -53,6 +53,7 @@ function Probe({
       config={config}
       section={section}
       schema={schema.properties![section]}
+      rootSchema={schema}
       issues={issues}
       disabled={disabled}
       onChange={setConfig}
@@ -62,7 +63,7 @@ function Probe({
 async function tab(name: string) {
   const button = Array.from(
     container.querySelectorAll<HTMLButtonElement>('[role="tab"]')
-  ).find(item => item.textContent?.startsWith(name))!;
+  ).find(item => item.getAttribute("aria-label")?.startsWith(name))!;
   expect(button).toBeTruthy();
   await act(async () =>
     button.dispatchEvent(
@@ -71,20 +72,209 @@ async function tab(name: string) {
   );
 }
 async function change(
-  input: HTMLInputElement | HTMLTextAreaElement,
+  input: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement,
   value: string
 ) {
   await act(async () => {
     Object.getOwnPropertyDescriptor(
-      input instanceof HTMLTextAreaElement
-        ? HTMLTextAreaElement.prototype
-        : HTMLInputElement.prototype,
+      input instanceof HTMLSelectElement
+        ? HTMLSelectElement.prototype
+        : input instanceof HTMLTextAreaElement
+          ? HTMLTextAreaElement.prototype
+          : HTMLInputElement.prototype,
       "value"
     )!.set!.call(input, value);
     input.dispatchEvent(new Event("input", { bubbles: true }));
     input.dispatchEvent(new Event("change", { bubbles: true }));
   });
 }
+async function clickText(text: string, scope: ParentNode = document) {
+  const button = Array.from(
+    scope.querySelectorAll<HTMLButtonElement>("button")
+  ).find(item => item.textContent?.startsWith(text))!;
+  expect(button, text).toBeTruthy();
+  await act(async () => button.click());
+}
+it("merges related edits into the full draft and returns to the original task without losing changes", async () => {
+  await act(async () => root.render(<Probe section="memory" />));
+  await change(
+    container.querySelector<HTMLInputElement>('[aria-label="容量"]')!,
+    "55"
+  );
+  await clickText("记忆依赖的等级");
+  const dialog = document.querySelector('[role="dialog"]')!;
+  const name = Array.from(
+    dialog.querySelectorAll<HTMLInputElement>("input")
+  ).find(input => input.value === current.intimacy.levels[0].name["zh-CN"])!;
+  await change(name, "一起成长");
+  await clickText("完成，回到当前任务");
+  expect(current.memory.levelRules[0].capacity).toBe(55);
+  expect(current.intimacy.levels[0].name["zh-CN"]).toBe("一起成长");
+  expect(
+    container.querySelector<HTMLInputElement>('[aria-label="容量"]')!.value
+  ).toBe("55");
+  expect(current.billing).toEqual(productFixture.billing);
+  expect(productConfigSchema.safeParse(current).success).toBe(true);
+  await clickText("提取和召回的提示词");
+  expect(
+    document
+      .querySelector('[role="dialog"] [role="tab"][aria-selected="true"]')!
+      .getAttribute("aria-label")
+  ).toBe("记忆与语音提示");
+  await clickText("完成，回到当前任务");
+  await clickText("回复上下文预算");
+  expect(
+    document
+      .querySelector('[role="dialog"] [role="tab"][aria-selected="true"]')!
+      .getAttribute("aria-label")
+  ).toBe("上下文预算");
+});
+it("keeps malformed workflow text when a related editor closes and reopens", async () => {
+  await act(async () => root.render(<Probe section="selfies" />));
+  await clickText("图片服务");
+  const workflowTab = () =>
+    document.querySelector<HTMLButtonElement>(
+      '[role="dialog"] [role="tab"][aria-label^="文生图工作流"]'
+    )!;
+  await act(async () =>
+    workflowTab().dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+    )
+  );
+  await change(
+    document.querySelector<HTMLTextAreaElement>(
+      '[aria-label="工作流节点 JSON"]'
+    )!,
+    "{unfinished"
+  );
+  await clickText("完成，回到当前任务");
+  expect(productConfigSchema.safeParse(current).success).toBe(false);
+  await clickText("图片服务");
+  await act(async () =>
+    workflowTab().dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+    )
+  );
+  expect(
+    document.querySelector<HTMLTextAreaElement>(
+      '[aria-label="工作流节点 JSON"]'
+    )!.value
+  ).toBe("{unfinished");
+});
+it("creates a capacity boundary for an inherited level without modifying earlier levels", async () => {
+  current.memory.levelRules = [{ minLevel: 1, capacity: 20, recallCount: 3 }];
+  await act(async () => root.render(<Probe section="memory" />));
+  await change(
+    container.querySelector<HTMLSelectElement>(
+      '[aria-label="查看哪个等级的记忆能力"]'
+    )!,
+    "2"
+  );
+  await clickText("从第 2 级开始单独设置");
+  await change(
+    container.querySelector<HTMLInputElement>('[aria-label="容量"]')!,
+    "35"
+  );
+  expect(current.memory.levelRules).toEqual([
+    { minLevel: 1, capacity: 20, recallCount: 3 },
+    { minLevel: 2, capacity: 35, recallCount: 3 },
+  ]);
+  expect(productConfigSchema.safeParse(current).success).toBe(true);
+});
+it("evaluates opt-in, quiet hours, active chat and unread backoff using the current draft", async () => {
+  current.proactive.enabled = true;
+  Object.assign(current.proactive.defaults, {
+    timeZone: "UTC",
+    quietStart: 22 * 60,
+    quietEnd: 8 * 60,
+    frequencyDays: 1,
+  });
+  await act(async () => root.render(<Probe section="proactive" />));
+  const output = () => container.querySelector("output")!.textContent;
+  expect(output()).toContain("未获得联系资格");
+  const switchByText = (name: string) => {
+    const label = Array.from(container.querySelectorAll("label")).find(
+      item => item.textContent === name
+    )!;
+    return document.getElementById(label.htmlFor) as HTMLButtonElement;
+  };
+  await change(
+    container.querySelector<HTMLInputElement>(
+      '[aria-label="检查时间（UTC）"]'
+    )!,
+    "2026-10-21T23:00"
+  );
+  await act(async () => switchByText("模拟用户已主动开启").click());
+  expect(output()).toContain("处于免打扰");
+  await change(
+    container.querySelector<HTMLInputElement>(
+      '[aria-label="检查时间（UTC）"]'
+    )!,
+    "2026-10-21T12:00"
+  );
+  expect(output()).toContain("已满足时间与授权条件");
+  await act(async () => {
+    const date = container.querySelector<HTMLInputElement>(
+      '[aria-label="检查时间（UTC）"]'
+    )!;
+    date.value = "2026-10-21T23:00";
+    date.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  expect(output()).toContain("处于免打扰");
+  await change(
+    container.querySelector<HTMLInputElement>(
+      '[aria-label="检查时间（UTC）"]'
+    )!,
+    "2026-10-21T12:00"
+  );
+  await act(async () => switchByText("模拟正在聊天").click());
+  expect(output()).toContain("正在聊天");
+  await act(async () => switchByText("模拟正在聊天").click());
+  await change(
+    container.querySelector<HTMLInputElement>(
+      '[aria-label="上次联系（UTC，可留空）"]'
+    )!,
+    "2026-10-20T12:00"
+  );
+  await change(
+    container.querySelector<HTMLInputElement>('[aria-label="未读联系数"]')!,
+    "3"
+  );
+  expect(output()).toContain("退避间隔未满足");
+  expect(current.proactive.defaults.proactiveEnabled).toBe(false);
+});
+it("shows live level unlocks and rejects a disallowed upload in the rule rehearsal", async () => {
+  await act(async () => root.render(<Probe section="intimacy" />));
+  expect(container.textContent).not.toContain(
+    "末级仍被姿势、记忆或关系阶段引用"
+  );
+  const library = container.querySelector('[aria-label="编辑等级"]')!;
+  expect(library).not.toBeNull();
+  expect(
+    Array.from(container.querySelectorAll('[role="tabpanel"] button')).filter(
+      item => item.textContent?.includes("默认")
+    ).length
+  ).toBe(0);
+  const stage = current.intimacy.levels[1];
+  await change(
+    container.querySelector<HTMLInputElement>('[aria-label="模拟累计积分"]')!,
+    String(stage.requiredPoints)
+  );
+  expect(container.querySelector("output")!.textContent).toContain(
+    `2 级 · ${stage.name["zh-CN"]}`
+  );
+  expect(current).toEqual(productFixture);
+  await act(async () => root.render(<Probe section="uploads" />));
+  await change(
+    container.querySelector<HTMLInputElement>(
+      '[aria-label="模拟文件大小（MiB）"]'
+    )!,
+    "200"
+  );
+  expect(container.querySelector("output")!.textContent).toContain(
+    "文件不符合"
+  );
+});
 it.each(Object.keys(settingsPanels) as SettingsSection[])(
   "opens every task in %s with real controls and a draft-only preview",
   async section => {

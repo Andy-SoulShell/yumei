@@ -410,6 +410,7 @@ function ProductWorkspace({
                 view={view}
                 onViewChange={onViewChange}
                 config={value}
+                rootSchema={productForm}
                 schema={productForm.properties?.[section]}
                 issues={fieldIssues}
                 disabled={busy}

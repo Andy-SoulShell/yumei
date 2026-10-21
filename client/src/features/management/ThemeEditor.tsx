@@ -143,6 +143,15 @@ export function ThemeEditor({
   };
   return (
     <div className="space-y-6">
+      <section
+        aria-label="主题如何生效"
+        className="rounded-xl bg-muted/25 p-4 text-sm leading-6"
+      >
+        <h2 className="font-semibold">选外观 → 开放用户选择 → 决定默认主题</h2>
+        <p className="mt-2 text-muted-foreground">
+          配色决定视觉，名称帮助用户选择。启用的主题才会出现在选择器中；默认主题用于没有有效选择的用户，已有有效选择会保留。明暗预览分别对应两种显示模式。
+        </p>
+      </section>
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="font-semibold">主题库</h2>

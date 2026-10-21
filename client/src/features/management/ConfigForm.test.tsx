@@ -6,7 +6,12 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { themesConfigSchema, productConfigSchema } from "@shared/productConfig";
 import { productFixture } from "../../../../server/testProductConfig";
-import { ConfigForm, type FormSchema } from "./ConfigForm";
+import {
+  ConfigForm,
+  semanticFieldLabel,
+  formOptionLabel,
+  type FormSchema,
+} from "./ConfigForm";
 import { ThemeEditor } from "./ThemeEditor";
 import { ImagePreview } from "./ImagePreview";
 import { contentTextSchema } from "@shared/discovery";
@@ -65,6 +70,25 @@ async function choose(trigger: HTMLElement, label: string) {
     )
   );
 }
+it("names fields by their use instead of reusing ambiguous leaf labels", () => {
+  expect(semanticFieldLabel("prompts.chat.defaultLanguage")).toBe(
+    "未指定回复语言时的指令"
+  );
+  expect(semanticFieldLabel("experience.playback.defaultLanguage")).toBe(
+    "默认朗读语言"
+  );
+  expect(semanticFieldLabel("memory.recall.explicitUsesCapacity")).toBe(
+    "明确回忆时使用完整容量"
+  );
+  expect(semanticFieldLabel("prompts.image.reference")).toBe(
+    "有参考图的自拍模板"
+  );
+  expect(semanticFieldLabel("site.links.support")).toBe("客服与帮助入口");
+  expect(semanticFieldLabel("emotion.deltas.support")).toBe(
+    "用户需要支持时的情绪变化"
+  );
+  expect(formOptionLabel("support")).toBe("需要支持");
+});
 it("edits one language at a time and preserves translations while switching", async () => {
   let copy = { "zh-CN": "中文标题", en: "English title" };
   function Probe() {
@@ -101,6 +125,11 @@ it("edits one language at a time and preserves translations while switching", as
   await act(async () => language("English").click());
   await change(container.querySelector<HTMLInputElement>("input")!, "");
   expect(copy).toEqual({ "zh-CN": "中文标题" });
+  expect(
+    container
+      .querySelector<HTMLInputElement>("input")!
+      .getAttribute("aria-invalid")
+  ).toBe("false");
 });
 it("opens the original image without changing its source or editing the draft", async () => {
   await act(async () =>

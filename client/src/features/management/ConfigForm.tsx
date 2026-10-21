@@ -241,7 +241,7 @@ const labels: Record<string, string> = {
   baseline: "基准分数",
   minScore: "分数下限",
   maxScore: "分数上限",
-  recoveryMs: "恢复周期（毫秒）",
+  recoveryMs: "恢复时间尺度（毫秒）",
   hurtDurationMs: "受伤状态持续（毫秒）",
   hurtThreshold: "受伤状态阈值",
   deltas: "情绪变化分数",
@@ -262,7 +262,7 @@ const labels: Record<string, string> = {
   notifications: "通知数量",
   searchPreviewChars: "搜索摘要字数",
   maxSearchChars: "搜索词上限",
-  playback: "浏览器朗读",
+  playback: "朗读与播放",
   speeds: "可选倍速",
   defaultSpeed: "默认倍速",
   browserRate: "浏览器基础语速",
@@ -333,7 +333,7 @@ const labels: Record<string, string> = {
   pinnedBonus: "置顶加分",
   recall: "记忆召回",
   maxChars: "召回文本预算",
-  explicitUsesCapacity: "主动记录占用容量",
+  explicitUsesCapacity: "明确回忆时使用完整容量",
   maxAttempts: "最大尝试次数",
   retryBaseMs: "首次重试间隔",
   retryMaxMs: "重试间隔上限",
@@ -415,6 +415,25 @@ export function fieldLabel(key: string) {
     /（(?:毫秒|字节|秒|分钟|Hz|天|本地分钟)）$/,
     ""
   );
+}
+/** 同名字段在不同业务阶段有不同含义，不用叶子名称推断用户任务。 */
+export function semanticFieldLabel(path: string) {
+  const labelsByPath: Record<string, string> = {
+    "prompts.chat.defaultLanguage": "未指定回复语言时的指令",
+    "prompts.image.reference": "有参考图的自拍模板",
+    "prompts.image.text": "无参考图的自拍模板",
+    "prompts.image.couple": "合照生成模板",
+    "prompts.chat.cause.support": "用户需要支持时的指令",
+    "emotion.deltas.support": "用户需要支持时的情绪变化",
+    "experience.operations.maxDays": "最多可统计天数",
+    "proactive.unreadBackoff.maxDays": "未读退避最长间隔",
+    "site.links.support": "客服与帮助入口",
+    "intimacy.rules.text_message.bonusThreshold": "额外分的文字长度门槛",
+    "intimacy.rules.voice_message.bonusThreshold": "额外分的语音时长门槛",
+    "intimacy.rules.daily_first.bonusThreshold": "额外分的连续互动天数",
+    "intimacy.rules.long_conversation.bonusThreshold": "深入对话轮次门槛",
+  };
+  return labelsByPath[path] ?? fieldLabel(path.split(".").at(-1)!);
 }
 function normalized(
   schema: FormSchema | undefined,
@@ -514,7 +533,10 @@ const optionLabels: Record<string, string> = {
   event: "事件",
   relationship: "关系",
 };
-export const formOptionLabel = (value: string) => optionLabels[value] ?? value;
+export const formOptionLabel = (value: string) =>
+  optionLabels[value] ??
+  (value === "support" ? "需要支持" : labels[value]) ??
+  value;
 const longField = (path: string, value: unknown) =>
   typeof value === "string" &&
   (value.length > 100 ||
@@ -555,9 +577,7 @@ export function ConfigForm({
         ? key === "light"
           ? "浅色背景"
           : "深色背景"
-        : path === "prompts.chat.defaultLanguage"
-          ? "未指定回复语言时的指令"
-          : fieldLabel(key),
+        : semanticFieldLabel(path),
     s = normalized(schema, value);
   const options = { choices, onUpload, uploadAccept, issues, currency, flat };
   const issue = issues?.[path];
@@ -802,7 +822,11 @@ export function ConfigForm({
           <ConfigForm
             {...options}
             value={String(object[selected] ?? "")}
-            schema={languageSchema}
+            schema={
+              selected === "zh-CN"
+                ? languageSchema
+                : { ...languageSchema, minLength: 0 }
+            }
             path={`${path}.${selected}`}
             depth={depth + 1}
             disabled={disabled}

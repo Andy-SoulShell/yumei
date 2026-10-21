@@ -4,6 +4,7 @@ import type { FormSchema, FieldChoice } from "./ConfigForm";
 export type SettingsSection = Exclude<keyof ProductConfig, "themes">;
 export type SettingsViewState = {
   task?: string;
+  buffers?: Record<string, string>;
   selections: Record<string, string>;
   searches: Record<string, string>;
 };
@@ -434,6 +435,15 @@ export function settingsChoices(
   config: ProductConfig,
   path: string
 ): FieldChoice[] | undefined {
+  if (
+    /^(selfies\.poses\.\d+|prompts\.chat\.relationshipStages\.(gradual|natural)\.\d+)\.minLevel$/.test(
+      path
+    )
+  )
+    return config.intimacy.levels.map(item => ({
+      value: String(item.level),
+      label: `${item.level} 级 · ${item.name["zh-CN"]}（${item.requiredPoints} 分）`,
+    }));
   if (/^billing\.(defaultTierId|selfHostedTierId)$/.test(path))
     return config.billing.plans
       .filter(item => item.enabled)

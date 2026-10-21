@@ -580,3 +580,39 @@ it("keeps the selected settings task and plan after saving and reloading its rev
     "保存后继续编辑的套餐"
   );
 });
+it("saves changes from a related editor and the original task in one full draft without publishing", async () => {
+  const state = await mount("product", "save");
+  await click("记忆规则");
+  await change(
+    container.querySelector<HTMLInputElement>('[aria-label="容量"]')!,
+    "55"
+  );
+  const related = Array.from(
+    container.querySelectorAll<HTMLButtonElement>("button")
+  ).find(item => item.textContent?.startsWith("记忆依赖的等级"))!;
+  await act(async () => related.click());
+  const dialog = document.querySelector('[role="dialog"]')!;
+  const name = Array.from(
+    dialog.querySelectorAll<HTMLInputElement>("input")
+  ).find(
+    item => item.value === state.product.config.intimacy.levels[0].name["zh-CN"]
+  )!;
+  await change(name, "共同成长的阶段");
+  await click("完成，回到当前任务");
+  await click("保存草稿");
+  await act(async () => {
+    state.write.resolve();
+    state.reload.resolve();
+  });
+  await waitFor(() => !button("记忆规则").disabled);
+  expect(state.product.config.memory.levelRules[0].capacity).toBe(55);
+  expect(state.product.config.intimacy.levels[0].name["zh-CN"]).toBe(
+    "共同成长的阶段"
+  );
+  expect(state.product.config.billing).toEqual(productFixture.billing);
+  expect(state.product.published).toEqual(productFixture);
+  expect(state.calls).not.toContain("productConfig.admin.publish");
+  expect(
+    container.querySelector<HTMLInputElement>('[aria-label="容量"]')!.value
+  ).toBe("55");
+});

@@ -610,15 +610,6 @@
   :where(:root[data-glass="experimental"]) .chat-bubble-user {
     box-shadow: inset 0 1px 0 #ffffff40;
   }
-  /* 图片保留原色，只让覆盖照片的文字托盘使用深色玻璃，稳定白字对比。 */
-  :where(:root[data-glass="experimental"]) .character-card-content {
-    inset-inline: 10px;
-    bottom: 10px;
-    padding: 10px;
-    border-radius: 14px;
-    background: var(--glass-label-fill);
-    box-shadow: inset 0 0 0 1px #ffffff26;
-  }
   /* Portal 浮层也统一覆盖：对话框、确认框、抽屉、搜索、菜单和选择器。 */
   :where(:root[data-glass="experimental"]) .floating-surface {
     background: var(--glass-popup-fill);
@@ -707,6 +698,25 @@
     backdrop-filter: none;
   }
   @media (max-width: 900px) {
+    /* 手机卡片沿用共用的照片渐变，只收敛玻璃模式的边角和标记。 */
+    :where(:root[data-glass="experimental"]) .character-card {
+      border-radius: 16px;
+    }
+    :where(:root[data-glass="experimental"])
+      :is(.character-style, .character-ai) {
+      border: 0;
+      border-radius: 999px;
+      background: #17121e99;
+    }
+    :where(:root[data-glass="experimental"])
+      .character-card:hover
+      .character-card-image {
+      transform: none;
+    }
+    /* 详情布局由共用样式负责，玻璃模式仅提高文字区底色的稳定性。 */
+    :where(:root[data-glass="experimental"]) .character-detail {
+      background: color-mix(in oklch, var(--card) 94%, transparent);
+    }
     /* 底栏保留轻微透色，避免照片和卡片文字穿透导航标签。 */
     :where(:root[data-glass="experimental"]) .app-bottom-nav {
       --glass-nav-fill: color-mix(in oklch, var(--card) 92%, transparent);

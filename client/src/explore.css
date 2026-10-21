@@ -971,6 +971,7 @@
 .character-ai {
   color: #e9dbf6;
 }
+/* 卡片文字在所有尺寸与材质下共用渐变底图，不再叠加独立面板。 */
 .character-card-content {
   position: absolute;
   left: 16px;
@@ -980,6 +981,10 @@
   flex-direction: column;
   align-items: stretch;
   gap: 6px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 .character-name {
   display: flex;
@@ -1083,7 +1088,7 @@
   height: 100%;
   position: absolute;
   object-fit: cover;
-  object-position: 50% 20%;
+  object-position: center top;
 }
 .detail-style {
   position: absolute;
@@ -1640,34 +1645,6 @@
     width: 100%;
     margin-left: 24px;
   }
-  .character-detail {
-    width: calc(100% - 24px);
-    max-width: calc(100% - 24px);
-    max-height: 90dvh;
-    overflow-y: auto;
-    grid-template-columns: 1fr;
-    border-radius: 17px;
-  }
-  .detail-portrait {
-    min-height: 230px;
-  }
-  .detail-portrait > img {
-    object-position: 50% 25%;
-  }
-  .detail-content {
-    padding: 23px;
-    gap: 15px;
-  }
-  .detail-content [data-slot="dialog-header"] {
-    text-align: left;
-  }
-  .detail-content [data-slot="dialog-title"] {
-    font-size: 26px;
-    margin-bottom: 8px;
-  }
-  .detail-disclosure {
-    font-size: 10px;
-  }
   .hub-page {
     padding: 26px 16px;
   }
@@ -1687,6 +1664,52 @@
   }
   .conversation-name {
     font-size: 13px;
+  }
+}
+/* 两种材质共用手机角色详情布局，照片与操作区都避开系统安全区。 */
+@media (max-width: 900px) {
+  .character-detail[data-slot="dialog-content"] {
+    top: calc(
+      (var(--app-height) + var(--safe-area-top) - var(--safe-area-bottom)) / 2
+    );
+    width: calc(100% - 40px);
+    max-width: 400px;
+    max-height: calc(
+      var(--app-height) - var(--safe-area-top) - var(--safe-area-bottom) - 32px
+    );
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+    border-radius: 24px;
+  }
+  .character-detail [data-slot="dialog-close"] {
+    top: 12px;
+    right: 12px;
+  }
+  .detail-portrait {
+    height: clamp(140px, 30dvh, 280px);
+    min-height: 0;
+  }
+  .detail-content {
+    min-height: 0;
+    gap: 12px;
+    padding: 20px;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scroll-padding-block: 16px;
+  }
+  .detail-content [data-slot="dialog-header"] {
+    text-align: left;
+  }
+  .detail-content [data-slot="dialog-title"] {
+    margin-bottom: 4px;
+    font-size: 24px;
+  }
+  .detail-content [data-slot="dialog-description"] {
+    line-height: 1.6;
+  }
+  .detail-content > [data-slot="button"] {
+    min-height: 44px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -101,6 +101,7 @@ DialogOverlay.displayName = "DialogOverlay";
 /** 组合弹窗主体、关闭按钮和输入法 Escape 保护。 */
 function DialogContent({
   className,
+  overlayClassName,
   children,
   showCloseButton = true,
   onEscapeKeyDown,
@@ -109,6 +110,7 @@ function DialogContent({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
+  overlayClassName?: string;
 }) {
   const { t } = useI18n();
   const { isComposing } = useDialogComposition();
@@ -133,7 +135,7 @@ function DialogContent({
 
   return (
     <DialogPortal data-slot="dialog-portal">
-      <DialogOverlay />
+      <DialogOverlay className={overlayClassName} />
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(

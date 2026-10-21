@@ -518,7 +518,11 @@ export async function cleanupExpiredTrash(userId: string): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
 
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const sevenDaysAgo = new Date(
+    Date.now() -
+      (await getPublishedProductConfig()).runtime.maintenance
+        .companionTrashRetentionMs
+  );
 
   const expired = await db
     .select({ id: girlfriends.id })

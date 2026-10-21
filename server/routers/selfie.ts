@@ -41,7 +41,7 @@ export const selfieRouter = router({
     .input(
       z.object({
         conversationId: z.number(),
-        userContext: z.string().max(8_000), // 与聊天输入框上限一致，保留完整画面要求
+        userContext: z.string().max(32_000), // 与聊天输入框上限一致，保留完整画面要求
         generationMode: z.enum(["reference", "text"]).default("reference"),
         // 亲密度解锁的姿势 id（shared/selfiePoses.ts）
         poseId: z.string().optional(),
@@ -56,12 +56,17 @@ export const selfieRouter = router({
         conversationId: z.number(),
         userPhotoBase64: z.string().min(1),
         userPhotoMimeType: z.string(),
-        userContext: z.string().max(8_000).optional(),
+        userContext: z.string().max(32_000).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       ensureAgeConfirmed(ctx.user);
       const policy = await getPublishedProductConfig();
+      if ((input.userContext?.length ?? 0) > policy.runtime.chat.maxInputChars)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `场景描述最多 ${policy.runtime.chat.maxInputChars} 字符`,
+        });
       await checkRateLimit(ctx.user.id, "selfie", policy);
 
       const conversation = await getConversation(
@@ -86,10 +91,14 @@ export const selfieRouter = router({
       }
 
       // 合照权限由当前套餐决定，用户密钥或自托管模式除外。
-      const imageProvider = await resolveImageProvider(ctx.user.id);
+      const imageProvider = await resolveImageProvider(ctx.user.id, policy);
       const byokFal = imageProvider.isByok;
       const coupleTier = await getTierLimits(ctx.user.id, policy);
-      if (isBillingEnforced() && !byokFal && !coupleTier.limits.couplePhoto) {
+      if (
+        isBillingEnforced(policy) &&
+        !byokFal &&
+        !coupleTier.limits.couplePhoto
+      ) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "UPGRADE_REQUIRED",
@@ -120,7 +129,7 @@ export const selfieRouter = router({
 
       const fileKey = `couple-${ctx.user.id}-${nanoid()}.png`;
       const meter: GenerationMeter | undefined =
-        isBillingEnforced() && !byokFal
+        isBillingEnforced(policy) && !byokFal
           ? coupleTier.limits.dailySelfies !== null
             ? {
                 name: METERS.selfie,
@@ -147,7 +156,9 @@ export const selfieRouter = router({
         meter,
         outputKey: fileKey,
         temporaryKey: photoKey,
-        timeoutMs: Number(process.env.COMFYUI_TIMEOUT_MS || 600_000) + 180_000,
+        timeoutMs:
+          policy.runtime.image.comfyuiTimeoutMs +
+          policy.runtime.image.reservationGraceMs,
       });
       const started = Date.now();
       let providerCompleted = false;
@@ -157,17 +168,21 @@ export const selfieRouter = router({
           photoBuffer,
           input.userPhotoMimeType
         );
-        const imageBuffer = await generateProviderImage(imageProvider, {
-          prompt,
-          mode: "reference",
-          references: [
-            {
-              key: girlfriend.referenceImageKey,
-              url: girlfriend.referenceImageUrl,
-            },
-            { key: photoKey, url: userPhotoUrl },
-          ],
-        });
+        const imageBuffer = await generateProviderImage(
+          imageProvider,
+          {
+            prompt,
+            mode: "reference",
+            references: [
+              {
+                key: girlfriend.referenceImageKey,
+                url: girlfriend.referenceImageUrl,
+              },
+              { key: photoKey, url: userPhotoUrl },
+            ],
+          },
+          policy
+        );
         providerCompleted = true;
         const { url: storedUrl } = await storagePut(
           fileKey,
@@ -216,7 +231,12 @@ export const selfieRouter = router({
         await recordGenerationTelemetry(requestId, ctx.user.id, {
           promptVersion: `product-config/${policy.revision}:image`,
           provider: imageProvider.name,
-          model: imageGenerationModel(imageProvider.name, "reference", 2),
+          model: imageGenerationModel(
+            imageProvider.name,
+            "reference",
+            2,
+            policy
+          ),
           isByok: imageProvider.isByok,
           durationMs: Date.now() - started,
           inputTokens: null,
@@ -235,8 +255,9 @@ export const selfieRouter = router({
 
   /** 读取当前用户的剩余图片额度与 Provider 能力，供相机入口显示。 */
   quota: protectedProcedure.query(async ({ ctx }) => {
+    const policy = await getPublishedProductConfig();
     const keys = await keyProvider.describeUserKeys(ctx.user.id);
-    if (!isBillingEnforced() || keys.fal?.isSet === true) {
+    if (!isBillingEnforced(policy) || keys.fal?.isSet === true) {
       return {
         unlimited: true as const,
         used: 0,
@@ -245,7 +266,7 @@ export const selfieRouter = router({
         period: null,
       };
     }
-    const { limits } = await getTierLimits(ctx.user.id);
+    const { limits } = await getTierLimits(ctx.user.id, policy);
     if (limits.dailySelfies === null && limits.monthlySelfies === null)
       return {
         unlimited: true as const,

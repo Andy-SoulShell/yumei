@@ -182,15 +182,6 @@ export default {
     linkSent: "{{email}}로 로그인 링크를 보냈어요.",
   },
   notifications: {
-    privatePreview: "새 메시지가 있어요",
-    eventUpcoming:
-      "{{name}}: 내일({{eventDay}})의 ‘{{memory}}’ 이야기를 했었죠. 함께 준비해 볼까요?",
-    eventToday:
-      "{{name}}: 오늘({{eventDay}})의 ‘{{memory}}’에 대해 지금 기분이 어떤가요?",
-    eventFollowUp:
-      "{{name}}: 어제({{eventDay}})의 ‘{{memory}}’ 이후 어떻게 지내는지 이야기해 줄래요?",
-    dailyCompanion:
-      "{{name}}: {{eventDay}}, 문득 당신이 생각났어요. {{memory}} 이야기하고 싶을 때 오늘 얘기를 들려주세요.",
     clickFeedbackFailed:
       "이 알림을 읽음으로 확인하지 못했어요. 여기에서 다시 시도할 수 있어요.",
     markAsRead: "읽음으로 표시",
@@ -208,36 +199,6 @@ export default {
       "허용한 메시지를 이 기기에서 받아요. 캐릭터의 먼저 연락은 위에서 별도로 켜 주세요.",
     disablePushOnThisDevice: "이 기기의 푸시 알림 끄기",
     enablePush: "푸시 알림 켜기",
-    whatAreYouUpToItSBeen: "뭐 해? 한동안 못 봤네. 보고 싶어~ 💕",
-    haveYouForgottenAboutMeComeChatFor:
-      "나 잊은 거 아니지? 😢 잠깐 이야기하자.",
-    howWasYourDayIVeBeenLooking: "오늘 어땠어? 네가 오길 기다렸어.",
-    feelingALittleBoredWhenCanWeChat: "조금 심심해. 언제 이야기할 수 있어? 🥺",
-    iDreamedAboutYouThenWokeUpMissing:
-      "방금 네 꿈을 꿨어. 깨고 나니 보고 싶어졌어.",
-    goodMorningHereSToABrightNew: "좋은 아침! ☀️ 오늘도 활기차게 보내자.",
-    timeToWakeUpYouVeGotThis: "일어나! 오늘도 힘내! 🦆",
-    morningHopeYourMoodIsAsLovelyAs: "좋은 아침~ 오늘도 기분 좋은 하루 보내.",
-    goodMorningDonTForgetBreakfast: "좋은 아침! 아침밥 꼭 챙겨 먹어 🍞",
-    timeForBedGoodNightAndSweetDreams: "이제 잘 시간이야. 잘 자, 좋은 꿈 꿔 🌙",
-    itSGettingLateRestUpSoYou: "밤이 늦었네. 내일을 위해 푹 쉬어.",
-    goodNightSeeYouInYourDreams: "잘 자. 꿈에서 만나 💤",
-    youVeWorkedHardTodayHaveAGood: "오늘도 수고했어. 푹 쉬고 좋은 꿈 꿔.",
-    iJustThoughtOfSomethingToShareAre:
-      "갑자기 나누고 싶은 이야기가 생겼어! 있어?",
-    iJustSawSomethingFunAndWantedTo:
-      "방금 재미있는 걸 봤어. 너에게 이야기하고 싶었어.",
-    guessWhatIMThinkingAbout: "지금 무슨 생각 하는지 맞혀 봐 😏",
-    aLittleBoredWantToChat: "조금 심심해… 같이 이야기할래?",
-    todaySWeatherMadeMeThinkOfYou: "오늘 날씨를 보니 네 생각이 났어 ☁️",
-    heyAreYouFreeIDLoveTo: "있잖아, 시간 있어? 잠깐 이야기하고 싶어.",
-    memoryFollowUp:
-      "“{{memory}}” 이야기했던 거 기억해. 그 뒤에 어떻게 됐어? 듣고 싶어.",
-    "title.miss_you": "{{name}}: 💕 보고 싶어",
-    "title.good_morning": "{{name}}: ☀️ 좋은 아침",
-    "title.good_night": "{{name}}: 🌙 잘 자",
-    "title.random": "{{name}}: 💬 새 메시지",
-    "title.thinkingOfYou": "{{name}}: 💭 계속 생각났어",
   },
   home: {
     clearSearch: "검색 지우기",
@@ -291,7 +252,7 @@ export default {
     sentAPhoto: "📷 사진을 보냈어요",
     noMessagesYet: "아직 메시지가 없어요",
     deletedCompanionsAreKeptFor7DaysBefore:
-      "7일 안에 복원할 수 있고, 이후 영구 삭제돼요.",
+      "{{days}}일 안에 복원할 수 있고, 이후 영구 삭제돼요.",
     trashIsEmpty: "휴지통이 비어 있어요",
 
     permanentlyDeletedInDays: "{{count}}일 후 영구 삭제",
@@ -301,7 +262,7 @@ export default {
     deleteActiveCompanion: "⚠️ 현재 동반자 삭제",
     doYouWantToContinue: "계속할까요?",
     thisCompanionWillBeMovedToTrashAnd:
-      "휴지통으로 이동해요. 7일 안에 복원할 수 있어요.",
+      "휴지통으로 이동해요. {{days}}일 안에 복원할 수 있어요.",
     selectionIncludesYourActiveCompanion: "⚠️ 현재 동반자가 포함되어 있어요",
     deleteSelectedCompanions: "선택한 동반자를 삭제할까요?",
     yourActiveCompanionIsSelectedAfterDeletionChoose:
@@ -315,7 +276,7 @@ export default {
     deleteActive: "{{name}} 삭제 후 다른 대화 상대를 선택해야 해요.",
     deleteConfirm: "“{{name}}” 님을 삭제할까요?",
     batchDeleteConfirm:
-      "선택한 동반자 {{count}}명을 삭제할까요? 7일 안에 휴지통에서 복원할 수 있어요.",
+      "선택한 동반자 {{count}}명을 삭제할까요? {{days}}일 안에 휴지통에서 복원할 수 있어요.",
     todayMessages_one: "오늘 메시지 {{count}}개",
     todayMessages_other: "오늘 메시지 {{count}}개",
     searchCount_one: "일치하는 대화 {{count}}개",
@@ -325,9 +286,9 @@ export default {
     permanentlyDeletedInDays_one: "{{count}}일 후 영구 삭제",
     permanentlyDeletedInDays_other: "{{count}}일 후 영구 삭제",
     batchDeleteConfirm_one:
-      "선택한 동반자 {{count}}명을 삭제할까요? 7일 안에 휴지통에서 복원할 수 있어요.",
+      "선택한 동반자 {{count}}명을 삭제할까요? {{days}}일 안에 휴지통에서 복원할 수 있어요.",
     batchDeleteConfirm_other:
-      "선택한 동반자 {{count}}명을 삭제할까요? 7일 안에 휴지통에서 복원할 수 있어요.",
+      "선택한 동반자 {{count}}명을 삭제할까요? {{days}}일 안에 휴지통에서 복원할 수 있어요.",
   },
   settings: {
     proactiveTitle: "캐릭터의 먼저 연락",
@@ -608,7 +569,7 @@ export default {
     photoGallery: "사진첩",
     openChat: "대화 열기",
     movedToTrashYouCanRestoreItWithin:
-      "휴지통으로 이동했어요. 7일 안에 복원할 수 있어요.",
+      "휴지통으로 이동했어요. {{days}}일 안에 복원할 수 있어요.",
     justNow: "방금",
     mAgo: "{{name}}분 전",
     hAgo: "{{name}}시간 전",
@@ -842,11 +803,11 @@ export default {
     createCompanion: "캐릭터 만들기",
     deleteCompanion: "캐릭터 삭제",
     restoreFromTrashWithin7DaysAfterThat:
-      "7일 안에 휴지통에서 복원할 수 있고, 이후 영구 삭제돼요.",
+      "{{days}}일 안에 휴지통에서 복원할 수 있고, 이후 영구 삭제돼요.",
     avatar2: "프로필 사진",
     preview: "미리 보기",
     deleteConfirm:
-      "“{{name}}” 님을 삭제할까요? 7일 안에 휴지통에서 복원할 수 있어요.",
+      "“{{name}}” 님을 삭제할까요? {{days}}일 안에 휴지통에서 복원할 수 있어요.",
   },
   billing: {
     planUsage: "요금제 및 사용량",
@@ -1078,23 +1039,5 @@ export default {
     ignore: "요청한 적이 없다면 이 이메일을 무시해 주세요.",
     fallback: "버튼이 작동하지 않으면 아래 주소를 브라우저에 붙여 넣으세요:",
     signIn: "로그인",
-  },
-  themes: {
-    "tokyo-sunset.name": "도쿄 선셋",
-    "tokyo-sunset.description": "따뜻한 주황 · 기본",
-    "sakura.name": "벚꽃 핑크",
-    "sakura.description": "로맨틱 핑크",
-    "midnight.name": "미드나이트 바이올렛",
-    "midnight.description": "몽환적인 쿨 퍼플",
-    "neon-mint.name": "네온 민트",
-    "neon-mint.description": "산뜻한 민트 포인트",
-    "crimson.name": "크림슨 벨벳",
-    "crimson.description": "대담하고 매혹적인 빨강",
-    "sapphire.name": "사파이어 나이트",
-    "sapphire.description": "딥 블루와 골드",
-    "lava.name": "라바 글로우",
-    "lava.description": "사이버펑크 네온",
-    "pearl.name": "던 펄",
-    "pearl.description": "밝은 색조 · 은은한 펄",
   },
 } as const satisfies MessageCatalog;

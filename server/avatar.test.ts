@@ -178,7 +178,7 @@ describe("girlfriend.uploadAvatar", () => {
         imageBase64: oversizedBase64,
         mimeType: "image/png",
       })
-    ).rejects.toThrow("图片文件过大");
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });
 

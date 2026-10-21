@@ -22,7 +22,6 @@ import {
   buildTurnLanguageReminder,
 } from "../shared/chatPrompt";
 import { chatContextLimits, planChatContext } from "./chatContextBudget";
-import { runtimeInteger } from "./aiTaskRuntime";
 import { getChatBehaviorContext } from "./companionContext";
 import { getDb, withUserTransaction, type DbTransaction } from "./database";
 import {
@@ -42,22 +41,6 @@ import { getActiveGirlfriend } from "./repositories/companions";
 import { ensureAgeConfirmed } from "./routers/guards";
 import { consumeTranscription } from "./transcriptions";
 
-const MAX_OUTPUT = runtimeInteger(
-  "CHAT_MAX_OUTPUT_CHARS",
-  16_000,
-  1000,
-  32_000
-);
-const RESPONSE_TIMEOUT = runtimeInteger(
-  "CHAT_REPLY_TIMEOUT_MS",
-  120_000,
-  5000,
-  300_000
-);
-const LEASE_MS = 6_000;
-const LOCAL_CONCURRENCY = runtimeInteger("CHAT_STREAM_CONCURRENCY", 4, 1, 32);
-const USER_CONCURRENCY = runtimeInteger("CHAT_USER_CONCURRENCY", 3, 1, 10);
-const BURST_MESSAGE_LIMIT = 32;
 const activeWorkers = new Map<string, Promise<void>>();
 let scanning = false;
 let schedulerStarted = false;
@@ -67,7 +50,7 @@ export const chatTurnInputSchema = z
   .object({
     clientRequestId: z.string().uuid(),
     conversationId: z.number().int().positive(),
-    content: z.string().trim().min(1).max(8_000),
+    content: z.string().trim().min(1).max(32_000),
     transcriptionId: z.string().uuid().optional(),
   })
   .strict();
@@ -167,7 +150,8 @@ async function requireFollowupCapacity(
   if (
     burst.reduce((sum, item) => sum + item.content.length, content.length) >
       chatContextLimits(await getPublishedProductConfig(tx)).followups ||
-    burst.filter(item => item.role === "user").length >= BURST_MESSAGE_LIMIT
+    burst.filter(item => item.role === "user").length >=
+      (await getPublishedProductConfig(tx)).runtime.chat.burstMessages
   )
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
@@ -205,6 +189,11 @@ export async function submitChatTurn(
   }
   await ownConversation(user.id, input.conversationId);
   const policy = await getPublishedProductConfig();
+  if (input.content.length > policy.runtime.chat.maxInputChars)
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `消息最多 ${policy.runtime.chat.maxInputChars} 字符`,
+    });
   const provider = await resolveChatProvider(user.id, policy);
   if (!provider.apiKey)
     throw new TRPCError({
@@ -220,7 +209,7 @@ export async function submitChatTurn(
     model:
       provider.name === "deepseek"
         ? provider.model
-        : isBillingEnforced() && limits.modelLocked && !provider.isByok
+        : isBillingEnforced(policy) && limits.modelLocked && !provider.isByok
           ? policy.billing.defaultChatModel
           : config?.llmModel || policy.billing.defaultChatModel,
   };
@@ -274,7 +263,7 @@ export async function submitChatTurn(
           inArray(generationRequests.turnStatus, ["queued", "running"])
         )
       );
-    if (Number(count.count) >= USER_CONCURRENCY)
+    if (Number(count.count) >= policy.runtime.chat.userConcurrency)
       throw new TRPCError({
         code: "TOO_MANY_REQUESTS",
         message: "Too many active conversations",
@@ -293,9 +282,11 @@ export async function submitChatTurn(
       kind: "chat",
       contextEpoch: role.memoryEpoch,
       transcriptionId: input.transcriptionId,
-      timeoutMs: 5 * 60_000,
+      timeoutMs: policy.runtime.chat.queueTimeoutMs,
       meter:
-        isBillingEnforced() && !provider.isByok && limits.dailyMessages !== null
+        isBillingEnforced(policy) &&
+        !provider.isByok &&
+        limits.dailyMessages !== null
           ? {
               name: METERS.chat,
               period: "day",
@@ -495,7 +486,8 @@ async function appendSegment(
   request: Request,
   leaseToken: string,
   text: string,
-  memoryEpoch?: number
+  memoryEpoch: number | undefined,
+  maxOutput: number
 ) {
   await withUserTransaction(request.userId, async tx => {
     const row = await liveLease(tx, request, leaseToken, memoryEpoch);
@@ -511,7 +503,7 @@ async function appendSegment(
       .for("update");
     if (!message || message.generationStatus !== "pending")
       throw new Error("Chat draft is unavailable");
-    if (message.content.length + text.length > MAX_OUTPUT)
+    if (message.content.length + text.length > maxOutput)
       throw new Error("Chat output exceeds limit");
     const segments = message.segments ?? [];
     const sequence = segments.length;
@@ -595,6 +587,8 @@ async function finishWorker(
 
 /** 外部调用不持锁；正文先落库，再由任意实例的 SSE 观察持久版本。 */
 async function executeChatTurn(request: Request, leaseToken: string) {
+  const policy = await getPublishedProductConfig();
+  const runtime = policy.runtime.chat;
   const controller = new AbortController();
   const started = Date.now();
   let telemetry: GenerationTelemetry | null = null;
@@ -612,9 +606,9 @@ async function executeChatTurn(request: Request, leaseToken: string) {
       const boundary = pending.search(/[。！？!?\n]|\.(?=\s|$)/);
       let length =
         boundary >= 0
-          ? Math.min(boundary + 1, 160)
-          : pending.length >= 160
-            ? 160
+          ? Math.min(boundary + 1, runtime.segmentChars)
+          : pending.length >= runtime.segmentChars
+            ? runtime.segmentChars
             : all
               ? pending.length
               : 0;
@@ -627,7 +621,13 @@ async function executeChatTurn(request: Request, leaseToken: string) {
       flushChain = flushChain
         .then(() => {
           if (flushingError) return;
-          return appendSegment(request, leaseToken, piece, memoryEpoch);
+          return appendSegment(
+            request,
+            leaseToken,
+            piece,
+            memoryEpoch,
+            runtime.maxOutputChars
+          );
         })
         .catch(error => {
           flushingError = error;
@@ -636,8 +636,9 @@ async function executeChatTurn(request: Request, leaseToken: string) {
     }
   };
   const flushTimer = setInterval(() => {
-    if (pending && Date.now() - oldestPendingAt >= 600) queueFlush(true);
-  }, 50);
+    if (pending && Date.now() - oldestPendingAt >= runtime.flushMs)
+      queueFlush(true);
+  }, runtime.flushPollMs);
   const pollTimer = setInterval(() => {
     if (polling) return;
     polling = true;
@@ -658,17 +659,17 @@ async function executeChatTurn(request: Request, leaseToken: string) {
         row.turnStatus !== "running" ||
         row.leaseToken !== leaseToken ||
         row.cancel ||
-        Date.now() - started >= RESPONSE_TIMEOUT
+        Date.now() - started >= runtime.replyTimeoutMs
       ) {
         controller.abort();
         return;
       }
-      if (Date.now() - lastHeartbeat >= 2_000) {
+      if (Date.now() - lastHeartbeat >= runtime.heartbeatMs) {
         await withUserTransaction(request.userId, async tx => {
           const live = await liveLease(tx, request, leaseToken, memoryEpoch);
           await tx
             .update(generationRequests)
-            .set({ leaseUntil: new Date(Date.now() + LEASE_MS) })
+            .set({ leaseUntil: new Date(Date.now() + runtime.leaseMs) })
             .where(
               and(
                 eq(generationRequests.id, request.id),
@@ -685,10 +686,10 @@ async function executeChatTurn(request: Request, leaseToken: string) {
       .finally(() => {
         polling = false;
       });
-  }, 250);
-  const timeout = setTimeout(() => controller.abort(), RESPONSE_TIMEOUT);
+  }, runtime.pollMs);
+  const timeout = setTimeout(() => controller.abort(), runtime.replyTimeoutMs);
   try {
-    const provider = await resolveChatProvider(request.userId);
+    const provider = await resolveChatProvider(request.userId, policy);
     if (!provider.apiKey) throw new Error("Chat provider is not configured");
     const routing = request.chatRouting;
     if (
@@ -700,7 +701,6 @@ async function executeChatTurn(request: Request, leaseToken: string) {
       throw new Error("Accepted chat routing is no longer available");
     const config = await getUserApiConfig(request.userId);
     const model = routing.model;
-    const policy = await getPublishedProductConfig();
     telemetry = {
       promptVersion: `product-config/${policy.revision}:chat`,
       provider: provider.name,
@@ -859,9 +859,13 @@ async function executeChatTurn(request: Request, leaseToken: string) {
         stream_options: { include_usage: true },
         messages: providerMessages,
         ...(provider.name === "deepseek"
-          ? { thinking: { type: "disabled" } }
+          ? { thinking: { type: runtime.deepseekThinking } }
           : {}),
-        max_tokens: 4096,
+        max_tokens: runtime.maxTokens,
+        ...(runtime.temperature === null
+          ? {}
+          : { temperature: runtime.temperature }),
+        ...(runtime.topP === null ? {} : { top_p: runtime.topP }),
       }),
     });
     if (
@@ -882,7 +886,8 @@ async function executeChatTurn(request: Request, leaseToken: string) {
       if (controller.signal.aborted) throw new Error("Chat generation stopped");
       if (event.text) {
         received += event.text.length;
-        if (received > MAX_OUTPUT) throw new Error("Chat output exceeds limit");
+        if (received > runtime.maxOutputChars)
+          throw new Error("Chat output exceeds limit");
         if (!pending) oldestPendingAt = Date.now();
         pending += event.text;
         queueFlush();
@@ -934,6 +939,8 @@ function reportSchedulerError(error: unknown) {
 export async function runChatTurns(userIds?: readonly string[]): Promise<void> {
   if (userIds?.length === 0) return;
   if (scanning) return;
+  const runtime = (await getPublishedProductConfig()).runtime.chat;
+  if (scanning) return;
   scanning = true;
   const launched: Promise<void>[] = [];
   try {
@@ -960,7 +967,7 @@ export async function runChatTurns(userIds?: readonly string[]): Promise<void> {
           )
         )
       )
-      .limit(50);
+      .limit(runtime.batchSize);
     for (const request of expired)
       await withUserTransaction(request.userId, async tx => {
         const [current] = await tx
@@ -990,9 +997,9 @@ export async function runChatTurns(userIds?: readonly string[]): Promise<void> {
         )
       )
       .orderBy(generationRequests.createdAt)
-      .limit(50);
+      .limit(runtime.batchSize);
     for (const request of queued) {
-      if (activeWorkers.size >= LOCAL_CONCURRENCY) break;
+      if (activeWorkers.size >= runtime.localConcurrency) break;
       if (activeWorkers.has(request.id)) continue;
       const token = crypto.randomUUID();
       const claimed = await withUserTransaction(request.userId, async tx => {
@@ -1026,8 +1033,8 @@ export async function runChatTurns(userIds?: readonly string[]): Promise<void> {
           .set({
             turnStatus: "running",
             leaseToken: token,
-            leaseUntil: new Date(Date.now() + LEASE_MS),
-            expiresAt: new Date(Date.now() + RESPONSE_TIMEOUT + 1_000),
+            leaseUntil: new Date(Date.now() + runtime.leaseMs),
+            expiresAt: new Date(Date.now() + runtime.replyTimeoutMs + 1_000),
             revision: current.revision + 1,
           })
           .where(
@@ -1058,13 +1065,26 @@ export async function runChatTurns(userIds?: readonly string[]): Promise<void> {
 /** 启动后自动恢复排队任务；关闭调度不会把浏览器断开解释为用户停止。 */
 export function startChatTurnScheduler(): () => void {
   schedulerStarted = true;
-  const timer = setInterval(() => {
-    void runChatTurns().catch(reportSchedulerError);
-  }, 250);
-  timer.unref();
-  void runChatTurns().catch(reportSchedulerError);
+  let stopped = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const tick = async () => {
+    let interval = 1000;
+    try {
+      interval = (await getPublishedProductConfig()).runtime.chat.schedulerMs;
+      await runChatTurns();
+    } catch (error) {
+      reportSchedulerError(error);
+    } finally {
+      if (!stopped) {
+        timer = setTimeout(() => void tick(), interval);
+        timer.unref();
+      }
+    }
+  };
+  void tick();
   return () => {
+    stopped = true;
     schedulerStarted = false;
-    clearInterval(timer);
+    clearTimeout(timer);
   };
 }

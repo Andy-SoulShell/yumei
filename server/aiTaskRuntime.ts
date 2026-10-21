@@ -11,19 +11,6 @@ import { getDb, withUserTransaction } from "./database";
 import { knownUsage } from "./generationTelemetry";
 import { log } from "./_core/log";
 
-export function runtimeInteger(
-  name: string,
-  fallback: number,
-  min: number,
-  max: number
-) {
-  const raw = process.env[name];
-  const value = raw === undefined || raw === "" ? fallback : Number(raw);
-  if (!Number.isInteger(value) || value < min || value > max)
-    throw new Error(`Invalid runtime limit: ${name}`);
-  return value;
-}
-
 export async function memoryFeatureEnabled(configuration?: ProductConfig) {
   return (configuration ?? (await getPublishedProductConfig())).memory.enabled;
 }
@@ -75,10 +62,13 @@ export async function runMeteredAiTask<T>(
       total_tokens?: unknown;
       cost?: unknown;
     };
-  }>
+  }>,
+  configuration?: ProductConfig
 ): Promise<T> {
-  const limit = runtimeInteger("AI_DAILY_TASK_LIMIT", 200, 1, 10_000);
-  const timeoutMs = runtimeInteger("AI_TASK_TIMEOUT_MS", 30_000, 100, 120_000);
+  const rules = (configuration ?? (await getPublishedProductConfig())).runtime
+    .ai;
+  const limit = rules.dailyTaskLimit;
+  const timeoutMs = rules.taskTimeoutMs;
   const start = Date.now();
   const id = crypto.randomUUID();
   const since = new Date();

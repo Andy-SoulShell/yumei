@@ -1,3 +1,16 @@
+import axios from "axios";
+import { keyProvider } from "./_core/keyProvider";
+import {
+  generateProviderImage,
+  resolveImageProvider,
+} from "./_core/imageProvider";
+import { users } from "../drizzle/schema";
+import { createConversation } from "./repositories/conversations";
+import {
+  submitChatTurn,
+  runChatTurns,
+  getChatTurnSnapshot,
+} from "./chatStreaming";
 import express from "express";
 import * as storage from "./storage";
 import { uploadBodyParser } from "./_core/uploads";
@@ -23,6 +36,7 @@ beforeAll(initializeProductConfig);
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
 });
 it("publishes frequency bounds, defaults, lifetime and templates used by the actual outbox and inbox", () =>
   configured(async ({ userId, publish }) => {
@@ -171,4 +185,198 @@ it("uses published upload byte and MIME restrictions in actual avatar and HTTP p
         server.close(error => (error ? reject(error) : resolve()))
       );
     }
+  }));
+
+it("publishes provider, model, input and generation parameters into the actual chat request", () =>
+  configured(async ({ userId, admin, publish }) => {
+    const config = structuredClone(productFixture);
+    config.billing.mode = "none";
+    config.memory.enabled = false;
+    config.models.chat = {
+      provider: "deepseek",
+      operatorBaseUrl: "https://gateway.example.test/v1",
+      deepseekModel: "api-managed-model",
+    };
+    Object.assign(config.runtime.chat, {
+      maxInputChars: 5,
+      maxOutputChars: 20,
+      maxTokens: 123,
+      segmentChars: 5,
+      temperature: 0.4,
+      topP: 0.8,
+    });
+    await publish(config);
+    vi.stubEnv("OPERATOR_DEEPSEEK_KEY", "server-secret");
+    vi.stubEnv("LLM_PROVIDER", "openrouter");
+    vi.stubEnv("DEEPSEEK_MODEL", "ignored-environment-model");
+    vi.spyOn(keyProvider, "resolve").mockResolvedValue({
+      source: "none",
+      value: null,
+    });
+    const role = await createGirlfriend({
+      userId,
+      name: "聊天验证",
+      personality: "自然",
+      appearance: "自然",
+      referenceImageKey: "ref",
+      referenceImageUrl: "https://example.test/ref",
+    });
+    const conversation = await createConversation({
+      userId,
+      girlfriendId: role.id,
+    });
+    const [user] = await (await getDb())!
+      .select()
+      .from(users)
+      .where(eq(users.id, userId));
+    await expect(
+      submitChatTurn(user, {
+        clientRequestId: crypto.randomUUID(),
+        conversationId: conversation.id,
+        content: "超过五字的消息",
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    const request = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          'data: {"choices":[{"delta":{"content":"已切换"}}]}\n\ndata: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n',
+          { headers: { "Content-Type": "text/event-stream" } }
+        )
+      );
+    vi.stubGlobal("fetch", request);
+    const accepted = await submitChatTurn(user, {
+      clientRequestId: crypto.randomUUID(),
+      conversationId: conversation.id,
+      content: "你好",
+    });
+    await runChatTurns([userId]);
+    expect((await getChatTurnSnapshot(userId, accepted.id)).status).toBe(
+      "succeeded"
+    );
+    const [url, options] = request.mock.calls[0];
+    expect(url).toBe("https://gateway.example.test/v1/chat/completions");
+    expect(JSON.parse(options.body)).toMatchObject({
+      model: "api-managed-model",
+      max_tokens: 123,
+      temperature: 0.4,
+      top_p: 0.8,
+    });
+    expect((await admin.apiConfig.get()).chatProvider.model).toBe(
+      "api-managed-model"
+    );
+  }));
+
+it("publishes image models, network limits and editable ComfyUI nodes into actual provider calls", () =>
+  configured(async ({ userId, admin, publish }) => {
+    const config = structuredClone(productFixture);
+    config.models.image.falSelfie = "test/published-selfie";
+    Object.assign(config.runtime.image, {
+      falTimeoutMs: 4321,
+      downloadTimeoutMs: 8765,
+      maxImageBytes: 1024,
+    });
+    await publish(config);
+    vi.spyOn(keyProvider, "resolve").mockResolvedValue({
+      source: "operator",
+      value: "image-secret",
+    });
+    const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+    const post = vi.spyOn(axios, "post").mockResolvedValue({
+      data: { images: [{ url: "https://image.example.test/result" }] },
+    });
+    const get = vi.spyOn(axios, "get").mockResolvedValue({ data: png });
+    await generateProviderImage(await resolveImageProvider(userId), {
+      mode: "reference",
+      prompt: "场景",
+      references: [{ key: "ref", url: "https://example.test/ref" }],
+    });
+    expect(post).toHaveBeenCalledWith(
+      "https://fal.run/test/published-selfie",
+      expect.any(Object),
+      expect.objectContaining({ timeout: 4321 })
+    );
+    expect(get).toHaveBeenCalledWith(
+      "https://image.example.test/result",
+      expect.objectContaining({ timeout: 8765, maxContentLength: 1024 })
+    );
+    expect((await admin.apiConfig.get()).imageProvider.selfieModel).toBe(
+      "test/published-selfie"
+    );
+    config.models.image.provider = "comfyui";
+    config.models.image.comfyuiBaseUrl = "http://comfy.example.test:8188";
+    const spec = config.models.image.workflows.text;
+    spec.nodes[spec.seedNode].inputs.steps = 13;
+    spec.nodes["459:451"].inputs.unet_name = "published.safetensors";
+    spec.nodes["459:456"].inputs.width = 768;
+    spec.id = "workflow:published";
+    await publish(config);
+    post.mockClear().mockResolvedValue({ data: { prompt_id: "job" } });
+    get
+      .mockReset()
+      .mockResolvedValueOnce({
+        data: {
+          job: {
+            status: { completed: true },
+            outputs: {
+              [spec.outputNode]: {
+                images: [{ filename: "result.png", type: "output" }],
+              },
+            },
+          },
+        },
+      })
+      .mockResolvedValueOnce({ data: png });
+    await generateProviderImage(await resolveImageProvider(userId), {
+      mode: "text",
+      prompt: "新场景",
+      references: [],
+    });
+    const submitted = (post.mock.calls[0][1] as { prompt: typeof spec.nodes })
+      .prompt;
+    expect(submitted[spec.seedNode].inputs.steps).toBe(13);
+    expect(submitted["459:451"].inputs.unet_name).toBe("published.safetensors");
+    expect(submitted["459:456"].inputs.width).toBe(768);
+    expect(submitted[spec.promptNode].inputs.prompt).toBe("新场景");
+  }));
+
+it("rejects inconsistent operational configuration before replacing a draft", () =>
+  configured(async ({ admin }) => {
+    const draft = await admin.productConfig.admin.getDraft();
+    for (const change of [
+      (c: typeof productFixture) => {
+        c.themes.items.push(structuredClone(c.themes.items[0]));
+      },
+      (c: typeof productFixture) => {
+        c.proactive.defaults.proactiveEnabled = true;
+      },
+      (c: typeof productFixture) => {
+        c.proactive.templates["notifications:privatePreview"] = {
+          "zh-CN": "{{memory}}",
+        };
+      },
+      (c: typeof productFixture) => {
+        c.uploads.requestMaxBytes = 1024 * 1024;
+      },
+      (c: typeof productFixture) => {
+        c.models.chat.operatorBaseUrl =
+          "https://user:password@gateway.example.test";
+      },
+      (c: typeof productFixture) => {
+        c.models.image.workflows.text.seedNode = "missing";
+      },
+      (c: typeof productFixture) => {
+        c.runtime.chat.leaseMs = c.runtime.chat.heartbeatMs;
+      },
+    ]) {
+      const config = structuredClone(productFixture);
+      change(config);
+      await expect(
+        admin.productConfig.admin.save({
+          expectedRevision: draft.revision,
+          config,
+        })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    }
+    expect(await admin.productConfig.admin.getDraft()).toEqual(draft);
   }));

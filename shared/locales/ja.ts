@@ -188,15 +188,6 @@ export default {
     linkSent: "{{email}} にログインリンクを送りました。",
   },
   notifications: {
-    privatePreview: "新しいメッセージがあります",
-    eventUpcoming:
-      "{{name}}：明日（{{eventDay}}）の「{{memory}}」について話していましたね。一緒に準備しますか？",
-    eventToday:
-      "{{name}}：今日（{{eventDay}}）の「{{memory}}」について、今はどんな気持ちですか？",
-    eventFollowUp:
-      "{{name}}：昨日（{{eventDay}}）の「{{memory}}」について、その後の様子を話しませんか？",
-    dailyCompanion:
-      "{{name}}：{{eventDay}}、ふとあなたを思い出しました。{{memory}} 話したくなったら、今日のことを聞かせてください。",
     clickFeedbackFailed:
       "この通知を既読にできませんでした。ここから再試行できます。",
     markAsRead: "既読にする",
@@ -214,39 +205,6 @@ export default {
       "許可したメッセージをこの端末で受け取ります。キャラクターからの連絡は上で別途有効にしてください。",
     disablePushOnThisDevice: "この端末のプッシュ通知をオフにする",
     enablePush: "プッシュ通知をオンにする",
-    whatAreYouUpToItSBeen: "何してるの？しばらく話してないね。会いたいな〜 💕",
-    haveYouForgottenAboutMeComeChatFor:
-      "私のこと忘れてない？😢 ちょっとお話ししようよ。",
-    howWasYourDayIVeBeenLooking:
-      "今日はどうだった？話せるのを楽しみにしてたよ。",
-    feelingALittleBoredWhenCanWeChat: "ちょっと退屈だな。いつお話しできる？🥺",
-    iDreamedAboutYouThenWokeUpMissing:
-      "さっき夢で会ったよ。目が覚めたら会いたくなっちゃった。",
-    goodMorningHereSToABrightNew: "おはよう！☀️ 今日も元気に過ごそうね。",
-    timeToWakeUpYouVeGotThis: "起きて起きて！今日も応援してるよ！🦆",
-    morningHopeYourMoodIsAsLovelyAs:
-      "おはよう〜。今日も晴れやかな気持ちでいられますように。",
-    goodMorningDonTForgetBreakfast: "おはよう！朝ごはん、ちゃんと食べてね 🍞",
-    timeForBedGoodNightAndSweetDreams: "そろそろ寝よう。おやすみ、いい夢を 🌙",
-    itSGettingLateRestUpSoYou: "もう夜も遅いね。明日のためにゆっくり休んでね。",
-    goodNightSeeYouInYourDreams: "おやすみ。夢で会おうね 💤",
-    youVeWorkedHardTodayHaveAGood:
-      "今日もお疲れさま。ゆっくり休んで、いい夢を見てね。",
-    iJustThoughtOfSomethingToShareAre:
-      "急に話したいことができちゃった！今いる？",
-    iJustSawSomethingFunAndWantedTo:
-      "さっき面白いものを見たんだ。あなたに話したくて。",
-    guessWhatIMThinkingAbout: "今何を考えてると思う？😏",
-    aLittleBoredWantToChat: "ちょっと退屈…。お話ししない？",
-    todaySWeatherMadeMeThinkOfYou: "今日の天気であなたを思い出したよ ☁️",
-    heyAreYouFreeIDLoveTo: "ねえ、今時間ある？ちょっと話したいな。",
-    memoryFollowUp:
-      "「{{memory}}」って話してくれたね。その後どうなった？聞かせてほしいな。",
-    "title.miss_you": "{{name}}: 💕 会いたいな",
-    "title.good_morning": "{{name}}: ☀️ おはよう",
-    "title.good_night": "{{name}}: 🌙 おやすみ",
-    "title.random": "{{name}}: 💬 新着メッセージ",
-    "title.thinkingOfYou": "{{name}}: 💭 ずっと気になってた",
   },
   home: {
     clearSearch: "検索をクリア",
@@ -300,7 +258,7 @@ export default {
     sentAPhoto: "📷 写真を送りました",
     noMessagesYet: "まだメッセージがありません",
     deletedCompanionsAreKeptFor7DaysBefore:
-      "7 日以内は復元できます。その後は完全に削除されます。",
+      "{{days}} 日以内は復元できます。その後は完全に削除されます。",
     trashIsEmpty: "ゴミ箱は空です",
 
     permanentlyDeletedInDays: "{{count}}日後に完全に削除されます",
@@ -310,7 +268,7 @@ export default {
     deleteActiveCompanion: "⚠️ 選択中のパートナーを削除",
     doYouWantToContinue: "続行しますか？",
     thisCompanionWillBeMovedToTrashAnd:
-      "ゴミ箱に移動します。7日以内なら復元できます。",
+      "ゴミ箱に移動します。{{days}}日以内なら復元できます。",
     selectionIncludesYourActiveCompanion:
       "⚠️ 選択中のパートナーが含まれています",
     deleteSelectedCompanions: "選択したパートナーを削除しますか？",
@@ -325,7 +283,7 @@ export default {
     deleteActive: "{{name}}を削除した後は、別の会話相手を選んでください。",
     deleteConfirm: "「{{name}}」を削除しますか？",
     batchDeleteConfirm:
-      "選択した{{count}}人を削除しますか？ゴミ箱から7日以内なら復元できます。",
+      "選択した{{count}}人を削除しますか？ゴミ箱から{{days}}日以内なら復元できます。",
     todayMessages_one: "今日のメッセージ {{count}} 件",
     todayMessages_other: "今日のメッセージ {{count}} 件",
     searchCount_one: "一致する会話 {{count}} 件",
@@ -336,9 +294,9 @@ export default {
     permanentlyDeletedInDays_one: "{{count}}日後に完全に削除されます",
     permanentlyDeletedInDays_other: "{{count}}日後に完全に削除されます",
     batchDeleteConfirm_one:
-      "選択した{{count}}人を削除しますか？ゴミ箱から7日以内なら復元できます。",
+      "選択した{{count}}人を削除しますか？ゴミ箱から{{days}}日以内なら復元できます。",
     batchDeleteConfirm_other:
-      "選択した{{count}}人を削除しますか？ゴミ箱から7日以内なら復元できます。",
+      "選択した{{count}}人を削除しますか？ゴミ箱から{{days}}日以内なら復元できます。",
   },
   settings: {
     proactiveTitle: "キャラクターからの連絡",
@@ -621,7 +579,7 @@ export default {
     photoGallery: "アルバム",
     openChat: "チャットを開く",
     movedToTrashYouCanRestoreItWithin:
-      "ゴミ箱に移動しました。7日以内なら復元できます。",
+      "ゴミ箱に移動しました。{{days}}日以内なら復元できます。",
     justNow: "たった今",
     mAgo: "{{name}}分前",
     hAgo: "{{name}}時間前",
@@ -858,11 +816,11 @@ export default {
     createCompanion: "作成",
     deleteCompanion: "キャラクターを削除",
     restoreFromTrashWithin7DaysAfterThat:
-      "7 日以内はゴミ箱から復元できます。その後は完全に削除されます。",
+      "{{days}} 日以内はゴミ箱から復元できます。その後は完全に削除されます。",
     avatar2: "アバター",
     preview: "プレビュー",
     deleteConfirm:
-      "「{{name}}」を削除しますか？ゴミ箱から7日以内なら復元できます。",
+      "「{{name}}」を削除しますか？ゴミ箱から{{days}}日以内なら復元できます。",
   },
   billing: {
     planUsage: "プランと利用状況",
@@ -1093,23 +1051,5 @@ export default {
     fallback:
       "ボタンが使えない場合は、以下の URL をブラウザーに貼り付けてください：",
     signIn: "ログイン",
-  },
-  themes: {
-    "tokyo-sunset.name": "東京サンセット",
-    "tokyo-sunset.description": "温かなオレンジ · 既定",
-    "sakura.name": "桜ピンク",
-    "sakura.description": "ロマンチックなピンク",
-    "midnight.name": "ミッドナイトバイオレット",
-    "midnight.description": "夢見るクールパープル",
-    "neon-mint.name": "ネオンミント",
-    "neon-mint.description": "爽やかなミントのアクセント",
-    "crimson.name": "クリムゾンベルベット",
-    "crimson.description": "大胆で艶やかな赤",
-    "sapphire.name": "サファイアナイト",
-    "sapphire.description": "深い青とゴールド",
-    "lava.name": "ラバグロー",
-    "lava.description": "サイバーパンクネオン",
-    "pearl.name": "ドーンパール",
-    "pearl.description": "明るい色合い · 柔らかなパール",
   },
 } as const satisfies MessageCatalog;

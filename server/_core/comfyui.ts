@@ -1,9 +1,9 @@
+import type { ProductConfig } from "../../shared/productConfig";
+import { getPublishedProductConfig } from "../repositories/productConfig";
 /** 将内置 Qwen 工作流适配为 ComfyUI 任务，并处理参考图上传和结果轮询。 */
 
 import axios from "axios";
 import { randomInt, randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
 /** 图片生成方式：使用参考图或仅使用文字提示词。 */
@@ -27,8 +27,6 @@ type HistoryEntry = {
   outputs?: Record<string, { images?: OutputImage[] }>;
 };
 
-const OUTPUT_NODE = "461";
-const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
 /**
@@ -37,25 +35,25 @@ const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
  * @throws 参考图模式缺少图片时抛出错误。
  * @remarks 修改内存中的节点副本，不回写工作流模板。
  */
-export async function buildImageWorkflow(params: {
-  mode: ImageGenerationMode;
-  prompt: string;
-  references?: string[];
-}): Promise<Workflow> {
-  const file =
-    params.mode === "text" ? "qwen-image-text.json" : "qwen-image-edit.json";
-  const dir = process.env.COMFYUI_WORKFLOW_DIR || "workflows/comfyui";
-  const workflow: Workflow = JSON.parse(
-    await readFile(path.resolve(dir, file), "utf8")
-  );
-  const encoder = params.mode === "text" ? "459:452" : "459:474";
+export async function buildImageWorkflow(
+  params: {
+    mode: ImageGenerationMode;
+    prompt: string;
+    references?: string[];
+  },
+  configuration?: ProductConfig
+): Promise<Workflow> {
+  const policy = configuration ?? (await getPublishedProductConfig());
+  const spec = policy.models.image.workflows[params.mode];
+  const workflow: Workflow = structuredClone(spec.nodes);
+  const encoder = spec.promptNode;
   workflow[encoder].inputs.prompt = params.prompt;
-  workflow["459:458"].inputs.seed = randomInt(0, 2 ** 48 - 1);
-  workflow[OUTPUT_NODE].inputs.filename_prefix = `yumei/${randomUUID()}`;
+  workflow[spec.seedNode].inputs.seed = randomInt(0, 2 ** 48 - 1);
+  workflow[spec.outputNode].inputs.filename_prefix = `yumei/${randomUUID()}`;
   if (params.mode === "reference") {
     if (!params.references?.length)
       throw new Error("参考图生图需要至少一张参考图");
-    workflow["470"].inputs.image = params.references[0];
+    workflow[spec.referenceNode!].inputs.image = params.references[0];
     if (params.references.length > 1) {
       workflow["475"] = {
         class_type: "LoadImage",
@@ -63,7 +61,7 @@ export async function buildImageWorkflow(params: {
       };
       workflow.reference_resize_2 = {
         class_type: "ImageScale",
-        inputs: { ...workflow.reference_resize.inputs, image: ["475", 0] },
+        inputs: { ...workflow[spec.resizeNode!].inputs, image: ["475", 0] },
       };
       workflow[encoder].inputs["images.image_2"] = ["reference_resize_2", 0];
     }
@@ -87,6 +85,7 @@ export class ComfyUIClient {
       apiKey?: string;
       timeoutMs?: number;
       pollIntervalMs?: number;
+      configuration?: ProductConfig;
     }
   ) {
     this.baseUrl = options.baseUrl.replace(/\/+$/, "");
@@ -105,20 +104,28 @@ export class ComfyUIClient {
     mode: ImageGenerationMode;
     references?: ImageInput[];
   }): Promise<Buffer> {
-    const deadline = Date.now() + (this.options.timeoutMs ?? 600_000);
+    const policy =
+      this.options.configuration ?? (await getPublishedProductConfig());
+    const runtime = policy.runtime.image;
+    const spec = policy.models.image.workflows[params.mode];
+    const deadline =
+      Date.now() + (this.options.timeoutMs ?? runtime.comfyuiTimeoutMs);
     const requestOptions = () => ({
       headers: this.headers,
-      timeout: Math.max(1, Math.min(30_000, deadline - Date.now())),
-      maxContentLength: MAX_IMAGE_BYTES,
-      maxBodyLength: MAX_IMAGE_BYTES + 1024 * 1024,
+      timeout: Math.max(
+        1,
+        Math.min(runtime.comfyuiRequestTimeoutMs, deadline - Date.now())
+      ),
+      maxContentLength: runtime.maxImageBytes,
+      maxBodyLength: runtime.maxImageBytes + 1024 * 1024,
     });
     let promptId: string | undefined;
     try {
       const references: string[] = [];
       if (params.mode === "reference") {
         for (const reference of params.references ?? []) {
-          if (reference.data.length > MAX_IMAGE_BYTES)
-            throw new Error("参考图不能超过 25MB");
+          if (reference.data.length > runtime.maxImageBytes)
+            throw new Error(`参考图不能超过 ${runtime.maxImageBytes} 字节`);
           const form = new FormData();
           const extension = reference.mimeType.split("/")[1] || "png";
           form.append(
@@ -143,7 +150,10 @@ export class ComfyUIClient {
           );
         }
       }
-      const workflow = await buildImageWorkflow({ ...params, references });
+      const workflow = await buildImageWorkflow(
+        { ...params, references },
+        policy
+      );
       const submitted = await axios.post<{
         prompt_id?: string;
         error?: { message?: string };
@@ -173,7 +183,7 @@ export class ComfyUIClient {
           );
         }
         if (entry?.status?.completed) {
-          const image = entry.outputs?.[OUTPUT_NODE]?.images?.find(
+          const image = entry.outputs?.[spec.outputNode]?.images?.find(
             item => item.type === "output"
           );
           if (!image)
@@ -197,7 +207,7 @@ export class ComfyUIClient {
         }
         await delay(
           Math.min(
-            this.options.pollIntervalMs ?? 1000,
+            this.options.pollIntervalMs ?? runtime.comfyuiPollMs,
             Math.max(1, deadline - Date.now())
           )
         );
@@ -207,7 +217,7 @@ export class ComfyUIClient {
         .post(
           `${this.baseUrl}/queue`,
           { delete: [promptId] },
-          { headers: this.headers, timeout: 5000 }
+          { headers: this.headers, timeout: runtime.cancelTimeoutMs }
         )
         .catch(() => {});
       throw new Error(

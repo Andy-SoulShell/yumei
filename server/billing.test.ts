@@ -1,3 +1,4 @@
+import { productConfigSchema } from "../shared/productConfig";
 /** 覆盖计费模式、套餐映射、签名与订阅更新。 */
 
 import { eq } from "drizzle-orm";
@@ -5,7 +6,11 @@ import { nanoid } from "nanoid";
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { billingEvents } from "../drizzle/schema";
-import { TIER_LIMITS, productFixture } from "./testProductConfig";
+import {
+  TIER_LIMITS,
+  productFixture,
+  stubProductConfig,
+} from "./testProductConfig";
 import * as productRepository from "./repositories/productConfig";
 import {
   getBillingMode,
@@ -84,20 +89,30 @@ afterEach(() => {
 
 describe("billing modes", () => {
   it("defaults to free (caps enforced, no paid tiers)", async () => {
-    expect(getBillingMode()).toBe("free");
-    expect(isBillingEnforced()).toBe(true);
+    expect(
+      getBillingMode(await productRepository.getPublishedProductConfig())
+    ).toBe("free");
+    expect(
+      isBillingEnforced(await productRepository.getPublishedProductConfig())
+    ).toBe(true);
     expect(await getUserTier("any-user")).toBe("free");
   });
 
   it("none = self-host: pro tier, nothing enforced", async () => {
-    process.env.BILLING_PROVIDER = "none";
-    expect(isBillingEnforced()).toBe(false);
+    stubProductConfig("billing.mode", "none");
+    expect(
+      isBillingEnforced(await productRepository.getPublishedProductConfig())
+    ).toBe(false);
     expect(await getUserTier("any-user")).toBe("pro");
   });
 
-  it("falls back to free on unknown values", () => {
-    process.env.BILLING_PROVIDER = "stripe";
-    expect(getBillingMode()).toBe("free");
+  it("rejects unsupported billing modes at the publication boundary", () => {
+    expect(
+      productConfigSchema.safeParse({
+        ...productFixture,
+        billing: { ...productFixture.billing, mode: "stripe" },
+      }).success
+    ).toBe(false);
   });
 });
 
@@ -132,7 +147,7 @@ describe("resolvePlan", () => {
 describe("webhook state machine (DB)", () => {
   it("created -> active plus tier", async () => {
     if (!(await getDb())) throw new Error("DATABASE_URL required");
-    process.env.BILLING_PROVIDER = "lemonsqueezy";
+    stubProductConfig("billing.mode", "lemonsqueezy");
     const userId = `bill-user-${nanoid(8)}`;
 
     const result = await handleLemonEvent(subscriptionPayload({ userId }));
@@ -142,7 +157,7 @@ describe("webhook state machine (DB)", () => {
 
   it("upgrade to pro via subscription_updated", async () => {
     if (!(await getDb())) throw new Error("DATABASE_URL required");
-    process.env.BILLING_PROVIDER = "lemonsqueezy";
+    stubProductConfig("billing.mode", "lemonsqueezy");
     const userId = `bill-user-${nanoid(8)}`;
     const subId = `ls-${nanoid(8)}`;
 
@@ -160,7 +175,7 @@ describe("webhook state machine (DB)", () => {
 
   it("cancelled keeps access until endsAt, then drops to free", async () => {
     if (!(await getDb())) throw new Error("DATABASE_URL required");
-    process.env.BILLING_PROVIDER = "lemonsqueezy";
+    stubProductConfig("billing.mode", "lemonsqueezy");
     const userId = `bill-user-${nanoid(8)}`;
     const subId = `ls-${nanoid(8)}`;
 
@@ -195,7 +210,7 @@ describe("webhook state machine (DB)", () => {
 
   it("payment invoice does not override the canonical subscription snapshot", async () => {
     if (!(await getDb())) throw new Error("DATABASE_URL required");
-    process.env.BILLING_PROVIDER = "lemonsqueezy";
+    stubProductConfig("billing.mode", "lemonsqueezy");
     const userId = `bill-user-${nanoid(8)}`;
     const subId = `ls-${nanoid(8)}`;
 
@@ -249,7 +264,7 @@ describe("tier limits shape", () => {
 
 describe("billing event ordering regressions", () => {
   it("does not reactivate expired access for delayed payment failures or recoveries", async () => {
-    process.env.BILLING_PROVIDER = "lemonsqueezy";
+    stubProductConfig("billing.mode", "lemonsqueezy");
     const userId = `expired-${nanoid(8)}`;
     const subId = `ls-${nanoid(8)}`;
     await handleLemonEvent(
@@ -317,7 +332,7 @@ describe("billing event ordering regressions", () => {
   });
 
   it("does not extend the seven-day overdue grace on later failed-payment snapshots", async () => {
-    process.env.BILLING_PROVIDER = "lemonsqueezy";
+    stubProductConfig("billing.mode", "lemonsqueezy");
     const userId = `grace-${nanoid(8)}`;
     const subId = `ls-${nanoid(8)}`;
     const first = subscriptionPayload({ userId, subId, status: "past_due" });

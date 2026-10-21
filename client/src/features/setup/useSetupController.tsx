@@ -18,6 +18,9 @@ import { useLocation, useParams, useSearch } from "wouter";
 export function useSetupController() {
   const { t } = useI18n();
   const product = useProductConfig();
+  const trashDays = product.raw
+    ? product.raw.runtime.maintenance.companionTrashRetentionMs / 86400000
+    : "";
   const uploads = product.raw?.uploads;
 
   const [, setLocation] = useLocation();
@@ -196,7 +199,9 @@ export function useSetupController() {
 
   const deleteGirlfriend = trpc.girlfriend.delete.useMutation({
     onSuccess: () => {
-      toast.success(t("common:movedToTrashYouCanRestoreItWithin"));
+      toast.success(
+        t("common:movedToTrashYouCanRestoreItWithin", { days: trashDays })
+      );
       setLocation("/characters");
     },
     onError: error => {
@@ -436,6 +441,7 @@ export function useSetupController() {
 
   const displayAvatar = avatarPreview || existingAvatarUrl;
   return {
+    trashDays,
     uploads,
     characters,
     presetLoading: !isEditing && discovery.isLoading,

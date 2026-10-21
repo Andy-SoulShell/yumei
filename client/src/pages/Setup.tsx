@@ -27,6 +27,7 @@ export default function Setup() {
   const goBack = usePageBack("/characters");
   const state = useSetupController();
   const {
+    trashDays,
     setLocation,
     t,
     isEditing,
@@ -219,7 +220,10 @@ export default function Setup() {
                             {t("common:confirmDeletion")}
                           </AlertDialogTitle>
                           <AlertDialogDescription>
-                            {t("setup:deleteConfirm", { name })}
+                            {t("setup:deleteConfirm", {
+                              name,
+                              days: trashDays,
+                            })}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -236,7 +240,9 @@ export default function Setup() {
                       </AlertDialogContent>
                     </AlertDialog>
                     <p className="text-xs text-muted-foreground text-center mt-2">
-                      {t("setup:restoreFromTrashWithin7DaysAfterThat")}
+                      {t("setup:restoreFromTrashWithin7DaysAfterThat", {
+                        days: trashDays,
+                      })}
                     </p>
                   </div>
                 )}

@@ -1,8 +1,12 @@
+import { getPublishedProductConfig } from "../repositories/productConfig";
 import { TRPCError } from "@trpc/server";
 import axios from "axios";
 import { z } from "zod";
 import { resolveChatProvider } from "../_core/chatProvider";
-import { resolveImageProvider } from "../_core/imageProvider";
+import {
+  resolveImageProvider,
+  imageGenerationModel,
+} from "../_core/imageProvider";
 import {
   KEY_NAMES,
   keyProvider,
@@ -17,8 +21,9 @@ export const apiConfigRouter = router({
   get: protectedProcedure.query(async ({ ctx }) => {
     const config = await getUserApiConfig(ctx.user.id);
     const keys = await keyProvider.describeUserKeys(ctx.user.id);
-    const chatProvider = await resolveChatProvider(ctx.user.id);
-    const imageProvider = await resolveImageProvider(ctx.user.id);
+    const policy = await getPublishedProductConfig();
+    const chatProvider = await resolveChatProvider(ctx.user.id, policy);
+    const imageProvider = await resolveImageProvider(ctx.user.id, policy);
     return {
       // null when the user hasn't saved preferences yet — frontend
       // treats that as "use defaults".
@@ -33,6 +38,18 @@ export const apiConfigRouter = router({
         name: imageProvider.name,
         configured: imageProvider.configured,
         supportsTextToImage: imageProvider.name === "comfyui",
+        selfieModel: imageGenerationModel(
+          imageProvider.name,
+          "reference",
+          1,
+          policy
+        ),
+        coupleModel: imageGenerationModel(
+          imageProvider.name,
+          "reference",
+          2,
+          policy
+        ),
       },
     };
   }),
@@ -96,7 +113,8 @@ export const apiConfigRouter = router({
 
   /** 使用服务端解析的凭据读取或构造模型列表。 */
   listModels: protectedProcedure.query(async ({ ctx }) => {
-    const chatProvider = await resolveChatProvider(ctx.user.id);
+    const policy = await getPublishedProductConfig();
+    const chatProvider = await resolveChatProvider(ctx.user.id, policy);
     const apiKey = chatProvider.apiKey;
     if (!apiKey) {
       throw new TRPCError({
@@ -121,7 +139,7 @@ export const apiConfigRouter = router({
     try {
       const response = await axios.get("https://openrouter.ai/api/v1/models", {
         headers: { Authorization: `Bearer ${apiKey}` },
-        timeout: 15_000,
+        timeout: (await getPublishedProductConfig()).runtime.catalog.timeoutMs,
       });
       const models = response.data.data
         .filter((m: any) => {
@@ -170,7 +188,7 @@ export const apiConfigRouter = router({
     try {
       const response = await axios.get("https://api.elevenlabs.io/v1/voices", {
         headers: { "xi-api-key": apiKey },
-        timeout: 15_000,
+        timeout: (await getPublishedProductConfig()).runtime.catalog.timeoutMs,
       });
       const voices = response.data.voices.map((v: any) => ({
         id: v.voice_id,
@@ -211,12 +229,17 @@ export const apiConfigRouter = router({
         });
       }
       try {
-        const params: any = { page_size: 100, page_number: 1 };
+        const params: any = {
+          page_size: (await getPublishedProductConfig()).runtime.catalog
+            .fishPageSize,
+          page_number: 1,
+        };
         if (input.search) params.title = input.search;
         const response = await axios.get("https://api.fish.audio/model", {
           headers: { Authorization: `Bearer ${apiKey}` },
           params,
-          timeout: 15_000,
+          timeout: (await getPublishedProductConfig()).runtime.catalog
+            .timeoutMs,
         });
         const models = response.data.items.map((m: any) => ({
           id: m._id,

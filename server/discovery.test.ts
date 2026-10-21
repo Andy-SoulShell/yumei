@@ -1,3 +1,4 @@
+import { stubProductConfig } from "./testProductConfig";
 /** 官方内容发布、权限、并发与稳定来源 ID 的真实数据库回归。 */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { eq, inArray } from "drizzle-orm";
@@ -192,7 +193,7 @@ describe("dynamic official content", () => {
 
   it("uses canonical published profiles and preserves customized user roles across official edits", async () => {
     const user = await caller();
-    vi.stubEnv("BILLING_PROVIDER", "none");
+    stubProductConfig("billing.mode", "none");
     const role = await user.girlfriend.createFromPreset({
       presetId: character.id,
     });
@@ -212,7 +213,7 @@ describe("dynamic official content", () => {
       personality: "官方已更新的人设",
     });
     await publish();
-    vi.stubEnv("BILLING_PROVIDER", "free");
+    stubProductConfig("billing.mode", "free");
     const reused = await user.girlfriend.createFromPreset({
       presetId: character.id,
     });
@@ -225,7 +226,7 @@ describe("dynamic official content", () => {
 
   it("deduplicates concurrent official creation before checking the one-character plan limit", async () => {
     const user = await caller();
-    vi.stubEnv("BILLING_PROVIDER", "free");
+    stubProductConfig("billing.mode", "free");
     const roles = await Promise.all(
       [1, 2].map(() =>
         user.girlfriend.createFromPreset({ presetId: character.id })

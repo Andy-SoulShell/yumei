@@ -56,6 +56,11 @@ export async function generateConversationSelfie(
       message: "AGE_CONFIRMATION_REQUIRED",
     });
   const policy = await getPublishedProductConfig();
+  if (input.userContext.length > policy.runtime.chat.maxInputChars)
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `场景描述最多 ${policy.runtime.chat.maxInputChars} 字符`,
+    });
   await checkRateLimit(user.id, "selfie", policy);
 
   // 0b. 验证对话所有权。selfie.generate 此前会无条件
@@ -106,7 +111,7 @@ export async function generateConversationSelfie(
   }
 
   // 2. 用户 fal BYOK 优先，否则使用运营方配置的生图服务。
-  const imageProvider = await resolveImageProvider(user.id);
+  const imageProvider = await resolveImageProvider(user.id, policy);
   if (!imageProvider.configured) {
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
@@ -135,7 +140,7 @@ export async function generateConversationSelfie(
 
   const fileKey = `selfie-${user.id}-${nanoid()}.png`;
   const meter: GenerationMeter | undefined =
-    isBillingEnforced() && !imageProvider.isByok
+    isBillingEnforced(policy) && !imageProvider.isByok
       ? selfieTier.limits.dailySelfies !== null
         ? {
             name: METERS.selfie,
@@ -162,21 +167,27 @@ export async function generateConversationSelfie(
     transcriptionId: input.transcriptionId,
     meter,
     outputKey: fileKey,
-    timeoutMs: Number(process.env.COMFYUI_TIMEOUT_MS || 600_000) + 180_000,
+    timeoutMs:
+      policy.runtime.image.comfyuiTimeoutMs +
+      policy.runtime.image.reservationGraceMs,
   });
   const started = Date.now();
   let providerCompleted = false;
   try {
-    const imageBuffer = await generateProviderImage(imageProvider, {
-      prompt: imagePrompt,
-      mode: input.generationMode,
-      references: [
-        {
-          key: girlfriend.referenceImageKey,
-          url: girlfriend.referenceImageUrl,
-        },
-      ],
-    });
+    const imageBuffer = await generateProviderImage(
+      imageProvider,
+      {
+        prompt: imagePrompt,
+        mode: input.generationMode,
+        references: [
+          {
+            key: girlfriend.referenceImageKey,
+            url: girlfriend.referenceImageUrl,
+          },
+        ],
+      },
+      policy
+    );
     providerCompleted = true;
     const { url } = await storagePut(fileKey, imageBuffer, "image/png");
     return await completeImageGeneration(
@@ -228,7 +239,12 @@ export async function generateConversationSelfie(
     await recordGenerationTelemetry(requestId, user.id, {
       promptVersion: `product-config/${policy.revision}:image`,
       provider: imageProvider.name,
-      model: imageGenerationModel(imageProvider.name, input.generationMode, 1),
+      model: imageGenerationModel(
+        imageProvider.name,
+        input.generationMode,
+        1,
+        policy
+      ),
       isByok: imageProvider.isByok,
       durationMs: Date.now() - started,
       inputTokens: null,

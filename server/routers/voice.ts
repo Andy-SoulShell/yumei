@@ -34,7 +34,7 @@ export const voiceRouter = router({
         { userId: ctx.user.id },
         "openai"
       );
-      if (isBillingEnforced() && sttKey.source !== "user") {
+      if (isBillingEnforced(policy) && sttKey.source !== "user") {
         const stt = await getTierLimits(ctx.user.id, policy);
         if (!stt.limits.voiceTranscription) {
           throw new TRPCError({
@@ -64,7 +64,7 @@ export const voiceRouter = router({
           userId: ctx.user.id,
           kind: "transcription",
           provider: "openai",
-          model: "whisper-1",
+          model: policy.models.transcription.model,
           isByok: sttKey.source === "user",
           promptVersion: `product-config/${policy.revision}:transcription`,
         },
@@ -76,7 +76,8 @@ export const voiceRouter = router({
               language: input.language,
               prompt: policy.prompts.transcription,
             },
-            whisperApiKey
+            whisperApiKey,
+            policy
           );
           if ("error" in response)
             throw new TRPCError({
@@ -84,7 +85,8 @@ export const voiceRouter = router({
               message: "Voice transcription failed. Please try again.",
             });
           return { value: response };
-        }
+        },
+        policy
       );
 
       if (
@@ -95,7 +97,11 @@ export const voiceRouter = router({
           code: "BAD_REQUEST",
           message: `录音时长不能超过 ${policy.uploads.audio.maxDurationSeconds} 秒`,
         });
-      const transcriptionId = await saveTranscription(ctx.user.id, result);
+      const transcriptionId = await saveTranscription(
+        ctx.user.id,
+        result,
+        policy
+      );
       // 7. 返回转写结果及仅由服务端签发的一次性行为凭据。
       return {
         transcriptionId,

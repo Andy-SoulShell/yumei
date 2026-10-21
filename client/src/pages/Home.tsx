@@ -52,6 +52,7 @@ export default function MyCharacters() {
     girlfriendsLoading,
     girlfriendsError,
     refetch,
+    trashDays,
     batchDeleteConfirm,
     hasActiveInSelection,
     batchDeleteGirlfriends,
@@ -254,7 +255,10 @@ export default function MyCharacters() {
                   </p>
                 )}
                 <p>
-                  {t("home:batchDeleteConfirm", { count: selectedIds.size })}
+                  {t("home:batchDeleteConfirm", {
+                    count: selectedIds.size,
+                    days: trashDays,
+                  })}
                 </p>
               </div>
             </AlertDialogDescription>

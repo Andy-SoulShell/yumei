@@ -137,7 +137,12 @@ export async function reserveGenerationInTransaction(
     outputKey: input.outputKey,
     temporaryKey: input.temporaryKey,
     transcriptionId: input.transcriptionId,
-    expiresAt: new Date(Date.now() + (input.timeoutMs ?? 180_000)),
+    expiresAt: new Date(
+      Date.now() +
+        (input.timeoutMs ??
+          (await getPublishedProductConfig(tx)).runtime.maintenance
+            .generationTimeoutMs)
+    ),
   });
   return id;
 }

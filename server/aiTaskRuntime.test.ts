@@ -1,3 +1,4 @@
+import { stubProductConfig } from "./testProductConfig";
 import { eq } from "drizzle-orm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { aiTaskRuns } from "../drizzle/schema";
@@ -51,7 +52,7 @@ describe("internal AI attempt budget and known provider usage", () => {
     }
   );
   it("atomically limits concurrent attempts and keeps failed attempts charged", async () => {
-    vi.stubEnv("AI_DAILY_TASK_LIMIT", "1");
+    stubProductConfig("runtime.ai.dailyTaskLimit", Number("1"));
     const ctx = await context();
     const work = vi.fn(async () => {
       throw new Error("upstream failed");
@@ -82,7 +83,7 @@ describe("internal AI attempt budget and known provider usage", () => {
     });
   });
   it("aborts an unresponsive task and leaves a failed, unknown-cost attempt", async () => {
-    vi.stubEnv("AI_TASK_TIMEOUT_MS", "100");
+    stubProductConfig("runtime.ai.taskTimeoutMs", Number("100"));
     const ctx = await context();
     let signal: AbortSignal | undefined;
     await expect(
@@ -128,7 +129,7 @@ describe("internal AI attempt budget and known provider usage", () => {
     }
   );
   it("keeps a role's attempt receipt after deleting that role", async () => {
-    vi.stubEnv("AI_DAILY_TASK_LIMIT", "1");
+    stubProductConfig("runtime.ai.dailyTaskLimit", Number("1"));
     const ctx = await context();
     const gf = await createTestGirlfriend({
       userId: ctx.userId,

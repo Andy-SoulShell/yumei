@@ -8,6 +8,7 @@ import { ArrowUp, Camera, Keyboard, Loader2, Mic, Square } from "lucide-react";
 import type { ChatController } from "./useChatController";
 type Props = Pick<
   ChatController,
+  | "maxMessageLength"
   | "handleSendMessage"
   | "setShowPoseDialog"
   | "isAccepting"
@@ -34,6 +35,7 @@ type Props = Pick<
 
 /** 紧凑输入区支持多行草稿；等待回复时仍可继续输入。 */
 export function ChatComposer({
+  maxMessageLength,
   handleSendMessage,
   setShowPoseDialog,
   isAccepting,
@@ -152,7 +154,7 @@ export function ChatComposer({
             <Textarea
               ref={inputRef}
               rows={1}
-              maxLength={8000}
+              maxLength={maxMessageLength}
               value={message}
               onChange={event => setMessage(event.target.value)}
               placeholder={t("chat:messagePlaceholder")}

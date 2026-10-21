@@ -181,15 +181,6 @@ export default {
     linkSent: "Check {{email}} for your sign-in link.",
   },
   notifications: {
-    privatePreview: "You have a new message",
-    eventUpcoming:
-      "{{name}}: You mentioned “{{memory}}” for tomorrow ({{eventDay}}). Would you like to prepare together?",
-    eventToday:
-      "{{name}}: You mentioned “{{memory}}” for today ({{eventDay}}). How are you feeling about it?",
-    eventFollowUp:
-      "{{name}}: You mentioned “{{memory}}” for yesterday ({{eventDay}}). Would you like to share how things are going?",
-    dailyCompanion:
-      "{{name}}: Thinking of you on {{eventDay}}. {{memory}} If you feel like chatting, I'm here.",
     clickFeedbackFailed:
       "Could not confirm this notification as read. You can retry here.",
     markAsRead: "Mark as read",
@@ -207,44 +198,6 @@ export default {
       "Lets this device receive messages you have authorized. Proactive contact is enabled separately above.",
     disablePushOnThisDevice: "Disable push on this device",
     enablePush: "Enable push",
-    whatAreYouUpToItSBeen:
-      "What are you up to? It's been a while. I miss you! 💕",
-    haveYouForgottenAboutMeComeChatFor:
-      "Have you forgotten about me? 😢 Come chat for a bit.",
-    howWasYourDayIVeBeenLooking:
-      "How was your day? I've been looking forward to hearing from you.",
-    feelingALittleBoredWhenCanWeChat:
-      "Feeling a little bored. When can we chat? 🥺",
-    iDreamedAboutYouThenWokeUpMissing:
-      "I dreamed about you, then woke up missing you.",
-    goodMorningHereSToABrightNew:
-      "Good morning! ☀️ Here's to a bright new day.",
-    timeToWakeUpYouVeGotThis: "Time to wake up! You've got this today! 🦆",
-    morningHopeYourMoodIsAsLovelyAs:
-      "Morning! Hope your mood is as lovely as the day.",
-    goodMorningDonTForgetBreakfast: "Good morning! Don't forget breakfast. 🍞",
-    timeForBedGoodNightAndSweetDreams:
-      "Time for bed. Good night and sweet dreams. 🌙",
-    itSGettingLateRestUpSoYou:
-      "It's getting late. Rest up so you feel good tomorrow.",
-    goodNightSeeYouInYourDreams: "Good night. See you in your dreams. 💤",
-    youVeWorkedHardTodayHaveAGood:
-      "You've worked hard today. Have a good rest and sweet dreams.",
-    iJustThoughtOfSomethingToShareAre:
-      "I just thought of something to share. Are you around?",
-    iJustSawSomethingFunAndWantedTo:
-      "I just saw something fun and wanted to tell you.",
-    guessWhatIMThinkingAbout: "Guess what I'm thinking about? 😏",
-    aLittleBoredWantToChat: "A little bored… Want to chat?",
-    todaySWeatherMadeMeThinkOfYou: "Today's weather made me think of you. ☁️",
-    heyAreYouFreeIDLoveTo: "Hey! Are you free? I'd love to chat.",
-    memoryFollowUp:
-      "I remember you mentioned “{{memory}}”. How did it go? I would love to hear.",
-    "title.miss_you": "{{name}}: 💕 Missing you",
-    "title.good_morning": "{{name}}: ☀️ Good morning",
-    "title.good_night": "{{name}}: 🌙 Good night",
-    "title.random": "{{name}}: 💬 New message",
-    "title.thinkingOfYou": "{{name}}: 💭 Thinking of you",
   },
   home: {
     clearSearch: "Clear search",
@@ -299,7 +252,7 @@ export default {
     sentAPhoto: "📷 Sent a photo",
     noMessagesYet: "No messages yet",
     deletedCompanionsAreKeptFor7DaysBefore:
-      "Restore within 7 days. After that, deletion is permanent.",
+      "Restore within {{days}} days. After that, deletion is permanent.",
     trashIsEmpty: "Trash is empty",
 
     permanentlyDeletedInDays: "Permanently deleted in {{count}} days",
@@ -309,7 +262,7 @@ export default {
     deleteActiveCompanion: "⚠️ Delete active companion",
     doYouWantToContinue: "Do you want to continue?",
     thisCompanionWillBeMovedToTrashAnd:
-      "This companion will be moved to trash and can be restored within 7 days.",
+      "This companion will be moved to trash and can be restored within {{days}} days.",
     selectionIncludesYourActiveCompanion:
       "⚠️ Selection includes your active companion",
     deleteSelectedCompanions: "Delete selected companions?",
@@ -325,7 +278,7 @@ export default {
       "After deleting {{name}}, choose another character to chat with.",
     deleteConfirm: "Are you sure you want to delete “{{name}}”?",
     batchDeleteConfirm:
-      "Delete the {{count}} selected companions? You can restore them from trash within 7 days.",
+      "Delete the {{count}} selected companions? You can restore them from trash within {{days}} days.",
     todayMessages_one: "{{count}} message today",
     todayMessages_other: "{{count}} messages today",
     searchCount_one: "{{count}} matching conversation",
@@ -335,9 +288,9 @@ export default {
     permanentlyDeletedInDays_one: "Permanently deleted in {{count}} day",
     permanentlyDeletedInDays_other: "Permanently deleted in {{count}} days",
     batchDeleteConfirm_one:
-      "Delete the {{count}} selected companion? You can restore it from trash within 7 days.",
+      "Delete the {{count}} selected companion? You can restore it from trash within {{days}} days.",
     batchDeleteConfirm_other:
-      "Delete the {{count}} selected companions? You can restore them from trash within 7 days.",
+      "Delete the {{count}} selected companions? You can restore them from trash within {{days}} days.",
   },
   settings: {
     proactiveTitle: "Proactive contact",
@@ -621,7 +574,7 @@ export default {
     photoGallery: "Photo gallery",
     openChat: "Open chat",
     movedToTrashYouCanRestoreItWithin:
-      "Moved to trash. You can restore it within 7 days.",
+      "Moved to trash. You can restore it within {{days}} days.",
     justNow: "Just now",
     mAgo: "{{name}}m ago",
     hAgo: "{{name}}h ago",
@@ -858,11 +811,11 @@ export default {
     createCompanion: "Create character",
     deleteCompanion: "Delete character",
     restoreFromTrashWithin7DaysAfterThat:
-      "Restore from Trash within 7 days. After that, deletion is permanent.",
+      "Restore from Trash within {{days}} days. After that, deletion is permanent.",
     avatar2: "Avatar",
     preview: "Preview",
     deleteConfirm:
-      "Delete “{{name}}”? You can restore this companion from trash within 7 days.",
+      "Delete “{{name}}”? You can restore this companion from trash within {{days}} days.",
   },
   billing: {
     planUsage: "Plan & usage",
@@ -1107,23 +1060,5 @@ export default {
     ignore: "If you didn't request this, you can safely ignore this email.",
     fallback: "If the button doesn't work, paste this URL into your browser:",
     signIn: "Sign in",
-  },
-  themes: {
-    "tokyo-sunset.name": "Tokyo Sunset",
-    "tokyo-sunset.description": "Warm orange · Default",
-    "sakura.name": "Sakura Pink",
-    "sakura.description": "Romantic pink",
-    "midnight.name": "Midnight Violet",
-    "midnight.description": "Dreamy cool purple",
-    "neon-mint.name": "Neon Mint",
-    "neon-mint.description": "Fresh mint accents",
-    "crimson.name": "Crimson Velvet",
-    "crimson.description": "Bold, sultry red",
-    "sapphire.name": "Sapphire Night",
-    "sapphire.description": "Deep blue with gold",
-    "lava.name": "Lava Glow",
-    "lava.description": "Cyberpunk neon",
-    "pearl.name": "Dawn Pearl",
-    "pearl.description": "Light tones · Soft pearl",
   },
 } as const;

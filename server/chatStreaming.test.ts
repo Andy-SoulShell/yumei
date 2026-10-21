@@ -1,3 +1,4 @@
+import { stubProductConfig } from "./testProductConfig";
 /** 真 MySQL 与可控上游事件流验证接收、部分结算、取消和崩溃恢复。 */
 import { and, eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -128,7 +129,7 @@ async function seed() {
   };
 }
 beforeEach(() => {
-  vi.stubEnv("BILLING_PROVIDER", "free");
+  stubProductConfig("billing.mode", "free");
   vi.spyOn(providers, "resolveChatProvider").mockResolvedValue({
     name: "deepseek",
     baseUrl: "https://provider.example.test",

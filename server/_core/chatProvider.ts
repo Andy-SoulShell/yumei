@@ -19,13 +19,13 @@ export async function getOperatorChatProvider(
   configuration?: ProductConfig
 ): Promise<ChatProvider> {
   const policy = configuration ?? (await getPublishedProductConfig());
-  if (process.env.LLM_PROVIDER === "deepseek") {
+  if (policy.models.chat.provider === "deepseek") {
     return {
       name: "deepseek",
       baseUrl:
-        process.env.OPERATOR_CHAT_BASE_URL?.replace(/\/$/, "") ||
+        policy.models.chat.operatorBaseUrl?.replace(/\/+$/, "") ||
         "https://api.deepseek.com",
-      model: process.env.DEEPSEEK_MODEL || "deepseek-flash",
+      model: policy.models.chat.deepseekModel,
       apiKey: process.env.OPERATOR_DEEPSEEK_KEY || null,
       isByok: false,
     };
@@ -33,7 +33,7 @@ export async function getOperatorChatProvider(
   return {
     name: "openrouter",
     baseUrl:
-      process.env.OPERATOR_CHAT_BASE_URL?.replace(/\/$/, "") ||
+      policy.models.chat.operatorBaseUrl?.replace(/\/+$/, "") ||
       "https://openrouter.ai/api/v1",
     model: policy.billing.defaultChatModel,
     apiKey: process.env.OPERATOR_OPENROUTER_KEY || null,

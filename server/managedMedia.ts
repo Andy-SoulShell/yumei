@@ -1,3 +1,4 @@
+import { getPublishedProductConfig } from "./repositories/productConfig";
 /** 上传前持久登记回收期限，业务提交后发布引用，覆盖失败和进程中断。 */
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -11,13 +12,16 @@ export async function putStagedMedia(
   key: string,
   data: Buffer,
   mimeType: string,
-  retentionMs = 10 * 60_000
+  retentionMs?: number
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  const retention =
+    retentionMs ??
+    (await getPublishedProductConfig()).runtime.maintenance.stagedRetentionMs;
   await db
     .insert(mediaDeletions)
-    .values({ key, userId, availableAt: new Date(Date.now() + retentionMs) });
+    .values({ key, userId, availableAt: new Date(Date.now() + retention) });
   return storagePut(key, data, mimeType);
 }
 

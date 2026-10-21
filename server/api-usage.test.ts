@@ -1,3 +1,4 @@
+import { stubProductConfig } from "./testProductConfig";
 /** 通过真实业务接口验证套餐用量、BYOK 状态和升级入口。 */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { appRouter } from "./routers";
@@ -21,7 +22,7 @@ afterEach(() => vi.unstubAllEnvs());
 
 describe("usage APIs", () => {
   it("returns the real free daily counters and no paid checkout links", async () => {
-    vi.stubEnv("BILLING_PROVIDER", "free");
+    stubProductConfig("billing.mode", "free");
     const { userId, caller } = await userCaller();
     await tryConsumeDailyMeter(userId, "chat", 30, 4);
     await tryConsumeDailyMeter(userId, "selfie", 1);
@@ -43,7 +44,7 @@ describe("usage APIs", () => {
   });
 
   it("reports saved BYOK without exposing credentials and isolates other users", async () => {
-    vi.stubEnv("BILLING_PROVIDER", "free");
+    stubProductConfig("billing.mode", "free");
     vi.stubEnv(
       "KEY_ENCRYPTION_KEY",
       "test-api-usage-encryption-secret-at-least-32-characters"
@@ -65,7 +66,7 @@ describe("usage APIs", () => {
   });
 
   it("returns unlocked self-host limits without creating fake subscription data", async () => {
-    vi.stubEnv("BILLING_PROVIDER", "none");
+    stubProductConfig("billing.mode", "none");
     const { caller } = await userCaller();
     const info = await caller.billing.getInfo();
     expect(info).toMatchObject({

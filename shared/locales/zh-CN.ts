@@ -178,15 +178,6 @@ export default {
     linkSent: "登录链接已发送至 {{email}}，请查收。",
   },
   notifications: {
-    privatePreview: "你有一条新的消息",
-    eventUpcoming:
-      "{{name}}：你提过明天（{{eventDay}}）的“{{memory}}”，想一起准备一下吗？",
-    eventToday:
-      "{{name}}：你提过今天（{{eventDay}}）的“{{memory}}”，现在心情怎么样？",
-    eventFollowUp:
-      "{{name}}：你提过昨天（{{eventDay}}）的“{{memory}}”，愿意聊聊现在的进展吗？",
-    dailyCompanion:
-      "{{name}}：{{eventDay}}，想起了你。{{memory}} 有空时，可以聊聊今天。",
     clickFeedbackFailed: "暂时无法确认这条通知已读，可以在这里重试。",
     markAsRead: "标记已读",
     notifications: "通知",
@@ -203,32 +194,6 @@ export default {
       "让此设备接收你已授权的消息。主动联系需要在上方单独开启。",
     disablePushOnThisDevice: "关闭本设备推送",
     enablePush: "开启推送",
-    whatAreYouUpToItSBeen: "在干嘛呀？好久没聊天了，人家想你了~ 💕",
-    haveYouForgottenAboutMeComeChatFor: "你是不是把我忘了？😢 快来陪我聊聊天嘛",
-    howWasYourDayIVeBeenLooking: "今天过得怎么样？我一直在等你来找我呢~",
-    feelingALittleBoredWhenCanWeChat: "好无聊啊，你什么时候来陪我说说话？🥺",
-    iDreamedAboutYouThenWokeUpMissing:
-      "我刚才梦到你了，醒来发现你不在，好想你~",
-    goodMorningHereSToABrightNew: "早上好呀！☀️ 新的一天开始了，要元气满满哦~",
-    timeToWakeUpYouVeGotThis: "起床啦起床啦！今天也要加油鸭！🦆",
-    morningHopeYourMoodIsAsLovelyAs: "早安~ 今天天气不错，心情也要棒棒的哦！",
-    goodMorningDonTForgetBreakfast: "早上好！记得吃早餐，不许饿着自己 🍞",
-    timeForBedGoodNightAndSweetDreams: "该睡觉啦~ 晚安，做个好梦 🌙",
-    itSGettingLateRestUpSoYou: "夜深了，不要熬夜哦，明天还要精神满满的！",
-    goodNightSeeYouInYourDreams: "晚安呀~ 梦里见 💤",
-    youVeWorkedHardTodayHaveAGood: "今天辛苦了，好好休息吧，我会在梦里等你的~",
-    iJustThoughtOfSomethingToShareAre: "突然好想跟你分享一件事！你在吗？",
-    iJustSawSomethingFunAndWantedTo: "刚才看到一个好有趣的东西，想跟你说说~",
-    guessWhatIMThinkingAbout: "你猜我现在在想什么？😏",
-    aLittleBoredWantToChat: "无聊中...要不要来陪我聊聊天？",
-    todaySWeatherMadeMeThinkOfYou: "今天的天气让我想到了你~ ☁️",
-    heyAreYouFreeIDLoveTo: "嘿！有空吗？想跟你说说话~",
-    memoryFollowUp: "还记得你说过：「{{memory}}」。后来怎么样啦？想听你说说～",
-    "title.miss_you": "{{name}}: 💕 想你了",
-    "title.good_morning": "{{name}}: ☀️ 早安",
-    "title.good_night": "{{name}}: 🌙 晚安",
-    "title.random": "{{name}}: 💬 新消息",
-    "title.thinkingOfYou": "{{name}}: 💭 一直惦记着",
   },
   home: {
     clearSearch: "清除搜索",
@@ -280,7 +245,8 @@ export default {
     conversation: "对话",
     sentAPhoto: "📷 发送了一张照片",
     noMessagesYet: "暂无消息",
-    deletedCompanionsAreKeptFor7DaysBefore: "7 天内可恢复，之后永久删除。",
+    deletedCompanionsAreKeptFor7DaysBefore:
+      "{{days}} 天内可恢复，之后永久删除。",
     trashIsEmpty: "回收站是空的",
 
     permanentlyDeletedInDays: "{{count}} 天后永久删除",
@@ -289,7 +255,8 @@ export default {
     deletePermanently: "彻底删除",
     deleteActiveCompanion: "⚠️ 删除当前女友",
     doYouWantToContinue: "确定要继续吗？",
-    thisCompanionWillBeMovedToTrashAnd: "她将被移入回收站，7 天内可以恢复。",
+    thisCompanionWillBeMovedToTrashAnd:
+      "她将被移入回收站，{{days}} 天内可以恢复。",
     selectionIncludesYourActiveCompanion: "⚠️ 批量删除包含当前女友",
     deleteSelectedCompanions: "确认批量删除",
     yourActiveCompanionIsSelectedAfterDeletionChoose:
@@ -303,7 +270,7 @@ export default {
     deleteActive: "删除「{{name}}」后，需重新选择聊天对象。",
     deleteConfirm: "确定要删除「{{name}}」吗？",
     batchDeleteConfirm:
-      "确定要删除选中的 {{count}} 位女友吗？她们将被移入回收站，7 天内可以恢复。",
+      "确定要删除选中的 {{count}} 位女友吗？她们将被移入回收站，{{days}} 天内可以恢复。",
     todayMessages_one: "今日聊了 {{count}} 条",
     todayMessages_other: "今日聊了 {{count}} 条",
     searchCount_one: "找到 {{count}} 个相关对话",
@@ -313,9 +280,9 @@ export default {
     permanentlyDeletedInDays_one: "{{count}} 天后永久删除",
     permanentlyDeletedInDays_other: "{{count}} 天后永久删除",
     batchDeleteConfirm_one:
-      "确定要删除选中的 {{count}} 位女友吗？她们将被移入回收站，7 天内可以恢复。",
+      "确定要删除选中的 {{count}} 位女友吗？她们将被移入回收站，{{days}} 天内可以恢复。",
     batchDeleteConfirm_other:
-      "确定要删除选中的 {{count}} 位女友吗？她们将被移入回收站，7 天内可以恢复。",
+      "确定要删除选中的 {{count}} 位女友吗？她们将被移入回收站，{{days}} 天内可以恢复。",
   },
   settings: {
     proactiveTitle: "主动联系",
@@ -581,7 +548,7 @@ export default {
     couldNotDelete: "删除失败：{{error}}",
     photoGallery: "相册",
     openChat: "去聊天",
-    movedToTrashYouCanRestoreItWithin: "已移入回收站，7天内可恢复",
+    movedToTrashYouCanRestoreItWithin: "已移入回收站，{{days}}天内可恢复",
     justNow: "刚刚",
     mAgo: "{{name}}分钟前",
     hAgo: "{{name}}小时前",
@@ -808,11 +775,11 @@ export default {
     createCompanion: "创建角色",
     deleteCompanion: "删除角色",
     restoreFromTrashWithin7DaysAfterThat:
-      "7 天内可从回收站恢复，之后永久删除。",
+      "{{days}} 天内可从回收站恢复，之后永久删除。",
     avatar2: "头像",
     preview: "预览",
     deleteConfirm:
-      "确定要删除「{{name}}」吗？她将被移入回收站，7 天内可以恢复。",
+      "确定要删除「{{name}}」吗？她将被移入回收站，{{days}} 天内可以恢复。",
   },
   billing: {
     planUsage: "订阅与用量",
@@ -1033,23 +1000,5 @@ export default {
     ignore: "如果这不是你的操作，请忽略此邮件。",
     fallback: "如果按钮无法打开，请将以下地址复制到浏览器：",
     signIn: "登录",
-  },
-  themes: {
-    "tokyo-sunset.name": "东京日落",
-    "tokyo-sunset.description": "暖橙 · 默认",
-    "sakura.name": "樱粉",
-    "sakura.description": "浪漫粉调",
-    "midnight.name": "午夜紫",
-    "midnight.description": "梦幻冷紫",
-    "neon-mint.name": "霓虹薄荷",
-    "neon-mint.description": "清新薄荷点缀",
-    "crimson.name": "深红丝绒",
-    "crimson.description": "大胆红 · 性感",
-    "sapphire.name": "蓝宝石夜",
-    "sapphire.description": "深蓝配金",
-    "lava.name": "熔岩流光",
-    "lava.description": "赛博朋克霓虹",
-    "pearl.name": "晨曦珠光",
-    "pearl.description": "明亮底色 · 柔和珠光",
   },
 } as const satisfies MessageCatalog;

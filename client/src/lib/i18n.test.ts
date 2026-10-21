@@ -1,10 +1,10 @@
+import { renderNotification } from "@shared/notifications";
 /** 完整语言包、参数契约、语言匹配与回退行为。 */
 import { describe, expect, it } from "vitest";
 import { parsePreferences, resolveLocale } from "@shared/preferences";
 import { LANGUAGES, LOCALES, normalizeLocale } from "@shared/locales";
 import {
   i18n,
-  renderMessage,
   translate,
   type MessageKey,
   type Translator,
@@ -126,7 +126,8 @@ describe("interface localization", () => {
       translate("auth:linkSent", "en", { email: "test@example.com" })
     ).toContain("test@example.com");
     expect(
-      renderMessage(
+      renderNotification(
+        productFixture.proactive,
         { key: "notifications:title.random", values: { name } },
         "ja"
       )

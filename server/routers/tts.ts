@@ -18,7 +18,7 @@ export const ttsRouter = router({
   generate: protectedProcedure
     .input(
       z.object({
-        text: z.string().min(1).max(5000),
+        text: z.string().min(1).max(20000),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -26,6 +26,11 @@ export const ttsRouter = router({
       // 服务端限流。
       const policy = await getPublishedProductConfig();
       await checkRateLimit(ctx.user.id, "tts", policy);
+      if (input.text.length > policy.runtime.voice.ttsMaxChars)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `语音文本最多 ${policy.runtime.voice.ttsMaxChars} 字符`,
+        });
 
       const apiConfig = await getUserApiConfig(ctx.user.id);
       if (!apiConfig) {
@@ -43,7 +48,7 @@ export const ttsRouter = router({
           : null;
       // 语音服务权限由当前套餐决定，用户密钥或自托管模式除外。
       if (
-        isBillingEnforced() &&
+        isBillingEnforced(policy) &&
         (provider === "elevenlabs" || provider === "fishaudio")
       ) {
         const byokForProvider = ttsKey?.source === "user";
@@ -76,16 +81,16 @@ export const ttsRouter = router({
               userId: ctx.user.id,
               kind: "tts",
               provider: "elevenlabs",
-              model: "eleven_multilingual_v2",
+              model: policy.models.tts.elevenlabs,
               isByok: ttsKey?.source === "user",
-              promptVersion: "companion-voice/1",
+              promptVersion: `product-config/${policy.revision}:voice`,
             },
             async signal => ({
               value: await axios.post(
                 `https://api.elevenlabs.io/v1/text-to-speech/${apiConfig.elevenlabsVoiceId}`,
                 {
                   text: input.text,
-                  model_id: "eleven_multilingual_v2",
+                  model_id: policy.models.tts.elevenlabs,
                 },
                 {
                   headers: {
@@ -95,10 +100,11 @@ export const ttsRouter = router({
                   },
                   responseType: "arraybuffer",
                   signal,
-                  timeout: 60_000,
+                  timeout: policy.runtime.voice.ttsTimeoutMs,
                 }
               ),
-            })
+            }),
+            policy
           );
 
           // 上传音频到 S3
@@ -109,7 +115,7 @@ export const ttsRouter = router({
             fileKey,
             audioBuffer,
             "audio/mpeg",
-            24 * 60 * 60_000
+            policy.runtime.voice.ttsRetentionMs
           );
 
           return { audioUrl: url, provider: "elevenlabs" as const };
@@ -134,9 +140,9 @@ export const ttsRouter = router({
               userId: ctx.user.id,
               kind: "tts",
               provider: "fishaudio",
-              model: "s1",
+              model: policy.models.tts.fishaudio,
               isByok: ttsKey?.source === "user",
-              promptVersion: "companion-voice/1",
+              promptVersion: `product-config/${policy.revision}:voice`,
             },
             async signal => ({
               value: await axios.post(
@@ -150,14 +156,15 @@ export const ttsRouter = router({
                   headers: {
                     Authorization: `Bearer ${fishKey}`,
                     "Content-Type": "application/json",
-                    model: "s1",
+                    model: policy.models.tts.fishaudio,
                   },
                   responseType: "arraybuffer",
                   signal,
-                  timeout: 60_000,
+                  timeout: policy.runtime.voice.ttsTimeoutMs,
                 }
               ),
-            })
+            }),
+            policy
           );
 
           // 上传音频到 S3
@@ -168,7 +175,7 @@ export const ttsRouter = router({
             fileKey,
             audioBuffer,
             "audio/mpeg",
-            24 * 60 * 60_000
+            policy.runtime.voice.ttsRetentionMs
           );
 
           return { audioUrl: url, provider: "fishaudio" as const };

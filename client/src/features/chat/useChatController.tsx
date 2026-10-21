@@ -883,6 +883,7 @@ export function useChatController() {
   const currentMoodInfo = moodData ? MOOD_CONFIG[moodData.mood] : null;
 
   return {
+    maxMessageLength: productRules.raw?.runtime.chat.maxInputChars,
     effectiveIntimacyLevel: productRules.data
       ? getLevelByPoints(
           girlfriend?.intimacyPoints ?? 0,

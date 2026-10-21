@@ -44,7 +44,7 @@ export const girlfriendRouter = router({
     .input(z.object({ presetId: officialIdSchema }).strict())
     .mutation(async ({ ctx, input }) => {
       const preset = await getPublishedCharacter(input.presetId);
-      const { limits } = await getTierLimits(ctx.user.id);
+      const { limits, configuration } = await getTierLimits(ctx.user.id);
       const image = await readOfficialImage(preset.imageUrl);
       const ext =
         image.mimeType === "image/jpeg" ? "jpg" : image.mimeType.split("/")[1];
@@ -69,7 +69,7 @@ export const girlfriendRouter = router({
             referenceImageKey: key,
             isActive: true,
           },
-          isBillingEnforced() ? limits.maxGirlfriends : null,
+          isBillingEnforced(configuration) ? limits.maxGirlfriends : null,
           true
         );
       } catch (error) {
@@ -109,8 +109,10 @@ export const girlfriendRouter = router({
       // 档位上限：Free 1 个、Plus 3 个、Pro 不限。
       // 自托管（BILLING_PROVIDER=none）不限。
       const gfTier = await getTierLimits(ctx.user.id);
-      const maximum = isBillingEnforced() ? gfTier.limits.maxGirlfriends : null;
-      if (isBillingEnforced()) {
+      const maximum = isBillingEnforced(gfTier.configuration)
+        ? gfTier.limits.maxGirlfriends
+        : null;
+      if (isBillingEnforced(gfTier.configuration)) {
         if (gfTier.limits.maxGirlfriends !== null) {
           const existing = await getUserGirlfriends(ctx.user.id);
           if (existing.length >= gfTier.limits.maxGirlfriends) {
@@ -307,7 +309,9 @@ export const girlfriendRouter = router({
       await restoreGirlfriend(
         input.id,
         ctx.user.id,
-        isBillingEnforced() ? tier.limits.maxGirlfriends : null
+        isBillingEnforced(tier.configuration)
+          ? tier.limits.maxGirlfriends
+          : null
       );
       return { success: true };
     }),
@@ -354,7 +358,7 @@ export const girlfriendRouter = router({
           isActive: true,
         };
       },
-      isBillingEnforced() ? tier.limits.maxGirlfriends : null
+      isBillingEnforced(tier.configuration) ? tier.limits.maxGirlfriends : null
     );
     return girlfriend;
   }),

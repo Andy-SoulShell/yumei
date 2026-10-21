@@ -1,3 +1,6 @@
+import { vi } from "vitest";
+import * as repository from "./repositories/productConfig";
+const originalPublished = repository.getPublishedProductConfig;
 /** 测试使用的初始业务响应；生产前后端不得导入此文件。 */
 import source from "./seeds/product.json";
 import {
@@ -26,3 +29,22 @@ export const DEFAULT_PREFERENCES = {
 } as const;
 
 export const DEFAULT_PROACTIVE_PREFERENCES = productFixture.proactive.defaults;
+
+/** 回归测试通过配置边界模拟运营规则，生产执行不再读取这些环境变量。 */
+export function stubProductConfig(path: string, value: unknown) {
+  const current = repository.getPublishedProductConfig;
+  const previous = vi.isMockFunction(current)
+    ? (current.getMockImplementation() ?? originalPublished)
+    : current;
+  vi.spyOn(repository, "getPublishedProductConfig").mockImplementation(
+    async (...args) => {
+      const result = structuredClone(await previous(...args));
+      const parts = path.split(".");
+      let target = result as Record<string, unknown>;
+      for (const key of parts.slice(0, -1))
+        target = target[key] as Record<string, unknown>;
+      target[parts.at(-1)!] = value;
+      return result;
+    }
+  );
+}

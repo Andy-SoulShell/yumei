@@ -1,3 +1,4 @@
+import { stubProductConfig } from "./testProductConfig";
 /** 回归角色行为、情绪方向、真实保存与调用统计，不调用真实模型。 */
 import { eq } from "drizzle-orm";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -61,7 +62,7 @@ async function seed() {
     .from(users)
     .where(eq(users.id, userId));
   const send = async (content: string, reply = "喜欢你，想你，love you") => {
-    vi.stubEnv("BILLING_PROVIDER", "none");
+    stubProductConfig("billing.mode", "none");
     vi.spyOn(provider, "resolveChatProvider").mockResolvedValue({
       name: "openrouter",
       baseUrl: "https://example.test",
@@ -271,7 +272,7 @@ describe("consumer companion behavior", () => {
   it.each(["save-failure", "empty-response"])(
     "retains known provider usage when business settlement fails: %s",
     async mode => {
-      vi.stubEnv("BILLING_PROVIDER", "none");
+      stubProductConfig("billing.mode", "none");
       const a = await seed();
       vi.spyOn(provider, "resolveChatProvider").mockResolvedValue({
         name: "openrouter",
@@ -354,7 +355,7 @@ describe("consumer companion behavior", () => {
       "[generation] telemetry storage failed",
       expect.objectContaining({ requestId: "not-a-request" })
     );
-    vi.stubEnv("BILLING_PROVIDER", "none");
+    stubProductConfig("billing.mode", "none");
     vi.spyOn(provider, "resolveChatProvider").mockResolvedValue({
       name: "openrouter",
       baseUrl: "https://example.test",

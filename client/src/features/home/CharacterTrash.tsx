@@ -15,6 +15,7 @@ import { Trash, Trash2, Undo2 } from "lucide-react";
 import type { HomeController } from "./useHomeController";
 type Props = Pick<
   HomeController,
+  | "trashDays"
   | "trashOpen"
   | "setTrashOpen"
   | "t"
@@ -29,6 +30,7 @@ type Props = Pick<
 
 /** 展示回收站角色及恢复、永久删除操作。 */
 export function CharacterTrash({
+  trashDays,
   trashOpen,
   setTrashOpen,
   t,
@@ -49,7 +51,9 @@ export function CharacterTrash({
             {t("home:trash")}
           </SheetTitle>
           <SheetDescription className="text-xs">
-            {t("home:deletedCompanionsAreKeptFor7DaysBefore")}
+            {t("home:deletedCompanionsAreKeptFor7DaysBefore", {
+              days: trashDays,
+            })}
           </SheetDescription>
         </SheetHeader>
 

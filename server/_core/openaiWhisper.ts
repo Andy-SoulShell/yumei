@@ -1,3 +1,5 @@
+import type { ProductConfig } from "../../shared/productConfig";
+import { getPublishedProductConfig } from "../repositories/productConfig";
 /** 使用内存中的录音调用 OpenAI Whisper，返回结构化结果或错误。 */
 
 /** 语音转写输入，包含录音字节与可选语言、上下文提示。 */
@@ -62,9 +64,11 @@ export type TranscriptionError = {
  */
 export async function transcribeWithOpenAI(
   options: TranscribeOptions,
-  apiKey: string
+  apiKey: string,
+  configuration?: ProductConfig
 ): Promise<TranscriptionResponse | TranscriptionError> {
   try {
+    const policy = configuration ?? (await getPublishedProductConfig());
     // 调用前要求可用密钥。
     if (!apiKey || !apiKey.startsWith("sk-")) {
       return {
@@ -76,7 +80,7 @@ export async function transcribeWithOpenAI(
 
     const audioBuffer = Buffer.from(options.audio.data);
     const mimeType = options.audio.mimeType;
-    if (audioBuffer.length > 25 * 1024 * 1024)
+    if (audioBuffer.length > policy.uploads.audio.maxBytes)
       return {
         error: "Audio file exceeds maximum size",
         code: "FILE_TOO_LARGE",
@@ -92,7 +96,7 @@ export async function transcribeWithOpenAI(
     });
     formData.append("file", audioBlob, filename);
 
-    formData.append("model", "whisper-1");
+    formData.append("model", policy.models.transcription.model);
     formData.append("response_format", "verbose_json");
 
     // 附加调用方提供的可选参数。
@@ -113,8 +117,11 @@ export async function transcribeWithOpenAI(
         },
         body: formData,
         signal: options.signal
-          ? AbortSignal.any([options.signal, AbortSignal.timeout(60_000)])
-          : AbortSignal.timeout(60_000),
+          ? AbortSignal.any([
+              options.signal,
+              AbortSignal.timeout(policy.runtime.voice.transcriptionTimeoutMs),
+            ])
+          : AbortSignal.timeout(policy.runtime.voice.transcriptionTimeoutMs),
       }
     );
 

@@ -25,7 +25,10 @@ import { ENV } from "./env";
 import { registerFileRoutes } from "./files";
 import { serveStatic } from "./static";
 import { initializeDiscovery } from "../repositories/discovery";
-import { initializeProductConfig } from "../repositories/productConfig";
+import {
+  getPublishedProductConfig,
+  initializeProductConfig,
+} from "../repositories/productConfig";
 
 /** 通过临时绑定检测目标 TCP 端口是否可用。 */
 function isPortAvailable(port: number): Promise<boolean> {
@@ -82,7 +85,7 @@ async function runBootChecks() {
     );
   }
   if (
-    process.env.IMAGE_PROVIDER !== "comfyui" &&
+    (await getPublishedProductConfig()).models.image.provider !== "comfyui" &&
     !process.env.OPERATOR_FAL_KEY
   ) {
     console.warn(

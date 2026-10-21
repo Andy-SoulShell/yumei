@@ -1,3 +1,4 @@
+import { stubProductConfig } from "./testProductConfig";
 /** 覆盖内置预设、图片读取及套餐数量约束。 */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,7 +15,7 @@ const caller = appRouter.createCaller({
 const profile = { name: "自定义名字", personality: "温柔", appearance: "黑发" };
 
 beforeEach(() => {
-  vi.stubEnv("BILLING_PROVIDER", "none");
+  stubProductConfig("billing.mode", "none");
   vi.spyOn(storage, "storagePut").mockImplementation(async key => ({
     key,
     url: `http://app/files/${key}`,
@@ -83,7 +84,7 @@ describe("character preset creation", () => {
   });
 
   it("keeps the plan's companion limit for preset creation", async () => {
-    vi.stubEnv("BILLING_PROVIDER", "free");
+    stubProductConfig("billing.mode", "free");
     vi.spyOn(companionsDb, "getUserGirlfriends").mockResolvedValue([
       { id: 2 },
     ] as any);

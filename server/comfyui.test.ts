@@ -1,3 +1,4 @@
+import { stubProductConfig } from "./testProductConfig";
 /** 覆盖图片生成的工作流适配与业务约束。 */
 
 import axios from "axios";
@@ -50,10 +51,10 @@ beforeEach(() => {
       }) as any
   );
 
-  vi.stubEnv("IMAGE_PROVIDER", "comfyui");
-  vi.stubEnv("COMFYUI_BASE_URL", "http://comfy:8188");
+  stubProductConfig("models.image.provider", "comfyui");
+  stubProductConfig("models.image.comfyuiBaseUrl", "http://comfy:8188");
   vi.stubEnv("COMFYUI_API_KEY", "private-comfy-token");
-  vi.stubEnv("BILLING_PROVIDER", "none");
+  stubProductConfig("billing.mode", "none");
   vi.spyOn(keyProvider, "resolve").mockResolvedValue({
     value: null,
     source: "none",
@@ -108,7 +109,8 @@ describe("ComfyUI selfie integration", () => {
       expect.objectContaining({
         mode: "text",
         prompt: expect.stringContaining("黑色长发"),
-      })
+      }),
+      expect.objectContaining({ runtime: expect.any(Object) })
     );
     expect(generations.completeImageGeneration).toHaveBeenCalledWith(
       "mock-request",
@@ -262,7 +264,7 @@ describe("ComfyUI selfie integration", () => {
     vi.spyOn(apiConfigDb, "getUserApiConfig").mockResolvedValue(undefined);
     vi.spyOn(keyProvider, "get").mockResolvedValue(null);
     const result = await caller().apiConfig.get();
-    expect(result.imageProvider).toEqual({
+    expect(result.imageProvider).toMatchObject({
       name: "comfyui",
       configured: true,
       supportsTextToImage: true,

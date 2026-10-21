@@ -1,3 +1,4 @@
+import { stubProductConfig } from "./testProductConfig";
 /** 验证任务随消息提交、独立执行者互斥、失败重试以及过期租约恢复。 */
 import { eq } from "drizzle-orm";
 import { afterEach, expect, it, vi } from "vitest";
@@ -51,7 +52,7 @@ async function send(user: User, conversationId: number, content: string) {
 }
 async function seed(rounds = 1) {
   vi.spyOn(derived, "refreshMemoryDerived").mockResolvedValue();
-  vi.stubEnv("BILLING_PROVIDER", "none");
+  stubProductConfig("billing.mode", "none");
   vi.spyOn(memory, "maybeExtractMemories").mockImplementation(async () => {});
   vi.stubGlobal(
     "fetch",

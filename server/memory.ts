@@ -320,7 +320,8 @@ export async function callExtractionModel(
         }
       );
       return { value: response.data, usage: response.data?.usage };
-    }
+    },
+    policy
   );
   const content = data?.choices?.[0]?.message?.content;
   const candidates =

@@ -1,3 +1,4 @@
+import { stubProductConfig } from "./testProductConfig";
 /** 验证上传补偿、头像替换、临时音频期限和慢存储不占用用户事务锁。 */
 import { eq } from "drizzle-orm";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -26,7 +27,7 @@ const profile = {
 };
 describe("managed media lifecycle", () => {
   it("reclaims a reference when role creation fails and validates avatar ownership before uploading", async () => {
-    vi.stubEnv("BILLING_PROVIDER", "none");
+    stubProductConfig("billing.mode", "none");
     const userId = await createTestUser();
     const foreign = await createTestGirlfriend({
       ...profile,
@@ -139,7 +140,7 @@ describe("managed media lifecycle", () => {
     }
   });
   it("passes audio bytes directly to transcription and never uploads original recordings", async () => {
-    vi.stubEnv("BILLING_PROVIDER", "none");
+    stubProductConfig("billing.mode", "none");
     vi.stubEnv("OPERATOR_OPENAI_KEY", "sk-fake-transcription-test");
     const userId = await createTestUser();
     const caller = appRouter.createCaller({

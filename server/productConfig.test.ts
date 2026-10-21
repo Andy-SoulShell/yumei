@@ -241,8 +241,8 @@ describe("published product configuration", () => {
 
   it("publishes arbitrary plan IDs, prices and actual quota limits together", () =>
     isolated(async (tx, admin, userId) => {
-      vi.stubEnv("BILLING_PROVIDER", "lemonsqueezy");
       const config = structuredClone(productFixture);
+      config.billing.mode = "lemonsqueezy";
       const paid = structuredClone(config.billing.plans[1]);
       Object.assign(paid, {
         id: "studio",

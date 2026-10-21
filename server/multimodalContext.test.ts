@@ -1,3 +1,4 @@
+import { stubProductConfig } from "./testProductConfig";
 import axios from "axios";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -30,7 +31,7 @@ import { transcribeWithOpenAI } from "./_core/openaiWhisper";
 const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0]);
 const cleanup: { userId: string; roleId: number }[] = [];
 beforeEach(() => {
-  vi.stubEnv("BILLING_PROVIDER", "none");
+  stubProductConfig("billing.mode", "none");
   vi.spyOn(imageProvider, "resolveImageProvider").mockResolvedValue({
     name: "fal",
     apiKey: "fake",

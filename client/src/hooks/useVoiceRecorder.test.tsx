@@ -3,12 +3,13 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { productFixture } from "../../../server/testProductConfig";
+let recordingPolicy = structuredClone(productFixture);
 import { useVoiceRecorder } from "./useVoiceRecorder";
 
-vi.mock("@/features/product/useProductConfig", async () => {
-  const { productFixture } = await import("../../../server/testProductConfig");
-  return { useProductConfig: () => ({ raw: productFixture }) };
-});
+vi.mock("@/features/product/useProductConfig", () => ({
+  useProductConfig: () => ({ raw: recordingPolicy }),
+}));
 const mock = vi.hoisted(() => ({ info: vi.fn(), error: vi.fn() }));
 vi.mock("sonner", () => ({ toast: mock }));
 vi.mock("@/lib/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
@@ -43,6 +44,7 @@ beforeEach(() => {
   (
     globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }
   ).IS_REACT_ACT_ENVIRONMENT = true;
+  recordingPolicy = structuredClone(productFixture);
   vi.clearAllMocks();
   recorders.length = 0;
   vi.stubGlobal("MediaRecorder", Recorder);
@@ -62,6 +64,7 @@ afterEach(() => {
   act(() => root.unmount());
   container.remove();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 it("does not announce a cancellation when cleanup is called without recording", () => {
   act(() => state.cancelRecording());
@@ -115,4 +118,24 @@ it("does not mix a cancelled recorder's late data into the next recording", asyn
   });
   act(() => recorders[1].onstop?.());
   expect((await pending)?.blob.size).toBe(3);
+});
+
+it("uses the published microphone sample rate and duration timer", async () => {
+  vi.useFakeTimers();
+  recordingPolicy.uploads.audio.sampleRate = 22050;
+  recordingPolicy.uploads.audio.maxDurationSeconds = 2;
+  const reached = vi.fn();
+  act(() => state.setOnMaxDuration(reached));
+  await act(async () => state.startRecording());
+  expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({
+    audio: expect.objectContaining({ sampleRate: 22050 }),
+  });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1999);
+  });
+  expect(reached).not.toHaveBeenCalled();
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1);
+  });
+  expect(reached).toHaveBeenCalledOnce();
 });

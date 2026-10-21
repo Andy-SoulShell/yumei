@@ -1,3 +1,5 @@
+import type { ProductConfig } from "../shared/productConfig";
+import { getPublishedProductConfig } from "./repositories/productConfig";
 /** 保存一次性语音转写凭据，奖励只依据服务端返回的文本和时长。 */
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
@@ -8,7 +10,8 @@ import { getDb, type DbTransaction } from "./database";
 /** 成功转写后保存短期凭据，原始录音由媒体生命周期负责回收。 */
 export async function saveTranscription(
   userId: string,
-  result: TranscriptionResponse
+  result: TranscriptionResponse,
+  configuration?: ProductConfig
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -18,7 +21,11 @@ export async function saveTranscription(
     userId,
     text: result.text.trim(),
     durationMs: Math.max(0, Math.round((result.duration || 0) * 1000)),
-    expiresAt: new Date(Date.now() + 30 * 60_000),
+    expiresAt: new Date(
+      Date.now() +
+        (configuration ?? (await getPublishedProductConfig())).runtime.voice
+          .credentialTtlMs
+    ),
   });
   return id;
 }

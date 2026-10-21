@@ -15,7 +15,7 @@ import {
   enforceMemoryCapacity,
   storeExtractedMemoriesInTransaction,
 } from "./memory";
-import { memoryFeatureEnabled, runtimeInteger } from "./aiTaskRuntime";
+import { memoryFeatureEnabled } from "./aiTaskRuntime";
 import { refreshMemoryDerived, sameMemoryRouting } from "./memoryDerived";
 
 /** 多实例可同时调用；过期租约重新认领，达到配置的失败上限时保留任务供排查。 */
@@ -101,11 +101,7 @@ export async function runMemoryExtractionJobs(userId?: string): Promise<void> {
             leaseToken: token,
             leaseUntil: new Date(
               Date.now() +
-                Math.max(
-                  60_000,
-                  runtimeInteger("AI_TASK_TIMEOUT_MS", 30_000, 100, 120_000) +
-                    5_000
-                )
+                Math.max(60_000, policy.runtime.ai.taskTimeoutMs + 5_000)
             ),
           })
           .where(eq(memoryExtractionJobs.id, job.id));

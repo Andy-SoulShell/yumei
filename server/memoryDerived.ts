@@ -222,7 +222,8 @@ async function embed(
         }
       );
       return { value: response.data, usage: response.data?.usage };
-    }
+    },
+    policy
   );
   const payload = z
     .object({
@@ -544,7 +545,8 @@ export async function generateMemorySummary(
         }
       );
       return { value: response.data, usage: response.data?.usage };
-    }
+    },
+    policy
   );
   const text = raw?.choices?.[0]?.message?.content;
   const parsed = summarySchema(policy.memory).parse(

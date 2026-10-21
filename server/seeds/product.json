@@ -91,7 +91,9 @@
         "checkoutUrl": null,
         "lemonVariantId": null
       }
-    ]
+    ],
+    "mode": "free",
+    "pastDueGraceMs": 604800000
   },
   "selfies": {
     "defaultPoseId": "casual",
@@ -1230,48 +1232,6 @@
         "ja": "{{name}}：{{eventDay}}、ふとあなたを思い出しました。{{memory}} 話したくなったら、今日のことを聞かせてください。",
         "ko": "{{name}}: {{eventDay}}, 문득 당신이 생각났어요. {{memory}} 이야기하고 싶을 때 오늘 얘기를 들려주세요."
       },
-      "notifications:notificationPermissionWasDenied": {
-        "zh-CN": "浏览器拒绝了通知权限",
-        "en": "Notification permission was denied",
-        "ja": "通知の許可が拒否されました",
-        "ko": "알림 권한이 거부되었어요"
-      },
-      "notifications:pushNotificationsEnabled": {
-        "zh-CN": "推送已开启",
-        "en": "Push enabled",
-        "ja": "通知を有効にしました",
-        "ko": "알림이 켜졌어요"
-      },
-      "notifications:pushNotificationsDisabled": {
-        "zh-CN": "推送已关闭",
-        "en": "Push notifications disabled",
-        "ja": "プッシュ通知をオフにしました",
-        "ko": "푸시 알림을 껐어요"
-      },
-      "notifications:pushNotifications": {
-        "zh-CN": "此设备的推送",
-        "en": "Push on this device",
-        "ja": "この端末へのプッシュ通知",
-        "ko": "이 기기의 푸시 알림"
-      },
-      "notifications:receiveProactiveMessagesOnThisDeviceSuchAs": {
-        "zh-CN": "让此设备接收你已授权的消息。主动联系需要在上方单独开启。",
-        "en": "Lets this device receive messages you have authorized. Proactive contact is enabled separately above.",
-        "ja": "許可したメッセージをこの端末で受け取ります。キャラクターからの連絡は上で別途有効にしてください。",
-        "ko": "허용한 메시지를 이 기기에서 받아요. 캐릭터의 먼저 연락은 위에서 별도로 켜 주세요."
-      },
-      "notifications:disablePushOnThisDevice": {
-        "zh-CN": "关闭本设备推送",
-        "en": "Disable push on this device",
-        "ja": "この端末のプッシュ通知をオフにする",
-        "ko": "이 기기의 푸시 알림 끄기"
-      },
-      "notifications:enablePush": {
-        "zh-CN": "开启推送",
-        "en": "Enable push",
-        "ja": "プッシュ通知をオンにする",
-        "ko": "푸시 알림 켜기"
-      },
       "notifications:whatAreYouUpToItSBeen": {
         "zh-CN": "在干嘛呀？好久没聊天了，人家想你了~ 💕",
         "en": "What are you up to? It's been a while. I miss you! 💕",
@@ -1468,6 +1428,328 @@
       "maxDurationSeconds": 60,
       "sampleRate": 16000,
       "chunkMs": 100
+    }
+  },
+  "models": {
+    "chat": {
+      "provider": "openrouter",
+      "operatorBaseUrl": null,
+      "deepseekModel": "deepseek-flash"
+    },
+    "image": {
+      "provider": "fal",
+      "comfyuiBaseUrl": null,
+      "falSelfie": "fal-ai/grok-imagine-image-edit",
+      "falCouple": "fal-ai/nano-banana/edit",
+      "workflows": {
+        "text": {
+          "id": "workflow:qwen-image-text",
+          "promptNode": "459:452",
+          "seedNode": "459:458",
+          "outputNode": "461",
+          "referenceNode": null,
+          "resizeNode": null,
+          "nodes": {
+            "461": {
+              "inputs": {
+                "filename_prefix": "yumei",
+                "format": "png",
+                "format.bit_depth": "8-bit",
+                "format.input_color_space": "sRGB",
+                "images": ["459:457", 0]
+              },
+              "class_type": "SaveImageAdvanced",
+              "_meta": {
+                "title": "保存图像（高级）"
+              }
+            },
+            "459:451": {
+              "inputs": {
+                "unet_name": "qwen_image_2.1_int8_convrot.safetensors",
+                "weight_dtype": "default"
+              },
+              "class_type": "UNETLoader",
+              "_meta": {
+                "title": "UNet加载器"
+              }
+            },
+            "459:452": {
+              "inputs": {
+                "prompt": "{{prompt}}",
+                "negative_prompt": "",
+                "resolution": 1024,
+                "clip": ["459:453", 0]
+              },
+              "class_type": "TextEncodeQwenImage21",
+              "_meta": {
+                "title": "文本编码 Qwen Image 2.1"
+              }
+            },
+            "459:453": {
+              "inputs": {
+                "clip_name": "qwen3vl_8b_int8_convrot.safetensors",
+                "type": "qwen_image",
+                "device": "default"
+              },
+              "class_type": "CLIPLoader",
+              "_meta": {
+                "title": "加载CLIP"
+              }
+            },
+            "459:454": {
+              "inputs": {
+                "vae_name": "qwen_image_2.1_vae_bf16.safetensors"
+              },
+              "class_type": "VAELoader",
+              "_meta": {
+                "title": "加载VAE"
+              }
+            },
+            "459:456": {
+              "inputs": {
+                "width": 864,
+                "height": 1536,
+                "batch_size": 1
+              },
+              "class_type": "EmptyLatentImage",
+              "_meta": {
+                "title": "空Latent图像"
+              }
+            },
+            "459:457": {
+              "inputs": {
+                "samples": ["459:458", 0],
+                "vae": ["459:454", 0]
+              },
+              "class_type": "VAEDecode",
+              "_meta": {
+                "title": "VAE解码"
+              }
+            },
+            "459:458": {
+              "inputs": {
+                "seed": 0,
+                "steps": 25,
+                "cfg": 1,
+                "sampler_name": "euler",
+                "scheduler": "simple",
+                "denoise": 1,
+                "model": ["459:480", 0],
+                "positive": ["459:452", 0],
+                "negative": ["459:452", 1],
+                "latent_image": ["459:456", 0]
+              },
+              "class_type": "KSampler",
+              "_meta": {
+                "title": "K采样器"
+              }
+            },
+            "459:480": {
+              "inputs": {
+                "device": "auto",
+                "dtype": "default",
+                "model": ["459:451", 0]
+              },
+              "class_type": "QwenImage21Cache",
+              "_meta": {
+                "title": "Qwen Image 2.1 缓存"
+              }
+            }
+          }
+        },
+        "reference": {
+          "id": "workflow:qwen-image-edit",
+          "promptNode": "459:474",
+          "seedNode": "459:458",
+          "outputNode": "461",
+          "referenceNode": "470",
+          "resizeNode": "reference_resize",
+          "nodes": {
+            "461": {
+              "inputs": {
+                "filename_prefix": "yumei",
+                "format": "png",
+                "format.bit_depth": "8-bit",
+                "format.input_color_space": "sRGB",
+                "images": ["459:457", 0]
+              },
+              "class_type": "SaveImageAdvanced",
+              "_meta": {
+                "title": "保存图像（高级）"
+              }
+            },
+            "470": {
+              "inputs": {
+                "image": "{{reference_image}}"
+              },
+              "class_type": "LoadImage",
+              "_meta": {
+                "title": "加载图像"
+              }
+            },
+            "459:451": {
+              "inputs": {
+                "unet_name": "qwen_image_2.1_int8_convrot.safetensors",
+                "weight_dtype": "default"
+              },
+              "class_type": "UNETLoader",
+              "_meta": {
+                "title": "UNet加载器"
+              }
+            },
+            "459:453": {
+              "inputs": {
+                "clip_name": "qwen3vl_8b_int8_convrot.safetensors",
+                "type": "qwen_image",
+                "device": "default"
+              },
+              "class_type": "CLIPLoader",
+              "_meta": {
+                "title": "加载CLIP"
+              }
+            },
+            "459:454": {
+              "inputs": {
+                "vae_name": "qwen_image_2.1_vae_bf16.safetensors"
+              },
+              "class_type": "VAELoader",
+              "_meta": {
+                "title": "加载VAE"
+              }
+            },
+            "459:457": {
+              "inputs": {
+                "samples": ["459:458", 0],
+                "vae": ["459:454", 0]
+              },
+              "class_type": "VAEDecode",
+              "_meta": {
+                "title": "VAE解码"
+              }
+            },
+            "459:458": {
+              "inputs": {
+                "seed": 0,
+                "steps": 25,
+                "cfg": 1,
+                "sampler_name": "euler",
+                "scheduler": "simple",
+                "denoise": 1,
+                "model": ["459:469", 0],
+                "positive": ["459:474", 0],
+                "negative": ["459:474", 1],
+                "latent_image": ["459:474", 2]
+              },
+              "class_type": "KSampler",
+              "_meta": {
+                "title": "K采样器"
+              }
+            },
+            "459:469": {
+              "inputs": {
+                "device": "auto",
+                "dtype": "default",
+                "model": ["459:451", 0]
+              },
+              "class_type": "QwenImage21Cache",
+              "_meta": {
+                "title": "Qwen Image 2.1 缓存"
+              }
+            },
+            "459:474": {
+              "inputs": {
+                "prompt": "{{prompt}}",
+                "negative_prompt": "",
+                "resolution": 0,
+                "clip": ["459:453", 0],
+                "images.image_1": ["reference_resize", 0],
+                "vae": ["459:454", 0]
+              },
+              "class_type": "TextEncodeQwenImage21",
+              "_meta": {
+                "title": "文本编码 Qwen Image 2.1"
+              }
+            },
+            "reference_resize": {
+              "class_type": "ImageScale",
+              "inputs": {
+                "image": ["470", 0],
+                "upscale_method": "lanczos",
+                "width": 864,
+                "height": 1536,
+                "crop": "center"
+              }
+            }
+          }
+        }
+      }
+    },
+    "transcription": {
+      "model": "whisper-1"
+    },
+    "tts": {
+      "elevenlabs": "eleven_multilingual_v2",
+      "fishaudio": "s1"
+    }
+  },
+  "runtime": {
+    "ai": {
+      "dailyTaskLimit": 200,
+      "taskTimeoutMs": 30000
+    },
+    "chat": {
+      "maxInputChars": 8000,
+      "maxOutputChars": 16000,
+      "maxTokens": 4096,
+      "temperature": null,
+      "topP": null,
+      "replyTimeoutMs": 120000,
+      "queueTimeoutMs": 300000,
+      "leaseMs": 6000,
+      "heartbeatMs": 2000,
+      "pollMs": 250,
+      "schedulerMs": 250,
+      "localConcurrency": 4,
+      "userConcurrency": 3,
+      "burstMessages": 32,
+      "batchSize": 50,
+      "segmentChars": 160,
+      "flushMs": 600,
+      "flushPollMs": 50,
+      "deepseekThinking": "disabled"
+    },
+    "image": {
+      "comfyuiTimeoutMs": 600000,
+      "comfyuiRequestTimeoutMs": 30000,
+      "comfyuiPollMs": 1000,
+      "cancelTimeoutMs": 5000,
+      "falTimeoutMs": 120000,
+      "downloadTimeoutMs": 60000,
+      "maxImageBytes": 26214400,
+      "reservationGraceMs": 180000
+    },
+    "voice": {
+      "transcriptionTimeoutMs": 60000,
+      "ttsTimeoutMs": 60000,
+      "ttsMaxChars": 5000,
+      "ttsRetentionMs": 86400000,
+      "credentialTtlMs": 1800000
+    },
+    "catalog": {
+      "timeoutMs": 15000,
+      "fishPageSize": 100
+    },
+    "maintenance": {
+      "tickMs": 60000,
+      "mediaBatchSize": 20,
+      "mediaLeaseMs": 60000,
+      "mediaRetryBaseMs": 1000,
+      "mediaRetryMaxMs": 3600000,
+      "mediaRetryMaxExponent": 12,
+      "stagedRetentionMs": 600000,
+      "companionTrashRetentionMs": 604800000,
+      "rateWindowRetentionMs": 600000,
+      "generationTimeoutMs": 180000
     }
   }
 }

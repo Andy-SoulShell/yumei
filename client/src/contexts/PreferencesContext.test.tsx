@@ -13,6 +13,7 @@ import {
 } from "../../../server/testProductConfig";
 
 const mocks = vi.hoisted(() => ({
+  product: undefined as typeof productFixture | undefined,
   user: null as { id: string } | null,
   remote: undefined as any,
   save: vi.fn(),
@@ -21,7 +22,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/trpc", () => ({
   trpc: {
-    productConfig: { get: { useQuery: () => ({ data: productFixture }) } },
+    productConfig: { get: { useQuery: () => ({ data: mocks.product }) } },
     auth: { me: { useQuery: () => ({ data: mocks.user }) } },
     preferences: {
       get: {
@@ -61,6 +62,7 @@ async function change(patch: Parameters<typeof current.update>[0]) {
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   localStorage.clear();
+  mocks.product = structuredClone(productFixture);
   mocks.user = null;
   mocks.remote = undefined;
   mocks.save.mockReset().mockImplementation(async patch => ({
@@ -309,4 +311,29 @@ describe("interface preference lifecycle", () => {
       colorMode: "light",
     });
   });
+});
+
+it("applies a newly published theme ID and palette without a bundled ID mapping", async () => {
+  await render();
+  const theme = {
+    ...productFixture.themes.items[0],
+    id: "ocean",
+    name: { "zh-CN": "海风", en: "Ocean" },
+    light: "#123456",
+    dark: "#654321",
+  };
+  mocks.product = {
+    ...productFixture,
+    themes: { defaultThemeId: "ocean", items: [theme] },
+  };
+  await render();
+  expect(current.preferences.theme).toBe("ocean");
+  expect(current.themes[0].name).toBe("Ocean");
+  expect(
+    document.documentElement.style.getPropertyValue("--theme-primary")
+  ).toBe("#654321");
+  await change({ theme: "ocean", colorMode: "light" });
+  expect(
+    document.documentElement.style.getPropertyValue("--theme-primary")
+  ).toBe("#123456");
 });

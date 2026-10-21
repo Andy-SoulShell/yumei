@@ -1,3 +1,4 @@
+import { stubProductConfig } from "./testProductConfig";
 /** 覆盖DeepSeek 聊天、记忆及用户 BYOK 优先关系。 */
 
 import axios from "axios";
@@ -26,11 +27,11 @@ const caller = appRouter.createCaller({
 } as any);
 
 beforeEach(() => {
-  vi.stubEnv("LLM_PROVIDER", "deepseek");
-  vi.stubEnv("DEEPSEEK_MODEL", "deepseek-flash");
+  stubProductConfig("models.chat.provider", "deepseek");
+  stubProductConfig("models.chat.deepseekModel", "deepseek-flash");
   vi.stubEnv("OPERATOR_DEEPSEEK_KEY", "deepseek-test-secret");
   vi.stubEnv("OPERATOR_OPENROUTER_KEY", "openrouter-test-secret");
-  vi.stubEnv("BILLING_PROVIDER", "none");
+  stubProductConfig("billing.mode", "none");
   vi.spyOn(keyProvider, "resolve").mockResolvedValue({
     value: "openrouter-test-secret",
     source: "operator",
@@ -171,7 +172,7 @@ describe("DeepSeek official API deployment", () => {
   });
 
   it("retains the original OpenRouter default when no provider is specified", async () => {
-    vi.stubEnv("LLM_PROVIDER", "");
+    stubProductConfig("models.chat.provider", "openrouter");
     vi.spyOn(keyProvider, "get").mockResolvedValue("openrouter-test-secret");
     expect(await resolveChatProvider(userId)).toMatchObject({
       name: "openrouter",

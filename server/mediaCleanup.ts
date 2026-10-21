@@ -1,3 +1,4 @@
+import { getPublishedProductConfig } from "./repositories/productConfig";
 /** 基于事务清理任务回收媒体，保留仍被其他记录引用的共享文件。 */
 import { and, eq, isNull, lte, or, sql } from "drizzle-orm";
 import {
@@ -72,6 +73,7 @@ export async function queueMediaDeletion(
 
 /** 幂等处理最多二十项任务；对象删除失败时保留任务与重试次数。 */
 export async function flushMediaDeletions(userId?: string): Promise<void> {
+  const rules = (await getPublishedProductConfig()).runtime.maintenance;
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const tasks = await db
@@ -88,7 +90,7 @@ export async function flushMediaDeletions(userId?: string): Promise<void> {
       )
     )
     .orderBy(mediaDeletions.updatedAt)
-    .limit(20);
+    .limit(rules.mediaBatchSize);
   for (const task of tasks) {
     try {
       const claimed = await withUserTransaction(task.userId, async tx => {
@@ -110,7 +112,10 @@ export async function flushMediaDeletions(userId?: string): Promise<void> {
         }
         await tx
           .update(mediaDeletions)
-          .set({ deleting: true, leaseUntil: new Date(Date.now() + 60_000) })
+          .set({
+            deleting: true,
+            leaseUntil: new Date(Date.now() + rules.mediaLeaseMs),
+          })
           .where(eq(mediaDeletions.key, task.key));
         return true;
       });
@@ -126,7 +131,11 @@ export async function flushMediaDeletions(userId?: string): Promise<void> {
           leaseUntil: null,
           availableAt: new Date(
             Date.now() +
-              Math.min(3_600_000, 1000 * 2 ** Math.min(task.attempts, 12))
+              Math.min(
+                rules.mediaRetryMaxMs,
+                rules.mediaRetryBaseMs *
+                  2 ** Math.min(task.attempts, rules.mediaRetryMaxExponent)
+              )
           ),
         })
         .where(
@@ -170,7 +179,14 @@ export function startMediaCleanupScheduler(): () => void {
         await db
           .delete(rateWindows)
           .where(
-            lte(rateWindows.updatedAt, new Date(Date.now() - 10 * 60_000))
+            lte(
+              rateWindows.updatedAt,
+              new Date(
+                Date.now() -
+                  (await getPublishedProductConfig()).runtime.maintenance
+                    .rateWindowRetentionMs
+              )
+            )
           );
       },
     ],
@@ -190,7 +206,29 @@ export function startMediaCleanupScheduler(): () => void {
     }
   };
   run();
-  const timer = setInterval(run, 60_000);
-  timer.unref();
-  return () => clearInterval(timer);
+  let stopped = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const schedule = async () => {
+    let interval = 1000;
+    try {
+      interval = (await getPublishedProductConfig()).runtime.maintenance.tickMs;
+    } catch (error) {
+      log.error(
+        "[background] configuration unavailable",
+        providerErrorSummary(error)
+      );
+    }
+    if (!stopped) {
+      timer = setTimeout(() => {
+        run();
+        void schedule();
+      }, interval);
+      timer.unref();
+    }
+  };
+  void schedule();
+  return () => {
+    stopped = true;
+    clearTimeout(timer);
+  };
 }

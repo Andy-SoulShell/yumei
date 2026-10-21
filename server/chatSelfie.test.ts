@@ -1,3 +1,4 @@
+import { stubProductConfig } from "./testProductConfig";
 /** 覆盖聊天触发自拍的意图、上下文与失败反馈。 */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -47,7 +48,7 @@ beforeEach(() => {
       }) as any
   );
 
-  vi.stubEnv("BILLING_PROVIDER", "none");
+  stubProductConfig("billing.mode", "none");
   vi.spyOn(conversationsDb, "getConversation").mockResolvedValue({
     id: 42,
     girlfriendId: 12,
@@ -118,7 +119,8 @@ describe("chat-triggered selfies", () => {
         mode: "reference",
         prompt: expect.stringContaining("发张自拍"),
         references: [{ key: "misaki.jpg", url: "http://app/files/misaki.jpg" }],
-      })
+      }),
+      expect.objectContaining({ runtime: expect.any(Object) })
     );
     expect(conversationsDb.getRecentMessages).not.toHaveBeenCalled();
     const prompt = vi.mocked(providers.generateProviderImage).mock.calls[0][1]
@@ -167,7 +169,7 @@ describe("chat-triggered selfies", () => {
     expect(providers.generateProviderImage).not.toHaveBeenCalled();
   });
   it("enforces selfie quotas even though the request arrived through chat", async () => {
-    vi.stubEnv("BILLING_PROVIDER", "free");
+    stubProductConfig("billing.mode", "free");
     vi.spyOn(billing, "getTierLimits").mockResolvedValue({
       tier: "free",
       limits: { dailySelfies: 5 },

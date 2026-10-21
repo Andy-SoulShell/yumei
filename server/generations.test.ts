@@ -1,3 +1,4 @@
+import { stubProductConfig } from "./testProductConfig";
 /** 通过真实路由、MySQL 和磁盘验证生成成功结算及失败补偿。 */
 import axios from "axios";
 import { and, eq } from "drizzle-orm";
@@ -78,7 +79,7 @@ async function seed() {
 }
 
 beforeEach(() => {
-  vi.stubEnv("BILLING_PROVIDER", "free");
+  stubProductConfig("billing.mode", "free");
   vi.spyOn(chat, "resolveChatProvider").mockResolvedValue({
     name: "deepseek",
     baseUrl: "https://api.deepseek.com",

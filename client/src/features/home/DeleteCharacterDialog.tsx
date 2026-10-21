@@ -12,11 +12,12 @@ import { Loader2 } from "lucide-react";
 import type { HomeController } from "./useHomeController";
 type Props = Pick<
   HomeController,
-  "deleteTarget" | "setDeleteTarget" | "t" | "deleteGirlfriend"
+  "trashDays" | "deleteTarget" | "setDeleteTarget" | "t" | "deleteGirlfriend"
 >;
 
 /** 确认单个角色移入回收站及关联对话处理方式。 */
 export function DeleteCharacterDialog({
+  trashDays,
   deleteTarget,
   setDeleteTarget,
   t,
@@ -47,7 +48,9 @@ export function DeleteCharacterDialog({
                   : t("home:deleteConfirm", {
                       name: deleteTarget?.name ?? "",
                     })}
-                {t("home:thisCompanionWillBeMovedToTrashAnd")}
+                {t("home:thisCompanionWillBeMovedToTrashAnd", {
+                  days: trashDays,
+                })}
               </p>
             </div>
           </AlertDialogDescription>

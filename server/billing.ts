@@ -18,16 +18,13 @@ import { getUserById } from "./repositories/users";
 /** 计费运行模式：免费额度、自托管全解锁或外部订阅。 */
 export type BillingMode = "free" | "none" | "lemonsqueezy";
 
-/** 读取计费模式，未配置或值未知时回退为 free。 */
-export function getBillingMode(): BillingMode {
-  const raw = process.env.BILLING_PROVIDER ?? "free";
-  if (raw === "none" || raw === "lemonsqueezy" || raw === "free") return raw;
-  return "free";
+/** 从本次发布快照读取计费模式。 */
+export function getBillingMode(configuration: ProductConfig): BillingMode {
+  return configuration.billing.mode;
 }
-
-/** 判断是否执行套餐计量与功能门槛；none 模式关闭这些限制。 */
-export function isBillingEnforced(): boolean {
-  return getBillingMode() !== "none";
+/** none 模式关闭计量；调用方传入与额度计算相同的快照。 */
+export function isBillingEnforced(configuration: ProductConfig): boolean {
+  return getBillingMode(configuration) !== "none";
 }
 
 /** 当前直接授予付费权益的订阅状态；past_due 的宽限期尚未单独限时。 */
@@ -62,7 +59,7 @@ export async function getUserTier(
 ): Promise<Tier> {
   const policy = configuration ?? (await getPublishedProductConfig());
   const fallback = policy.billing.defaultTierId;
-  const mode = getBillingMode();
+  const mode = getBillingMode(policy);
   if (mode === "none") return policy.billing.selfHostedTierId;
   if (mode === "free") return fallback;
 
@@ -81,7 +78,9 @@ export async function getUserTier(
     return fallback;
   if (sub.status === "past_due") {
     const since = sub.pastDueSince ?? sub.providerUpdatedAt ?? sub.updatedAt;
-    return now - since.getTime() < 7 * 86_400_000 ? sub.plan : fallback;
+    return now - since.getTime() < policy.billing.pastDueGraceMs
+      ? sub.plan
+      : fallback;
   }
   if (ACTIVE_STATUSES.includes(sub.status)) return sub.plan;
 
@@ -104,7 +103,7 @@ export async function getTierLimits(
 
 /** 仅在订阅模式且存在更高启用套餐时提示升级。 */
 export function upsellHint(tier: Tier, configuration: ProductConfig): string {
-  if (getBillingMode() !== "lemonsqueezy") return "";
+  if (getBillingMode(configuration) !== "lemonsqueezy") return "";
   const index = configuration.billing.plans.findIndex(plan => plan.id === tier);
   return configuration.billing.plans.some(
     (plan, i) => i > index && plan.enabled
@@ -337,7 +336,9 @@ export function registerBillingRoutes(app: Express) {
     "/api/billing/lemon-webhook",
     express.raw({ type: "*/*", limit: "1mb" }),
     async (req: Request, res: Response) => {
-      if (getBillingMode() !== "lemonsqueezy") {
+      if (
+        getBillingMode(await getPublishedProductConfig()) !== "lemonsqueezy"
+      ) {
         res.status(404).json({ error: "billing disabled" });
         return;
       }

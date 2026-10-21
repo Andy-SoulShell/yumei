@@ -1,3 +1,4 @@
+import { stubProductConfig } from "./testProductConfig";
 /** 覆盖姿势解锁、合照权益和推送订阅。 */
 
 import { nanoid } from "nanoid";
@@ -114,7 +115,7 @@ describe("selfie pose library", () => {
 describe("couple photo gating", () => {
   it("requires pro tier when billing is enforced", async () => {
     if (!(await getDb())) throw new Error("DATABASE_URL required");
-    process.env.BILLING_PROVIDER = "free"; // everyone free, no BYOK
+    stubProductConfig("billing.mode", "free"); // everyone free, no BYOK
     const userId = `m4-user-${nanoid(8)}`;
     const { convo } = await seedGirlfriendAndConversation(userId, 1);
     const caller = appRouter.createCaller(createAuthContext(userId).ctx);
@@ -131,7 +132,7 @@ describe("couple photo gating", () => {
   it("rejects unsupported photo formats before any spend", async () => {
     if (!(await getDb())) throw new Error("DATABASE_URL required");
     // self-host mode: no tier gate, format check is the next stop
-    process.env.BILLING_PROVIDER = "none";
+    stubProductConfig("billing.mode", "none");
     const userId = `m4-user-${nanoid(8)}`;
     const { convo } = await seedGirlfriendAndConversation(userId, 1);
     const caller = appRouter.createCaller(createAuthContext(userId).ctx);

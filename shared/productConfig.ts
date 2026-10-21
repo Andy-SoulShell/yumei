@@ -5,6 +5,8 @@ import type { Locale } from "./locales";
 import {
   proactiveConfigSchema,
   uploadsConfigSchema,
+  modelsConfigSchema,
+  runtimeConfigSchema,
 } from "./operationalConfig";
 import { memoryConfigSchema, promptsConfigSchema } from "./aiConfig";
 
@@ -58,6 +60,12 @@ export type Tier = string;
 /** 套餐数组顺序同时决定展示和升级顺序，ID 用于订阅关联。 */
 export const billingConfigSchema = z
   .object({
+    mode: z.enum(["free", "none", "lemonsqueezy"]),
+    pastDueGraceMs: z
+      .number()
+      .int()
+      .min(0)
+      .max(90 * 86400000),
     defaultTierId: officialIdSchema,
     selfHostedTierId: officialIdSchema,
     defaultChatModel: z.string().trim().min(1).max(200),
@@ -215,6 +223,8 @@ export const productConfigSchema = z
     themes: themesConfigSchema,
     proactive: proactiveConfigSchema,
     uploads: uploadsConfigSchema,
+    models: modelsConfigSchema,
+    runtime: runtimeConfigSchema,
     billing: billingConfigSchema,
     selfies: z
       .object({

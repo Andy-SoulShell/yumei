@@ -1,3 +1,4 @@
+import { productView } from "../../server/testProductConfig";
 // @vitest-environment jsdom
 /** 游客触发登录后可返回公开页面，再次使用手机导航和外观控件。 */
 import { act, type ReactNode } from "react";
@@ -18,6 +19,7 @@ vi.mock("@/_core/hooks/useAuth", () => ({
 vi.mock("@/contexts/PreferencesContext", () => ({
   PreferencesProvider: ({ children }: { children: ReactNode }) => children,
   usePreferences: () => ({
+    themes: productView.themes.items,
     preferences: DEFAULT_PREFERENCES,
     locale: "zh-CN",
     resolvedMode: "light",

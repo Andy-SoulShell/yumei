@@ -1,3 +1,5 @@
+import type { ProductConfig } from "../../shared/productConfig";
+import { getPublishedProductConfig } from "../repositories/productConfig";
 /** 解析图片服务并统一调用 ComfyUI 或 fal.ai，返回待保存的图片字节。 */
 
 import axios from "axios";
@@ -19,15 +21,17 @@ export type ImageProvider = {
 
 /** 优先使用用户 fal.ai BYOK，否则使用运营方选定的图片服务。 */
 export async function resolveImageProvider(
-  userId: string
+  userId: string,
+  configuration?: ProductConfig
 ): Promise<ImageProvider> {
+  const policy = configuration ?? (await getPublishedProductConfig());
   const key = await keyProvider.resolve({ userId }, "fal");
   const isByok = key.source === "user";
-  if (process.env.IMAGE_PROVIDER === "comfyui" && !isByok) {
+  if (policy.models.image.provider === "comfyui" && !isByok) {
     return {
       name: "comfyui",
       apiKey: process.env.COMFYUI_API_KEY || null,
-      configured: !!process.env.COMFYUI_BASE_URL,
+      configured: !!policy.models.image.comfyuiBaseUrl,
       isByok: false,
     };
   }
@@ -42,15 +46,14 @@ type Reference = { key: string; url: string };
 export function imageGenerationModel(
   provider: ImageProvider["name"],
   mode: ImageGenerationMode,
-  referenceCount: number
+  referenceCount: number,
+  configuration: ProductConfig
 ) {
   if (provider === "comfyui")
-    return mode === "text"
-      ? "workflow:qwen-image-text"
-      : "workflow:qwen-image-edit";
+    return configuration.models.image.workflows[mode].id;
   return referenceCount > 1
-    ? process.env.FAL_COUPLE_MODEL || "fal-ai/nano-banana/edit"
-    : "fal-ai/grok-imagine-image-edit";
+    ? configuration.models.image.falCouple
+    : configuration.models.image.falSelfie;
 }
 
 /** 按存储键读取参考图，并根据文件头识别受支持的图片类型。 */
@@ -82,8 +85,10 @@ export async function generateProviderImage(
     prompt: string;
     mode: ImageGenerationMode;
     references: Reference[];
-  }
+  },
+  configuration?: ProductConfig
 ): Promise<Buffer> {
+  const policy = configuration ?? (await getPublishedProductConfig());
   if (provider.name === "comfyui") {
     const references: ImageInput[] = [];
     if (params.mode === "reference") {
@@ -91,16 +96,17 @@ export async function generateProviderImage(
         references.push(await readReference(reference));
     }
     return new ComfyUIClient({
-      baseUrl: process.env.COMFYUI_BASE_URL!,
+      baseUrl: policy.models.image.comfyuiBaseUrl!,
       apiKey: provider.apiKey || undefined,
-      timeoutMs: Number(process.env.COMFYUI_TIMEOUT_MS || 600_000),
+      configuration: policy,
     }).generate({ prompt: params.prompt, mode: params.mode, references });
   }
   const couple = params.references.length > 1;
   const model = imageGenerationModel(
     provider.name,
     params.mode,
-    params.references.length
+    params.references.length,
+    policy
   );
   const response = await axios.post(
     `https://fal.run/${model}`,
@@ -110,14 +116,17 @@ export async function generateProviderImage(
         ? { image_urls: params.references.map(ref => ref.url) }
         : { image_url: params.references[0].url }),
     },
-    { headers: { Authorization: `Key ${provider.apiKey}` }, timeout: 120_000 }
+    {
+      headers: { Authorization: `Key ${provider.apiKey}` },
+      timeout: policy.runtime.image.falTimeoutMs,
+    }
   );
   const imageUrl = response.data?.images?.[0]?.url;
   if (!imageUrl) throw new Error("图片服务未返回生成结果");
   const downloaded = await axios.get<ArrayBuffer>(imageUrl, {
     responseType: "arraybuffer",
-    timeout: 60_000,
-    maxContentLength: 25 * 1024 * 1024,
+    timeout: policy.runtime.image.downloadTimeoutMs,
+    maxContentLength: policy.runtime.image.maxImageBytes,
   });
   return Buffer.from(downloaded.data);
 }

@@ -1,3 +1,4 @@
+import { stubProductConfig } from "./testProductConfig";
 /** 使用真实 MySQL 验证默认初始化、创建和恢复共用用户数量锁。 */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
@@ -90,7 +91,7 @@ describe("companion lifecycle concurrency", () => {
   });
 
   it("rejects restoring past the Free limit through the real router", async () => {
-    vi.stubEnv("BILLING_PROVIDER", "free");
+    stubProductConfig("billing.mode", "free");
     const userId = await createTestUser();
     const old = await createGirlfriend({ ...profile, userId }, 1);
     await softDeleteGirlfriend(old.id, userId);

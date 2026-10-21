@@ -1,3 +1,4 @@
+import { stubProductConfig } from "./testProductConfig";
 /** 通过真实上传路由验证损坏编码不会写文件、修改头像或调用付费服务。 */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
@@ -14,7 +15,7 @@ const profile = {
   appearance: "自然",
 };
 beforeEach(() => {
-  vi.stubEnv("BILLING_PROVIDER", "none");
+  stubProductConfig("billing.mode", "none");
   vi.stubEnv("OPERATOR_OPENAI_KEY", "sk-upload-test-key");
   vi.spyOn(storage, "storagePut").mockImplementation(async key => ({
     key,

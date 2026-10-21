@@ -17,6 +17,9 @@ import {
 export function useHomeController() {
   const { t, locale } = useI18n();
   const product = useProductConfig();
+  const trashDays = product.raw
+    ? product.raw.runtime.maintenance.companionTrashRetentionMs / 86400000
+    : "";
 
   const { user, loading, isAuthenticated } = useAuth();
 
@@ -164,7 +167,9 @@ export function useHomeController() {
     onSuccess: () => {
       refetch();
       setDeleteTarget(null);
-      toast.success(t("common:movedToTrashYouCanRestoreItWithin"));
+      toast.success(
+        t("common:movedToTrashYouCanRestoreItWithin", { days: trashDays })
+      );
     },
     onError: error => {
       toast.error(
@@ -275,7 +280,10 @@ export function useHomeController() {
   const getRemainingDays = (deletedAt: Date | string | null) => {
     if (!deletedAt) return 7;
     const deleted = new Date(deletedAt);
-    const expiry = new Date(deleted.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const expiry = new Date(
+      deleted.getTime() +
+        (product.raw?.runtime.maintenance.companionTrashRetentionMs ?? 0)
+    );
     const remaining = Math.ceil(
       (expiry.getTime() - Date.now()) / (24 * 60 * 60 * 1000)
     );
@@ -289,6 +297,7 @@ export function useHomeController() {
 
   const isSearchMode = !!debouncedKeyword;
   return {
+    trashDays,
     product,
     levels: product.data?.intimacy.levels,
     loading,

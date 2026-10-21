@@ -1,3 +1,4 @@
+import { stubProductConfig } from "./testProductConfig";
 /** 遗忘必须作用于真实聊天请求的原始历史和异步流写入。 */
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -23,7 +24,7 @@ function reply(content: string) {
   );
 }
 beforeEach(() => {
-  vi.stubEnv("BILLING_PROVIDER", "none");
+  stubProductConfig("billing.mode", "none");
   vi.stubEnv("MEMORY_EMBEDDING_MODEL", "");
   vi.spyOn(providers, "resolveChatProvider").mockResolvedValue({
     name: "openrouter",

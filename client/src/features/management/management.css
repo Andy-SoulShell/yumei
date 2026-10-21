@@ -1,0 +1,32 @@
+.admin-config-group > summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 28px;
+}
+.admin-config-group > summary::-webkit-details-marker {
+  display: none;
+}
+.admin-config-group > summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  flex: none;
+  margin-left: auto;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.5;
+  transition: transform 0.15s;
+}
+.admin-config-group[open] > summary::after {
+  transform: rotate(225deg);
+}
+.admin-config-group > summary > div {
+  flex: 1;
+}
+.admin-config-group > summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+  border-radius: 4px;
+}

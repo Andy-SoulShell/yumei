@@ -26,6 +26,7 @@ const Memories = lazy(() => import("./pages/Memories"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Chats = lazy(() => import("./pages/Chats"));
 const Generate = lazy(() => import("./pages/Generate"));
+const Management = lazy(() => import("./pages/Management"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function PageLoading() {
@@ -63,6 +64,13 @@ function Router() {
   const [location] = useLocation();
   // 在非首页启用左滑返回手势
   useSwipeBack({ enabled: location !== "/" });
+
+  if (location === "/admin" || location.startsWith("/admin/"))
+    return (
+      <Suspense fallback={<PageLoading />}>
+        <Management />
+      </Suspense>
+    );
 
   if (authModeForPath(location))
     return (

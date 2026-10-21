@@ -269,7 +269,9 @@
     white-space: nowrap;
   }
   .is-sidebar-collapsed .sidebar-preference-value,
-  .is-sidebar-collapsed .sidebar-preference-trigger > svg:last-child {
+  .is-sidebar-collapsed
+    .sidebar-preference-trigger[role="combobox"]
+    > svg:last-child {
     display: none;
   }
   .is-sidebar-collapsed .sidebar-nav-group + .sidebar-nav-group,

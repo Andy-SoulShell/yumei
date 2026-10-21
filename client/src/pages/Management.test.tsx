@@ -15,6 +15,7 @@ import Management from "./Management";
 let root: Root, container: HTMLDivElement, cache: QueryClient;
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+  window.history.replaceState(null, "", "/admin");
   HTMLElement.prototype.scrollTo = vi.fn();
   vi.spyOn(window, "confirm").mockReturnValue(true);
   container = document.createElement("div");
@@ -88,7 +89,7 @@ function editor(value: string) {
   return result!;
 }
 function field(label: string) {
-  const element = Array.from(container.querySelectorAll("label")).find(
+  const element = Array.from(document.querySelectorAll("label")).find(
     item => item.textContent === label
   );
   expect(element).toBeTruthy();
@@ -233,7 +234,14 @@ async function mount(
         .click()
     );
   if (workspace === "character")
-    await waitFor(() => !!container.querySelector('input[id$="-name"]'));
+    if (action === "save") {
+      await waitFor(
+        () => !!document.querySelector('[aria-label="编辑名字与故事"]')
+      );
+      await click("编辑名字与故事");
+      await waitFor(() => !!document.querySelector('input[id$="-name"]'));
+    }
+  if (workspace === "product" && action === "save") await click("编辑页脚说明");
   return {
     write,
     reload,
@@ -273,13 +281,16 @@ it.each<Workspace>(["product", "home", "character"])(
     await waitFor(state.reloading);
     expect(editor(value).disabled).toBe(true);
     expect(button("套餐与额度").disabled).toBe(true);
-    await change(container.querySelector("#management-section")!, "billing");
+    await act(async () => button("套餐与额度").click());
     expect(container.querySelector("h1")!.textContent).toBe(state.title);
     await act(async () => state.reload.resolve());
     await waitFor(() => !button("套餐与额度").disabled);
     if (workspace === "product") expect(editor(value).disabled).toBe(false);
     else if (workspace === "home") expect(state.content.home.pageSize).toBe(21);
-    else expect(editor(value).disabled).toBe(false);
+    else {
+      await click("编辑名字与故事");
+      expect(editor(value).disabled).toBe(false);
+    }
     expect(container.textContent).not.toContain("有未保存修改");
   }
 );
@@ -311,12 +322,13 @@ it.each<Workspace>(["product", "home", "character"])(
     await act(async () => state.write.resolve());
     await waitFor(state.reloading);
     expect(button("套餐与额度").disabled).toBe(true);
-    await change(container.querySelector("#management-section")!, "site");
+    await act(async () => button("运营链接与页脚").click());
     expect(container.querySelector("h1")!.textContent).toBe(state.title);
     await act(async () => state.reload.resolve());
     await waitFor(() => !button("套餐与额度").disabled);
     await click("套餐与额度");
     await click("运营链接与页脚");
+    await click("编辑页脚说明");
     const value = "发布结束后新分区的草稿";
     await change(editor(state.product.config.site.disclosure["zh-CN"]!), value);
     await act(async () => {
@@ -329,6 +341,72 @@ it.each<Workspace>(["product", "home", "character"])(
     expect(window.confirm).not.toHaveBeenCalled();
   }
 );
+
+it("searches the shared navigation and closes the mobile drawer after selecting a task", async () => {
+  await mount("product", "save");
+  await click("返回预览");
+  await waitFor(() => !document.querySelector('[role="dialog"]'));
+  await click("打开管理导航");
+  const drawer = document.querySelector<HTMLElement>('[role="dialog"]')!;
+  expect(drawer.querySelectorAll(".admin-nav-item")).toHaveLength(18);
+  const search = drawer.querySelector<HTMLInputElement>(
+    'input[aria-label="查找管理功能"]'
+  )!;
+  await change(search, "不存在的管理功能");
+  expect(drawer.textContent).toContain("没有找到相关功能");
+  await change(search, "模型与工作流");
+  expect(drawer.querySelectorAll(".admin-nav-item")).toHaveLength(1);
+  await act(async () =>
+    drawer.querySelector<HTMLButtonElement>(".admin-nav-item")!.click()
+  );
+  await waitFor(() => !document.querySelector('[role="dialog"]'));
+  expect(container.querySelector("h1")!.textContent).toBe("模型与工作流");
+});
+
+it("keeps the mobile drawer and unsaved input when navigation is cancelled", async () => {
+  const state = await mount("product", "save");
+  const value = "取消切换后保留的运营文案";
+  await change(editor(state.product.config.site.disclosure["zh-CN"]!), value);
+  await click("返回预览");
+  await waitFor(() => !document.querySelector('[role="dialog"]'));
+  vi.mocked(window.confirm).mockReturnValue(false);
+  await click("打开管理导航");
+  const drawer = document.querySelector<HTMLElement>('[role="dialog"]')!;
+  const target = Array.from(
+    drawer.querySelectorAll<HTMLButtonElement>(".admin-nav-item")
+  ).find(item => item.textContent === "套餐与额度")!;
+  await act(async () => target.click());
+  expect(document.querySelector('[role="dialog"]')).toBe(drawer);
+  expect(container.querySelector("h1")!.textContent).toBe(state.title);
+  expect(container.textContent).toContain(value);
+  await act(async () =>
+    drawer.querySelector<HTMLButtonElement>(".sheet-close")!.click()
+  );
+  await waitFor(() => !document.querySelector('[role="dialog"]'));
+  await click("编辑页脚说明");
+  expect(editor(value).value).toBe(value);
+});
+
+it("presents the current experience before fields and keeps local edits when returning from a focused editor", async () => {
+  const state = await mount("product", "publish");
+  expect(container.querySelectorAll("main input,main textarea")).toHaveLength(
+    0
+  );
+  expect(container.textContent).toContain("当前草稿效果");
+  expect(window.location.pathname).toBe("/admin/site");
+  await click("编辑页脚说明");
+  expect(window.location.search).toContain("edit=footer");
+  const value = "预览和编辑共享同一份内容";
+  await change(editor(state.product.config.site.disclosure["zh-CN"]!), value);
+  await click("返回预览");
+  await waitFor(() => !document.querySelector('[role="dialog"]'));
+  expect(container.textContent).toContain(value);
+  expect(container.querySelectorAll("main input,main textarea")).toHaveLength(
+    0
+  );
+  await click("编辑页脚说明");
+  expect(editor(value)).toBeTruthy();
+});
 
 it("retains the current input and unlocks navigation after a failed save", async () => {
   const state = await mount("product", "save", "write");
@@ -344,6 +422,26 @@ it("retains the current input and unlocks navigation after a failed save", async
   expect(container.textContent).toContain("有未保存修改");
   expect(button("套餐与额度").disabled).toBe(false);
   expect(state.reloading()).toBe(false);
+});
+
+it("keeps a focused editor open when browser back is used during a pending save", async () => {
+  const state = await mount("product", "save");
+  const value = "浏览器返回也不能中断正在保存的编辑";
+  await change(editor(state.product.config.site.disclosure["zh-CN"]!), value);
+  await click("保存草稿");
+  await waitFor(state.writing);
+  await act(async () => {
+    window.history.back();
+    await new Promise(resolve => setTimeout(resolve, 30));
+  });
+  expect(window.location.search).toContain("edit=footer");
+  expect(editor(value).disabled).toBe(true);
+  await act(async () => {
+    state.write.resolve();
+    state.reload.resolve();
+  });
+  await waitFor(() => !button("套餐与额度").disabled);
+  expect(editor(value).disabled).toBe(false);
 });
 
 it("retains the local draft when saving succeeds but the following reload fails", async () => {
@@ -366,6 +464,7 @@ it("retains the local draft when saving succeeds but the following reload fails"
 it("creates a clean official draft with only name and personality and previews before saving", async () => {
   const state = await mount("character", "save");
   await click("新增角色");
+  await waitFor(() => !!document.querySelector('input[id$="-name"]'));
   expect(field("名字（必填）").value).toBe("");
   expect(field("人物设定（必填）").value).toBe("");
   expect(button("保存草稿").disabled).toBe(true);
@@ -381,6 +480,8 @@ it("creates a clean official draft with only name and personality and previews b
   expect(container.querySelector(".character-label")!.textContent).toBe(
     "AI 伙伴"
   );
+  await click("返回预览");
+  await waitFor(() => !document.querySelector('[role="dialog"]'));
   await act(async () =>
     container.querySelector<HTMLButtonElement>(".character-card")!.click()
   );
@@ -405,13 +506,16 @@ it("creates a clean official draft with only name and personality and previews b
 
 it("validates nickname immediately and enables saving once the user corrects it", async () => {
   const state = await mount("character", "save");
+  await click("返回预览");
+  await waitFor(() => !document.querySelector('[role="dialog"]'));
+  await click("编辑相处的细节");
   await change(field("对用户的称呼"), "称".repeat(41));
-  expect(container.textContent).toContain("称呼最多 40 字，当前 41 字");
+  expect(document.body.textContent).toContain("称呼最多 40 字，当前 41 字");
   expect(field("对用户的称呼").getAttribute("aria-invalid")).toBe("true");
   expect(button("保存草稿").disabled).toBe(true);
   expect(state.writing()).toBe(false);
   await change(field("对用户的称呼"), "称".repeat(40));
-  expect(container.textContent).not.toContain("称呼最多 40 字");
+  expect(document.body.textContent).not.toContain("称呼最多 40 字");
   expect(button("保存草稿").disabled).toBe(false);
 });
 
@@ -459,11 +563,12 @@ it("returns to the same filtered library after editing a character", async () =>
 it("saves visual featured ordering without altering multilingual homepage copy", async () => {
   const state = await mount("home", "save");
   const previous = structuredClone(state.content.home);
+  await click("编排精选");
   const first = state.content.characters.find(
     item => item.id === previous.featuredIds[0]
   )!.data.name;
   await act(async () =>
-    container
+    document
       .querySelector<HTMLButtonElement>(`[aria-label="下移${first}"]`)!
       .click()
   );
@@ -483,7 +588,7 @@ it("saves visual featured ordering without altering multilingual homepage copy",
 
 it("validates a new homepage FAQ and preserves existing translations", async () => {
   const state = await mount("home", "save");
-  await click(`常见问题 (${state.content.home.faqs.length})`);
+  await click("管理问答");
   await click("新增问答");
   expect(document.activeElement).toBe(field("问题6"));
   expect(button("保存草稿").disabled).toBe(true);
@@ -519,6 +624,29 @@ it("validates a new homepage FAQ and preserves existing translations", async () 
   expect(state.content.home.faqs[0].answer.en).toBe(
     initialDiscovery().home.faqs[0].answer.en
   );
+});
+
+it("edits one selected homepage slide without exposing or changing the other slides", async () => {
+  const state = await mount("home", "save");
+  const original = structuredClone(state.content.home.slides);
+  await click("编辑轮播 3");
+  expect(window.location.search).toContain(`item=${original[2].id}`);
+  expect(document.querySelector('[role="dialog"]')!.textContent).not.toContain(
+    "1. " + original[0].title["zh-CN"]
+  );
+  await change(editor(original[2].title["zh-CN"]!), "第三张轮播的新开场");
+  await click("保存草稿");
+  await act(async () => {
+    state.write.resolve();
+    state.reload.resolve();
+  });
+  await waitFor(() => !button("套餐与额度").disabled);
+  expect(state.content.home.slides[0]).toEqual(original[0]);
+  expect(state.content.home.slides[1]).toEqual(original[1]);
+  expect(state.content.home.slides[2].title["zh-CN"]).toBe(
+    "第三张轮播的新开场"
+  );
+  expect(state.content.home.slides[2].title.en).toBe(original[2].title.en);
 });
 
 it("reviews changes from all setting sections without publishing on cancellation", async () => {
@@ -558,21 +686,19 @@ it("keeps the selected settings task and plan after saving and reloading its rev
     "12.34"
   );
   await click("完成套餐编辑");
-  const selectTask = async (name: string) =>
-    await act(async () =>
-      button(name).dispatchEvent(
-        new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
-      )
-    );
-  await selectTask("订阅与默认");
+  await click("编辑订阅与默认");
   await click("保存草稿");
   await act(async () => {
     state.write.resolve();
     state.reload.resolve();
   });
   await waitFor(() => !button("套餐与额度").disabled);
-  expect(button("订阅与默认").getAttribute("aria-selected")).toBe("true");
-  await selectTask("套餐管理");
+  expect(window.location.search).toContain("edit=subscription");
+  expect(document.querySelector('[role="dialog"]')!.textContent).toContain(
+    "订阅与默认"
+  );
+  await click("返回预览");
+  await waitFor(() => !document.querySelector('[role="dialog"]'));
   await click("编辑套餐：保存后继续编辑的套餐");
   expect(editor("保存后继续编辑的套餐")).toBeTruthy();
   expect(
@@ -585,10 +711,13 @@ it("keeps the selected settings task and plan after saving and reloading its rev
 it("saves changes from a related editor and the original task in one full draft without publishing", async () => {
   const state = await mount("product", "save");
   await click("记忆规则");
+  await click("编辑容量与分类");
   await change(
-    container.querySelector<HTMLInputElement>('[aria-label="容量"]')!,
+    document.querySelector<HTMLInputElement>('[aria-label="容量"]')!,
     "55"
   );
+  await click("返回预览");
+  await waitFor(() => !document.querySelector('[role="dialog"]'));
   const related = Array.from(
     container.querySelectorAll<HTMLButtonElement>("button")
   ).find(item => item.textContent?.startsWith("记忆依赖的等级"))!;
@@ -600,7 +729,8 @@ it("saves changes from a related editor and the original task in one full draft 
     item => item.value === state.product.config.intimacy.levels[0].name["zh-CN"]
   )!;
   await change(name, "共同成长的阶段");
-  await click("完成，回到当前任务");
+  await click("返回预览");
+  await waitFor(() => !document.querySelector('[role="dialog"]'));
   await click("保存草稿");
   await act(async () => {
     state.write.resolve();
@@ -614,7 +744,8 @@ it("saves changes from a related editor and the original task in one full draft 
   expect(state.product.config.billing).toEqual(productFixture.billing);
   expect(state.product.published).toEqual(productFixture);
   expect(state.calls).not.toContain("productConfig.admin.publish");
+  await click("编辑容量与分类");
   expect(
-    container.querySelector<HTMLInputElement>('[aria-label="容量"]')!.value
+    document.querySelector<HTMLInputElement>('[aria-label="容量"]')!.value
   ).toBe("55");
 });

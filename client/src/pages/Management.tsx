@@ -1,6 +1,10 @@
 /** 单密码运营后台：直接调用既有管理 API 编辑草稿、校验并发布。 */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "wouter";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useLocation } from "wouter";
+import {
+  managementRoute,
+  managementPath,
+} from "@/features/management/managementRoutes";
 import { z } from "zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { getQueryKey } from "@trpc/react-query";
@@ -9,7 +13,6 @@ import {
   ChevronRight,
   Code2,
   FileText,
-  LayoutDashboard,
   Loader2,
   LockKeyhole,
   LogOut,
@@ -17,10 +20,9 @@ import {
   RefreshCw,
   Save,
   Send,
-  Settings2,
   ShieldCheck,
   Trash2,
-  Users,
+  Menu,
   Sun,
   Moon,
 } from "lucide-react";
@@ -30,11 +32,11 @@ import { useProductConfig } from "@/features/product/useProductConfig";
 import { productConfigSchema, type ProductConfig } from "@shared/productConfig";
 import { homepageSchema, officialCharacterSchema } from "@shared/discovery";
 import { fieldLabel, type FormSchema } from "@/features/management/ConfigForm";
-import { SettingsEditor } from "@/features/management/SettingsEditor";
-import { ThemeEditor } from "@/features/management/ThemeEditor";
+import { ProductExperience } from "@/features/management/ProductExperience";
 import { useOfficialUpload } from "@/features/management/useOfficialUpload";
 import { sameConfigValue } from "@/features/management/editorState";
-import { OfficialCharacterForm } from "@/features/management/OfficialCharacterForm";
+import { CharacterExperience } from "@/features/management/CharacterExperience";
+import { HomeExperience } from "@/features/management/HomeExperience";
 import { OfficialCharacterPreview } from "@/features/management/OfficialCharacterPreview";
 import { DiscoveryPublishReview } from "@/features/management/DiscoveryPublishReview";
 import {
@@ -50,6 +52,19 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import {
+  ManagementNavigation,
+  ManagementDock,
+  managementMenu,
+} from "@/features/management/ManagementNavigation";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 import { sections, type Pane } from "@/features/management/managementModel";
 import {
@@ -62,10 +77,7 @@ import type {
   DiscoveryDraft,
   WorkspaceOperations,
 } from "@/features/management/types";
-import {
-  HomepageEditor,
-  homepageIssues,
-} from "@/features/management/HomepageEditor";
+import { homepageIssues } from "@/features/management/HomepageEditor";
 import { OfficialLibrary } from "@/features/management/OfficialLibrary";
 import { ContentOverview } from "@/features/management/ContentOverview";
 import { PublishingCenter } from "@/features/management/PublishingCenter";
@@ -130,14 +142,15 @@ function WorkspaceHeader({
 }) {
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+      <div className="admin-workspace-heading">
+        <div className="min-w-0">
+          <h1 className="admin-title">{title}</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
             {description}
           </p>
         </div>
         <Badge
+          className="admin-draft-badge"
           variant={
             dirty || revision !== publishedRevision ? "outline" : "secondary"
           }
@@ -149,45 +162,58 @@ function WorkspaceHeader({
               : "已发布"}
         </Badge>
       </div>
-      <div className="sticky top-[72px] z-10 mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card/95 p-3 shadow-sm backdrop-blur">
-        <span className="text-xs text-muted-foreground">
-          {busy
-            ? "正在处理，请稍候…"
-            : dirty
-              ? "修改尚未保存"
-              : revision !== publishedRevision
-                ? "草稿已保存，发布后用户可见"
-                : "已与公开版本同步"}
-        </span>
-        <div className="management-actions flex flex-wrap gap-2">
-          <Button size="sm" variant="ghost" disabled={busy} onClick={onReload}>
-            <RefreshCw className="mr-1.5 size-3.5" />
-            重新读取
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={busy || !dirty || saveDisabled}
-            onClick={onSave}
-          >
-            {busy ? (
-              <Loader2 className="mr-1.5 size-3.5 animate-spin" />
-            ) : (
-              <Save className="mr-1.5 size-3.5" />
-            )}
-            保存草稿
-          </Button>
-          <Button
-            size="sm"
-            disabled={busy || dirty || revision === publishedRevision}
-            onClick={onPublish}
-            title={dirty ? "请先保存草稿" : undefined}
-          >
-            <Send className="mr-1.5 size-3.5" />
-            {publishLabel}
-          </Button>
+      {(dirty || revision !== publishedRevision || busy) && (
+        <div className="admin-workspace-toolbar">
+          <span className="admin-save-status" role="status" aria-live="polite">
+            <span
+              className="admin-status-dot"
+              data-pending={
+                dirty || revision !== publishedRevision || undefined
+              }
+            />
+            {busy
+              ? "正在处理，请稍候…"
+              : dirty
+                ? "修改尚未保存"
+                : revision !== publishedRevision
+                  ? "草稿已保存，发布后用户可见"
+                  : "已与公开版本同步"}
+          </span>
+          <div className="management-actions">
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              onClick={onReload}
+            >
+              <RefreshCw className="mr-1.5 size-3.5" />
+              重新读取
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy || !dirty || saveDisabled}
+              onClick={onSave}
+            >
+              {busy ? (
+                <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+              ) : (
+                <Save className="mr-1.5 size-3.5" />
+              )}
+              保存草稿
+            </Button>
+            <Button
+              size="sm"
+              disabled={busy || dirty || revision === publishedRevision}
+              onClick={onPublish}
+              title={dirty ? "请先保存草稿" : undefined}
+            >
+              <Send className="mr-1.5 size-3.5" />
+              {publishLabel}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
@@ -202,7 +228,7 @@ function EditorMode({
 }) {
   return (
     <details
-      className="admin-config-group mb-5 rounded-lg border p-3"
+      className="admin-editor-mode admin-config-group"
       open={mode === "json"}
     >
       <summary className="cursor-pointer text-xs text-muted-foreground">
@@ -231,9 +257,10 @@ function EditorMode({
     </details>
   );
 }
-function ErrorText({ error }: { error: string }) {
+function ErrorText({ error, id }: { error: string; id?: string }) {
   return error ? (
     <p
+      id={id}
       role="alert"
       className="mb-4 whitespace-pre-wrap break-words rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive"
     >
@@ -387,40 +414,26 @@ function ProductWorkspace({
           ))}
         </div>
       )}
-      <Card>
-        <CardContent className="p-4 sm:p-6">
-          <EditorMode mode={mode} setMode={switchMode} disabled={busy} />
-          {mode === "form" ? (
-            section === "themes" ? (
-              <ThemeEditor
-                value={value.themes}
-                issues={fieldIssues}
-                view={view}
-                onViewChange={onViewChange}
-                schema={productForm.properties?.themes}
-                disabled={busy}
-                onChange={themes => {
-                  setValue({ ...value, themes });
-                  setError("");
-                }}
-              />
-            ) : (
-              <SettingsEditor
-                section={section}
-                view={view}
-                onViewChange={onViewChange}
-                config={value}
-                rootSchema={productForm}
-                schema={productForm.properties?.[section]}
-                issues={fieldIssues}
-                disabled={busy}
-                onChange={next => {
-                  setValue(next);
-                  setError("");
-                }}
-              />
-            )
-          ) : (
+      {mode === "form" ? (
+        <ProductExperience
+          section={section}
+          config={value}
+          rootSchema={productForm}
+          issues={fieldIssues}
+          busy={busy}
+          dirty={dirty}
+          error={error}
+          view={view}
+          onViewChange={onViewChange}
+          onChange={next => {
+            setValue(next);
+            setError("");
+          }}
+          onSave={() => void operations.run(submit)}
+        />
+      ) : (
+        <Card className="admin-editor-card">
+          <CardContent className="p-4 sm:p-6">
             <Textarea
               aria-label={`${info.name} JSON`}
               value={raw}
@@ -432,9 +445,12 @@ function ProductWorkspace({
               spellCheck={false}
               className="min-h-[60vh] resize-y font-mono text-xs leading-6"
             />
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
+      <div className="mt-8">
+        <EditorMode mode={mode} setMode={switchMode} disabled={busy} />
+      </div>
     </>
   );
 }
@@ -554,34 +570,14 @@ function HomeWorkspace({
           onPublish={() => void operations.run(publishDraft)}
         />
       )}
-      <Card>
+      <Card className="admin-editor-card">
         <CardContent className="p-4 sm:p-6">
-          <EditorMode
-            mode={mode}
-            disabled={busy}
-            setMode={next => {
-              if (next === mode) return;
-              if (next === "json") {
-                setRaw(JSON.stringify(value, null, 2));
-                setMode(next);
-              } else {
-                try {
-                  const candidate = homepageSchema.safeParse(JSON.parse(raw));
-                  if (!candidate.success) {
-                    setError(validation(candidate.error));
-                    return;
-                  }
-                  setValue(candidate.data);
-                  setMode(next);
-                  setError("");
-                } catch {
-                  setError("JSON 格式无效");
-                }
-              }
-            }}
-          />
           {mode === "form" ? (
-            <HomepageEditor
+            <HomeExperience
+              dirty={dirty}
+              error={error}
+              invalid={issues.length > 0}
+              onSave={() => void operations.run(submit)}
               value={value}
               rows={draft.characters}
               busy={busy}
@@ -607,6 +603,30 @@ function HomeWorkspace({
               className="min-h-[60vh] font-mono text-xs leading-6"
             />
           )}
+          <EditorMode
+            mode={mode}
+            disabled={busy}
+            setMode={next => {
+              if (next === mode) return;
+              if (next === "json") {
+                setRaw(JSON.stringify(value, null, 2));
+                setMode(next);
+              } else {
+                try {
+                  const candidate = homepageSchema.safeParse(JSON.parse(raw));
+                  if (!candidate.success) {
+                    setError(validation(candidate.error));
+                    return;
+                  }
+                  setValue(candidate.data);
+                  setMode(next);
+                  setError("");
+                } catch {
+                  setError("JSON 格式无效");
+                }
+              }
+            }}
+          />
         </CardContent>
       </Card>
     </>
@@ -790,8 +810,8 @@ function CharacterWorkspace({
         />
       )}
       <div className="space-y-4">
-        <Card className="self-start">
-          <CardContent className="flex flex-wrap items-center gap-3 p-3">
+        <Card className="self-start py-0">
+          <CardContent className="admin-character-switcher flex flex-wrap items-center gap-3 p-3">
             <Button
               className="shrink-0"
               variant="outline"
@@ -822,8 +842,8 @@ function CharacterWorkspace({
           </CardContent>
         </Card>
         <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
-          <Card className="min-w-0">
-            <CardContent className="space-y-4 p-4 sm:p-6">
+          <Card className="min-w-0 py-0">
+            <CardContent className="admin-character-fields space-y-4 p-4 sm:p-6">
               <div className="flex flex-wrap items-center gap-3">
                 <p className="mr-auto text-xs text-muted-foreground">
                   {source?.archived
@@ -868,7 +888,11 @@ function CharacterWorkspace({
                 )}
               </div>
               {policy.raw ? (
-                <OfficialCharacterForm
+                <CharacterExperience
+                  dirty={dirty}
+                  error={error}
+                  creating={!source}
+                  onSave={() => void operations.run(submit)}
                   value={value}
                   issues={issues}
                   rules={policy.raw.characters}
@@ -985,7 +1009,7 @@ export default function Management() {
             使用管理密码编辑和发布站点内容。
           </p>
         </div>
-        <Card>
+        <Card className="py-0">
           <CardContent className="p-6">
             <form
               className="space-y-4"
@@ -1000,11 +1024,13 @@ export default function Management() {
                 type="password"
                 name="management-password"
                 autoComplete="current-password"
+                aria-invalid={!!error}
+                aria-describedby={error ? "management-login-error" : undefined}
                 value={password}
                 onChange={event => setPassword(event.target.value)}
                 disabled={login.isPending || !session.data?.configured}
               />
-              <ErrorText error={error} />
+              <ErrorText id="management-login-error" error={error} />
               {!session.data?.configured && (
                 <p role="status" className="text-sm text-muted-foreground">
                   尚未配置管理密码。请在服务端设置至少 8 位的 ADMIN_PASSWORD
@@ -1044,6 +1070,9 @@ function ManagementConsole({
   onExpired: () => void;
 }) {
   const appearance = usePreferences();
+  const [location, setLocation] = useLocation();
+  const initialRoute = useRef(managementRoute(location));
+  const previousLocation = useRef(location);
   const shell = useRef<HTMLDivElement>(null);
   const [settingsViews, setSettingsViews] = useState<
     Record<string, SettingsViewState>
@@ -1052,11 +1081,23 @@ function ManagementConsole({
       sections.map(section => [section.id, createSettingsView()])
     )
   );
-  const [pane, setPane] = useState<Pane>("overview"),
+  const [pane, setPane] = useState<Pane>(initialRoute.current.pane),
     [dirty, setDirty] = useState(false),
     [epoch, setEpoch] = useState(0),
-    [characterId, setCharacterId] = useState(""),
+    [characterId, setSelectedCharacter] = useState(
+      initialRoute.current.characterId
+    ),
     [navSearch, setNavSearch] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia?.("(min-width: 901px)");
+    if (!media) return;
+    const closeOnDesktop = () => {
+      if (media.matches) setMenuOpen(false);
+    };
+    media.addEventListener("change", closeOnDesktop);
+    return () => media.removeEventListener("change", closeOnDesktop);
+  }, []);
   const [libraryState, setLibraryState] = useState({
     query: "",
     filter: "all",
@@ -1112,13 +1153,44 @@ function ManagementConsole({
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty, busy]);
   const navigate = (next: Pane) => {
-    if (pendingOperations.current || busy) return;
-    if (next === pane && next !== "official") return;
-    if (dirty && !window.confirm("当前有未保存的修改，放弃并切换？")) return;
+    if (pendingOperations.current || busy) return false;
+    if (next === pane && next !== "official") return true;
+    if (dirty && !window.confirm("当前有未保存的修改，放弃并切换？"))
+      return false;
     setDirty(false);
-    if (next === "official") setCharacterId("");
+    if (next === "official") setSelectedCharacter("");
     setPane(next);
+    const path = managementPath(next);
+    previousLocation.current = path;
+    setLocation(path);
+    return true;
   };
+  const setCharacterId = (id: string) => {
+    setSelectedCharacter(id);
+    const path =
+      managementPath("official", id) +
+      (id === "new" || id.startsWith("copy:") ? "?edit=basic" : "");
+    previousLocation.current = path;
+    setLocation(path);
+  };
+  useEffect(() => {
+    const next = managementRoute(location);
+    if (next.pane === pane && next.characterId === characterId) {
+      previousLocation.current = location;
+      return;
+    }
+    if (
+      busy ||
+      (dirty && !window.confirm("当前有未保存的修改，放弃并返回其他页面？"))
+    ) {
+      setLocation(previousLocation.current, { replace: true });
+      return;
+    }
+    setDirty(false);
+    setPane(next.pane);
+    setSelectedCharacter(next.characterId);
+    previousLocation.current = location;
+  }, [location, pane, characterId, dirty, busy, setLocation]);
   const reloadProduct = async () => {
     const result = await product.refetch();
     if (result.error) throw result.error;
@@ -1129,56 +1201,61 @@ function ManagementConsole({
     if (result.error) throw result.error;
     setEpoch(value => value + 1);
   };
-  const menu = useMemo(
-    () => [
-      {
-        id: "overview" as Pane,
-        name: "工作台",
-        group: "内容管理",
-        description: "快速创建与最近编辑",
-        icon: LayoutDashboard,
-      },
-      {
-        id: "official" as Pane,
-        name: "官方角色",
-        group: "内容管理",
-        description: "角色库 人设 草稿 归档",
-        icon: Users,
-      },
-      {
-        id: "home" as Pane,
-        name: "首页、轮播与 FAQ",
-        group: "内容管理",
-        description: "精选 推荐 问答 轮播",
-        icon: FileText,
-      },
-      {
-        id: "publish" as Pane,
-        name: "发布中心",
-        group: "内容管理",
-        description: "待发布 变更 影响范围",
-        icon: Send,
-      },
-      ...sections.map(item => ({ ...item, icon: Settings2 })),
-    ],
-    []
+  const active = managementMenu.find(item => item.id === pane)!;
+  const navigation = (mobile = false) => (
+    <ManagementNavigation
+      pane={pane}
+      query={navSearch}
+      onQueryChange={setNavSearch}
+      busy={busy}
+      onNavigate={next => {
+        if (navigate(next) && mobile) setMenuOpen(false);
+      }}
+    />
   );
   const ready = product.data && discovery.data;
   return (
-    <div ref={shell} className="admin-shell min-h-screen bg-background">
-      <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b bg-background/95 px-4 backdrop-blur sm:px-6">
-        <div className="flex items-center gap-2.5">
-          <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <ShieldCheck className="size-5" />
+    <div ref={shell} className="admin-shell">
+      <a className="skip-link" href="#management-content">
+        跳转到正文
+      </a>
+      <header className="admin-header">
+        <div className="admin-header-start">
+          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+            <SheetTrigger asChild>
+              <Button
+                className="admin-mobile-menu"
+                variant="ghost"
+                size="icon"
+                disabled={busy}
+                aria-label="打开管理导航"
+              >
+                <Menu className="size-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="admin-nav-sheet">
+              <SheetHeader>
+                <SheetTitle>管理导航</SheetTitle>
+                <SheetDescription>内容、品牌、业务与系统设置</SheetDescription>
+              </SheetHeader>
+              {navigation(true)}
+            </SheetContent>
+          </Sheet>
+          <span className="admin-wordmark">
+            YUMEI<span>.</span>
           </span>
-          <span className="font-semibold tracking-tight">
-            YUMEI{" "}
-            <span className="ml-1 hidden text-sm font-normal text-muted-foreground sm:inline">
-              内容工作台
-            </span>
+          <span className="admin-header-divider" />
+          <span className="admin-header-label">
+            <ShieldCheck className="size-3.5" />
+            管理后台
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="admin-breadcrumb" aria-label="当前位置">
+          <span>{active.group}</span>
+          <ChevronRight className="size-3.5" />
+          <strong>{active.name}</strong>
+        </div>
+        <div className="admin-header-actions">
           <Button
             variant="ghost"
             size="icon-sm"
@@ -1234,111 +1311,13 @@ function ManagementConsole({
           </Button>
         </div>
       </header>
-      <div className="mx-auto grid max-w-[1600px] md:grid-cols-[230px_minmax(0,1fr)]">
-        <aside className="hidden h-[calc(100vh-4rem)] overflow-y-auto border-r p-3 md:sticky md:top-16 md:block">
-          <Input
-            aria-label="查找管理功能"
-            placeholder="查找功能…"
-            className="mb-4"
-            value={navSearch}
-            onChange={event => setNavSearch(event.target.value)}
-            disabled={busy}
-          />
-          <nav className="space-y-1" aria-label="管理导航">
-            {["内容管理", "品牌与体验", "业务规则", "系统设置"].map(group => {
-              const items = menu.filter(
-                item =>
-                  item.group === group &&
-                  `${item.name} ${item.description}`
-                    .toLowerCase()
-                    .includes(navSearch.trim().toLowerCase())
-              );
-              return (
-                items.length > 0 && (
-                  <details
-                    key={group}
-                    className="admin-nav-group"
-                    open={
-                      group === "内容管理" ||
-                      !!navSearch ||
-                      items.some(item => item.id === pane)
-                    }
-                  >
-                    <summary>{group}</summary>
-                    <div className="space-y-1">
-                      {items.map(item => (
-                        <Button
-                          key={item.id}
-                          variant={pane === item.id ? "secondary" : "ghost"}
-                          className="w-full justify-start gap-2 rounded-xl text-sm"
-                          disabled={busy}
-                          aria-current={pane === item.id ? "page" : undefined}
-                          onClick={() => navigate(item.id)}
-                        >
-                          <item.icon className="size-4 shrink-0" />
-                          {item.name}
-                          {pane === item.id && (
-                            <ChevronRight className="ml-auto size-3.5" />
-                          )}
-                        </Button>
-                      ))}
-                    </div>
-                  </details>
-                )
-              );
-            })}
-            {!menu.some(item =>
-              `${item.name} ${item.description}`
-                .toLowerCase()
-                .includes(navSearch.trim().toLowerCase())
-            ) && (
-              <p role="status" className="p-3 text-xs text-muted-foreground">
-                没有找到相关功能
-              </p>
-            )}
-          </nav>
-        </aside>
-        <main className="min-w-0 p-4 sm:p-6 lg:p-8">
-          <div className="mb-5 md:hidden">
-            <Label htmlFor="management-section" className="sr-only">
-              管理分区
-            </Label>
-            <select
-              id="management-section"
-              className="h-11 w-full rounded-xl border bg-card px-3 text-sm"
-              value={pane}
-              disabled={busy}
-              onChange={event => navigate(event.target.value as Pane)}
-            >
-              {["内容管理", "品牌与体验", "业务规则", "系统设置"].map(group => (
-                <optgroup label={group} key={group}>
-                  {menu
-                    .filter(item => item.group === group)
-                    .map(item => (
-                      <option value={item.id} key={item.id}>
-                        {item.name}
-                      </option>
-                    ))}
-                </optgroup>
-              ))}
-            </select>
-          </div>
-          <div className="mb-5 grid grid-cols-4 gap-1 md:hidden">
-            {menu.slice(0, 4).map(item => (
-              <Button
-                key={item.id}
-                size="sm"
-                variant={pane === item.id ? "secondary" : "ghost"}
-                disabled={busy}
-                onClick={() => navigate(item.id)}
-              >
-                {item.id === "home"
-                  ? "首页"
-                  : item.id === "official"
-                    ? "角色库"
-                    : item.name}
-              </Button>
-            ))}
+      <div className="admin-layout">
+        <aside className="admin-sidebar">{navigation()}</aside>
+        <main id="management-content" tabIndex={-1} className="admin-main">
+          <div className="admin-mobile-context">
+            <span>{active.group}</span>
+            <ChevronRight className="size-3" />
+            <span>{active.name}</span>
           </div>
           {!ready ? (
             product.isError || discovery.isError ? (
@@ -1387,6 +1366,18 @@ function ManagementConsole({
               onNew={() => setCharacterId("new")}
               onPublish={() => navigate("publish")}
             />
+          ) : pane === "official" &&
+            characterId !== "new" &&
+            !discovery.data.characters.some(
+              item => item.id === characterId.replace(/^copy:/, "")
+            ) ? (
+            <div className="admin-empty">
+              <h1 className="admin-title">没有找到这个角色</h1>
+              <p className="my-4">角色可能已被移除，请回到角色库重新选择。</p>
+              <Button variant="outline" onClick={() => setCharacterId("")}>
+                返回角色库
+              </Button>
+            </div>
           ) : pane === "official" ? (
             <CharacterWorkspace
               key={`official-${discovery.data.revision}-${characterId}-${epoch}`}
@@ -1422,6 +1413,13 @@ function ManagementConsole({
           )}
         </main>
       </div>
+      <ManagementDock
+        pane={pane}
+        busy={busy}
+        onNavigate={navigate}
+        menuOpen={menuOpen}
+        onOpenMenu={() => setMenuOpen(true)}
+      />
     </div>
   );
 }

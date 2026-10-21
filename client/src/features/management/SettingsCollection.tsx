@@ -129,6 +129,7 @@ const groups: Record<CollectionKind, { title: string; fields: string[] }[]> = {
 };
 export function SettingsCollection({
   kind,
+  focused = false,
   items,
   schema,
   path,
@@ -142,6 +143,7 @@ export function SettingsCollection({
   rootSchema,
 }: {
   kind: CollectionKind;
+  focused?: boolean;
   items: Item[];
   schema?: FormSchema;
   path: string;
@@ -206,121 +208,126 @@ export function SettingsCollection({
   };
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="relative min-w-0 flex-1 sm:max-w-sm">
-          <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-          <Input
-            aria-label={`搜索${titles[kind]}`}
-            className="pl-9"
-            placeholder={`搜索${titles[kind]}名称`}
-            value={search}
-            disabled={disabled}
-            onChange={event =>
-              onViewChange({
-                ...view,
-                searches: { ...view.searches, [path]: event.target.value },
-              })
-            }
-          />
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={addDisabled}
-          onClick={() => {
-            const next = newCollectionItem(kind, items, item);
-            onChange([...items, next]);
-            onViewChange({
-              ...view,
-              selections: {
-                ...view.selections,
-                [path]: String(next.id ?? next.level),
-              },
-              searches: { ...view.searches, [path]: "" },
-            });
-          }}
-        >
-          <Plus className="size-4" />
-          {kind === "levels" ? "添加下一等级" : `复制为新${titles[kind]}`}
-        </Button>
-      </div>
-      <div
-        className={
-          kind === "levels"
-            ? "grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5"
-            : "grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
-        }
-        aria-label={`${titles[kind]}内容库`}
-      >
-        {items
-          .map((row, i) => ({ row, i }))
-          .filter(({ row }) =>
-            collectionName(row).toLowerCase().includes(search.toLowerCase())
-          )
-          .map(({ row, i }) => {
-            const count = Object.keys(issues).filter(
-              key => key === `${path}.${i}` || key.startsWith(`${path}.${i}.`)
-            ).length;
-            return (
-              <button
-                key={String(row.id ?? row.level)}
-                type="button"
+      {!focused && (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="relative min-w-0 flex-1 sm:max-w-sm">
+              <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+              <Input
+                aria-label={`搜索${titles[kind]}`}
+                className="pl-9"
+                placeholder={`搜索${titles[kind]}名称`}
+                value={search}
                 disabled={disabled}
-                aria-pressed={i === index}
-                onClick={() => select(row)}
-                className={`min-w-0 rounded-xl border ${kind === "levels" ? "p-3" : "p-4"} text-left transition-colors focus-visible:outline-2 focus-visible:outline-ring ${i === index ? "border-primary bg-primary/5" : "hover:bg-muted/40"}`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <span
-                    className={kind === "levels" ? "text-base" : "text-2xl"}
+                onChange={event =>
+                  onViewChange({
+                    ...view,
+                    searches: { ...view.searches, [path]: event.target.value },
+                  })
+                }
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={addDisabled}
+              onClick={() => {
+                const next = newCollectionItem(kind, items, item);
+                onChange([...items, next]);
+                onViewChange({
+                  ...view,
+                  selections: {
+                    ...view.selections,
+                    [path]: String(next.id ?? next.level),
+                  },
+                  searches: { ...view.searches, [path]: "" },
+                });
+              }}
+            >
+              <Plus className="size-4" />
+              {kind === "levels" ? "添加下一等级" : `复制为新${titles[kind]}`}
+            </Button>
+          </div>
+          <div
+            className={
+              kind === "levels"
+                ? "grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5"
+                : "grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+            }
+            aria-label={`${titles[kind]}内容库`}
+          >
+            {items
+              .map((row, i) => ({ row, i }))
+              .filter(({ row }) =>
+                collectionName(row).toLowerCase().includes(search.toLowerCase())
+              )
+              .map(({ row, i }) => {
+                const count = Object.keys(issues).filter(
+                  key =>
+                    key === `${path}.${i}` || key.startsWith(`${path}.${i}.`)
+                ).length;
+                return (
+                  <button
+                    key={String(row.id ?? row.level)}
+                    type="button"
+                    disabled={disabled}
+                    aria-pressed={i === index}
+                    onClick={() => select(row)}
+                    className={`min-w-0 rounded-xl border ${kind === "levels" ? "p-3" : "p-4"} text-left transition-colors focus-visible:outline-2 focus-visible:outline-ring ${i === index ? "border-primary bg-primary/5" : "hover:bg-muted/40"}`}
                   >
-                    {kind === "plans"
-                      ? "✦"
-                      : kind === "quickTemplates"
-                        ? "✎"
-                        : String(row.emoji || "♡")}
-                  </span>
-                  <div className="flex gap-1">
-                    {row.id !== undefined && row.id === defaultId && (
-                      <Badge variant="secondary">默认</Badge>
+                    <div className="flex items-start justify-between gap-2">
+                      <span
+                        className={kind === "levels" ? "text-base" : "text-2xl"}
+                      >
+                        {kind === "plans"
+                          ? "✦"
+                          : kind === "quickTemplates"
+                            ? "✎"
+                            : String(row.emoji || "♡")}
+                      </span>
+                      <div className="flex gap-1">
+                        {row.id !== undefined && row.id === defaultId && (
+                          <Badge variant="secondary">默认</Badge>
+                        )}
+                        {count > 0 ? (
+                          <Badge variant="destructive">{count} 处待完善</Badge>
+                        ) : (
+                          kind !== "levels" && (
+                            <Badge variant="outline">
+                              {row.enabled ? "启用" : "停用"}
+                            </Badge>
+                          )
+                        )}
+                      </div>
+                    </div>
+                    <h3
+                      className={`${kind === "levels" ? "mt-1 text-sm" : "mt-3"} truncate font-semibold`}
+                    >
+                      {collectionName(row)}
+                    </h3>
+                    <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                      {summary(kind, row)}
+                    </p>
+                    {kind === "plans" && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {(row.limits as { dailyMessages: number | null })
+                          .dailyMessages === null
+                          ? "聊天不限量"
+                          : `每日 ${(row.limits as { dailyMessages: number }).dailyMessages} 条消息`}
+                      </p>
                     )}
-                    {count > 0 ? (
-                      <Badge variant="destructive">{count} 处待完善</Badge>
-                    ) : (
-                      kind !== "levels" && (
-                        <Badge variant="outline">
-                          {row.enabled ? "启用" : "停用"}
-                        </Badge>
-                      )
-                    )}
-                  </div>
-                </div>
-                <h3
-                  className={`${kind === "levels" ? "mt-1 text-sm" : "mt-3"} truncate font-semibold`}
-                >
-                  {collectionName(row)}
-                </h3>
-                <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">
-                  {summary(kind, row)}
-                </p>
-                {kind === "plans" && (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {(row.limits as { dailyMessages: number | null })
-                      .dailyMessages === null
-                      ? "聊天不限量"
-                      : `每日 ${(row.limits as { dailyMessages: number }).dailyMessages} 条消息`}
-                  </p>
-                )}
-              </button>
-            );
-          })}
-      </div>
-      {!items.some(row =>
-        collectionName(row).toLowerCase().includes(search.toLowerCase())
-      ) && (
-        <p className="rounded-xl bg-muted/30 p-5 text-center text-sm text-muted-foreground">
-          没有匹配的{titles[kind]}，可以更换关键词。
-        </p>
+                  </button>
+                );
+              })}
+          </div>
+          {!items.some(row =>
+            collectionName(row).toLowerCase().includes(search.toLowerCase())
+          ) && (
+            <p className="rounded-xl bg-muted/30 p-5 text-center text-sm text-muted-foreground">
+              没有匹配的{titles[kind]}，可以更换关键词。
+            </p>
+          )}
+        </>
       )}
       {item && (
         <section

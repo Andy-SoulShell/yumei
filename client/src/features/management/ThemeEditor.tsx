@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { SettingsViewState } from "./settingsModel";
 type Theme = ThemesConfig["items"][number];
 const title = (value: Theme) => value.name["zh-CN"] || value.id;
-function ThemePreview({
+export function ThemePreview({
   theme,
   mode,
 }: {
@@ -87,6 +87,7 @@ function ThemePreview({
 }
 export function ThemeEditor({
   value,
+  focused = false,
   schema,
   onChange,
   disabled,
@@ -95,6 +96,7 @@ export function ThemeEditor({
   onViewChange,
 }: {
   value: ThemesConfig;
+  focused?: boolean;
   schema?: FormSchema;
   onChange: (value: ThemesConfig) => void;
   disabled: boolean;
@@ -143,69 +145,77 @@ export function ThemeEditor({
   };
   return (
     <div className="space-y-6">
-      <section
-        aria-label="主题如何生效"
-        className="rounded-xl bg-muted/25 p-4 text-sm leading-6"
-      >
-        <h2 className="font-semibold">选外观 → 开放用户选择 → 决定默认主题</h2>
-        <p className="mt-2 text-muted-foreground">
-          配色决定视觉，名称帮助用户选择。启用的主题才会出现在选择器中；默认主题用于没有有效选择的用户，已有有效选择会保留。明暗预览分别对应两种显示模式。
-        </p>
-      </section>
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="font-semibold">主题库</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            选择主题后编辑，预览会随草稿实时更新。
-          </p>
-        </div>
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={disabled || value.items.length >= 100}
-          onClick={add}
-        >
-          <Plus className="size-3.5" />
-          新建主题
-        </Button>
-      </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {value.items.map((item, i) => (
-          <button
-            type="button"
-            key={i}
-            disabled={disabled}
-            aria-pressed={i === index}
-            onClick={() => setIndex(i)}
-            className={`relative rounded-2xl border p-3 text-left transition-colors ${i === index ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "bg-background hover:border-primary/40"}`}
+      {!focused && (
+        <>
+          <section
+            aria-label="主题如何生效"
+            className="rounded-xl bg-muted/25 p-4 text-sm leading-6"
           >
-            <span className="mb-3 flex h-12 overflow-hidden rounded-xl">
-              {item.colors.map((color, j) => (
-                <span
-                  key={j}
-                  className="flex-1"
-                  style={{ background: isHexColor(color) ? color : undefined }}
-                />
-              ))}
-            </span>
-            <span className="flex items-center justify-between gap-2">
-              <span className="truncate text-sm font-medium">
-                {title(item)}
-              </span>
-              {i === index && (
-                <Check className="size-3.5 shrink-0 text-primary" />
-              )}
-            </span>
-            <span className="mt-1 block text-[10px] text-muted-foreground">
-              {item.id === value.defaultThemeId
-                ? "默认主题"
-                : item.enabled
-                  ? "已启用"
-                  : "已停用"}
-            </span>
-          </button>
-        ))}
-      </div>
+            <h2 className="font-semibold">
+              选外观 → 开放用户选择 → 决定默认主题
+            </h2>
+            <p className="mt-2 text-muted-foreground">
+              配色决定视觉，名称帮助用户选择。启用的主题才会出现在选择器中；默认主题用于没有有效选择的用户，已有有效选择会保留。明暗预览分别对应两种显示模式。
+            </p>
+          </section>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-semibold">主题库</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                选择主题后编辑，预览会随草稿实时更新。
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={disabled || value.items.length >= 100}
+              onClick={add}
+            >
+              <Plus className="size-3.5" />
+              新建主题
+            </Button>
+          </div>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {value.items.map((item, i) => (
+              <button
+                type="button"
+                key={i}
+                disabled={disabled}
+                aria-pressed={i === index}
+                onClick={() => setIndex(i)}
+                className={`relative rounded-2xl border p-3 text-left transition-colors ${i === index ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "bg-background hover:border-primary/40"}`}
+              >
+                <span className="mb-3 flex h-12 overflow-hidden rounded-xl">
+                  {item.colors.map((color, j) => (
+                    <span
+                      key={j}
+                      className="flex-1"
+                      style={{
+                        background: isHexColor(color) ? color : undefined,
+                      }}
+                    />
+                  ))}
+                </span>
+                <span className="flex items-center justify-between gap-2">
+                  <span className="truncate text-sm font-medium">
+                    {title(item)}
+                  </span>
+                  {i === index && (
+                    <Check className="size-3.5 shrink-0 text-primary" />
+                  )}
+                </span>
+                <span className="mt-1 block text-[10px] text-muted-foreground">
+                  {item.id === value.defaultThemeId
+                    ? "默认主题"
+                    : item.enabled
+                      ? "已启用"
+                      : "已停用"}
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-5">
         <div className="flex items-center gap-2">
           <h2 className="font-semibold">{title(selected)}</h2>

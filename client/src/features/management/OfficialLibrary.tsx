@@ -4,6 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   characterStatus,
   filterCharacters,
   type CharacterRow,
@@ -48,7 +55,7 @@ export function OfficialLibrary({
     ).length;
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="admin-library-heading flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="admin-eyebrow">内容管理</p>
           <h1 className="admin-title">官方角色</h1>
@@ -61,12 +68,17 @@ export function OfficialLibrary({
           新增角色
         </Button>
       </div>
-      <p className="rounded-xl bg-muted/25 p-4 text-sm leading-6">
-        <strong>角色内容 → 探索页或首页入口 → 用户创建自己的角色</strong>
+      <details className="admin-config-group rounded-xl bg-muted/25 px-4 py-2 text-sm leading-6">
+        <summary className="cursor-pointer text-xs text-muted-foreground">
+          角色如何展示给用户
+        </summary>
+        <p className="mt-3">
+          <strong>角色内容 → 探索页或首页入口 → 用户创建自己的角色</strong>
+        </p>
         <span className="mt-1 block text-xs text-muted-foreground">
           公开控制探索页展示，首页精选需要单独编排。发布更新供后续创建使用，用户已创建的角色保留自己的资料与聊天。
         </span>
-      </p>
+      </details>
       {pending > 0 && (
         <button
           disabled={busy}
@@ -94,17 +106,19 @@ export function OfficialLibrary({
             onChange={event => setQuery(event.target.value)}
           />
         </div>
-        <select
-          aria-label="角色排序"
-          className="admin-select"
-          disabled={busy}
-          value={sort}
-          onChange={event => setSort(event.target.value)}
-        >
-          <option value="order">按展示顺序</option>
-          <option value="recent">最近编辑</option>
-          <option value="name">按名字</option>
-        </select>
+        <Select disabled={busy} value={sort} onValueChange={setSort}>
+          <SelectTrigger
+            aria-label="角色排序"
+            className="h-10 w-auto gap-3 rounded-xl"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="order">按展示顺序</SelectItem>
+            <SelectItem value="recent">最近编辑</SelectItem>
+            <SelectItem value="name">按名字</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div
         className="flex flex-wrap gap-2"
@@ -132,7 +146,7 @@ export function OfficialLibrary({
         找到 {items.length} 个角色
       </p>
       {items.length ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        <div className="admin-role-grid">
           {items.map(row => (
             <button
               key={row.id}
@@ -141,7 +155,7 @@ export function OfficialLibrary({
               className="admin-role-card group"
               aria-label={`编辑角色 ${row.data.name}`}
             >
-              <div className="relative aspect-[4/5] overflow-hidden bg-muted/25">
+              <div className="admin-role-image relative overflow-hidden bg-muted/25">
                 <img
                   src={row.data.imageUrl}
                   alt=""
@@ -163,7 +177,7 @@ export function OfficialLibrary({
                   {row.data.age} 岁
                 </span>
               </div>
-              <div className="p-4">
+              <div className="admin-role-copy">
                 <div className="flex items-center justify-between gap-2">
                   <h2 className="truncate font-semibold">{row.data.name}</h2>
                   <ArrowUpRight className="size-4 shrink-0 text-muted-foreground" />

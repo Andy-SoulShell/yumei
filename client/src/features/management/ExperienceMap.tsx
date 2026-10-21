@@ -69,7 +69,7 @@ export function ExperienceMap({
       <h2 className="text-lg font-semibold">你想改善哪段体验？</h2>
       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {tasks.map(task => (
-          <article key={task.title} className="rounded-2xl border p-5">
+          <article key={task.title} className="admin-journey-card p-5">
             <h3 className="text-sm font-semibold">{task.title}</h3>
             <p className="mt-2 text-xs leading-6 text-muted-foreground">
               {task.description}

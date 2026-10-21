@@ -251,6 +251,8 @@ export function HomepageEditor({
   busy,
   onUpload,
   uploadAccept,
+  focusedTab,
+  focusItem,
 }: {
   value: Homepage;
   onChange: (value: Homepage) => void;
@@ -258,11 +260,14 @@ export function HomepageEditor({
   busy: boolean;
   onUpload: (file: File) => Promise<string>;
   uploadAccept?: string;
+  focusedTab?: string;
+  focusItem?: string;
 }) {
-  const [tab, setTab] = useState("featured"),
+  const [localTab, setTab] = useState("featured"),
     [locale, setLocale] = useState<Locale>("zh-CN"),
     [query, setQuery] = useState(""),
     [preview, setPreview] = useState(false);
+  const tab = focusedTab ?? localTab;
   const [created, setCreated] = useState("");
   const active = rows.filter(row => !row.archived),
     available = active.filter(
@@ -300,64 +305,72 @@ export function HomepageEditor({
     <>
       <fieldset disabled={busy} className="min-w-0 space-y-5">
         <legend className="sr-only">首页编排</legend>
-        <section
-          aria-label="首页内容之间的关系"
-          className="rounded-xl bg-muted/25 p-4 text-sm leading-6"
-        >
-          <h2 className="font-semibold">先挑选角色，再安排推荐入口</h2>
-          <p className="mt-2 text-xs text-muted-foreground">
-            精选决定首页推荐顺序，默认角色决定默认进入的角色，轮播是独立宣传入口，常见问题帮助用户理解产品。它们与官方角色草稿统一核对、一起发布。
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setTab("featured")}
+        {!focusedTab && (
+          <>
+            <section
+              aria-label="首页内容之间的关系"
+              className="rounded-xl bg-muted/25 p-4 text-sm leading-6"
             >
-              安排推荐顺序
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setTab("display")}
-            >
-              设置默认入口
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setTab("slides")}
-            >
-              编辑宣传画面
-            </Button>
-          </div>
-        </section>
+              <h2 className="font-semibold">先挑选角色，再安排推荐入口</h2>
+              <p className="mt-2 text-xs text-muted-foreground">
+                精选决定首页推荐顺序，默认角色决定默认进入的角色，轮播是独立宣传入口，常见问题帮助用户理解产品。它们与官方角色草稿统一核对、一起发布。
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setTab("featured")}
+                >
+                  安排推荐顺序
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setTab("display")}
+                >
+                  设置默认入口
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setTab("slides")}
+                >
+                  编辑宣传画面
+                </Button>
+              </div>
+            </section>
+          </>
+        )}
         <div className="admin-toolbar">
-          <div
-            className="flex flex-wrap gap-1"
-            role="group"
-            aria-label="首页内容分区"
-          >
-            {[
-              {
-                id: "featured",
-                name: `精选角色 (${value.featuredIds.length})`,
-              },
-              { id: "slides", name: `轮播 (${value.slides.length})` },
-              { id: "faqs", name: `常见问题 (${value.faqs.length})` },
-              { id: "display", name: "展示设置" },
-            ].map(item => (
-              <Button
-                key={item.id}
-                size="sm"
-                variant={tab === item.id ? "secondary" : "ghost"}
-                aria-pressed={tab === item.id}
-                onClick={() => setTab(item.id)}
+          {!focusedTab && (
+            <>
+              <div
+                className="flex flex-wrap gap-1"
+                role="group"
+                aria-label="首页内容分区"
               >
-                {item.name}
-              </Button>
-            ))}
-          </div>
+                {[
+                  {
+                    id: "featured",
+                    name: `精选角色 (${value.featuredIds.length})`,
+                  },
+                  { id: "slides", name: `轮播 (${value.slides.length})` },
+                  { id: "faqs", name: `常见问题 (${value.faqs.length})` },
+                  { id: "display", name: "展示设置" },
+                ].map(item => (
+                  <Button
+                    key={item.id}
+                    size="sm"
+                    variant={tab === item.id ? "secondary" : "ghost"}
+                    aria-pressed={tab === item.id}
+                    onClick={() => setTab(item.id)}
+                  >
+                    {item.name}
+                  </Button>
+                ))}
+              </div>
+            </>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <select
               className="admin-select"
@@ -484,161 +497,163 @@ export function HomepageEditor({
             <p className="text-sm text-muted-foreground">
               第一张最先展示。标题、强调文字和按钮会按当前语言呈现。
             </p>
-            {value.slides.map((item, index) => (
-              <details
-                key={item.id}
-                open={index === 0 || item.id === created}
-                className="admin-config-group rounded-2xl border p-4"
-              >
-                <summary className="cursor-pointer text-sm font-medium">
-                  {index + 1}. {contentText(item.title, locale) || "新轮播"}
-                </summary>
-                <div className="mt-4 space-y-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs text-muted-foreground">
-                      最多 3 张画面
-                    </span>
-                    <OrderActions
-                      index={index}
-                      length={value.slides.length}
-                      label={`轮播${index + 1}`}
-                      onMove={to =>
-                        update("slides", move(value.slides, index, to))
-                      }
-                      onRemove={() =>
-                        update(
-                          "slides",
-                          value.slides.filter((_, i) => i !== index)
-                        )
-                      }
-                    />
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <CopyField
-                      label={`轮播${index + 1}标题`}
-                      autoFocus={item.id === created}
-                      value={item.title}
-                      locale={locale}
-                      onChange={title => slide(index, { title })}
-                    />
-                    <CopyField
-                      label={`轮播${index + 1}强调文字`}
-                      value={item.highlight}
-                      locale={locale}
-                      onChange={highlight => slide(index, { highlight })}
-                    />
-                    <CopyField
-                      label={`轮播${index + 1}按钮文案`}
-                      value={item.action}
-                      locale={locale}
-                      onChange={action => slide(index, { action })}
-                    />
-                    <label className="space-y-2 text-sm font-medium">
-                      按钮链接
-                      <Input
-                        aria-label={`轮播${index + 1}按钮链接`}
-                        value={item.href}
-                        onChange={event =>
-                          slide(index, { href: event.target.value })
+            {value.slides.map((item, index) =>
+              !focusItem || item.id === (created || focusItem) ? (
+                <details
+                  key={item.id}
+                  open={!!focusedTab || index === 0 || item.id === created}
+                  className="admin-config-group rounded-2xl border p-4"
+                >
+                  <summary className="cursor-pointer text-sm font-medium">
+                    {index + 1}. {contentText(item.title, locale) || "新轮播"}
+                  </summary>
+                  <div className="mt-4 space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xs text-muted-foreground">
+                        最多 3 张画面
+                      </span>
+                      <OrderActions
+                        index={index}
+                        length={value.slides.length}
+                        label={`轮播${index + 1}`}
+                        onMove={to =>
+                          update("slides", move(value.slides, index, to))
+                        }
+                        onRemove={() =>
+                          update(
+                            "slides",
+                            value.slides.filter((_, i) => i !== index)
+                          )
                         }
                       />
-                    </label>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    {item.images.map((src, imageIndex) => (
-                      <div
-                        key={imageIndex}
-                        className="space-y-2 rounded-xl border p-3"
-                      >
-                        <ImagePreview
-                          src={src}
-                          alt={`轮播${index + 1}画面${imageIndex + 1}`}
-                          disabled={busy}
-                          className="h-60 w-full"
-                        />
-                        <select
-                          className="admin-select w-full"
-                          aria-label={`轮播${index + 1}画面${imageIndex + 1}`}
-                          value={src}
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <CopyField
+                        label={`轮播${index + 1}标题`}
+                        autoFocus={item.id === created}
+                        value={item.title}
+                        locale={locale}
+                        onChange={title => slide(index, { title })}
+                      />
+                      <CopyField
+                        label={`轮播${index + 1}强调文字`}
+                        value={item.highlight}
+                        locale={locale}
+                        onChange={highlight => slide(index, { highlight })}
+                      />
+                      <CopyField
+                        label={`轮播${index + 1}按钮文案`}
+                        value={item.action}
+                        locale={locale}
+                        onChange={action => slide(index, { action })}
+                      />
+                      <label className="space-y-2 text-sm font-medium">
+                        按钮链接
+                        <Input
+                          aria-label={`轮播${index + 1}按钮链接`}
+                          value={item.href}
                           onChange={event =>
-                            slide(index, {
-                              images: item.images.map((old, i) =>
-                                i === imageIndex ? event.target.value : old
-                              ),
-                            })
+                            slide(index, { href: event.target.value })
                           }
+                        />
+                      </label>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      {item.images.map((src, imageIndex) => (
+                        <div
+                          key={imageIndex}
+                          className="space-y-2 rounded-xl border p-3"
                         >
-                          {!images.some(image => image.path === src) && (
-                            <option value={src}>当前画面</option>
-                          )}
-                          {images.map(image => (
-                            <option key={image.path} value={image.path}>
-                              {image.name}的封面
-                            </option>
-                          ))}
-                        </select>
-                        <div className="flex justify-between gap-2">
-                          <label className="cursor-pointer text-xs text-primary">
-                            上传替换
-                            <input
-                              type="file"
-                              aria-label={`上传轮播${index + 1}画面${imageIndex + 1}`}
-                              className="sr-only"
-                              accept={uploadAccept}
-                              onChange={event => {
-                                const file = event.target.files?.[0];
-                                event.target.value = "";
-                                if (file)
-                                  void onUpload(file)
-                                    .then(url =>
-                                      slide(index, {
-                                        images: item.images.map((old, i) =>
-                                          i === imageIndex ? url : old
-                                        ),
-                                      })
-                                    )
-                                    .catch(() => {});
-                              }}
-                            />
-                          </label>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={item.images.length <= 1}
-                            onClick={() =>
+                          <ImagePreview
+                            src={src}
+                            alt={`轮播${index + 1}画面${imageIndex + 1}`}
+                            disabled={busy}
+                            className="h-60 w-full"
+                          />
+                          <select
+                            className="admin-select w-full"
+                            aria-label={`轮播${index + 1}画面${imageIndex + 1}`}
+                            value={src}
+                            onChange={event =>
                               slide(index, {
-                                images: item.images.filter(
-                                  (_, i) => i !== imageIndex
+                                images: item.images.map((old, i) =>
+                                  i === imageIndex ? event.target.value : old
                                 ),
                               })
                             }
                           >
-                            移除画面
-                          </Button>
+                            {!images.some(image => image.path === src) && (
+                              <option value={src}>当前画面</option>
+                            )}
+                            {images.map(image => (
+                              <option key={image.path} value={image.path}>
+                                {image.name}的封面
+                              </option>
+                            ))}
+                          </select>
+                          <div className="flex justify-between gap-2">
+                            <label className="cursor-pointer text-xs text-primary">
+                              上传替换
+                              <input
+                                type="file"
+                                aria-label={`上传轮播${index + 1}画面${imageIndex + 1}`}
+                                className="sr-only"
+                                accept={uploadAccept}
+                                onChange={event => {
+                                  const file = event.target.files?.[0];
+                                  event.target.value = "";
+                                  if (file)
+                                    void onUpload(file)
+                                      .then(url =>
+                                        slide(index, {
+                                          images: item.images.map((old, i) =>
+                                            i === imageIndex ? url : old
+                                          ),
+                                        })
+                                      )
+                                      .catch(() => {});
+                                }}
+                              />
+                            </label>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={item.images.length <= 1}
+                              onClick={() =>
+                                slide(index, {
+                                  images: item.images.filter(
+                                    (_, i) => i !== imageIndex
+                                  ),
+                                })
+                              }
+                            >
+                              移除画面
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={item.images.length >= 3}
+                      onClick={() =>
+                        slide(index, {
+                          images: [
+                            ...item.images,
+                            images.find(
+                              image => !item.images.includes(image.path)
+                            )?.path || item.images[0],
+                          ],
+                        })
+                      }
+                    >
+                      添加画面
+                    </Button>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={item.images.length >= 3}
-                    onClick={() =>
-                      slide(index, {
-                        images: [
-                          ...item.images,
-                          images.find(
-                            image => !item.images.includes(image.path)
-                          )?.path || item.images[0],
-                        ],
-                      })
-                    }
-                  >
-                    添加画面
-                  </Button>
-                </div>
-              </details>
-            ))}
+                </details>
+              ) : null
+            )}
             <Button
               variant="outline"
               disabled={value.slides.length >= 20 || !images.length}
@@ -668,45 +683,48 @@ export function HomepageEditor({
             <p className="text-sm text-muted-foreground">
               用简洁的问答帮助用户了解产品，顺序与首页一致。
             </p>
-            {value.faqs.map((item, index) => (
-              <details
-                key={item.id}
-                open={index === 0 || item.id === created}
-                className="admin-config-group rounded-2xl border p-4"
-              >
-                <summary className="cursor-pointer text-sm font-medium">
-                  {index + 1}. {contentText(item.question, locale) || "新问题"}
-                </summary>
-                <div className="mt-4 space-y-4">
-                  <OrderActions
-                    index={index}
-                    length={value.faqs.length}
-                    label={`问答${index + 1}`}
-                    onMove={to => update("faqs", move(value.faqs, index, to))}
-                    onRemove={() =>
-                      update(
-                        "faqs",
-                        value.faqs.filter((_, i) => i !== index)
-                      )
-                    }
-                  />
-                  <CopyField
-                    label={`问题${index + 1}`}
-                    autoFocus={item.id === created}
-                    value={item.question}
-                    locale={locale}
-                    onChange={question => faq(index, { question })}
-                  />
-                  <CopyField
-                    label={`回答${index + 1}`}
-                    value={item.answer}
-                    locale={locale}
-                    onChange={answer => faq(index, { answer })}
-                    multiline
-                  />
-                </div>
-              </details>
-            ))}
+            {value.faqs.map((item, index) =>
+              !focusItem || item.id === (created || focusItem) ? (
+                <details
+                  key={item.id}
+                  open={!!focusedTab || index === 0 || item.id === created}
+                  className="admin-config-group rounded-2xl border p-4"
+                >
+                  <summary className="cursor-pointer text-sm font-medium">
+                    {index + 1}.{" "}
+                    {contentText(item.question, locale) || "新问题"}
+                  </summary>
+                  <div className="mt-4 space-y-4">
+                    <OrderActions
+                      index={index}
+                      length={value.faqs.length}
+                      label={`问答${index + 1}`}
+                      onMove={to => update("faqs", move(value.faqs, index, to))}
+                      onRemove={() =>
+                        update(
+                          "faqs",
+                          value.faqs.filter((_, i) => i !== index)
+                        )
+                      }
+                    />
+                    <CopyField
+                      label={`问题${index + 1}`}
+                      autoFocus={item.id === created}
+                      value={item.question}
+                      locale={locale}
+                      onChange={question => faq(index, { question })}
+                    />
+                    <CopyField
+                      label={`回答${index + 1}`}
+                      value={item.answer}
+                      locale={locale}
+                      onChange={answer => faq(index, { answer })}
+                      multiline
+                    />
+                  </div>
+                </details>
+              ) : null
+            )}
             <Button
               variant="outline"
               disabled={value.faqs.length >= 50}

@@ -29,7 +29,7 @@ export function OfficialCharacterPreview({
     tagline: contentText(value.tagline, locale),
   };
   return (
-    <Card className="min-w-0 self-start xl:sticky xl:top-36">
+    <Card className="min-w-0 self-start py-0 xl:sticky xl:top-36">
       <CardContent className="space-y-4 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-semibold">前台预览</h2>

@@ -73,7 +73,6 @@ export function ContentOverview({
         </div>
         <Sparkles className="admin-welcome-art" aria-hidden="true" />
       </section>
-      <ExperienceMap disabled={busy} onNavigate={onNavigate} />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
           {
@@ -117,6 +116,7 @@ export function ContentOverview({
           </button>
         ))}
       </div>
+      <ExperienceMap disabled={busy} onNavigate={onNavigate} />
       <section className="admin-panel">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -155,7 +155,7 @@ export function ContentOverview({
             <button
               key={row.id}
               disabled={busy}
-              className="flex min-w-0 items-center gap-4 rounded-2xl border bg-card p-4 text-left transition-colors hover:border-primary/40"
+              className="admin-recent-card flex items-center gap-4 p-4 text-left"
               onClick={() => onEdit(row.id)}
             >
               <img

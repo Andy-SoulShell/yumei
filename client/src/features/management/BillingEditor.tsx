@@ -411,7 +411,7 @@ export function BillingSetupEditor(props: Props & { compact?: boolean }) {
     </div>
   );
 }
-export function PlanLibrary(props: Props) {
+export function PlanLibrary(props: Props & { showSetup?: boolean }) {
   const { config, disabled, onChange, view, onViewChange } = props;
   const [editing, setEditing] = useState<string | null>(null);
   const search = view.searches["billing.plans"] ?? "";
@@ -421,7 +421,7 @@ export function PlanLibrary(props: Props) {
     ) ?? config.billing.plans[0];
   return (
     <div className="space-y-5">
-      <BillingSetupEditor {...props} compact />
+      {props.showSetup !== false && <BillingSetupEditor {...props} compact />}
       <div className="flex flex-wrap gap-3">
         <Input
           aria-label="搜索套餐"

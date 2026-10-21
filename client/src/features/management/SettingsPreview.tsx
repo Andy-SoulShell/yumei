@@ -6,6 +6,7 @@ import { contentText } from "@shared/discovery";
 import { uploadDescription } from "@shared/operationalConfig";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   UploadCloud,
   Bell,
@@ -27,12 +28,17 @@ export function SettingsPreview({
   config,
   section,
   panel,
+  overview = false,
+  onEdit,
 }: {
   config: ProductConfig;
   section: SettingsSection;
   panel: string;
+  overview?: boolean;
+  onEdit?: (task: string) => void;
 }) {
   const [points, setPoints] = useState(0);
+  const [showAllLevels, setShowAllLevels] = useState(false);
   let preview: React.ReactNode;
   switch (section) {
     case "billing":
@@ -204,20 +210,33 @@ export function SettingsPreview({
             ))}
           </div>
           <div className="grid gap-2 sm:grid-cols-3">
-            {config.memory.levelRules.map((item, i) => (
-              <div key={i} className="rounded-xl border bg-background/70 p-3">
-                <p className="text-sm font-medium">{item.minLevel} 级起</p>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  可记住 {number(item.capacity)} 条 · 每次召回{" "}
-                  {number(item.recallCount)} 条
-                </p>
-              </div>
-            ))}
+            {config.memory.levelRules
+              .filter((_, index) => !overview || showAllLevels || index < 3)
+              .map((item, i) => (
+                <div key={i} className="rounded-xl border bg-background/70 p-3">
+                  <p className="text-sm font-medium">{item.minLevel} 级起</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    可记住 {number(item.capacity)} 条 · 每次召回{" "}
+                    {number(item.recallCount)} 条
+                  </p>
+                </div>
+              ))}
           </div>
           <p className="text-xs text-muted-foreground">
             记忆功能{config.memory.enabled ? "开启" : "关闭"}
             ；预览只展示配置，不读取用户记忆。
           </p>
+          {overview && config.memory.levelRules.length > 3 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowAllLevels(!showAllLevels)}
+            >
+              {showAllLevels
+                ? "收起阶段"
+                : `查看全部 ${config.memory.levelRules.length} 个阶段`}
+            </Button>
+          )}
         </div>
       );
       break;
@@ -343,6 +362,24 @@ export function SettingsPreview({
                   ? config.billing.defaultChatModel
                   : model}
               </p>
+              {onEdit && (
+                <Button
+                  className="mt-3"
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    onEdit(
+                      label === "聊天"
+                        ? "chat"
+                        : label === "图片"
+                          ? "image"
+                          : "voice"
+                    )
+                  }
+                >
+                  调整{label}服务
+                </Button>
+              )}
             </div>
           ))}
         </div>

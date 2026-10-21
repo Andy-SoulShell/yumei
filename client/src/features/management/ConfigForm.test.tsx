@@ -263,6 +263,11 @@ it("uses a local clock for quiet hours and keeps the stored minute value", async
   await change(input, "06:30");
   expect(value).toBe(390);
   expect(container.textContent).toContain("支持跨午夜");
+  await act(async () => {
+    input.value = "23:15";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  expect(value).toBe(1395);
 });
 
 it("offers constrained format checkboxes and retains at least one allowed upload type", async () => {

@@ -50,6 +50,10 @@ it("converts duration, capacity and percent without clamping invalid or empty in
   expect(storedNumber("", 1, true)).toBeNaN();
   expect(storedNumber("-1", 1000, true)).toBe(-1000);
   expect(storedNumber("0.0001", 1000, true)).toBeCloseTo(0.1);
+  expect(storedNumber("1e-11", 1, true)).toBe(1e-11);
+  expect(storedNumber("1.000000000000000001", 1, true)).toBeNaN();
+  expect(storedNumber("1.001e0", 1000, true)).toBe(1001);
+  expect(storedNumber("35", 0.01, false)).toBe(0.35);
 });
 it("respects exclusive bounds, storage precision and whole-day multiples", () => {
   expect(numericError(0, { exclusiveMinimum: 0, maximum: 1 })).toContain(

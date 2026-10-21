@@ -1,8 +1,8 @@
 /** 固定奖励、心情和通知以具名卡片选择，避免一次展开所有语言和规则。 */
-import { useState } from "react";
 import type { ProductConfig } from "@shared/productConfig";
 import { Badge } from "@/components/ui/badge";
 import { ConfigForm, fieldLabel, type FormSchema } from "./ConfigForm";
+import type { SettingsNavigation } from "./settingsModel";
 const notificationNames: Record<string, string> = {
   "notifications:title.thinkingOfYou": "想念通知标题",
   "notifications:privateTitle": "隐私通知标题",
@@ -19,6 +19,8 @@ export function SettingsRecord({
   issues,
   disabled,
   onChange,
+  view,
+  onViewChange,
 }: {
   value: Record<string, unknown>;
   schema?: FormSchema;
@@ -27,11 +29,11 @@ export function SettingsRecord({
   issues: Record<string, string>;
   disabled: boolean;
   onChange: (next: unknown) => void;
-}) {
+} & SettingsNavigation) {
   const keys = Object.keys(schema?.properties ?? value).filter(
     key => key in value
   );
-  const [choice, setChoice] = useState(keys[0]);
+  const choice = view.selections[path] ?? keys[0];
   const selected = choice in value ? choice : keys[0];
   const item = value[selected];
   const label = (key: string) => notificationNames[key] ?? fieldLabel(key);
@@ -51,7 +53,12 @@ export function SettingsRecord({
               disabled={disabled}
               aria-pressed={key === selected}
               className={`min-w-0 rounded-xl border p-3 text-left text-sm ${key === selected ? "border-primary bg-primary/5" : "hover:bg-muted/40"}`}
-              onClick={() => setChoice(key)}
+              onClick={() =>
+                onViewChange({
+                  ...view,
+                  selections: { ...view.selections, [path]: key },
+                })
+              }
             >
               <span className="flex items-center justify-between gap-2">
                 <span>

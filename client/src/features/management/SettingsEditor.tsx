@@ -14,6 +14,8 @@ import {
   setSetting,
   settingSchema,
   type SettingsSection,
+  type SettingsViewState,
+  createSettingsView,
 } from "./settingsModel";
 
 export function SettingsEditor({
@@ -23,6 +25,8 @@ export function SettingsEditor({
   issues,
   disabled,
   onChange,
+  view: suppliedView,
+  onViewChange: suppliedOnViewChange,
 }: {
   section: SettingsSection;
   config: ProductConfig;
@@ -30,9 +34,16 @@ export function SettingsEditor({
   issues: Record<string, string>;
   disabled: boolean;
   onChange: (next: ProductConfig) => void;
+  view?: SettingsViewState;
+  onViewChange?: (next: SettingsViewState) => void;
 }) {
   const panels = settingsPanels[section];
-  const [tab, setTab] = useState(panels[0].id);
+  const [localView, setLocalView] = useState(createSettingsView);
+  const view = suppliedView ?? localView,
+    onViewChange = suppliedOnViewChange ?? setLocalView;
+  const tab = panels.some(item => item.id === view.task)
+    ? view.task!
+    : panels[0].id;
   const [workflowBuffers, setWorkflowBuffers] = useState<
     Record<string, string>
   >({});
@@ -43,7 +54,7 @@ export function SettingsEditor({
       <SettingsPreview config={config} section={section} panel={tab} />
       <Tabs
         value={tab}
-        onValueChange={setTab}
+        onValueChange={task => onViewChange({ ...view, task })}
         activationMode="manual"
         className="min-w-0"
       >
@@ -87,6 +98,8 @@ export function SettingsEditor({
             {item.collection ? (
               <SettingsCollection
                 kind={item.collection}
+                view={view}
+                onViewChange={onViewChange}
                 items={
                   getSetting(current, item.fields[0]) as Record<
                     string,
@@ -144,6 +157,8 @@ export function SettingsEditor({
                 issues={issues}
                 disabled={disabled}
                 onChange={update}
+                view={view}
+                onViewChange={onViewChange}
               />
             )}
           </TabsContent>

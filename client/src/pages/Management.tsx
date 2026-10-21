@@ -52,6 +52,11 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 import { sections, type Pane } from "@/features/management/managementModel";
+import {
+  createSettingsView,
+  type SettingsNavigation,
+  type SettingsViewState,
+} from "@/features/management/settingsModel";
 import type {
   ProductDraft,
   DiscoveryDraft,
@@ -244,6 +249,8 @@ function ProductWorkspace({
   onReload,
   onDirty,
   operations,
+  view,
+  onViewChange,
 }: {
   draft: ProductDraft;
   content: DiscoveryDraft;
@@ -251,7 +258,7 @@ function ProductWorkspace({
   onReload: () => Promise<unknown>;
   onDirty: (dirty: boolean) => void;
   operations: WorkspaceOperations;
-}) {
+} & SettingsNavigation) {
   const [value, setValue] = useState(() => structuredClone(draft.config));
   const [mode, setMode] = useState<"form" | "json">("form");
   const [raw, setRaw] = useState(() => JSON.stringify(value[section], null, 2));
@@ -388,6 +395,8 @@ function ProductWorkspace({
               <ThemeEditor
                 value={value.themes}
                 issues={fieldIssues}
+                view={view}
+                onViewChange={onViewChange}
                 schema={productForm.properties?.themes}
                 disabled={busy}
                 onChange={themes => {
@@ -398,6 +407,8 @@ function ProductWorkspace({
             ) : (
               <SettingsEditor
                 section={section}
+                view={view}
+                onViewChange={onViewChange}
                 config={value}
                 schema={productForm.properties?.[section]}
                 issues={fieldIssues}
@@ -1033,6 +1044,13 @@ function ManagementConsole({
 }) {
   const appearance = usePreferences();
   const shell = useRef<HTMLDivElement>(null);
+  const [settingsViews, setSettingsViews] = useState<
+    Record<string, SettingsViewState>
+  >(() =>
+    Object.fromEntries(
+      sections.map(section => [section.id, createSettingsView()])
+    )
+  );
   const [pane, setPane] = useState<Pane>("overview"),
     [dirty, setDirty] = useState(false),
     [epoch, setEpoch] = useState(0),
@@ -1392,6 +1410,10 @@ function ManagementConsole({
               draft={product.data}
               content={discovery.data}
               section={pane}
+              view={settingsViews[pane]}
+              onViewChange={next =>
+                setSettingsViews(old => ({ ...old, [pane]: next }))
+              }
               onDirty={setDirty}
               onReload={reloadProduct}
               operations={operations}

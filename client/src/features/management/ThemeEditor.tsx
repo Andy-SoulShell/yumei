@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ConfigForm, type FormSchema } from "./ConfigForm";
 import { isHexColor } from "./ColorField";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import type { SettingsViewState } from "./settingsModel";
 type Theme = ThemesConfig["items"][number];
 const title = (value: Theme) => value.name["zh-CN"] || value.id;
 function ThemePreview({
@@ -90,15 +91,34 @@ export function ThemeEditor({
   onChange,
   disabled,
   issues,
+  view,
+  onViewChange,
 }: {
   value: ThemesConfig;
   schema?: FormSchema;
   onChange: (value: ThemesConfig) => void;
   disabled: boolean;
   issues?: Record<string, string>;
+  view?: SettingsViewState;
+  onViewChange?: (next: SettingsViewState) => void;
 }) {
-  const [index, setIndex] = useState(0),
+  const [localIndex, setLocalIndex] = useState(0),
     id = useId();
+  const [localTab, setLocalTab] = useState("appearance");
+  const index = view
+    ? Math.max(
+        0,
+        value.items.findIndex(item => item.id === view.selections.themes)
+      )
+    : localIndex;
+  const setIndex = (next: number) => {
+    setLocalIndex(next);
+    if (view && onViewChange)
+      onViewChange({
+        ...view,
+        selections: { ...view.selections, themes: value.items[next]?.id ?? "" },
+      });
+  };
   const selected = value.items[Math.min(index, value.items.length - 1)];
   if (!selected)
     return (
@@ -114,7 +134,12 @@ export function ThemeEditor({
       enabled: true,
     };
     onChange({ ...value, items: [...value.items, item] });
-    setIndex(value.items.length);
+    setLocalIndex(value.items.length);
+    if (view && onViewChange)
+      onViewChange({
+        ...view,
+        selections: { ...view.selections, themes: item.id },
+      });
   };
   return (
     <div className="space-y-6">
@@ -220,7 +245,13 @@ export function ThemeEditor({
       <p className="text-xs text-muted-foreground">
         主题标识 {selected.id} 保持不变；颜色、文案和启用状态按当前草稿编辑。
       </p>
-      <Tabs defaultValue="appearance">
+      <Tabs
+        value={view?.task ?? localTab}
+        onValueChange={task => {
+          setLocalTab(task);
+          if (view && onViewChange) onViewChange({ ...view, task });
+        }}
+      >
         <TabsList aria-label="主题编辑分区">
           <TabsTrigger value="appearance" disabled={disabled}>
             配色与外观

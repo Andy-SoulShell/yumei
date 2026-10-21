@@ -747,9 +747,9 @@ export function HomepageEditor({
               </label>
             ))}
             <label className="space-y-2 text-sm font-medium">
-              轮播切换间隔（秒）
+              轮播切换间隔
               <NumberField
-                label="轮播切换间隔（秒）"
+                label="轮播切换间隔"
                 path="home.carouselIntervalMs"
                 schema={homeFields.carouselIntervalMs}
                 value={value.carouselIntervalMs}

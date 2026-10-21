@@ -127,6 +127,18 @@ it("copies a plan into an independent inactive draft and edits its price using i
     container.querySelector('[aria-label="编辑套餐"]')!.textContent
   ).toContain("USD");
   expect(productConfigSchema.safeParse(current).success).toBe(true);
+  await change(
+    container.querySelector<HTMLInputElement>('[aria-label="搜索套餐"]')!,
+    "新套餐"
+  );
+  await tab("订阅与默认");
+  await tab("套餐管理");
+  expect(
+    container.querySelector<HTMLInputElement>('[aria-label="搜索套餐"]')!.value
+  ).toBe("新套餐");
+  expect(
+    container.querySelector<HTMLInputElement>('[aria-label="金额"]')!.value
+  ).toBe("12.34");
 });
 it("keeps malformed workflow input through tab changes and blocks the shared save contract until repaired", async () => {
   await act(async () => root.render(<Probe section="models" />));
@@ -178,4 +190,39 @@ it("disables task navigation and content controls while a save or publication is
       item => item.disabled
     )
   ).toBe(true);
+});
+
+it("keeps image quotas mutually exclusive when switching day, month and unlimited", async () => {
+  await act(async () => root.render(<Probe section="billing" />));
+  const selectMode = async (label: string) => {
+    const option = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('[role="radio"]')
+    ).find(item => item.textContent === label)!;
+    await act(async () => option.click());
+    expect(productConfigSchema.safeParse(current).success).toBe(true);
+  };
+  await selectMode("按月");
+  expect(current.billing.plans[0].limits).toMatchObject({
+    dailySelfies: null,
+    monthlySelfies: 1,
+  });
+  await change(
+    container.querySelector<HTMLInputElement>('[aria-label="每月图片额度"]')!,
+    "8"
+  );
+  const imageGroup = container.querySelector('[aria-label="图片额度周期"]')!;
+  await act(async () =>
+    Array.from(imageGroup.querySelectorAll<HTMLButtonElement>('[role="radio"]'))
+      .find(item => item.textContent === "不限量")!
+      .click()
+  );
+  expect(current.billing.plans[0].limits).toMatchObject({
+    dailySelfies: null,
+    monthlySelfies: null,
+  });
+  await selectMode("按日");
+  expect(current.billing.plans[0].limits).toMatchObject({
+    dailySelfies: 8,
+    monthlySelfies: null,
+  });
 });

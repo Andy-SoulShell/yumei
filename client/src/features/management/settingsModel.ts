@@ -2,6 +2,19 @@
 import type { ProductConfig } from "@shared/productConfig";
 import type { FormSchema, FieldChoice } from "./ConfigForm";
 export type SettingsSection = Exclude<keyof ProductConfig, "themes">;
+export type SettingsViewState = {
+  task?: string;
+  selections: Record<string, string>;
+  searches: Record<string, string>;
+};
+export const createSettingsView = (): SettingsViewState => ({
+  selections: {},
+  searches: {},
+});
+export type SettingsNavigation = {
+  view: SettingsViewState;
+  onViewChange: (next: SettingsViewState) => void;
+};
 export type SettingsPanel = {
   id: string;
   title: string;
@@ -166,7 +179,7 @@ export const settingsPanels: Record<SettingsSection, SettingsPanel[]> = {
     panel(
       "schedule",
       "联系安排",
-      "用本地时钟设置免打扰和联系频率；主动联系仍需用户明确开启。",
+      "用本地时钟设置新用户的默认免打扰和联系频率；已有用户保留自己的偏好，主动联系仍需用户明确开启。",
       ["enabled", "defaults", "frequencyDays", "minimumGapMs"]
     ),
     panel(

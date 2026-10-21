@@ -83,7 +83,7 @@ describe("publishing all setting drafts", () => {
     expect(
       review.groups
         .find(item => item.id === "uploads")!
-        .fields.some(item => item.after === "1024")
+        .fields.some(item => item.after === "1 KiB")
     ).toBe(true);
   });
   it("blocks settings incompatible with a currently live official role", () => {

@@ -1,5 +1,4 @@
 /** 套餐、姿势、等级和快捷模板使用内容卡片与独立编辑区。 */
-import { useState } from "react";
 import { Plus, Trash2, ArrowUp, ArrowDown, Search } from "lucide-react";
 import type { ProductConfig } from "@shared/productConfig";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { FormSchema } from "./ConfigForm";
 import { SettingsFields } from "./SettingsFields";
+import type { SettingsNavigation } from "./settingsModel";
 export type CollectionKind = "plans" | "poses" | "levels" | "quickTemplates";
 type Item = Record<string, unknown>;
 const titles: Record<CollectionKind, string> = {
@@ -67,7 +67,7 @@ export function newCollectionItem(
     return {
       ...structuredClone(last),
       level: items.length + 1,
-      requiredPoints: Number(last.requiredPoints) + gap,
+      requiredPoints: Math.min(100000000, Number(last.requiredPoints) + gap),
       name: { "zh-CN": "新阶段" },
       description: { "zh-CN": "新的相处阶段" },
       petName: { "zh-CN": "伙伴" },
@@ -133,6 +133,8 @@ export function SettingsCollection({
   issues,
   disabled,
   onChange,
+  view,
+  onViewChange,
 }: {
   kind: CollectionKind;
   items: Item[];
@@ -142,11 +144,10 @@ export function SettingsCollection({
   issues: Record<string, string>;
   disabled: boolean;
   onChange: (items: Item[]) => void;
-}) {
-  const [selected, setSelected] = useState(
-    String(items[0]?.id ?? items[0]?.level ?? "")
-  );
-  const [search, setSearch] = useState("");
+} & SettingsNavigation) {
+  const selected =
+    view.selections[path] ?? String(items[0]?.id ?? items[0]?.level ?? "");
+  const search = view.searches[path] ?? "";
   const index = Math.max(
     0,
     items.findIndex(item => String(item.id ?? item.level) === selected)
@@ -180,7 +181,14 @@ export function SettingsCollection({
     disabled ||
     items.length >= (schema?.maxItems ?? Infinity) ||
     (kind === "levels" && Number(items.at(-1)?.requiredPoints) >= 100000000);
-  const select = (row: Item) => setSelected(String(row.id ?? row.level));
+  const select = (row: Item) =>
+    onViewChange({
+      ...view,
+      selections: {
+        ...view.selections,
+        [path]: String(row.id ?? row.level ?? ""),
+      },
+    });
   const update = (next: unknown) =>
     onChange(items.map((old, i) => (i === index ? (next as Item) : old)));
   const move = (to: number) => {
@@ -199,7 +207,12 @@ export function SettingsCollection({
             placeholder={`搜索${titles[kind]}名称`}
             value={search}
             disabled={disabled}
-            onChange={event => setSearch(event.target.value)}
+            onChange={event =>
+              onViewChange({
+                ...view,
+                searches: { ...view.searches, [path]: event.target.value },
+              })
+            }
           />
         </div>
         <Button
@@ -209,8 +222,14 @@ export function SettingsCollection({
           onClick={() => {
             const next = newCollectionItem(kind, items, item);
             onChange([...items, next]);
-            select(next);
-            setSearch("");
+            onViewChange({
+              ...view,
+              selections: {
+                ...view.selections,
+                [path]: String(next.id ?? next.level),
+              },
+              searches: { ...view.searches, [path]: "" },
+            });
           }}
         >
           <Plus className="size-4" />
@@ -374,6 +393,8 @@ export function SettingsCollection({
                 issues={issues}
                 disabled={disabled}
                 onChange={update}
+                view={view}
+                onViewChange={onViewChange}
               />
             </section>
           ))}

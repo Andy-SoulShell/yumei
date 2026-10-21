@@ -99,7 +99,13 @@ export function defaultUnit(path: string, value: number, units: ValueUnit[]) {
     /Ms$/.test(path) ||
     path === "intimacy.rules.voice_message.bonusThreshold"
   )
-    return units[1];
+    return (
+      units
+        .slice(1)
+        .reverse()
+        .find(item => value >= item.factor && value % item.factor === 0) ??
+      units[value > 0 && value < 1000 ? 0 : 1]
+    );
   if (/Bytes$/.test(path))
     return (
       [...units]
@@ -108,12 +114,28 @@ export function defaultUnit(path: string, value: number, units: ValueUnit[]) {
     );
   return units[0] ?? { label: "数值", factor: 1 };
 }
-/** 修正十进制换算产生的浮点尾差，不截断真实的小数输入。 */
+/** 十进制按整数存储单位精确换算，不把真实的小数或指数输入四舍五入成有效值。 */
 export function storedNumber(value: string, factor: number, integer: boolean) {
   if (!value.trim()) return NaN;
-  const result = Number(value) * factor;
-  const rounded = Math.round(result);
-  return integer && Math.abs(result - rounded) < 1e-7 ? rounded : result;
+  const result = factor === 0.01 ? Number(value) / 100 : Number(value) * factor;
+  if (!integer || !Number.isFinite(result) || !Number.isInteger(factor))
+    return result;
+  const match = value.match(/^([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/);
+  if (!match || !(match[2] || match[3])) return NaN;
+  const exponent = Number(match[4] ?? 0),
+    digits = match[2] + (match[3] ?? "");
+  if (digits.length > 400 || Math.abs(exponent) > 400)
+    return Number.isInteger(result) ? NaN : result;
+  const power = (match[3]?.length ?? 0) - exponent;
+  let numerator = BigInt(digits) * BigInt(factor);
+  if (match[1] === "-") numerator = -numerator;
+  if (power > 0) {
+    const divisor = BigInt("1" + "0".repeat(power));
+    if (numerator % divisor !== BigInt(0))
+      return Number.isInteger(result) ? NaN : result;
+    return Number(numerator / divisor);
+  }
+  return Number(numerator * BigInt("1" + "0".repeat(-power)));
 }
 export const displayedNumber = (value: number, factor: number) =>
   Number.isFinite(value)
@@ -178,6 +200,8 @@ export function nullableLabel(path: string) {
   return "未设置";
 }
 export function fieldHint(path: string): string | undefined {
+  if (path === "proactive.defaults.proactiveEnabled")
+    return "保持关闭；主动联系只能由用户在自己的偏好中明确开启。";
   if (path.startsWith("prompts.")) {
     const fixed: Record<string, string[]> = {
       "prompts.chat.system": [
@@ -224,7 +248,9 @@ export function fieldHint(path: string): string | undefined {
       path
     )
   )
-    return "0 表示无此额度；不限量请使用下方的不限量选项。自拍仅选择按日或按月计量。";
+    return /Selfies$/.test(path)
+      ? "0 表示不提供图片额度；按日与按月互斥，不限量不使用周期额度。"
+      : "0 表示不提供此项额度；选择不限量时不限制使用数量。";
   if (path === "billing.pastDueGraceMs") return "0 表示不提供欠费宽限。";
   if (/^intimacy\.rules\..+\.bonusThreshold$/.test(path))
     return "额外奖励按实际规则触发；语音按时长、文字按字符数、连续登录按天、长对话按轮数判断。";

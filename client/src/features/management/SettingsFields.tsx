@@ -6,8 +6,11 @@ import {
   setSetting,
   settingSchema,
   settingsChoices,
+  type SettingsNavigation,
 } from "./settingsModel";
 import { SettingsRecord } from "./SettingsRecord";
+import { TierLimitsEditor } from "./TierLimitsEditor";
+import type { TierLimits } from "@shared/productConfig";
 
 export function SettingsFields({
   value,
@@ -18,6 +21,8 @@ export function SettingsFields({
   issues,
   disabled,
   onChange,
+  view,
+  onViewChange,
 }: {
   value: unknown;
   schema?: FormSchema;
@@ -27,7 +32,7 @@ export function SettingsFields({
   issues: Record<string, string>;
   disabled: boolean;
   onChange: (next: unknown) => void;
-}) {
+} & SettingsNavigation) {
   return (
     <div className="grid min-w-0 gap-5 sm:grid-cols-2">
       {fields.map(field => {
@@ -53,8 +58,19 @@ export function SettingsFields({
                   {fieldLabel(field.split(".").at(-1)!)}
                 </h3>
               )}
-            {record ? (
+            {/^billing\.plans\.\d+\.limits$/.test(fullPath) ? (
+              <TierLimitsEditor
+                value={current as TierLimits}
+                schema={contract}
+                path={fullPath}
+                issues={issues}
+                disabled={disabled}
+                onChange={next => onChange(setSetting(value, field, next))}
+              />
+            ) : record ? (
               <SettingsRecord
+                view={view}
+                onViewChange={onViewChange}
                 value={current as Record<string, unknown>}
                 schema={contract}
                 path={fullPath}

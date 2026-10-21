@@ -7,6 +7,7 @@ import {
 } from "@shared/discovery";
 import type { ProductConfig } from "@shared/productConfig";
 import { sameConfigValue } from "./editorState";
+import { defaultUnit, displayedNumber, valueUnits } from "./fieldPresentation";
 
 export type CharacterRules = ProductConfig["characters"];
 export type OfficialDraft = {
@@ -204,7 +205,15 @@ function changes(
         b as Record<string, unknown>,
         path
       );
-    return [{ field: fieldName(path), before: display(a), after: display(b) }];
+    const shown = (value: unknown) => {
+      const units = valueUnits(path);
+      if (typeof value === "number" && units.length) {
+        const unit = defaultUnit(path, value, units);
+        return `${displayedNumber(value, unit.factor)} ${unit.label}`;
+      }
+      return display(value);
+    };
+    return [{ field: fieldName(path), before: shown(a), after: shown(b) }];
   });
 }
 export function discoveryPublicationReview(

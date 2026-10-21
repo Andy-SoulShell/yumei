@@ -547,3 +547,36 @@ it("summarizes content and settings in the publication center", async () => {
   );
   expect(state.writing()).toBe(false);
 });
+
+it("keeps the selected settings task and plan after saving and reloading its revision", async () => {
+  const state = await mount("product", "save");
+  await click("套餐与额度");
+  await click("复制为新套餐");
+  await change(editor("新套餐"), "保存后继续编辑的套餐");
+  await change(
+    container.querySelector<HTMLInputElement>('[aria-label="金额"]')!,
+    "12.34"
+  );
+  const selectTask = async (name: string) =>
+    await act(async () =>
+      button(name).dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+      )
+    );
+  await selectTask("订阅与默认");
+  await click("保存草稿");
+  await act(async () => {
+    state.write.resolve();
+    state.reload.resolve();
+  });
+  await waitFor(() => !button("套餐与额度").disabled);
+  expect(button("订阅与默认").getAttribute("aria-selected")).toBe("true");
+  await selectTask("套餐管理");
+  expect(editor("保存后继续编辑的套餐")).toBeTruthy();
+  expect(
+    container.querySelector<HTMLInputElement>('[aria-label="金额"]')!.value
+  ).toBe("12.34");
+  expect(state.product.config.billing.plans.at(-1)!.label["zh-CN"]).toBe(
+    "保存后继续编辑的套餐"
+  );
+});

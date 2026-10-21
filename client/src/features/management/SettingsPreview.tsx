@@ -228,7 +228,7 @@ export function SettingsPreview({
           <div className="rounded-xl bg-background/70 p-4">
             <p className="flex items-center gap-2 text-sm font-medium">
               <Bell className="size-4" />
-              用户的联系安排
+              新用户的默认安排
             </p>
             <p className="mt-3 text-xl font-semibold">
               每 {number(p.frequencyDays)} 天

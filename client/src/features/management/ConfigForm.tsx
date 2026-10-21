@@ -513,6 +513,7 @@ const optionLabels: Record<string, string> = {
   event: "事件",
   relationship: "关系",
 };
+export const formOptionLabel = (value: string) => optionLabels[value] ?? value;
 const longField = (path: string, value: unknown) =>
   typeof value === "string" &&
   (value.length > 100 ||
@@ -542,6 +543,7 @@ export function ConfigForm({
   disabled?: boolean;
 } & FormOptions) {
   disabled ||= schema?.readOnly ?? false;
+  disabled ||= path === "proactive.defaults.proactiveEnabled";
   const id = useId(),
     [newKey, setNewKey] = useState("");
   const key = path.split(".").at(-1)!,
@@ -900,6 +902,11 @@ export function ConfigForm({
       <div className="flex items-center justify-between gap-3 rounded-xl border bg-muted/15 p-3">
         <Label htmlFor={id} className="min-w-0 flex-1">
           {header}
+          {fieldHint(path) && (
+            <span className="mt-1 block text-xs font-normal leading-5 text-muted-foreground">
+              {fieldHint(path)}
+            </span>
+          )}
         </Label>
         <Switch
           id={id}

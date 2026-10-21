@@ -131,8 +131,8 @@ describe("official publication review", () => {
     });
     expect(review.home).toContainEqual({
       field: "每页数量",
-      before: String(state.published.home.pageSize),
-      after: String(state.home.pageSize),
+      before: `${state.published.home.pageSize} 项`,
+      after: `${state.home.pageSize} 项`,
     });
     expect(review.changed).toBe(true);
   });

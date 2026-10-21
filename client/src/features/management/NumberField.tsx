@@ -68,6 +68,12 @@ export function NumberField({
       ? input.text
       : displayedNumber(value, selected.factor);
   const help = `${id}-value-help`;
+  const updateClock = (text: string) => {
+    const parts = text.split(":");
+    onChange(
+      parts.length === 2 ? Number(parts[0]) * 60 + Number(parts[1]) : NaN
+    );
+  };
   const props = {
     id,
     "aria-label": label,
@@ -87,14 +93,8 @@ export function NumberField({
               ? `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`
               : ""
           }
-          onChange={event => {
-            const parts = event.target.value.split(":");
-            onChange(
-              parts.length === 2
-                ? Number(parts[0]) * 60 + Number(parts[1])
-                : NaN
-            );
-          }}
+          onInput={event => updateClock(event.currentTarget.value)}
+          onChange={event => updateClock(event.target.value)}
         />
       ) : hour ? (
         <select

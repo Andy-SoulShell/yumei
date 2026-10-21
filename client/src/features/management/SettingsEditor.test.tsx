@@ -9,6 +9,7 @@ import { productFixture } from "../../../../server/testProductConfig";
 import { SettingsEditor } from "./SettingsEditor";
 import { settingsPanels, type SettingsSection } from "./settingsModel";
 import type { FormSchema } from "./ConfigForm";
+import { setLevelMemory } from "./LevelBenefitsEditor";
 let root: Root, container: HTMLDivElement, current: ProductConfig;
 const schema = z.toJSONSchema(productConfigSchema, {
   unrepresentable: "any",
@@ -95,6 +96,114 @@ async function clickText(text: string, scope: ParentNode = document) {
   expect(button, text).toBeTruthy();
   await act(async () => button.click());
 }
+it("opens a focused capability dialog for the selected level and saves all dependencies into the same draft", async () => {
+  await act(async () => root.render(<Probe section="intimacy" />));
+  const selected = Array.from(
+    container.querySelectorAll<HTMLButtonElement>("button")
+  ).find(button => button.textContent?.includes("第 3 级 ·"))!;
+  await act(async () => selected.click());
+  const benefits = Array.from(
+    container.querySelectorAll<HTMLButtonElement>('[role="radio"]')
+  ).find(button => button.textContent === "解锁与能力")!;
+  await act(async () => benefits.click());
+  await clickText("记忆能力");
+  expect(document.querySelector('[role="dialog"]')!.textContent).toContain(
+    "第 3 级 ·"
+  );
+  expect(
+    document.querySelector(
+      '[role="dialog"] select[aria-label="查看哪个等级的记忆能力"]'
+    )
+  ).toBeNull();
+  await change(
+    document.querySelector<HTMLInputElement>('[aria-label="本级记忆容量"]')!,
+    "78"
+  );
+  await clickText("完成能力编辑");
+  expect(
+    current.memory.levelRules.find(rule => rule.minLevel === 3)!.capacity
+  ).toBe(78);
+  expect(
+    container.querySelector('[aria-label="第 3 级的解锁能力"]')!.textContent
+  ).toContain("78 条容量");
+  await clickText("自拍姿势");
+  const select = document.querySelector<HTMLSelectElement>(
+    '[aria-label="移到本级的姿势"]'
+  )!;
+  expect(
+    Array.from(select.options).some(
+      option => option.value === current.selfies.defaultPoseId
+    )
+  ).toBe(false);
+  const pose = current.selfies.poses.find(
+    pose => pose.id !== current.selfies.defaultPoseId && pose.minLevel !== 3
+  )!;
+  await change(select, pose.id);
+  await clickText("在第 3 级开放");
+  expect(current.selfies.poses.find(item => item.id === pose.id)).toMatchObject(
+    { minLevel: 3, enabled: true }
+  );
+  await clickText("完成能力编辑");
+  expect(current.intimacy).toEqual(productFixture.intimacy);
+  expect(productConfigSchema.safeParse(current).success).toBe(true);
+});
+it("creates or removes an inherited relationship override for the current level without changing the other pace", async () => {
+  current.prompts.chat.relationshipStages.gradual = [
+    { minLevel: 1, instruction: "保持自然交流" },
+  ];
+  const natural = structuredClone(
+    current.prompts.chat.relationshipStages.natural
+  );
+  await act(async () => root.render(<Probe section="intimacy" />));
+  await act(async () =>
+    Array.from(container.querySelectorAll<HTMLButtonElement>("button"))
+      .find(button => button.textContent?.includes("第 3 级 ·"))!
+      .click()
+  );
+  await act(async () =>
+    Array.from(container.querySelectorAll<HTMLButtonElement>('[role="radio"]'))
+      .find(button => button.textContent === "解锁与能力")!
+      .click()
+  );
+  await clickText("相处指令");
+  const toggle = document.querySelector<HTMLButtonElement>(
+    '[aria-label="第 3 级单独设置相处指令"]'
+  )!;
+  expect(
+    document.querySelector<HTMLTextAreaElement>('[role="dialog"] textarea')!
+      .disabled
+  ).toBe(true);
+  await act(async () => toggle.click());
+  await change(
+    document.querySelector<HTMLTextAreaElement>('[role="dialog"] textarea')!,
+    "更熟悉地关心对方"
+  );
+  expect(current.prompts.chat.relationshipStages.gradual).toEqual([
+    { minLevel: 1, instruction: "保持自然交流" },
+    { minLevel: 3, instruction: "更熟悉地关心对方" },
+  ]);
+  await act(async () => toggle.click());
+  expect(current.prompts.chat.relationshipStages.gradual).toEqual([
+    { minLevel: 1, instruction: "保持自然交流" },
+  ]);
+  expect(current.prompts.chat.relationshipStages.natural).toEqual(natural);
+});
+it("splits an inherited memory boundary and constrains recall with capacity without altering neighboring levels", () => {
+  const config = structuredClone(productFixture);
+  config.memory.levelRules = [
+    { minLevel: 1, capacity: 30, recallCount: 5 },
+    { minLevel: 4, capacity: 60, recallCount: 8 },
+  ];
+  const next = setLevelMemory(config, 3, "capacity", 2);
+  expect(next.memory.levelRules).toEqual([
+    { minLevel: 1, capacity: 30, recallCount: 5 },
+    { minLevel: 3, capacity: 2, recallCount: 2 },
+    { minLevel: 4, capacity: 60, recallCount: 8 },
+  ]);
+  expect(config.memory.levelRules).toHaveLength(2);
+  expect(next.selfies).toBe(config.selfies);
+  expect(productConfigSchema.safeParse(next).success).toBe(true);
+});
 it("merges related edits into the full draft and returns to the original task without losing changes", async () => {
   await act(async () => root.render(<Probe section="memory" />));
   await change(

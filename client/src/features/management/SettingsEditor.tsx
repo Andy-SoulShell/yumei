@@ -1,7 +1,7 @@
 /** 从用户经历理解规则，按任务编辑，并在同一草稿中处理跨页依赖。 */
 import { useState } from "react";
 import type { ProductConfig } from "@shared/productConfig";
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,22 +80,6 @@ export function SettingsEditor({
           <h2 className="text-xl font-semibold tracking-tight">
             {journey.goal}
           </h2>
-          <ol className="grid gap-2 md:grid-cols-3">
-            {journey.steps.map((step, i) => (
-              <li
-                key={step}
-                className="flex items-start gap-3 rounded-xl bg-muted/25 p-3 text-sm leading-6"
-              >
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                  {i + 1}
-                </span>
-                <span className="flex-1">{step}</span>
-                {i < 2 && (
-                  <ArrowRight className="mt-1 hidden size-4 shrink-0 text-muted-foreground md:block" />
-                )}
-              </li>
-            ))}
-          </ol>
         </section>
       )}
       <Tabs
@@ -160,6 +144,8 @@ export function SettingsEditor({
               {item.collection ? (
                 <SettingsCollection
                   kind={item.collection}
+                  onConfigChange={onChange}
+                  rootSchema={rootSchema}
                   view={view}
                   onViewChange={onViewChange}
                   items={

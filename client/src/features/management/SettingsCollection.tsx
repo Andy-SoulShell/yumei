@@ -19,6 +19,8 @@ import {
 import type { FormSchema } from "./ConfigForm";
 import { SettingsFields } from "./SettingsFields";
 import type { SettingsNavigation } from "./settingsModel";
+import { LevelBenefitsEditor } from "./LevelBenefitsEditor";
+import { RadioGroup, RadioGroupChoice } from "@/components/ui/radio-group";
 export type CollectionKind = "plans" | "poses" | "levels" | "quickTemplates";
 type Item = Record<string, unknown>;
 const titles: Record<CollectionKind, string> = {
@@ -136,6 +138,8 @@ export function SettingsCollection({
   onChange,
   view,
   onViewChange,
+  onConfigChange,
+  rootSchema,
 }: {
   kind: CollectionKind;
   items: Item[];
@@ -145,6 +149,8 @@ export function SettingsCollection({
   issues: Record<string, string>;
   disabled: boolean;
   onChange: (items: Item[]) => void;
+  onConfigChange?: (config: ProductConfig) => void;
+  rootSchema?: FormSchema;
 } & SettingsNavigation) {
   const selected =
     view.selections[path] ?? String(items[0]?.id ?? items[0]?.level ?? "");
@@ -239,7 +245,11 @@ export function SettingsCollection({
         </Button>
       </div>
       <div
-        className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+        className={
+          kind === "levels"
+            ? "grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5"
+            : "grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+        }
         aria-label={`${titles[kind]}内容库`}
       >
         {items
@@ -258,10 +268,12 @@ export function SettingsCollection({
                 disabled={disabled}
                 aria-pressed={i === index}
                 onClick={() => select(row)}
-                className={`min-w-0 rounded-2xl border p-4 text-left transition-colors focus-visible:outline-2 focus-visible:outline-ring ${i === index ? "border-primary bg-primary/5" : "hover:bg-muted/40"}`}
+                className={`min-w-0 rounded-xl border ${kind === "levels" ? "p-3" : "p-4"} text-left transition-colors focus-visible:outline-2 focus-visible:outline-ring ${i === index ? "border-primary bg-primary/5" : "hover:bg-muted/40"}`}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <span className="text-2xl">
+                  <span
+                    className={kind === "levels" ? "text-base" : "text-2xl"}
+                  >
                     {kind === "plans"
                       ? "✦"
                       : kind === "quickTemplates"
@@ -283,7 +295,9 @@ export function SettingsCollection({
                     )}
                   </div>
                 </div>
-                <h3 className="mt-3 truncate font-semibold">
+                <h3
+                  className={`${kind === "levels" ? "mt-1 text-sm" : "mt-3"} truncate font-semibold`}
+                >
                   {collectionName(row)}
                 </h3>
                 <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">
@@ -396,6 +410,7 @@ export function SettingsCollection({
             </p>
           )}
           {kind === "levels" &&
+            !onConfigChange &&
             (() => {
               const level = Number(item.level),
                 memory = memoryLevelRule(level, config.memory),
@@ -435,24 +450,72 @@ export function SettingsCollection({
                 </div>
               );
             })()}
-          {groups[kind].map(group => (
-            <section key={group.title} className="space-y-3 border-t pt-4">
-              <h4 className="text-sm font-semibold">{group.title}</h4>
-              <SettingsFields
-                key={String(item.id ?? item.level) + group.title}
-                value={item}
-                schema={schema?.items}
-                path={`${path}.${index}`}
-                fields={group.fields}
-                config={config}
-                issues={issues}
-                disabled={disabled}
-                onChange={update}
-                view={view}
-                onViewChange={onViewChange}
-              />
-            </section>
-          ))}
+          {kind === "levels" && onConfigChange && (
+            <RadioGroup
+              aria-label="当前等级编辑内容"
+              className="grid grid-cols-3 gap-2"
+              value={view.selections["level.panel"] ?? "growth"}
+              disabled={disabled}
+              onValueChange={next =>
+                onViewChange({
+                  ...view,
+                  selections: { ...view.selections, "level.panel": next },
+                })
+              }
+            >
+              <RadioGroupChoice value="growth" variant="segment">
+                升级门槛
+              </RadioGroupChoice>
+              <RadioGroupChoice value="benefits" variant="segment">
+                解锁与能力
+              </RadioGroupChoice>
+              <RadioGroupChoice value="appearance" variant="segment">
+                阶段配色
+              </RadioGroupChoice>
+            </RadioGroup>
+          )}
+          {kind === "levels" &&
+          onConfigChange &&
+          view.selections["level.panel"] === "benefits" ? (
+            <LevelBenefitsEditor
+              level={Number(item.level)}
+              config={config}
+              schema={rootSchema}
+              issues={issues}
+              disabled={disabled}
+              onChange={onConfigChange}
+              view={view}
+              onViewChange={onViewChange}
+            />
+          ) : (
+            groups[kind]
+              .filter(
+                (_, at) =>
+                  kind !== "levels" ||
+                  !onConfigChange ||
+                  (view.selections["level.panel"] === "appearance"
+                    ? at === 1
+                    : at === 0)
+              )
+              .map(group => (
+                <section key={group.title} className="space-y-3 border-t pt-4">
+                  <h4 className="text-sm font-semibold">{group.title}</h4>
+                  <SettingsFields
+                    key={String(item.id ?? item.level) + group.title}
+                    value={item}
+                    schema={schema?.items}
+                    path={`${path}.${index}`}
+                    fields={group.fields}
+                    config={config}
+                    issues={issues}
+                    disabled={disabled}
+                    onChange={update}
+                    view={view}
+                    onViewChange={onViewChange}
+                  />
+                </section>
+              ))
+          )}
         </section>
       )}
     </div>

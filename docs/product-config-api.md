@@ -1,6 +1,6 @@
-# 业务规则、提示词与记忆管理 API
+# 业务内容与运行配置管理 API
 
-套餐、自拍姿势、亲密度、提示词与记忆规则存储在 `productConfiguration` 的一条记录中。新库首次启动从 `server/seeds/product.json` 导入现有配置，包括 Free/Plus/Pro、9 个姿势、10 个亲密度等级、7 类奖励、6 个快捷提示词模板、现有系统提示词及记忆参数。重复启动不覆盖草稿或发布内容。当前开发阶段直接使用新的初始化表结构，不提供旧数据转换或兼容接口。
+套餐、自拍姿势、亲密度、提示词、记忆、主题、主动联系、上传限制、模型与运行规则存储在 `productConfiguration` 的一条记录中。新库首次启动从 `server/seeds/product.json` 导入现有配置，包括 Free/Plus/Pro、9 个姿势、10 个亲密度等级、7 类奖励、6 个快捷提示词模板、现有系统提示词及记忆参数、8 套主题、通知模板、上传上限和模型／运行参数。重复启动不覆盖草稿或发布内容。当前开发阶段直接使用新的初始化表结构，不提供旧数据转换或兼容接口。
 
 ## 读取与发布
 
@@ -41,9 +41,9 @@ await client.productConfig.admin.publish.mutate({
 
 `billing.plans` 的顺序决定展示与升级顺序，可增删套餐、变更 ID、名称、月付/年付价格、结账地址、支付变体、启用状态与所有权益。订阅通过套餐 ID 关联，支付事件只根据 `lemonVariantId` 精确映射，不根据产品名称猜测。套餐停用或删除后，其订阅不再授予该套餐权益。默认套餐和自托管套餐必须存在且启用，默认套餐金额必须为零。
 
-权益包括每日消息、每日或每月图片、角色数量、语音转写、TTS 服务、锁定默认模型及合照权限。数值 `null` 表示不限量，`0` 表示没有额度；图片不能同时设置日限额与月限额。`billing.rateLimits` 控制聊天、图片、转写、TTS 每分钟频率，`0` 禁止相应请求。合照读取 `couplePhoto`，不依赖套餐是否叫 Pro。`defaultChatModel` 用于 OpenRouter 默认模型；运营方 DeepSeek 模型及密钥仍由部署环境管理。
+权益包括每日消息、每日或每月图片、角色数量、语音转写、TTS 服务、锁定默认模型及合照权限。数值 `null` 表示不限量，`0` 表示没有额度；图片不能同时设置日限额与月限额。`billing.rateLimits` 控制聊天、图片、转写、TTS 每分钟频率，`0` 禁止相应请求。合照读取 `couplePhoto`，不依赖套餐是否叫 Pro。`defaultChatModel` 用于 OpenRouter 默认模型；运营方 DeepSeek 模型由 `models.chat.deepseekModel` 管理，凭据从服务端环境读取。
 
-`BILLING_PROVIDER` 继续控制部署模式：`free` 使用配置的默认套餐，`lemonsqueezy` 根据订阅关联套餐，`none` 使用配置的自托管套餐并豁免套餐计量和功能限制。用户自带对应服务的密钥继续豁免相关计量与权限，请求频率、姿势解锁和经验防刷不豁免。`LEMONSQUEEZY_CHECKOUT_*`、`LEMONSQUEEZY_VARIANT_*` 只在首次初始化时导入，之后修改环境变量不覆盖数据库；webhook 密钥仍从环境读取。配置中的展示价格不会修改支付平台的收款价格，运营时应将两者设置一致。
+`billing.mode` 控制运行模式：`free` 使用配置的默认套餐，`lemonsqueezy` 根据订阅关联套餐，`none` 使用配置的自托管套餐并豁免套餐计量和功能限制。用户自带对应服务的密钥继续豁免相关计量与权限，请求频率、姿势解锁和经验防刷不豁免。`BILLING_PROVIDER`、`LEMONSQUEEZY_CHECKOUT_*`、`LEMONSQUEEZY_VARIANT_*` 只在首次初始化时导入，之后修改环境变量不覆盖数据库；webhook 密钥仍从环境读取。配置中的展示价格不会修改支付平台的收款价格，运营时应将两者设置一致。
 
 `billing.getInfo` 从同一发布快照返回套餐列表、当前权益及真实用量。聊天预留、图片预留、角色创建/恢复、语音服务和合照检查均使用发布权益；生成失败仍按原预留周期退款，配置变更不会改变已接受请求的额度记录。
 
@@ -128,4 +128,76 @@ await client.productConfig.admin.publish.mutate({
 
 `memory.state` 返回当前发布的 `rules`、服务端计算的 `capacity` 与 `configurationRevision`。页面分类、容量和编辑上限直接消费这些字段。提取、索引和摘要在一个执行单元内固定使用同一快照；提交时核对发布标识，发现变化时不写回旧结果，提取任务按配置重试。摘要保存 `configurationRevision`，发布变化后旧摘要不再展示或注入，后台重新生成后才恢复。初始化 SQL 和快照包含该字段，不提供旧摘要回填。
 
-`COMPANION_MEMORY_ENABLED`、`MEMORY_EXTRACTION_MODEL`、`MEMORY_EMBEDDING_MODEL` 和 `CHAT_CONTEXT_CHAR_LIMIT` 只在新库首次初始化时导入；之后通过 API 管理。服务地址、凭据、通用 AI 任务预算／超时及进程并发仍由环境配置管理。
+`COMPANION_MEMORY_ENABLED`、`MEMORY_EXTRACTION_MODEL`、`MEMORY_EMBEDDING_MODEL` 和 `CHAT_CONTEXT_CHAR_LIMIT` 只在新库首次初始化时导入；之后通过 API 管理。服务地址、通用 AI 预算／超时与并发由下述模型及运行配置管理；凭据继续从环境和密钥服务读取。
+
+## 主题与账号偏好
+
+`themes.defaultThemeId` 指定启用中的默认主题，`themes.items` 顺序决定主题菜单和色卡顺序。每项包含稳定 `id`、`enabled`、多语言 `name`／`description`、预览 `colors`、明暗主色 `light`／`dark`、明暗背景 `background`、`foreground` 与 `hue`。颜色仅接受六位十六进制值。主题 ID 不再使用数据库或前端枚举，新增主题可以直接保存到账号；删除或停用已选择的主题后，展示回到当前默认主题。
+
+账号的语言与显示模式仍独立保存。`PreferencesProvider` 使用公开发布配置应用 CSS 语义色、浏览器主题色及色卡；生产前端不导入初始色卡或主题名称映射。
+
+## 主动联系与通知
+
+`proactive` 的设置同时驱动设置页校验、联系规划和真实 outbox：
+
+| 字段                                  | 用途                                                                                  |
+| ------------------------------------- | ------------------------------------------------------------------------------------- |
+| `enabled`、`defaults`                 | 全局可用性与新账号默认偏好；默认主动联系必须为关闭，由用户明确启用                    |
+| `frequencyDays`                       | 用户可选择的最小／最大间隔；默认间隔必须位于范围内                                    |
+| `minimumGapMs`、`unreadBackoff`       | 最近互动／联系的时间下限，以及连续未读时的指数退避和天数上限                          |
+| `events.upcomingDays`／`followupDays` | 可以提醒的未来／过去事件窗口                                                          |
+| `contactLifetimeMs`、`leaseMs`        | 联系有效期和共享投递租约                                                              |
+| `tickMs`、`batchSize`、`retry`        | 调度、每批任务数量、免打扰延期和失败重试                                              |
+| `pushTimeoutMs`                       | 单设备推送时限，发布时必须小于租约                                                    |
+| `client`                              | 未读轮询、首次检查与后续检查间隔                                                      |
+| `templates`                           | 多语言通知模板，保存的 `{ key, values }` 在站内和推送时共用 `renderNotification` 渲染 |
+
+模板只接受 `{{name}}`、`{{memory}}`、`{{eventDay}}`，插值执行一次，用户内容不会递归解析。当前执行使用 `notifications:title.thinkingOfYou`、`eventUpcoming`、`eventToday`、`eventFollowUp`、`dailyCompanion`，以及私密预览的 `privateTitle`、`privatePreview`（均带 `notifications:` 前缀）；这些模板不能删除。私密预览模板不能插入角色或事件变量。历史内置候选通知也作为初始模板保留，可通过 API 编辑。
+
+默认关闭、显式同意、角色和事件来源验证、免打扰与本地日边界仍由代码强制执行。关闭全局开关或缩短事件窗口后，发送前的当前配置检查会取消不再合格的待投递联系。已经发送到设备的推送保留发送时的文案。
+
+## 上传限制
+
+`uploads.avatar`、`reference`、`couple`、`official` 分别配置图片 `maxBytes` 和允许的 `mimeTypes`；音频使用 `uploads.audio`，另有录音编码优先顺序、采样率、分块间隔和 `maxDurationSeconds`。前端的文件选择、错误提示、录音计时与后端解码校验直接使用这些字段，转写后的真实音频时长也会执行上限检查。允许的 MIME 是应用已实现的格式集合的子集。
+
+`uploads.requestMaxBytes` 控制每次 HTTP 请求的 JSON／表单解析上限，发布后无需重启。配置校验确保上限足以容纳最大文件的 Base64 膨胀和元数据；语音大小不超过当前转写协议支持的 25 MiB。官方图片额外验证文件签名，配置不绕过格式检查。
+
+## 模型、工作流与运行参数
+
+| 字段                                       | 实际使用位置                                                                                                       |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `models.chat`                              | 运营方聊天服务、可选兼容网关、DeepSeek 默认模型；OpenRouter 默认模型继续使用 `billing.defaultChatModel`            |
+| `models.image`                             | 运营方图片服务、ComfyUI 地址、fal 自拍和合照模型                                                                   |
+| `models.image.workflows.text`／`reference` | 完整 ComfyUI 节点、模型文件、分辨率、采样参数与提示词／种子／输出／参考图节点绑定；工作流 `id` 同时用于计量身份    |
+| `models.transcription.model`、`models.tts` | 实际 Whisper、ElevenLabs、Fish Audio 请求的模型和相同计量记录                                                      |
+| `runtime.ai`                               | 每用户每日内部 AI 尝试预算与任务总超时；失败调用仍占预算                                                           |
+| `runtime.chat`                             | 输入和输出字数、输出 token、温度、top-p、DeepSeek thinking、排队／回复超时、并发、补发条数、租约与心跳、分段和调度 |
+| `runtime.image`                            | 生图、下载与 ComfyUI 请求／轮询时限、输出文件上限、预留宽限时间                                                    |
+| `runtime.voice`                            | 转写／TTS 请求超时、TTS 字数与音频保留时间、转写行为凭据有效期                                                     |
+| `runtime.catalog`                          | 模型／音色目录超时、Fish Audio 每页数量                                                                            |
+| `runtime.maintenance`                      | 回收调度、媒体租约／退避／批量、暂存保留时间、角色回收站保留天数、限流窗口清理和通用生成预留时限                   |
+| `billing.mode`、`billing.pastDueGraceMs`   | 计费模式与欠费宽限期                                                                                               |
+
+调度器下一轮读取当前发布参数，业务执行单元固定使用捕获的配置。已接收聊天保留原先接受的模型身份；如果运营方路由或凭据来源已经改变，旧任务结束失败，不把旧请求转发给其他接收方。用户 OpenRouter BYOK 始终发送官方端点，用户 fal BYOK 优先于运营方图片服务。通用 AI 任务总超时也会限制语音等子请求的实际等待时间。
+
+工作流运行时直接读取数据库节点；`workflows/comfyui/` 是初始工作流的示例，修改这些文件不会修改已经发布的工作流。业务初始环境变量仅在配置表为空时导入，之后改动 `.env` 不会覆盖 API 配置。数据库、认证、对象存储、邮件连接和 API／VAPID／webhook 密钥仍是部署设置，不包含在公开配置中。
+
+```ts
+const draft = await client.productConfig.admin.getDraft.query();
+const config = draft.config;
+config.themes.items[0].name = { "zh-CN": "新的主题名称" };
+config.proactive.frequencyDays.max = 30;
+config.proactive.templates["notifications:dailyCompanion"] = {
+  "zh-CN": "{{name}} 想和你聊一会儿。",
+};
+config.uploads.avatar.maxBytes = 5 * 1024 * 1024;
+config.models.chat.deepseekModel = "your-model-id";
+config.runtime.chat.maxTokens = 2048;
+const saved = await client.productConfig.admin.save.mutate({
+  expectedRevision: draft.revision,
+  config,
+});
+await client.productConfig.admin.publish.mutate({
+  expectedRevision: saved.revision,
+});
+```

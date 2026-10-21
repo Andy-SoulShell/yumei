@@ -707,6 +707,88 @@
     backdrop-filter: none;
   }
   @media (max-width: 900px) {
+    /* 底栏保留轻微透色，避免照片和卡片文字穿透导航标签。 */
+    :where(:root[data-glass="experimental"]) .app-bottom-nav {
+      --glass-nav-fill: color-mix(in oklch, var(--card) 92%, transparent);
+      --glass-blur: 16px;
+      --glass-saturation: 1.15;
+      left: max(12px, var(--safe-area-left));
+      right: max(12px, var(--safe-area-right));
+      padding: 4px;
+      border-radius: 22px;
+    }
+    :where(:root[data-glass="experimental"]) .app-bottom-nav .app-nav-link {
+      min-height: 48px;
+      gap: 3px;
+      padding: 4px 2px;
+      font-size: 11px;
+    }
+    :where(:root[data-glass="experimental"]) .app-bottom-nav .app-nav-icon {
+      padding: 2px 10px;
+      border-radius: 10px;
+    }
+    /* 手机侧栏作为完整的玻璃面板浮在安全区内，内容较少时不拉满整屏。 */
+    :where(:root[data-glass="experimental"]) .sheet-panel.mobile-sidebar {
+      top: calc(10px + var(--safe-area-top));
+      bottom: auto;
+      left: max(12px, var(--safe-area-left));
+      width: calc(100vw - 64px);
+      max-width: 320px;
+      height: auto;
+      max-height: calc(
+        var(--app-height) - var(--safe-area-top) - var(--safe-area-bottom) -
+          20px
+      );
+      padding: 0;
+      overflow: hidden;
+      border: 0;
+      border-radius: 24px;
+    }
+    :where(:root[data-glass="experimental"])
+      .mobile-sidebar
+      > [data-slot="sheet-header"] {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--glass-edge);
+    }
+    :where(:root[data-glass="experimental"]) .mobile-sidebar .sheet-close {
+      top: 8px;
+      right: 8px;
+    }
+    :where(:root[data-glass="experimental"]) .mobile-sidebar .sidebar-panel {
+      min-height: 0;
+      padding: 8px 12px 16px;
+      overflow-y: auto;
+      overscroll-behavior-y: contain;
+      background: transparent;
+      box-shadow: none;
+    }
+    :where(:root[data-glass="experimental"])
+      .mobile-sidebar
+      :is(.app-nav-link, .sidebar-preference-trigger, .sidebar-glass-control) {
+      min-height: 44px;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 12px;
+    }
+    :where(:root[data-glass="experimental"])
+      .mobile-sidebar
+      .sidebar-nav-group
+      + .sidebar-nav-group {
+      margin-top: 8px;
+      padding-top: 8px;
+    }
+    :where(:root[data-glass="experimental"])
+      .mobile-sidebar
+      .sidebar-preferences {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--glass-edge);
+    }
+    :where(:root[data-glass="experimental"]) .mobile-sidebar .sidebar-bottom {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--glass-edge);
+    }
     /* 聊天页由角色栏承接导航，给玻璃留少量外边距即可。 */
     :where(:root[data-glass="experimental"]) .app-main-chat {
       padding-top: 8px;

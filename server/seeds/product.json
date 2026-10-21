@@ -1779,6 +1779,12 @@
       "character": 6000,
       "style": 3200,
       "preferences": 600
+    },
+    "conversationTitle": {
+      "zh-CN": "与 {{name}} 的对话",
+      "en": "Conversation with {{name}}",
+      "ja": "{{name}}との会話",
+      "ko": "{{name}} 님과의 대화"
     }
   },
   "emotion": {

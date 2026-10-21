@@ -32,7 +32,7 @@ type FailedChatMessage = {
 /** 页面查询、草稿与操作流程；展示组件只消费此状态。 */
 export function useChatController() {
   const productRules = useProductConfig();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const { user } = useAuth();
 
@@ -552,9 +552,9 @@ export function useChatController() {
       resumeAttemptRef.current !== girlfriend.id
     ) {
       resumeAttemptRef.current = girlfriend.id;
-      resumeConversation({ girlfriendId: girlfriend.id });
+      resumeConversation({ girlfriendId: girlfriend.id, locale });
     }
-  }, [currentConversationId, girlfriend, resumeConversation]);
+  }, [currentConversationId, girlfriend, resumeConversation, locale]);
 
   // 预加载浏览器语音列表
   useEffect(() => {

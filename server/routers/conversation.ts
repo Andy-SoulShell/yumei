@@ -1,6 +1,7 @@
 import { getPublishedProductConfig } from "../repositories/productConfig";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { LOCALES } from "../../shared/locales";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getActiveGirlfriend } from "../repositories/companions";
 import {
@@ -16,11 +17,17 @@ import {
 export const conversationRouter = router({
   /** 校验角色归属后复用最近会话，首次创建通过事务内角色行锁串行化。 */
   resume: protectedProcedure
-    .input(z.object({ girlfriendId: z.number().int().positive() }))
+    .input(
+      z.object({
+        girlfriendId: z.number().int().positive(),
+        locale: z.enum(LOCALES).optional(),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       const conversation = await resumeConversation(
         ctx.user.id,
-        input.girlfriendId
+        input.girlfriendId,
+        input.locale
       );
       if (!conversation)
         throw new TRPCError({
@@ -34,7 +41,8 @@ export const conversationRouter = router({
     .input(
       z.object({
         girlfriendId: z.number(),
-        title: z.string().optional(),
+        title: z.string().max(200).optional(),
+        locale: z.enum(LOCALES).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -51,6 +59,7 @@ export const conversationRouter = router({
         userId: ctx.user.id,
         girlfriendId: girlfriend.id,
         title: input.title,
+        locale: input.locale,
       });
     }),
 

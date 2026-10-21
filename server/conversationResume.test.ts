@@ -20,7 +20,7 @@ describe("resume and explicit new conversations", () => {
     const create = vi.spyOn(conversationsDb, "createConversation");
     const result = await caller.conversation.resume({ girlfriendId: 5 });
     expect(result.id).toBe(18);
-    expect(resume).toHaveBeenCalledWith("resume-test-user", 5);
+    expect(resume).toHaveBeenCalledWith("resume-test-user", 5, undefined);
     expect(create).not.toHaveBeenCalled();
   });
 
@@ -46,6 +46,7 @@ describe("resume and explicit new conversations", () => {
       userId: "resume-test-user",
       girlfriendId: 5,
       title: "新的开始",
+      locale: undefined,
     });
   });
 

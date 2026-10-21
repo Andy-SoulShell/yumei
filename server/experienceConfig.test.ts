@@ -10,6 +10,7 @@ import { createGirlfriend } from "./repositories/companions";
 import {
   createConversation,
   createMessage,
+  resumeConversation,
 } from "./repositories/conversations";
 import { buildChatSystemPrompt } from "../shared/chatPrompt";
 import { localizeProductConfig } from "../shared/productConfig";
@@ -25,6 +26,27 @@ const profile = {
   referenceImageKey: "ref",
   referenceImageUrl: "https://example.test/ref",
 };
+it("uses one published title template for initial and explicit new conversations", () =>
+  configured(async ({ userId, admin, publish }) => {
+    const config = structuredClone(productFixture);
+    config.characters.conversationTitle = {
+      "zh-CN": "和 {{name}} 说说话",
+      en: "Together: {{name}}",
+    };
+    await publish(config);
+    const role = await createGirlfriend({ ...profile, userId });
+    const resumed = await resumeConversation(userId, role.id, "en");
+    expect(resumed!.title).toBe(`Together: ${role.name}`);
+    const explicit = await admin.conversation.create({
+      girlfriendId: role.id,
+      locale: "zh-CN",
+    });
+    expect(explicit.title).toBe(`和 ${role.name} 说说话`);
+    config.characters.conversationTitle = { "zh-CN": "错误 {{other}}" };
+    await expect(publish(config)).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+  }));
 it("shares new character defaults and field limits between actual profile updates and prompt preview", () =>
   configured(async ({ userId, admin, publish }) => {
     const config = structuredClone(productFixture);

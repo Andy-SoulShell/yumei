@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useProductConfig } from "@/features/product/useProductConfig";
+import { useI18n } from "@/lib/i18n";
 import {
   ArrowLeft,
   BookHeart,
@@ -81,6 +82,7 @@ export function ChatHeader({
   theme,
 }: Props) {
   const policy = useProductConfig();
+  const { locale } = useI18n();
   const goBack = usePageBack("/chats");
   const newConversationDisabled =
     !currentConversationId ||
@@ -94,7 +96,7 @@ export function ChatHeader({
   const startConversation = () =>
     createConversation.mutate({
       girlfriendId: girlfriend.id,
-      title: t("chat:conversationWith", { name: girlfriend.name }),
+      locale,
     });
   const changeSpeed = (value: string) => {
     const option = speedOptions.find(option => String(option.value) === value);

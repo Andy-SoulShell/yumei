@@ -1,4 +1,6 @@
 import { getPublishedProductConfig } from "./productConfig";
+import { contentText } from "../../shared/discovery";
+import type { Locale } from "../../shared/locales";
 /** conversations 领域的数据访问与事务边界。 */
 import {
   and,
@@ -31,7 +33,8 @@ import { getDb } from "../database";
  */
 export async function resumeConversation(
   userId: string,
-  girlfriendId: number
+  girlfriendId: number,
+  locale: Locale = "zh-CN"
 ): Promise<Conversation | undefined> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -61,9 +64,15 @@ export async function resumeConversation(
       .orderBy(desc(conversations.updatedAt), desc(conversations.id))
       .limit(1);
     if (latest) return latest;
-    const [result] = await tx
-      .insert(conversations)
-      .values({ userId, girlfriendId, title: `与 ${girlfriend.name} 的对话` });
+    const config = await getPublishedProductConfig(tx);
+    const [result] = await tx.insert(conversations).values({
+      userId,
+      girlfriendId,
+      title: contentText(
+        config.characters.conversationTitle,
+        locale
+      ).replaceAll("{{name}}", girlfriend.name),
+    });
     const [created] = await tx
       .select()
       .from(conversations)
@@ -75,12 +84,30 @@ export async function resumeConversation(
 
 /** 创建会话并返回保存结果；角色归属由调用方先行校验。 */
 export async function createConversation(
-  data: InsertConversation
+  data: InsertConversation & { locale?: Locale }
 ): Promise<Conversation> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const result = await db.insert(conversations).values(data);
+  const { locale = "zh-CN", ...record } = data;
+  if (record.title === undefined) {
+    const [role] = await db
+      .select({ name: girlfriends.name })
+      .from(girlfriends)
+      .where(
+        and(
+          eq(girlfriends.id, record.girlfriendId),
+          eq(girlfriends.userId, record.userId)
+        )
+      );
+    if (!role) throw new Error("角色不存在");
+    const config = await getPublishedProductConfig();
+    record.title = contentText(
+      config.characters.conversationTitle,
+      locale
+    ).replaceAll("{{name}}", role.name);
+  }
+  const result = await db.insert(conversations).values(record);
   const insertedId = Number(result[0].insertId);
 
   const inserted = await db

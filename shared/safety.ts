@@ -28,9 +28,3 @@ export function detectSelfHarm(text: string): boolean {
   if (!text) return false;
   return SELF_HARM_PATTERNS.some(p => p.test(text));
 }
-
-/** 前端收到安全提示标识后展示的地区资源文案。 */
-export const CRISIS_RESOURCES = {
-  zh: "你并不孤单。中国心理援助热线：400-161-9995（24 小时）",
-  en: "You are not alone. US & Canada: call or text 988. Elsewhere: findahelpline.com",
-} as const;

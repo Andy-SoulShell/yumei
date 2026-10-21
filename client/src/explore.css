@@ -1241,7 +1241,8 @@
 .conversation-card:hover {
   border-color: var(--primary);
 }
-.conversation-card > img {
+.conversation-card > img,
+.conversation-card > .conversation-avatar {
   width: 60px;
   height: 60px;
   object-fit: cover;
@@ -1706,7 +1707,8 @@
     padding: 14px;
     gap: 12px;
   }
-  .conversation-card > img {
+  .conversation-card > img,
+  .conversation-card > .conversation-avatar {
     width: 48px;
     height: 48px;
   }

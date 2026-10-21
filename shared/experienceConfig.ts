@@ -17,6 +17,19 @@ export const MOOD_IDS = [
 export const charactersConfigSchema = z
   .object({
     defaultBehavior: companionBehaviorSchema,
+    conversationTitle: contentTextSchema.superRefine((items, ctx) => {
+      for (const text of Object.values(items)) {
+        if (
+          !text.includes("{{name}}") ||
+          /\{\{/.test(text.replaceAll("{{name}}", "")) ||
+          text.replaceAll("{{name}}", "x".repeat(100)).length > 200
+        )
+          ctx.addIssue({
+            code: "custom",
+            message: "会话标题只使用 {{name}}，且须容纳最长角色名",
+          });
+      }
+    }),
     limits: z
       .object({
         name: integer(1, 100),

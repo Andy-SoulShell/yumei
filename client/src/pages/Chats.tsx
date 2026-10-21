@@ -70,10 +70,16 @@ export default function Chats() {
               href={`/chat/${chat.id}`}
               className="conversation-card"
             >
-              <img
-                src={chat.girlfriendImage || "/characters/yumei.jpg"}
-                alt=""
-              />
+              {chat.girlfriendImage ? (
+                <img src={chat.girlfriendImage} alt="" />
+              ) : (
+                <span
+                  className="conversation-avatar flex items-center justify-center bg-primary/10 text-primary"
+                  aria-hidden="true"
+                >
+                  {chat.girlfriendName?.[0]}
+                </span>
+              )}
               <span className="conversation-preview">
                 <span className="conversation-name">
                   {chat.girlfriendName || chat.title || t("home:conversation")}

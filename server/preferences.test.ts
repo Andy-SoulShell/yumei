@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import { createTestUser } from "./testFixtures";
 import type { TrpcContext } from "./_core/context";
-import { DEFAULT_PREFERENCES } from "../shared/preferences";
+import { DEFAULT_PREFERENCES } from "./testProductConfig";
 
 async function caller() {
   const userId = await createTestUser();

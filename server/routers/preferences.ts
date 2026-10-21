@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { COLOR_MODES, THEME_IDS, UI_LANGUAGES } from "../../shared/preferences";
+import { COLOR_MODES, UI_LANGUAGES } from "../../shared/preferences";
 import { protectedProcedure, router } from "../_core/trpc";
 import {
   getInterfacePreferences,
@@ -15,7 +15,7 @@ export const preferencesRouter = router({
       z
         .object({
           language: z.enum(UI_LANGUAGES).optional(),
-          theme: z.enum(THEME_IDS).optional(),
+          theme: z.string().min(1).max(100).optional(),
           colorMode: z.enum(COLOR_MODES).optional(),
         })
         .refine(

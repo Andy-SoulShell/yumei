@@ -210,6 +210,35 @@ describe("published product configuration", () => {
       expect(await guest.productConfig.get()).toEqual(initial);
     }));
 
+  it("publishes new theme IDs and validates actual persisted preferences against enabled themes", () =>
+    isolated(async (_tx, admin, userId) => {
+      const config = structuredClone(productFixture);
+      config.themes.items = [
+        {
+          ...config.themes.items[0],
+          id: "ocean",
+          name: { "zh-CN": "海洋" },
+          light: "#123456",
+        },
+      ];
+      config.themes.defaultThemeId = "ocean";
+      await publish(admin, config);
+      const user = caller(userId, "user");
+      expect(await user.preferences.get()).toMatchObject({ theme: "ocean" });
+      await user.preferences.update({ theme: "ocean" });
+      expect(await user.preferences.get()).toMatchObject({
+        theme: "ocean",
+        initialized: true,
+      });
+      await expect(
+        user.preferences.update({ theme: "sakura" })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      expect(
+        localizeProductConfig(await guest.productConfig.get(), "en").themes
+          .items[0]
+      ).toMatchObject({ id: "ocean", name: "海洋", light: "#123456" });
+    }));
+
   it("publishes arbitrary plan IDs, prices and actual quota limits together", () =>
     isolated(async (tx, admin, userId) => {
       vi.stubEnv("BILLING_PROVIDER", "lemonsqueezy");

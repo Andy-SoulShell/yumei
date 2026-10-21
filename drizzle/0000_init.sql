@@ -429,7 +429,7 @@ CREATE TABLE `userKeys` (
 CREATE TABLE `userPreferences` (
 	`userId` varchar(255) NOT NULL,
 	`language` varchar(35) NOT NULL DEFAULT 'system',
-	`theme` enum('tokyo-sunset','sakura','midnight','neon-mint','crimson','sapphire','lava','pearl') NOT NULL DEFAULT 'tokyo-sunset',
+	`theme` varchar(100) NOT NULL,
 	`colorMode` enum('system','light','dark') NOT NULL DEFAULT 'system',
 	CONSTRAINT `userPreferences_userId` PRIMARY KEY(`userId`)
 );

@@ -14,3 +14,13 @@ export const TIER_PRICES = Object.fromEntries(
 );
 export const RATE_LIMITS_PER_MINUTE = productFixture.billing.rateLimits;
 export const SELFIE_POSES = productFixture.selfies.poses;
+
+export const THEME_IDS = productFixture.themes.items.map(item => item.id);
+export const THEMES = Object.fromEntries(
+  productFixture.themes.items.map(item => [item.id, item])
+);
+export const DEFAULT_PREFERENCES = {
+  language: "system",
+  colorMode: "system",
+  theme: productFixture.themes.defaultThemeId,
+} as const;

@@ -1,10 +1,6 @@
 /** 完整语言包、参数契约、语言匹配与回退行为。 */
 import { describe, expect, it } from "vitest";
-import {
-  DEFAULT_PREFERENCES,
-  parsePreferences,
-  resolveLocale,
-} from "@shared/preferences";
+import { parsePreferences, resolveLocale } from "@shared/preferences";
 import { LANGUAGES, LOCALES, normalizeLocale } from "@shared/locales";
 import {
   i18n,
@@ -15,10 +11,13 @@ import {
 } from "@shared/i18n";
 import { apiErrorMessage } from "./errors";
 import en from "@shared/locales/en";
-import { themeMessages } from "@/locales/domain";
-import { THEMES } from "./themes";
+
 import { formatPrice, formatRelativeTime } from "./formatters";
-import { TIER_PRICES, productFixture } from "../../../server/testProductConfig";
+import {
+  TIER_PRICES,
+  productFixture,
+  DEFAULT_PREFERENCES,
+} from "../../../server/testProductConfig";
 
 const parameters = (text: string) =>
   Array.from(text.matchAll(/\{\{([^}]+)\}\}/g))
@@ -83,9 +82,6 @@ describe("interface localization", () => {
     }
   });
   it("covers domain labels by stable business identifiers", () => {
-    expect(Object.keys(themeMessages).sort()).toEqual(
-      Object.keys(THEMES).sort()
-    );
     expect(
       productFixture.memory.categories.map(item => item.id).sort()
     ).toEqual(["event", "preference", "relationship", "fact"].sort());
@@ -100,15 +96,22 @@ describe("interface localization", () => {
     expect(normalizeLocale("not-a-language")).toBe("en");
   });
   it("persists all registered languages without losing unrelated preferences", () => {
-    expect(parsePreferences(null)).toEqual(DEFAULT_PREFERENCES);
+    expect(parsePreferences(null, productFixture.themes)).toEqual(
+      DEFAULT_PREFERENCES
+    );
     for (const language of LOCALES)
-      expect(parsePreferences({ language, theme: "sakura" })).toEqual({
+      expect(
+        parsePreferences({ language, theme: "sakura" }, productFixture.themes)
+      ).toEqual({
         ...DEFAULT_PREFERENCES,
         language,
         theme: "sakura",
       });
     expect(
-      parsePreferences({ language: "unsupported", theme: "sakura" })
+      parsePreferences(
+        { language: "unsupported", theme: "sakura" },
+        productFixture.themes
+      )
     ).toEqual({ ...DEFAULT_PREFERENCES, theme: "sakura" });
   });
   it("renders complete sentences without translating or re-interpolating user content", () => {

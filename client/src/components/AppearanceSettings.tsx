@@ -1,5 +1,4 @@
 import { LANGUAGES, LOCALES } from "@shared/locales";
-import { themeMessages } from "@/locales/domain";
 /** 参考主题色卡的八套配色选择，以及独立的界面语言和显示模式。 */
 import {
   Check,
@@ -11,7 +10,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import {
-  THEME_IDS,
   type ThemeId,
   type ColorMode,
   type UiLanguage,
@@ -53,7 +51,8 @@ export function SidebarPreferences({
 }: {
   collapsed?: boolean;
 }) {
-  const { preferences, update, saveError, saving, retry } = usePreferences();
+  const { preferences, themes, update, saveError, saving, retry } =
+    usePreferences();
   const { t } = useI18n();
   const controls = [
     {
@@ -90,9 +89,9 @@ export function SidebarPreferences({
       icon: Palette,
       value: preferences.theme,
       onChange: (theme: string) => update({ theme: theme as ThemeId }),
-      options: THEME_IDS.map(id => ({
-        value: id,
-        label: t(themeMessages[id].name),
+      options: themes.map(item => ({
+        value: item.id,
+        label: item.name,
       })),
     },
   ];
@@ -195,7 +194,8 @@ export function LanguagePicker() {
 
 /** 独立自动保存，不提交或重置其他设置分区的草稿。 */
 export function AppearanceSettings() {
-  const { preferences, update, saving, saveError, retry } = usePreferences();
+  const { preferences, themes, update, saving, saveError, retry } =
+    usePreferences();
   const { t } = useI18n();
   return (
     <Card>
@@ -256,7 +256,7 @@ export function AppearanceSettings() {
             value={preferences.theme}
             onValueChange={theme => update({ theme: theme as ThemeId })}
           >
-            {THEME_IDS.map(id => {
+            {themes.map(({ id }) => {
               const selected = preferences.theme === id;
               return (
                 <RadioGroupChoice

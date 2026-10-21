@@ -83,18 +83,7 @@ export const userPreferences = mysqlTable("userPreferences", {
     .$type<UiLanguage>()
     .default("system")
     .notNull(),
-  theme: mysqlEnum("theme", [
-    "tokyo-sunset",
-    "sakura",
-    "midnight",
-    "neon-mint",
-    "crimson",
-    "sapphire",
-    "lava",
-    "pearl",
-  ])
-    .default("tokyo-sunset")
-    .notNull(),
+  theme: varchar("theme", { length: 100 }).notNull(),
   colorMode: mysqlEnum("colorMode", ["system", "light", "dark"])
     .default("system")
     .notNull(),

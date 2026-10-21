@@ -5,8 +5,12 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PreferencesProvider, usePreferences } from "./PreferencesContext";
 import { useI18n } from "@/lib/i18n";
-import { DEFAULT_PREFERENCES, THEME_IDS } from "@shared/preferences";
-import { THEMES } from "@/lib/themes";
+import {
+  DEFAULT_PREFERENCES,
+  THEME_IDS,
+  THEMES,
+  productFixture,
+} from "../../../server/testProductConfig";
 
 const mocks = vi.hoisted(() => ({
   user: null as { id: string } | null,
@@ -17,6 +21,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/trpc", () => ({
   trpc: {
+    productConfig: { get: { useQuery: () => ({ data: productFixture }) } },
     auth: { me: { useQuery: () => ({ data: mocks.user }) } },
     preferences: {
       get: {

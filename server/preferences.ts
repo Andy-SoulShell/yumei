@@ -5,6 +5,9 @@ import {
   DEFAULT_PREFERENCES,
   type InterfacePreferences,
 } from "../shared/preferences";
+import { getPublishedProductConfig } from "./repositories/productConfig";
+import { TRPCError } from "@trpc/server";
+import { parsePreferences } from "../shared/preferences";
 import { getDb } from "./database";
 
 /** 仅查询当前登录用户的偏好；首次使用按系统语言和显示模式初始化。 */
@@ -16,8 +19,7 @@ export async function getInterfacePreferences(userId: string) {
     .from(userPreferences)
     .where(eq(userPreferences.userId, userId));
   return {
-    ...DEFAULT_PREFERENCES,
-    ...(stored ?? {}),
+    ...parsePreferences(stored, (await getPublishedProductConfig()).themes),
     userId,
     initialized: !!stored,
   };
@@ -30,9 +32,20 @@ export async function saveInterfacePreferences(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  const themes = (await getPublishedProductConfig()).themes;
+  if (
+    patch.theme !== undefined &&
+    !themes.items.some(item => item.id === patch.theme && item.enabled)
+  )
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Unknown theme" });
   await db
     .insert(userPreferences)
-    .values({ userId, ...DEFAULT_PREFERENCES, ...patch })
+    .values({
+      userId,
+      ...DEFAULT_PREFERENCES,
+      theme: themes.defaultThemeId,
+      ...patch,
+    })
     .onDuplicateKeyUpdate({ set: patch });
   return getInterfacePreferences(userId);
 }

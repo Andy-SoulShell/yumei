@@ -168,9 +168,47 @@ export const intimacyConfigSchema = z
   })
   .strict();
 
+/** API 主题的语义色与预览同源；仅接受十六进制颜色。 */
+export const themesConfigSchema = z
+  .object({
+    defaultThemeId: officialIdSchema,
+    items: z
+      .array(
+        z
+          .object({
+            id: officialIdSchema,
+            enabled: z.boolean(),
+            name: contentTextSchema,
+            description: contentTextSchema,
+            hue: z.number().min(0).max(360),
+            colors: z.tuple([color, color, color]),
+            light: color,
+            dark: color,
+            background: z.object({ light: color, dark: color }).strict(),
+            foreground: color,
+          })
+          .strict()
+      )
+      .min(1)
+      .max(100),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (new Set(value.items.map(item => item.id)).size !== value.items.length)
+      ctx.addIssue({ code: "custom", message: "主题 ID 不能重复" });
+    if (
+      !value.items.some(
+        item => item.id === value.defaultThemeId && item.enabled
+      )
+    )
+      ctx.addIssue({ code: "custom", message: "默认主题必须存在且启用" });
+  });
+export type ThemesConfig = z.infer<typeof themesConfigSchema>;
+
 /** 一次发布完整替换业务快照，跨领域引用在发布前统一检查。 */
 export const productConfigSchema = z
   .object({
+    themes: themesConfigSchema,
     billing: billingConfigSchema,
     selfies: z
       .object({
@@ -299,6 +337,16 @@ export type ProductConfig = z.infer<typeof productConfigSchema>;
 export function localizeProductConfig(config: ProductConfig, locale: Locale) {
   return {
     ...config,
+    themes: {
+      ...config.themes,
+      items: config.themes.items
+        .filter(item => item.enabled)
+        .map(item => ({
+          ...item,
+          name: contentText(item.name, locale),
+          description: contentText(item.description, locale),
+        })),
+    },
     prompts: {
       ...config.prompts,
       quickTemplates: config.prompts.quickTemplates

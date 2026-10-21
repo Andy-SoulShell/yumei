@@ -4,16 +4,17 @@ import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { i18n, type Translator } from "@shared/i18n";
-import {
-  DEFAULT_PREFERENCES,
-  THEME_IDS,
-  type InterfacePreferences,
-} from "@shared/preferences";
+import { type InterfacePreferences } from "@shared/preferences";
 import { LOCALES, type Locale } from "@shared/locales";
 import { AppShell } from "./AppShell";
 import { AppearanceSettings } from "./AppearanceSettings";
-import { themeMessages } from "@/locales/domain";
+import { localizeProductConfig } from "@shared/productConfig";
+import { productFixture } from "../../../server/testProductConfig";
 
+import {
+  DEFAULT_PREFERENCES,
+  THEME_IDS,
+} from "../../../server/testProductConfig";
 const mock = vi.hoisted(() => ({
   location: "/",
   locale: "zh-CN" as Locale,
@@ -44,6 +45,7 @@ vi.mock("@/_core/hooks/useAuth", () => ({
 }));
 vi.mock("@/contexts/PreferencesContext", () => ({
   usePreferences: () => ({
+    themes: localizeProductConfig(productFixture, mock.locale).themes.items,
     preferences: mock.preferences,
     update: mock.update,
     experimentalGlass: mock.experimentalGlass,
@@ -200,7 +202,9 @@ describe("grouped navigation and preferences", () => {
         trigger.querySelectorAll(".theme-option-colors > span")
       ).toHaveLength(3);
       expect(trigger.querySelector(".theme-option-name")?.textContent).toBe(
-        t(themeMessages["neon-mint"].name)
+        localizeProductConfig(productFixture, mock.locale).themes.items.find(
+          item => item.id === "neon-mint"
+        )!.name
       );
       const cards = Array.from(
         container.querySelectorAll('[role="radio"] .theme-option')
@@ -222,11 +226,19 @@ describe("grouped navigation and preferences", () => {
       THEME_IDS.forEach((id, index) => {
         for (const item of [cards[index], options[index]]) {
           expect(item.querySelector(".theme-option-name")?.textContent).toBe(
-            t(themeMessages[id].name)
+            localizeProductConfig(
+              productFixture,
+              mock.locale
+            ).themes.items.find(item => item.id === id)!.name
           );
           expect(
             item.querySelector(".theme-option-description")?.textContent
-          ).toBe(t(themeMessages[id].description));
+          ).toBe(
+            localizeProductConfig(
+              productFixture,
+              mock.locale
+            ).themes.items.find(item => item.id === id)!.description
+          );
           expect(
             item.querySelectorAll(".theme-option-colors > span")
           ).toHaveLength(3);

@@ -84,7 +84,7 @@ async function fixture(
     girlfriendId: girlfriend.id,
   });
   const db = (await getDb())!;
-  await db.insert(userPreferences).values({ userId, language: "en" });
+  await db.insert(userPreferences).values({ userId, language: "en", theme: "tokyo-sunset" });
   let eventId: number | undefined;
   if (withEvent) {
     const day = proactiveLocalClock(new Date(), preferences.timeZone)!.day;

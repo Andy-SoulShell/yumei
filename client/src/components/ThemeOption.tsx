@@ -1,8 +1,6 @@
 /** 主题色卡、名称和说明的统一展示，供侧栏与设置页共用。 */
 import type { ThemeId } from "@shared/preferences";
-import { themeMessages } from "@/locales/domain";
-import { useI18n } from "@/lib/i18n";
-import { THEMES } from "@/lib/themes";
+import { usePreferences } from "@/contexts/PreferencesContext";
 import { cn } from "@/lib/utils";
 
 /** 卡片与紧凑菜单共用色卡和文案；当前选中值仅展示色卡和名称。 */
@@ -13,7 +11,9 @@ export function ThemeOption({
   theme: ThemeId;
   variant?: "card" | "menu" | "value";
 }) {
-  const { t } = useI18n();
+  const { themes } = usePreferences();
+  const palette = themes.find(item => item.id === theme);
+  if (!palette) return null;
   const compact = variant === "value";
   const menu = variant === "menu";
   return (
@@ -30,7 +30,7 @@ export function ThemeOption({
         )}
         aria-hidden="true"
       >
-        {THEMES[theme].colors.map(color => (
+        {palette.colors.map(color => (
           <span
             key={color}
             style={{ backgroundColor: color }}
@@ -56,7 +56,7 @@ export function ThemeOption({
                 : "text-sm font-semibold"
           )}
         >
-          {t(themeMessages[theme].name)}
+          {palette.name}
         </span>
         {!compact && (
           <span
@@ -65,7 +65,7 @@ export function ThemeOption({
               menu ? "mt-0.5 text-[11px] leading-4" : "mt-1 text-xs"
             )}
           >
-            {t(themeMessages[theme].description)}
+            {palette.description}
           </span>
         )}
       </span>

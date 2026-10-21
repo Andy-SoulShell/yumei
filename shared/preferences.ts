@@ -4,20 +4,9 @@ export { LANGUAGES, LOCALES, normalizeLocale } from "./locales";
 export type { Locale } from "./locales";
 export const UI_LANGUAGES = ["system", ...LOCALES] as const;
 export const COLOR_MODES = ["system", "light", "dark"] as const;
-export const THEME_IDS = [
-  "tokyo-sunset",
-  "sakura",
-  "midnight",
-  "neon-mint",
-  "crimson",
-  "sapphire",
-  "lava",
-  "pearl",
-] as const;
-
 export type UiLanguage = (typeof UI_LANGUAGES)[number];
 export type ColorMode = (typeof COLOR_MODES)[number];
-export type ThemeId = (typeof THEME_IDS)[number];
+export type ThemeId = string;
 export interface InterfacePreferences {
   language: UiLanguage;
   theme: ThemeId;
@@ -26,21 +15,28 @@ export interface InterfacePreferences {
 
 export const DEFAULT_PREFERENCES: InterfacePreferences = {
   language: "system",
-  theme: "tokyo-sunset",
+  theme: "",
   colorMode: "system",
 };
 
-/** 校验本地缓存，只接受已支持的标识，损坏或旧版数据逐字段回退。 */
-export function parsePreferences(value: unknown): InterfacePreferences {
+/** 校验本地偏好；主题存在性由当前发布配置决定。 */
+export function parsePreferences(
+  value: unknown,
+  themes?: import("./productConfig").ThemesConfig
+): InterfacePreferences {
   const data = value && typeof value === "object" ? value : {};
   const candidate = data as Partial<InterfacePreferences>;
   return {
     language: UI_LANGUAGES.includes(candidate.language as UiLanguage)
       ? candidate.language!
       : DEFAULT_PREFERENCES.language,
-    theme: THEME_IDS.includes(candidate.theme as ThemeId)
-      ? candidate.theme!
-      : DEFAULT_PREFERENCES.theme,
+    theme:
+      typeof candidate.theme === "string" &&
+      candidate.theme.length <= 100 &&
+      (!themes ||
+        themes.items.some(item => item.id === candidate.theme && item.enabled))
+        ? candidate.theme
+        : (themes?.defaultThemeId ?? ""),
     colorMode: COLOR_MODES.includes(candidate.colorMode as ColorMode)
       ? candidate.colorMode!
       : DEFAULT_PREFERENCES.colorMode,

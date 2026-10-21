@@ -56,7 +56,9 @@
           "monthlySelfies": 30,
           "maxGirlfriends": 3,
           "voiceTranscription": true,
-          "ttsProviders": ["elevenlabs"],
+          "ttsProviders": [
+            "elevenlabs"
+          ],
           "modelLocked": false,
           "couplePhoto": false
         },
@@ -83,7 +85,10 @@
           "monthlySelfies": 100,
           "maxGirlfriends": null,
           "voiceTranscription": true,
-          "ttsProviders": ["elevenlabs", "fishaudio"],
+          "ttsProviders": [
+            "elevenlabs",
+            "fishaudio"
+          ],
           "modelLocked": false,
           "couplePhoto": true
         },
@@ -109,7 +114,9 @@
         "promptFragment": "a casual relaxed selfie, natural genuine smile",
         "mode": "auto",
         "enabled": true,
-        "aliases": ["随手一拍"]
+        "aliases": [
+          "随手一拍"
+        ]
       },
       {
         "id": "sweet_smile",
@@ -124,7 +131,9 @@
         "promptFragment": "a bright sweet smile, cheerful sunny mood, close-up",
         "mode": "direct",
         "enabled": true,
-        "aliases": ["甜甜微笑"]
+        "aliases": [
+          "甜甜微笑"
+        ]
       },
       {
         "id": "aegyo",
@@ -139,7 +148,9 @@
         "promptFragment": "a cute playful aegyo pose, puffed cheeks and a V sign, adorable pleading expression",
         "mode": "direct",
         "enabled": true,
-        "aliases": ["撒娇"]
+        "aliases": [
+          "撒娇"
+        ]
       },
       {
         "id": "intimate",
@@ -154,7 +165,9 @@
         "promptFragment": "an intimate close-up selfie, soft warm gaze into the camera, cozy affectionate atmosphere",
         "mode": "direct",
         "enabled": true,
-        "aliases": ["亲密"]
+        "aliases": [
+          "亲密"
+        ]
       },
       {
         "id": "elegant",
@@ -169,7 +182,9 @@
         "promptFragment": "an elegant graceful full-body pose in a refined outfit, soft flattering lighting",
         "mode": "mirror",
         "enabled": true,
-        "aliases": ["优雅"]
+        "aliases": [
+          "优雅"
+        ]
       },
       {
         "id": "alluring",
@@ -184,7 +199,9 @@
         "promptFragment": "an alluring charming look, confident smoldering gaze, stylish tasteful outfit",
         "mode": "direct",
         "enabled": true,
-        "aliases": ["诱惑"]
+        "aliases": [
+          "诱惑"
+        ]
       },
       {
         "id": "pov_date",
@@ -199,7 +216,9 @@
         "promptFragment": "a POV girlfriend-view photo, reaching one hand toward the camera as if holding hands with the viewer, walking together",
         "mode": "direct",
         "enabled": true,
-        "aliases": ["恋人视角"]
+        "aliases": [
+          "恋人视角"
+        ]
       },
       {
         "id": "morning",
@@ -214,7 +233,9 @@
         "promptFragment": "a just-woke-up cozy morning selfie in bed, soft natural window light, casual homewear, sleepy warm smile",
         "mode": "direct",
         "enabled": true,
-        "aliases": ["睡眼惺忪"]
+        "aliases": [
+          "睡眼惺忪"
+        ]
       },
       {
         "id": "date_night",
@@ -229,7 +250,9 @@
         "promptFragment": "a dressed-up date night look, evening city lights bokeh in the background, romantic mood",
         "mode": "direct",
         "enabled": true,
-        "aliases": ["约会夜"]
+        "aliases": [
+          "约会夜"
+        ]
       }
     ]
   },
@@ -952,5 +975,242 @@
       "retryBaseMs": 30000,
       "retryMaxMs": 3600000
     }
+  },
+  "themes": {
+    "defaultThemeId": "tokyo-sunset",
+    "items": [
+      {
+        "id": "tokyo-sunset",
+        "enabled": true,
+        "name": {
+          "zh-CN": "东京日落",
+          "en": "Tokyo Sunset",
+          "ja": "東京サンセット",
+          "ko": "도쿄 선셋"
+        },
+        "description": {
+          "zh-CN": "暖橙 · 默认",
+          "en": "Warm orange · Default",
+          "ja": "温かなオレンジ · 既定",
+          "ko": "따뜻한 주황 · 기본"
+        },
+        "background": {
+          "light": "#fffbf9",
+          "dark": "#0f0706"
+        },
+        "hue": 35,
+        "colors": [
+          "#fb923c",
+          "#fde68a",
+          "#c2410c"
+        ],
+        "light": "#b94a0a",
+        "dark": "#fb923c",
+        "foreground": "#21130a"
+      },
+      {
+        "id": "sakura",
+        "enabled": true,
+        "name": {
+          "zh-CN": "樱粉",
+          "en": "Sakura Pink",
+          "ja": "桜ピンク",
+          "ko": "벚꽃 핑크"
+        },
+        "description": {
+          "zh-CN": "浪漫粉调",
+          "en": "Romantic pink",
+          "ja": "ロマンチックなピンク",
+          "ko": "로맨틱 핑크"
+        },
+        "background": {
+          "light": "#fffafc",
+          "dark": "#0e070a"
+        },
+        "hue": 350,
+        "colors": [
+          "#f472b6",
+          "#fb7185",
+          "#be185d"
+        ],
+        "light": "#c2185b",
+        "dark": "#f472b6",
+        "foreground": "#2a101b"
+      },
+      {
+        "id": "midnight",
+        "enabled": true,
+        "name": {
+          "zh-CN": "午夜紫",
+          "en": "Midnight Violet",
+          "ja": "ミッドナイトバイオレット",
+          "ko": "미드나이트 바이올렛"
+        },
+        "description": {
+          "zh-CN": "梦幻冷紫",
+          "en": "Dreamy cool purple",
+          "ja": "夢見るクールパープル",
+          "ko": "몽환적인 쿨 퍼플"
+        },
+        "background": {
+          "light": "#fcfbff",
+          "dark": "#09080f"
+        },
+        "hue": 295,
+        "colors": [
+          "#a78bfa",
+          "#60a5fa",
+          "#6d28d9"
+        ],
+        "light": "#7040c0",
+        "dark": "#b39aff",
+        "foreground": "#1c1230"
+      },
+      {
+        "id": "neon-mint",
+        "enabled": true,
+        "name": {
+          "zh-CN": "霓虹薄荷",
+          "en": "Neon Mint",
+          "ja": "ネオンミント",
+          "ko": "네온 민트"
+        },
+        "description": {
+          "zh-CN": "清新薄荷点缀",
+          "en": "Fresh mint accents",
+          "ja": "爽やかなミントのアクセント",
+          "ko": "산뜻한 민트 포인트"
+        },
+        "background": {
+          "light": "#f9fdfb",
+          "dark": "#040b08"
+        },
+        "hue": 165,
+        "colors": [
+          "#34d399",
+          "#4ade80",
+          "#0d9488"
+        ],
+        "light": "#087b60",
+        "dark": "#34d399",
+        "foreground": "#08271e"
+      },
+      {
+        "id": "crimson",
+        "enabled": true,
+        "name": {
+          "zh-CN": "深红丝绒",
+          "en": "Crimson Velvet",
+          "ja": "クリムゾンベルベット",
+          "ko": "크림슨 벨벳"
+        },
+        "description": {
+          "zh-CN": "大胆红 · 性感",
+          "en": "Bold, sultry red",
+          "ja": "大胆で艶やかな赤",
+          "ko": "대담하고 매혹적인 빨강"
+        },
+        "background": {
+          "light": "#fffafa",
+          "dark": "#0f0707"
+        },
+        "hue": 20,
+        "colors": [
+          "#e11d48",
+          "#fb923c",
+          "#7f1d1d"
+        ],
+        "light": "#b7183a",
+        "dark": "#fb7185",
+        "foreground": "#2d0b13"
+      },
+      {
+        "id": "sapphire",
+        "enabled": true,
+        "name": {
+          "zh-CN": "蓝宝石夜",
+          "en": "Sapphire Night",
+          "ja": "サファイアナイト",
+          "ko": "사파이어 나이트"
+        },
+        "description": {
+          "zh-CN": "深蓝配金",
+          "en": "Deep blue with gold",
+          "ja": "深い青とゴールド",
+          "ko": "딥 블루와 골드"
+        },
+        "background": {
+          "light": "#fafcff",
+          "dark": "#06090f"
+        },
+        "hue": 260,
+        "colors": [
+          "#3b82f6",
+          "#fbbf24",
+          "#1e3a8a"
+        ],
+        "light": "#2358bd",
+        "dark": "#7aaaff",
+        "foreground": "#0c1a35"
+      },
+      {
+        "id": "lava",
+        "enabled": true,
+        "name": {
+          "zh-CN": "熔岩流光",
+          "en": "Lava Glow",
+          "ja": "ラバグロー",
+          "ko": "라바 글로우"
+        },
+        "description": {
+          "zh-CN": "赛博朋克霓虹",
+          "en": "Cyberpunk neon",
+          "ja": "サイバーパンクネオン",
+          "ko": "사이버펑크 네온"
+        },
+        "background": {
+          "light": "#fffbfa",
+          "dark": "#0f0706"
+        },
+        "hue": 30,
+        "colors": [
+          "#ff5b20",
+          "#facc15",
+          "#f472b6"
+        ],
+        "light": "#be4412",
+        "dark": "#ff915e",
+        "foreground": "#2c140a"
+      },
+      {
+        "id": "pearl",
+        "enabled": true,
+        "name": {
+          "zh-CN": "晨曦珠光",
+          "en": "Dawn Pearl",
+          "ja": "ドーンパール",
+          "ko": "던 펄"
+        },
+        "description": {
+          "zh-CN": "明亮底色 · 柔和珠光",
+          "en": "Light tones · Soft pearl",
+          "ja": "明るい色合い · 柔らかなパール",
+          "ko": "밝은 색조 · 은은한 펄"
+        },
+        "background": {
+          "light": "#fefbf8",
+          "dark": "#0d0804"
+        },
+        "hue": 75,
+        "colors": [
+          "#f5f0e9",
+          "#fb923c",
+          "#fbd38d"
+        ],
+        "light": "#9b5b19",
+        "dark": "#fbd38d",
+        "foreground": "#2c200e"
+      }
+    ]
   }
 }

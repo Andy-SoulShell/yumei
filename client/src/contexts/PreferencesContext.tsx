@@ -17,10 +17,15 @@ import {
   type InterfacePreferences,
   type Locale,
 } from "@shared/preferences";
-import { THEMES } from "@/lib/themes";
+import type { ThemesConfig } from "@shared/productConfig";
+import { contentText } from "@shared/discovery";
 
 type PreferencesContextValue = {
   preferences: InterfacePreferences;
+  themes: (Omit<ThemesConfig["items"][number], "name" | "description"> & {
+    name: string;
+    description: string;
+  })[];
   locale: Locale;
   resolvedMode: "light" | "dark";
   experimentalGlass: boolean;
@@ -49,9 +54,7 @@ function readLocal(userId: string | null) {
   try {
     const raw = localStorage.getItem(storageKey(userId));
     if (raw) return parsePreferences(JSON.parse(raw));
-    // 迁移旧版仅保存在本机的亮暗选择，不将其他账号的缓存用作默认值。
-    const legacyMode = !userId ? localStorage.getItem("theme") : null;
-    return parsePreferences({ colorMode: legacyMode });
+    return { ...DEFAULT_PREFERENCES };
   } catch {
     return { ...DEFAULT_PREFERENCES };
   }
@@ -92,6 +95,12 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
+  const product = trpc.productConfig.get.useQuery(undefined, {
+    staleTime: 15_000,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+  });
+  const themeConfig = product.data?.themes;
   const me = trpc.auth.me.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
@@ -120,7 +129,10 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   const revision = useRef(0);
   const pending = useRef(0);
   const unsaved = useRef<Partial<InterfacePreferences>>({});
-  const value = state.userId === userId ? state.value : readLocal(userId);
+  const value = parsePreferences(
+    state.userId === userId ? state.value : readLocal(userId),
+    themeConfig
+  );
 
   useEffect(() => {
     if (current.current.userId === userId) return;
@@ -193,18 +205,19 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (
       !userId ||
+      !themeConfig ||
       remote.data?.userId !== userId ||
       hydrated.current === userId
     )
       return;
     hydrated.current = userId;
     const base = remote.data.initialized ? remote.data : readLocal(null);
-    const next = parsePreferences({ ...base, ...edits.current });
+    const next = parsePreferences({ ...base, ...edits.current }, themeConfig);
     current.current = { userId, value: next };
     setState(current.current);
     writeLocal(userId, next);
     if (!remote.data.initialized) persist(next);
-  }, [remote.data, userId, persist]);
+  }, [remote.data, userId, persist, themeConfig]);
 
   const update = useCallback(
     (patch: Partial<InterfacePreferences>) => {
@@ -212,14 +225,14 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
         current.current.userId === userId
           ? current.current.value
           : readLocal(userId);
-      const next = parsePreferences({ ...base, ...patch });
+      const next = parsePreferences({ ...base, ...patch }, themeConfig);
       edits.current = { ...edits.current, ...patch };
       current.current = { userId, value: next };
       setState(current.current);
       writeLocal(userId, next);
       persist(patch);
     },
-    [persist, userId]
+    [persist, userId, themeConfig]
   );
 
   const locale = resolveLocale(value.language, languages);
@@ -231,7 +244,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       : value.colorMode;
   useEffect(() => {
     const root = document.documentElement;
-    const palette = THEMES[value.theme];
+    const palette = themeConfig?.items.find(
+      item => item.enabled && item.id === value.theme
+    );
     root.lang = locale;
     const language = LANGUAGES[locale];
     root.style.setProperty("--locale-font", language.fontFamily);
@@ -246,6 +261,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       }
       font.href = language.fontStylesheet;
     } else font?.remove();
+    if (!palette) return;
     root.dataset.theme = value.theme;
     root.classList.toggle("dark", resolvedMode === "dark");
     root.style.colorScheme = resolvedMode;
@@ -266,12 +282,20 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
         meta.content = palette.background[resolvedMode];
         meta.removeAttribute("media");
       });
-  }, [locale, resolvedMode, value.theme]);
+  }, [locale, resolvedMode, value.theme, themeConfig]);
 
   return (
     <PreferencesContext.Provider
       value={{
         preferences: value,
+        themes:
+          themeConfig?.items
+            .filter(item => item.enabled)
+            .map(item => ({
+              ...item,
+              name: contentText(item.name, locale),
+              description: contentText(item.description, locale),
+            })) ?? [],
         locale,
         resolvedMode,
         experimentalGlass,
@@ -295,6 +319,7 @@ export function usePreferences(): PreferencesContextValue {
   return (
     useContext(PreferencesContext) ?? {
       preferences: DEFAULT_PREFERENCES,
+      themes: [],
       locale: "zh-CN",
       resolvedMode: "light",
       experimentalGlass: false,

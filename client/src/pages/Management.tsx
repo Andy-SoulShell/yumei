@@ -196,8 +196,8 @@ function WorkspaceHeader({
   onReload: () => void;
 }) {
   return (
-    <div className="mb-5 space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
@@ -216,7 +216,7 @@ function WorkspaceHeader({
               : "已发布"}
         </Badge>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-3">
+      <div className="sticky top-[72px] z-10 mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card/95 p-3 shadow-sm backdrop-blur">
         <span className="text-xs text-muted-foreground">
           草稿 {revision} · 已发布 {publishedRevision}
         </span>
@@ -249,7 +249,7 @@ function WorkspaceHeader({
           </Button>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 function EditorMode({
@@ -1044,7 +1044,7 @@ function ManagementConsole({
           </span>
           <span className="font-semibold tracking-tight">
             YUMEI{" "}
-            <span className="ml-1 text-sm font-normal text-muted-foreground">
+            <span className="ml-1 hidden text-sm font-normal text-muted-foreground sm:inline">
               管理后台
             </span>
           </span>
@@ -1074,24 +1074,27 @@ function ManagementConsole({
           <Button asChild variant="ghost" size="sm">
             <Link
               href="/"
+              aria-label="返回站点"
               onClick={event => {
                 if (dirty && !window.confirm("放弃未保存修改并返回站点？"))
                   event.preventDefault();
               }}
             >
-              返回站点
+              <ArrowLeft className="size-4 sm:hidden" />
+              <span className="hidden sm:inline">返回站点</span>
             </Link>
           </Button>
           <Button
             variant="outline"
             size="sm"
+            aria-label="退出"
             onClick={() => {
               if (!dirty || window.confirm("放弃未保存修改并退出？"))
                 onLogout();
             }}
           >
-            <LogOut className="mr-1.5 size-3.5" />
-            退出
+            <LogOut className="size-3.5 sm:mr-1.5" />
+            <span className="hidden sm:inline">退出</span>
           </Button>
         </div>
       </header>

@@ -21,11 +21,31 @@ import {
 import { createSelfie, deleteSelfie } from "./repositories/photos";
 import * as storage from "./storage";
 import { createTestGirlfriend } from "./testFixtures";
+import { putStagedMedia } from "./managedMedia";
 
 const profile = { name: "YUMEI", personality: "自然", appearance: "自然" };
 afterEach(() => vi.restoreAllMocks());
 
 describe("media cleanup", () => {
+  it("reclaims an abandoned official upload without requiring a management user record", async () => {
+    const key = `official-abandoned-${crypto.randomUUID()}.png`;
+    await putStagedMedia(
+      "management",
+      key,
+      Buffer.from("unfinished upload"),
+      "image/png"
+    );
+    const db = (await getDb())!;
+    await db
+      .update(mediaDeletions)
+      .set({ availableAt: new Date(Date.now() - 60000) })
+      .where(eq(mediaDeletions.key, key));
+    await flushMediaDeletions("management");
+    expect(
+      await db.select().from(mediaDeletions).where(eq(mediaDeletions.key, key))
+    ).toHaveLength(0);
+    await expect(storage.storageRead(key)).rejects.toThrow();
+  });
   it("deletes all role data and associated files", async () => {
     const userId = `delete-${crypto.randomUUID()}`;
     const reference = await storage.storagePut(`test/${userId}/ref.png`, "ref");

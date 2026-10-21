@@ -94,7 +94,7 @@ export async function flushMediaDeletions(userId?: string): Promise<void> {
     .limit(rules.mediaBatchSize);
   for (const task of tasks) {
     try {
-      const claimed = await withUserTransaction(task.userId, async tx => {
+      const claim = async (tx: DbTransaction) => {
         const [pending] = await tx
           .select()
           .from(mediaDeletions)
@@ -119,7 +119,11 @@ export async function flushMediaDeletions(userId?: string): Promise<void> {
           })
           .where(eq(mediaDeletions.key, task.key));
         return true;
-      });
+      };
+      // 官方上传来自独立管理会话，不存在对应的用户行；清理仍通过任务行锁互斥。
+      const claimed = task.key.startsWith("official-")
+        ? await db.transaction(claim)
+        : await withUserTransaction(task.userId, claim);
       if (!claimed) continue;
       await storageDelete(task.key);
       await db.delete(mediaDeletions).where(eq(mediaDeletions.key, task.key));

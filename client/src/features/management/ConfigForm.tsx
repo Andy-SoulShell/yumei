@@ -533,29 +533,41 @@ export function ConfigForm({
   if (typeof value === "object") {
     const object = value as Record<string, unknown>,
       languages = s.propertyNames?.enum?.includes("zh-CN");
+    // MySQL JSON 会重排对象键；表单始终遵循共享契约的字段和语言顺序。
+    const ordered = Array.from(
+      new Set([
+        ...(languages
+          ? s.propertyNames!.enum!
+          : Object.keys(s.properties ?? {})),
+        ...Object.keys(object),
+      ])
+    ).filter(name => name in object);
     const fields = (
       <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
-        {Object.entries(object).map(([name, item]) => (
-          <div
-            key={name}
-            className={`min-w-0 ${!languages && (typeof item === "object" || longField(`${path}.${name}`, item)) ? "sm:col-span-2" : ""}`}
-          >
-            <ConfigForm
-              {...options}
-              value={item}
-              schema={
-                s.properties?.[name] ??
-                (typeof s.additionalProperties === "object"
-                  ? s.additionalProperties
-                  : undefined)
-              }
-              path={`${path}.${name}`}
-              depth={depth + 1}
-              disabled={disabled}
-              onChange={next => onChange({ ...object, [name]: next })}
-            />
-          </div>
-        ))}
+        {ordered.map(name => {
+          const item = object[name];
+          return (
+            <div
+              key={name}
+              className={`min-w-0 ${!languages && (typeof item === "object" || longField(`${path}.${name}`, item)) ? "sm:col-span-2" : ""}`}
+            >
+              <ConfigForm
+                {...options}
+                value={item}
+                schema={
+                  s.properties?.[name] ??
+                  (typeof s.additionalProperties === "object"
+                    ? s.additionalProperties
+                    : undefined)
+                }
+                path={`${path}.${name}`}
+                depth={depth + 1}
+                disabled={disabled}
+                onChange={next => onChange({ ...object, [name]: next })}
+              />
+            </div>
+          );
+        })}
         {languages ? (
           <div className="flex flex-wrap gap-2 sm:col-span-2">
             {s

@@ -38,7 +38,7 @@ export function ColorField({
         aria-invalid={!valid}
         maxLength={7}
         spellCheck={false}
-        className="min-w-0 flex-1 font-mono"
+        className="min-w-0 flex-1 px-2 font-mono text-xs"
         placeholder="#RRGGBB"
         onChange={event => onChange(event.target.value)}
       />

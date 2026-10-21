@@ -12,6 +12,8 @@ let container: HTMLDivElement;
 let desktop = true;
 let busy = false;
 let generating = false;
+let stopping = false;
+let connection = "connected";
 let voiceSupported = true;
 let preferredInputMode: "text" | "voice" = "text";
 const stopped = vi.fn();
@@ -31,8 +33,8 @@ function Harness() {
     isAccepting: busy,
     chatStream: {
       isGenerating: generating,
-      isStopping: false,
-      connection: "connected",
+      isStopping: stopping,
+      connection,
     },
     handleStopGeneration: stopped,
     generateSelfie: { isPending: false },
@@ -62,6 +64,8 @@ beforeEach(async () => {
   desktop = true;
   busy = false;
   generating = false;
+  stopping = false;
+  connection = "connected";
   voiceSupported = true;
   preferredInputMode = "text";
   stopped.mockClear();
@@ -160,13 +164,39 @@ it("allows supplements during generation and provides an independent stop action
   expect(
     container.querySelector<HTMLButtonElement>('[type="submit"]')!.disabled
   ).toBe(false);
-  const stop = container.querySelector<HTMLButtonElement>('[type="button"]')!;
+  const stop = container.querySelector<HTMLButtonElement>(
+    '[aria-label="停止回复"]'
+  )!;
   expect(stop.textContent).toContain("停止回复");
   await act(async () => stop.click());
   expect(stopped).toHaveBeenCalledOnce();
   expect(input().value).toBe("还有一件事");
   await key();
   expect(submitted).toHaveBeenCalledWith("还有一件事");
+});
+it("keeps the draft editable while stop is pending and prevents duplicate stop actions", async () => {
+  generating = true;
+  stopping = true;
+  await act(async () => root.render(<Harness />));
+  await fill("停止后接着说");
+  const stop = container.querySelector<HTMLButtonElement>(
+    '[aria-label="停止回复"]'
+  )!;
+  expect(stop.disabled).toBe(true);
+  await act(async () => stop.click());
+  expect(stopped).not.toHaveBeenCalled();
+  expect(input().disabled).toBe(false);
+  expect(input().value).toBe("停止后接着说");
+});
+it("shows reconnecting status without a stop action when there is no active reply", async () => {
+  connection = "reconnecting";
+  await act(async () => root.render(<Harness />));
+  expect(container.querySelector('[role="status"]')?.textContent).toContain(
+    "正在重新连接"
+  );
+  expect(container.querySelector('[aria-label="停止回复"]')).toBeNull();
+  await fill("网络恢复后再发");
+  expect(input().disabled).toBe(false);
 });
 it("keeps the text draft when switching to voice and back", async () => {
   await fill("  ");

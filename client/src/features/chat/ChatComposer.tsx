@@ -78,35 +78,49 @@ export function ChatComposer({
 
   return (
     <form onSubmit={handleSendMessage} className="chat-composer">
-      {(chatStream.isGenerating ||
-        chatStream.connection === "reconnecting") && (
-        <div className="mb-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-          <span role="status">
-            {t(
-              chatStream.connection === "reconnecting"
-                ? "chat:streamReconnecting"
-                : "chat:streamSupplementHint"
-            )}
-          </span>
-          {chatStream.isGenerating && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={chatStream.isStopping || isAccepting}
-              onClick={() => void handleStopGeneration()}
-            >
-              {chatStream.isStopping ? (
-                <Loader2 className="mr-1 size-3 animate-spin" />
-              ) : (
-                <Square className="mr-1 size-3" />
-              )}
-              {t("chat:streamStop")}
-            </Button>
-          )}
-        </div>
-      )}
       <div className="chat-composer-surface">
+        {(chatStream.isGenerating ||
+          chatStream.connection === "reconnecting") && (
+          <div className="chat-composer-status">
+            <span className="chat-composer-state" role="status">
+              {chatStream.connection === "reconnecting" ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <span className="chat-composer-state-dot" aria-hidden="true" />
+              )}
+              <span>
+                {t(
+                  chatStream.connection === "reconnecting"
+                    ? "chat:streamReconnecting"
+                    : "chat:streamGenerating"
+                )}
+                {chatStream.connection !== "reconnecting" && (
+                  <span className="chat-composer-hint">
+                    {t("chat:streamSupplementHint")}
+                  </span>
+                )}
+              </span>
+            </span>
+            {chatStream.isGenerating && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="chat-composer-stop"
+                aria-label={t("chat:streamStop")}
+                disabled={chatStream.isStopping || isAccepting}
+                onClick={() => void handleStopGeneration()}
+              >
+                {chatStream.isStopping ? (
+                  <Loader2 className="size-3 animate-spin" />
+                ) : (
+                  <Square className="size-3" />
+                )}
+                {t("chat:streamStop")}
+              </Button>
+            )}
+          </div>
+        )}
         <Button
           type="button"
           variant="ghost"

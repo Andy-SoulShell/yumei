@@ -38,6 +38,7 @@ import {
 import { ConfigForm, type FormSchema } from "@/features/management/ConfigForm";
 import { ThemeEditor } from "@/features/management/ThemeEditor";
 import { useOfficialUpload } from "@/features/management/useOfficialUpload";
+import { sameConfigValue } from "@/features/management/editorState";
 import "@/features/management/management.css";
 import { Button } from "@/components/ui/button";
 import {
@@ -314,7 +315,7 @@ function ProductWorkspace({
     publish = trpc.productConfig.admin.publish.useMutation();
   const utils = trpc.useUtils();
   const dirty =
-    JSON.stringify(value) !== JSON.stringify(draft.config) ||
+    !sameConfigValue(value, draft.config) ||
     (mode === "json" && raw !== JSON.stringify(value[section], null, 2));
   useEffect(() => {
     onDirty(dirty);
@@ -421,7 +422,10 @@ function ProductWorkspace({
             <Textarea
               aria-label={`${info.name} JSON`}
               value={raw}
-              onChange={event => setRaw(event.target.value)}
+              onChange={event => {
+                setRaw(event.target.value);
+                setError("");
+              }}
               disabled={busy}
               spellCheck={false}
               className="min-h-[60vh] resize-y font-mono text-xs leading-6"
@@ -451,7 +455,7 @@ function HomeWorkspace({
   const imageUpload = useOfficialUpload(setError);
   const busy = save.isPending || publish.isPending || imageUpload.pending;
   const dirty =
-    JSON.stringify(value) !== JSON.stringify(draft.home) ||
+    !sameConfigValue(value, draft.home) ||
     (mode === "json" && raw !== JSON.stringify(value, null, 2));
   useEffect(() => {
     onDirty(dirty);
@@ -522,6 +526,7 @@ function HomeWorkspace({
                   }
                   setValue(candidate.data);
                   setMode(next);
+                  setError("");
                 } catch {
                   setError("JSON 格式无效");
                 }
@@ -552,14 +557,20 @@ function HomeWorkspace({
                       }))
                   : undefined
               }
-              onChange={next => setValue(next as typeof value)}
+              onChange={next => {
+                setValue(next as typeof value);
+                setError("");
+              }}
             />
           ) : (
             <Textarea
               aria-label="首页内容 JSON"
               value={raw}
               disabled={busy}
-              onChange={event => setRaw(event.target.value)}
+              onChange={event => {
+                setRaw(event.target.value);
+                setError("");
+              }}
               spellCheck={false}
               className="min-h-[60vh] font-mono text-xs leading-6"
             />
@@ -608,8 +619,7 @@ function CharacterWorkspace({
     publish = trpc.discovery.admin.publish.useMutation(),
     utils = trpc.useUtils();
   const imageUpload = useOfficialUpload(setError);
-  const dirty =
-    !source || JSON.stringify(value) !== JSON.stringify(source.data);
+  const dirty = !source || !sameConfigValue(value, source.data);
   useEffect(() => {
     onDirty(dirty);
     return () => onDirty(false);
@@ -824,7 +834,10 @@ function CharacterWorkspace({
               path="character"
               schema={schema}
               disabled={busy}
-              onChange={next => setValue(next as typeof value)}
+              onChange={next => {
+                setValue(next as typeof value);
+                setError("");
+              }}
             />
           </CardContent>
         </Card>

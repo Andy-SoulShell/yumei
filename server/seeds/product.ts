@@ -1,4 +1,4 @@
-/** 当前套餐、姿势和亲密度配置的初始数据，只在空库首次导入。 */
+/** 业务规则、提示词与记忆的初始配置，只在空库首次导入。 */
 import data from "./product.json";
 import { productConfigSchema } from "../../shared/productConfig";
 

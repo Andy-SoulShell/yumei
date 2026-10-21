@@ -259,7 +259,7 @@ function parseGroundedExtraction(
   }
 }
 
-/** 通过当前聊天 Provider 提取记忆；OpenRouter 使用固定轻量模型。 */
+/** 使用同一发布快照中的模型、提示词和输出规则提取记忆。 */
 export async function callExtractionModel(
   provider: ChatProvider,
   sources: MemorySourceMessage[],
@@ -894,7 +894,12 @@ export async function buildMemoryPromptBlock(
   const summary =
     options.conversationId === undefined
       ? null
-      : await readMemorySummary(userId, girlfriendId, options.conversationId);
+      : await readMemorySummary(
+          userId,
+          girlfriendId,
+          options.conversationId,
+          policy
+        );
   const preferences = await getCompanionPreferences(userId);
   return withUserTransaction(userId, async tx => {
     const [current] = await tx
@@ -1184,9 +1189,9 @@ export async function getMemoryState(userId: string, girlfriendId: number) {
     requireOwnedRole(tx, userId, girlfriendId)
   );
   const preferences = await getCompanionPreferences(userId);
-  const provider = await resolveChatProvider(userId);
+  const provider = await resolveChatProvider(userId, policy);
   const summary = role.memoryEnabled
-    ? await readMemorySummary(userId, girlfriendId)
+    ? await readMemorySummary(userId, girlfriendId, undefined, policy)
     : null;
   const facts = summary
     ? (await listMemories(userId, girlfriendId))

@@ -26,7 +26,7 @@ function hasExplicitMemoryRequest(message: string): boolean {
   });
 }
 
-/** 首轮、明确保存/更正请求或每五轮成功文字对话后提取，不受图片消息影响。 */
+/** 按配置的首轮、明确保存请求及成功轮次间隔安排提取，不计图片消息。 */
 export function shouldExtractMemories(
   completedChatRounds: number,
   userMessage: string,
@@ -111,7 +111,7 @@ export function bigramOverlap(a: string, b: string): number {
   return hits / ba.size;
 }
 
-/** 按未触及时长计算新鲜度系数，结果从 1 指数衰减并趋近 0.5。 */
+/** 按未触及时长和配置的衰减天数计算新鲜度，趋近配置中的下限。 */
 export function timeDecayFactor(
   lastTouchedAt: Date,
   config: MemoryConfig,

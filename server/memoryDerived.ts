@@ -259,7 +259,7 @@ export async function indexMemoryVersions(
   const policy = configuration ?? (await getPublishedProductConfig());
   const role = await activeRole(userId, girlfriendId, policy);
   if (!role) return;
-  provider ??= await resolveChatProvider(userId);
+  provider ??= await resolveChatProvider(userId, policy);
   const config = memorySemanticConfiguration(provider, policy);
   if (!provider.apiKey || !config.configured || !config.model) return;
   const db = (await getDb())!;
@@ -372,7 +372,7 @@ export async function semanticMemoryScores(
   const policy = configuration ?? (await getPublishedProductConfig());
   const role = await activeRole(userId, girlfriendId, policy);
   if (!role) return new Map();
-  const provider = await resolveChatProvider(userId);
+  const provider = await resolveChatProvider(userId, policy);
   const config = memorySemanticConfiguration(provider, policy);
   if (!provider.apiKey || !config.configured || !config.model) return new Map();
   const db = (await getDb())!;
@@ -455,7 +455,7 @@ export async function generateMemorySummary(
   const policy = configuration ?? (await getPublishedProductConfig());
   const role = await activeRole(userId, girlfriendId, policy);
   if (!role || !policy.memory.summary.enabled) return;
-  provider ??= await resolveChatProvider(userId);
+  provider ??= await resolveChatProvider(userId, policy);
   if (!provider.apiKey || !(await sameMemoryRouting(userId, provider))) return;
   const db = (await getDb())!;
   const [conversation] = await db
@@ -725,7 +725,7 @@ export async function refreshMemoryDerived(
   configuration?: Awaited<ReturnType<typeof getPublishedProductConfig>>
 ) {
   const policy = configuration ?? (await getPublishedProductConfig());
-  const provider = await resolveChatProvider(userId);
+  const provider = await resolveChatProvider(userId, policy);
   await indexMemoryVersions(userId, girlfriendId, provider, policy).catch(
     () => {}
   );

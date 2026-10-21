@@ -18,7 +18,7 @@ import {
 import { memoryFeatureEnabled, runtimeInteger } from "./aiTaskRuntime";
 import { refreshMemoryDerived, sameMemoryRouting } from "./memoryDerived";
 
-/** 多实例可同时调用；过期租约会被重新认领，连续五次失败保留为待排查任务。 */
+/** 多实例可同时调用；过期租约重新认领，达到配置的失败上限时保留任务供排查。 */
 export async function runMemoryExtractionJobs(userId?: string): Promise<void> {
   const policy = await getPublishedProductConfig();
   if (!policy.memory.enabled) return;
@@ -112,7 +112,7 @@ export async function runMemoryExtractionJobs(userId?: string): Promise<void> {
         return true;
       });
       if (!claimed) continue;
-      const provider = await resolveChatProvider(job.userId);
+      const provider = await resolveChatProvider(job.userId, policy);
       if (!provider.apiKey) throw new Error("Chat provider unavailable");
       const [role] = await db
         .select()
@@ -184,6 +184,8 @@ export async function runMemoryExtractionJobs(userId?: string): Promise<void> {
           companion.memoryEpoch === job.memoryEpoch &&
           (await memoryFeatureEnabled())
         ) {
+          if ((await getPublishedProductConfig()).revision !== policy.revision)
+            throw new Error("Memory configuration changed before settlement");
           await storeExtractedMemoriesInTransaction(
             tx,
             job.userId,

@@ -1,0 +1,49 @@
+# 管理后台
+
+访问站点的 `/admin`。后台复用站点主题、明暗模式、卡片与表单组件，支持桌面侧栏和手机分区菜单。它直接调用现有管理 API，不维护用户列表，也不要求创建管理员用户。
+
+## 密码与登录
+
+在服务端 `.env` 中设置 `ADMIN_PASSWORD`（8–512 个字符），重启服务。可以运行 `openssl rand -hex 24` 生成随机密码。Compose 已传入此变量；未设置或格式不符时管理登录关闭，没有内置密码。
+
+管理会话独立于用户会话，持续 12 小时；Cookie 为 HttpOnly、SameSite=Strict，在 HTTPS 下设置 Secure。服务端仅保存随机令牌摘要和密码签名。退出会删除会话，更换密码并重启后已有会话立即失效。登录每个来源地址 15 分钟最多尝试 5 次，所有实例共用数据库计数。
+
+部署的数据库、存储、邮件连接和供应商密钥继续通过服务端环境管理；公开业务配置和管理页面都不返回这些密钥。
+
+## 编辑与发布
+
+1. 选择“官方角色”“首页、轮播与 FAQ”或业务配置分区。
+2. 通过表单编辑；颜色字段提供色块、系统颜色选择器和十六进制输入，主题提供卡片选择及明暗实时预览。首页角色引用显示名称与缩略图，图片支持预览、上传，数组可以上下排序。业务配置和首页也可切换 JSON，复杂工作流适合 JSON 编辑。多语言对象至少填写 `zh-CN`，其他语言缺失时回退中文。
+3. 点击“保存草稿”。共享 schema 校验全部字段、引用和领域间约束，错误显示在编辑区。
+4. 点击“发布”。官方角色与首页作为一份快照发布；业务配置的全部分区作为另一份快照发布。其他分区已保存的草稿也会一起发布。
+
+保存与发布操作条会随编辑区滚动固定。未保存修改会在切换分区、角色、重新读取或关闭页面时提示。草稿不会随窗口聚焦自动重载。遇到并发修改时，界面保留当前内容并报告冲突；先复制要保留的编辑，重新读取后合并。并发令牌只防止覆盖，不保留历史版本。
+
+发布后服务端新执行读取当前配置；正在执行的任务保持其捕获的快照。前台窗口重新聚焦或定时刷新后同步。既有用户角色的人设和内容不会被官方角色编辑覆盖。
+
+官方角色使用稳定 ID，新增角色可以编辑 ID，已有角色的 ID 在界面中只读。支持图片上传、排序、公开状态、归档及恢复。归档默认角色之前先变更首页的默认引用；发布前移除精选中已归档角色的引用。图片容量和格式采用当前发布的官方上传规则。
+
+## 直接调用 API
+
+管理页面使用的就是 `/api/trpc` 下的现有接口。接口认证流程如下，`client` 为项目 tRPC 客户端；项目客户端已携带 Cookie 与匹配的 CSRF 请求头。
+
+```ts
+await client.management.status.query(); // 同时取得 csrf_token Cookie
+await client.management.login.mutate({ password });
+
+const draft = await client.productConfig.admin.getDraft.query();
+const config = draft.config;
+config.experience.pagination.conversations = 30;
+const saved = await client.productConfig.admin.save.mutate({
+  expectedRevision: draft.revision,
+  config,
+});
+await client.productConfig.admin.publish.mutate({
+  expectedRevision: saved.revision,
+});
+await client.management.logout.mutate();
+```
+
+自建 HTTP 客户端需要保留 `yumei_management` 与 `csrf_token` Cookie；所有写请求附上相同的 `x-csrf-token`。使用 tRPC / SuperJSON 编码，不能用普通用户 Cookie 或 `users.role=admin` 替代管理会话。
+
+全部字段和调用契约见 [业务配置 API](product-config-api.md) 与 [官方内容 API](discovery-api.md)。

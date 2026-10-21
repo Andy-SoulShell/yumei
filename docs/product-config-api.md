@@ -4,7 +4,7 @@
 
 ## 读取与发布
 
-所有接口使用现有 tRPC 客户端，HTTP 路径前缀为 `/api/trpc`。管理操作需要 `role=admin` 的登录会话，并复用现有 CSRF 校验。
+所有接口使用现有 tRPC 客户端，HTTP 路径前缀为 `/api/trpc`。管理操作使用 `/admin` 的独立单密码会话，不依赖用户账号或 `role` 字段，并复用现有 CSRF 校验。密码、会话和直接调用示例见 [管理后台](management.md)。
 
 | 接口                           | 权限   | 含义                                                        |
 | ------------------------------ | ------ | ----------------------------------------------------------- |
@@ -36,6 +36,14 @@ await client.productConfig.admin.publish.mutate({
 ```
 
 完整字段、限制及 TypeScript 类型见 [shared/productConfig.ts](../shared/productConfig.ts)。多语言文本至少包含 `zh-CN`，可附加 `en`、`ja`、`ko`；缺少当前语言时回退中文。
+
+## 补查新增配置
+
+本轮新增 `characters`（角色默认行为、字段/示例上限、资料提示词预算、多语言会话标题）、`emotion`（情绪结算和心情文案/颜色）、`experience`（分页、朗读、录音下限、连接及统计窗口）与 `site`（公开说明、运营链接）。各字段及约束见 [shared/experienceConfig.ts](../shared/experienceConfig.ts)，消费链路见 [检查记录](configuration-audit.md)。
+
+`characters.conversationTitle` 的各语言必须包含且只使用 `{{name}}` 变量，并可容纳最长角色名。首次会话和显式新建都由服务端使用同一发布模板生成标题，客户端不再提交另一套固定文案。
+
+`runtime.storage.requestTimeoutMs` 统一控制 S3 上传、读取和删除超时；`signedUrlTtlSeconds` 控制私有文件临时签名有效期。`memory.jobs.leaseMinimumMs` 与 `leasePaddingMs` 决定提取任务租约：取最短租约和 `runtime.ai.taskTimeoutMs + leasePaddingMs` 的较大值。本地草稿的编辑长度直接采用 `runtime.chat.maxInputChars`，恢复和网络核对不再固定截断到 8000 字。
 
 ## 套餐与执行
 

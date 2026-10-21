@@ -1,5 +1,5 @@
-import { getPublishedProductConfig } from "./repositories/productConfig";
 /** 基于事务清理任务回收媒体，保留仍被其他记录引用的共享文件。 */
+import { getPublishedProductConfig } from "./repositories/productConfig";
 import { and, eq, isNull, lte, or, sql } from "drizzle-orm";
 import {
   girlfriends,

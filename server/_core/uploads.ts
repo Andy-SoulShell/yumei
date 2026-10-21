@@ -42,6 +42,8 @@ export function enforceUpload(
 /** 每次请求读取当前上限；不重启服务也能修改 JSON 与表单上传容量。 */
 export function uploadBodyParser(): import("express").RequestHandler {
   return (req, res, next) => {
+    if (!req.is(["application/json", "application/x-www-form-urlencoded"]))
+      return next();
     void getPublishedProductConfig()
       .then(config => {
         const options = { limit: config.uploads.requestMaxBytes };

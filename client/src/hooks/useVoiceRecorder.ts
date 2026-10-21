@@ -14,7 +14,7 @@ interface VoiceRecorderResult {
 /**
  * 管理麦克风授权、录音时长与编码选择，并提供开始、停止和取消操作。
  *
- * @remarks duration 单位为秒；六十秒时触发注册回调，停止录音由回调执行；卸载会清理音轨与计时器。
+ * @remarks duration 单位为秒；达到发布配置的录音时长上限时触发注册回调，停止录音由回调执行；卸载会清理音轨与计时器。
  */
 export function useVoiceRecorder() {
   const { t } = useI18n();
@@ -117,7 +117,7 @@ export function useVoiceRecorder() {
         setDuration(d => d + 1);
       }, 1000);
 
-      // 最大录音时长 60 秒
+      // 使用发布中的最大录音时长
       maxDurationRef.current = setTimeout(() => {
         toast.info(
           t("chat:recordingMaxDuration", { seconds: rules.maxDurationSeconds })
@@ -184,7 +184,7 @@ export function useVoiceRecorder() {
   }, [cleanup, t]);
 
   // 注册最大时长回调
-  /** 注册达到六十秒时的回调，由调用方决定如何结束和提交录音。 */
+  /** 注册达到配置时长上限时的回调，由调用方决定如何结束和提交录音。 */
   const setOnMaxDuration = useCallback((callback: () => void) => {
     onMaxDurationRef.current = callback;
   }, []);

@@ -1,6 +1,5 @@
-import { uploadBodyParser } from "./uploads";
 /** 应用启动入口，负责配置、迁移、健康探针、中间件顺序和优雅退出。 */
-
+import { uploadBodyParser } from "./uploads";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { toNodeHandler } from "better-auth/node";
 import "dotenv/config";

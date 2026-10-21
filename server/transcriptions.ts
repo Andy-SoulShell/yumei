@@ -1,6 +1,6 @@
+/** 保存一次性语音转写凭据，奖励只依据服务端返回的文本和时长。 */
 import type { ProductConfig } from "../shared/productConfig";
 import { getPublishedProductConfig } from "./repositories/productConfig";
-/** 保存一次性语音转写凭据，奖励只依据服务端返回的文本和时长。 */
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { voiceTranscriptions } from "../drizzle/schema";

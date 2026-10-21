@@ -1,7 +1,6 @@
+/** 使用内存中的录音调用 OpenAI Whisper，返回结构化结果或错误。 */
 import type { ProductConfig } from "../../shared/productConfig";
 import { getPublishedProductConfig } from "../repositories/productConfig";
-/** 使用内存中的录音调用 OpenAI Whisper，返回结构化结果或错误。 */
-
 /** 语音转写输入，包含录音字节与可选语言、上下文提示。 */
 
 export type TranscribeOptions = {
@@ -60,7 +59,7 @@ export type TranscriptionError = {
  *
  * @param options - 录音字节、语言及可选提示词
  * @param apiKey - 仅供服务端使用的 OpenAI 密钥
- * @remarks 不保存原始录音；转写最多等待六十秒。
+ * @remarks 不保存原始录音；转写超时由本次发布快照决定。
  */
 export async function transcribeWithOpenAI(
   options: TranscribeOptions,

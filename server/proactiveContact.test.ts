@@ -103,3 +103,37 @@ describe("explicit proactive contact windows", () => {
 function proactiveContactWindow(input: Parameters<typeof windowWithRules>[0]) {
   return windowWithRules(input, productFixture.proactive);
 }
+
+it("does not shorten a user interval longer than the unread backoff cap", () => {
+  const config = structuredClone(productFixture.proactive);
+  config.frequencyDays.max = 60;
+  const preferences = {
+    ...config.defaults,
+    proactiveEnabled: true,
+    frequencyDays: 45,
+    quietStart: 0,
+    quietEnd: 0,
+  };
+  expect(
+    windowWithRules(
+      {
+        preferences,
+        now: new Date("2026-10-20T12:00:00Z"),
+        lastContactAt: new Date("2026-09-10T12:00:00Z"),
+        unreadContacts: 10,
+      },
+      config
+    ).reason
+  ).toBe("cadence");
+  expect(
+    windowWithRules(
+      {
+        preferences,
+        now: new Date("2026-10-20T12:00:00Z"),
+        lastContactAt: new Date("2026-09-01T12:00:00Z"),
+        unreadContacts: 10,
+      },
+      config
+    ).allowed
+  ).toBe(true);
+});

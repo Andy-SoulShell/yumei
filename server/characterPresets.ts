@@ -1,12 +1,12 @@
+/** 读取受限公开角色资源，支持内置图片与管理员上传到存储的官方图片。 */
 import { enforceUpload } from "./_core/uploads";
 import { getPublishedProductConfig } from "./repositories/productConfig";
-/** 读取受限公开角色资源，支持内置图片与管理员上传到存储的官方图片。 */
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { officialImageSchema } from "../shared/discovery";
 import { storageRead } from "./storage";
 
-/** 校验真实文件签名和大小，避免上传内容与声明类型不一致。 */
+/** 识别真实文件签名；大小和允许类型由发布规则另外校验。 */
 export function officialImageMime(data: Buffer) {
   if (data.subarray(0, 3).equals(Buffer.from([255, 216, 255])))
     return "image/jpeg";

@@ -1,7 +1,6 @@
+/** 将发布工作流适配为 ComfyUI 任务，并处理参考图上传和结果轮询。 */
 import type { ProductConfig } from "../../shared/productConfig";
 import { getPublishedProductConfig } from "../repositories/productConfig";
-/** 将内置 Qwen 工作流适配为 ComfyUI 任务，并处理参考图上传和结果轮询。 */
-
 import axios from "axios";
 import { randomInt, randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
@@ -30,7 +29,7 @@ type HistoryEntry = {
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
 /**
- * 读取内置工作流并替换提示词、随机种子、输出前缀及参考图节点。
+ * 读取发布工作流并替换提示词、随机种子、输出前缀及参考图节点。
  *
  * @throws 参考图模式缺少图片时抛出错误。
  * @remarks 修改内存中的节点副本，不回写工作流模板。
@@ -107,6 +106,11 @@ export class ComfyUIClient {
     const policy =
       this.options.configuration ?? (await getPublishedProductConfig());
     const runtime = policy.runtime.image;
+    const maxReferenceBytes = Math.max(
+      policy.uploads.reference.maxBytes,
+      policy.uploads.couple.maxBytes,
+      policy.uploads.official.maxBytes
+    );
     const spec = policy.models.image.workflows[params.mode];
     const deadline =
       Date.now() + (this.options.timeoutMs ?? runtime.comfyuiTimeoutMs);
@@ -117,15 +121,16 @@ export class ComfyUIClient {
         Math.min(runtime.comfyuiRequestTimeoutMs, deadline - Date.now())
       ),
       maxContentLength: runtime.maxImageBytes,
-      maxBodyLength: runtime.maxImageBytes + 1024 * 1024,
+      maxBodyLength:
+        Math.max(runtime.maxImageBytes, maxReferenceBytes) + 1024 * 1024,
     });
     let promptId: string | undefined;
     try {
       const references: string[] = [];
       if (params.mode === "reference") {
         for (const reference of params.references ?? []) {
-          if (reference.data.length > runtime.maxImageBytes)
-            throw new Error(`参考图不能超过 ${runtime.maxImageBytes} 字节`);
+          if (reference.data.length > maxReferenceBytes)
+            throw new Error(`参考图不能超过 ${maxReferenceBytes} 字节`);
           const form = new FormData();
           const extension = reference.mimeType.split("/")[1] || "png";
           form.append(

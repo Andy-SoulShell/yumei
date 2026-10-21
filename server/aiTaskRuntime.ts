@@ -1,6 +1,6 @@
+/** 内部外部调用的预算、超时与脱敏计量。失败的真实调用仍占用预算。 */
 import type { ProductConfig } from "../shared/productConfig";
 import { getPublishedProductConfig } from "./repositories/productConfig";
-/** 内部外部调用的预算、超时与脱敏计量。失败的真实调用仍占用预算。 */
 import { and, eq, gte, isNull, sql } from "drizzle-orm";
 import {
   aiTaskRuns,

@@ -1,12 +1,12 @@
-import { getPublishedProductConfig } from "./repositories/productConfig";
 /** 上传前持久登记回收期限，业务提交后发布引用，覆盖失败和进程中断。 */
+import { getPublishedProductConfig } from "./repositories/productConfig";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { mediaDeletions } from "../drizzle/schema";
 import { getDb, type DbTransaction } from "./database";
 import { storagePut } from "./storage";
 
-/** 普通上传预留十分钟；临时播放音频可指定保留时长。 */
+/** 普通上传按发布规则预留回收时间；临时播放音频可指定保留时长。 */
 export async function putStagedMedia(
   userId: string,
   key: string,

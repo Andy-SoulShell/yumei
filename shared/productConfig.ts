@@ -256,6 +256,11 @@ export const productConfigSchema = z
       config.memory.recall.maxChars > context.total - context.platform
     )
       issue("提示词、补充消息和记忆预留超出总上下文预算");
+    if (
+      new TextEncoder().encode(JSON.stringify(config)).byteLength + 65536 >
+      config.uploads.requestMaxBytes
+    )
+      issue("请求体上限不足以保存完整业务配置");
     const chat = config.prompts.chat;
     const longest = (values: Record<string, string>) =>
       Math.max(...Object.values(values).map(v => v.length));

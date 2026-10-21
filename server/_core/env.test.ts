@@ -27,20 +27,23 @@ describe("env validation", () => {
       process.env.JWT_SECRET = "a".repeat(32);
       process.env.IMAGE_PROVIDER = "comfyui";
       process.env.COMFYUI_BASE_URL = url;
-      await expect(import("./env")).rejects.toThrow(/COMFYUI_BASE_URL/);
+      const { initialProductConfig } = await import("../seeds/product");
+      expect(() => initialProductConfig()).toThrow();
     }
   );
 
   it("rejects unsupported image providers", async () => {
     process.env.JWT_SECRET = "a".repeat(32);
     process.env.IMAGE_PROVIDER = "invalid";
-    await expect(import("./env")).rejects.toThrow(/IMAGE_PROVIDER/);
+    const { initialProductConfig } = await import("../seeds/product");
+    expect(() => initialProductConfig()).toThrow();
   });
 
   it("rejects unsupported chat providers", async () => {
     process.env.JWT_SECRET = "a".repeat(32);
     process.env.LLM_PROVIDER = "invalid";
-    await expect(import("./env")).rejects.toThrow(/LLM_PROVIDER/);
+    const { initialProductConfig } = await import("../seeds/product");
+    expect(() => initialProductConfig()).toThrow();
   });
 
   it("throws when JWT_SECRET is missing", async () => {
@@ -228,4 +231,15 @@ describe("env validation", () => {
     expect(Array.isArray(captured?.issues)).toBe(true);
     expect(captured?.issues.length).toBeGreaterThan(0);
   });
+});
+
+it("validates business environment values only when importing initial configuration", async () => {
+  process.env.JWT_SECRET = "a".repeat(32);
+  process.env.AI_DAILY_TASK_LIMIT = "0";
+  expect((await import("./env")).ENV.cookieSecret).toBe("a".repeat(32));
+  const { initialProductConfig } = await import("../seeds/product");
+  expect(() => initialProductConfig()).toThrow();
+  delete process.env.AI_DAILY_TASK_LIMIT;
+  process.env.COMPANION_PROACTIVE_ENABLED = "invalid";
+  expect(() => initialProductConfig()).toThrow(/COMPANION_PROACTIVE_ENABLED/);
 });

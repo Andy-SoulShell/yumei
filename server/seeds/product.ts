@@ -5,6 +5,13 @@ import { productConfigSchema } from "../../shared/productConfig";
 /** 部署中的结账链接和变体映射仅在初始化时导入，以后由管理 API 编辑。 */
 export function initialProductConfig() {
   const config = productConfigSchema.parse(data);
+  const initialEnabled = (name: string, fallback: boolean) => {
+    const value = process.env[name];
+    if (value === undefined || value === "") return fallback;
+    if (value !== "0" && value !== "1")
+      throw new Error(`${name}: expected 0 or 1 for initial configuration`);
+    return value === "1";
+  };
   for (const id of ["plus", "pro"]) {
     const plan = config.billing.plans.find(item => item.id === id)!;
     plan.checkoutUrl =
@@ -12,7 +19,10 @@ export function initialProductConfig() {
     plan.lemonVariantId =
       process.env[`LEMONSQUEEZY_VARIANT_${id.toUpperCase()}`] || null;
   }
-  config.proactive.enabled = process.env.COMPANION_PROACTIVE_ENABLED !== "0";
+  config.proactive.enabled = initialEnabled(
+    "COMPANION_PROACTIVE_ENABLED",
+    config.proactive.enabled
+  );
   if (process.env.PROACTIVE_TICK_MS)
     config.proactive.tickMs = Number(process.env.PROACTIVE_TICK_MS);
   if (process.env.PROACTIVE_PUSH_TIMEOUT_MS)
@@ -63,7 +73,10 @@ export function initialProductConfig() {
     "COMFYUI_TIMEOUT_MS",
     config.runtime.image.comfyuiTimeoutMs
   );
-  config.memory.enabled = process.env.COMPANION_MEMORY_ENABLED !== "0";
+  config.memory.enabled = initialEnabled(
+    "COMPANION_MEMORY_ENABLED",
+    config.memory.enabled
+  );
   const provider =
     process.env.LLM_PROVIDER === "deepseek" ? "deepseek" : "openrouter";
   config.memory.extraction.models[provider] =

@@ -336,22 +336,22 @@ export function registerBillingRoutes(app: Express) {
     "/api/billing/lemon-webhook",
     express.raw({ type: "*/*", limit: "1mb" }),
     async (req: Request, res: Response) => {
-      if (
-        getBillingMode(await getPublishedProductConfig()) !== "lemonsqueezy"
-      ) {
-        res.status(404).json({ error: "billing disabled" });
-        return;
-      }
-      const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET ?? "";
-      const signature = (req.headers["x-signature"] as string) ?? "";
-      const rawBody = req.body as Buffer;
-
-      if (!verifyLemonSignature(rawBody, signature, secret)) {
-        res.status(401).json({ error: "invalid signature" });
-        return;
-      }
-
       try {
+        if (
+          getBillingMode(await getPublishedProductConfig()) !== "lemonsqueezy"
+        ) {
+          res.status(404).json({ error: "billing disabled" });
+          return;
+        }
+        const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET ?? "";
+        const signature = (req.headers["x-signature"] as string) ?? "";
+        const rawBody = req.body as Buffer;
+
+        if (!verifyLemonSignature(rawBody, signature, secret)) {
+          res.status(401).json({ error: "invalid signature" });
+          return;
+        }
+
         const payload = JSON.parse(rawBody.toString("utf8"));
         const result = await handleLemonEvent(payload);
         if (!result.ok) {

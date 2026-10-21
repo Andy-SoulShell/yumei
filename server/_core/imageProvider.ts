@@ -1,7 +1,6 @@
+/** 解析图片服务并统一调用 ComfyUI 或 fal.ai，返回待保存的图片字节。 */
 import type { ProductConfig } from "../../shared/productConfig";
 import { getPublishedProductConfig } from "../repositories/productConfig";
-/** 解析图片服务并统一调用 ComfyUI 或 fal.ai，返回待保存的图片字节。 */
-
 import axios from "axios";
 import { keyProvider } from "./keyProvider";
 import {

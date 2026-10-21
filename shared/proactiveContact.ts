@@ -132,14 +132,17 @@ export function proactiveContactWindow(
     return { allowed: false, reason: "active" as const, day: clock.day };
   if (input.lastContactAt) {
     const last = proactiveLocalClock(input.lastContactAt, prefs.data.timeZone);
-    const cadence = Math.min(
-      rules.unreadBackoff.maxDays,
-      prefs.data.frequencyDays *
-        rules.unreadBackoff.base **
-          Math.min(
-            rules.unreadBackoff.maxExponent,
-            Math.max(0, input.unreadContacts ?? 0)
-          )
+    const cadence = Math.max(
+      prefs.data.frequencyDays,
+      Math.min(
+        rules.unreadBackoff.maxDays,
+        prefs.data.frequencyDays *
+          rules.unreadBackoff.base **
+            Math.min(
+              rules.unreadBackoff.maxExponent,
+              Math.max(0, input.unreadContacts ?? 0)
+            )
+      )
     );
     if (
       !last ||

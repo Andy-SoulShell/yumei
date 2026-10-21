@@ -453,6 +453,52 @@
   :where(:root[data-glass="experimental"]) .auth-page > div {
     border-radius: 24px;
   }
+  /* 手机玻璃登录卡片留出外边距，避免大屏手机上面板紧贴屏幕两侧。 */
+  @media (max-width: 900px) {
+    :where(:root[data-glass="experimental"]) .auth-page {
+      padding: max(24px, var(--safe-area-top)) max(20px, var(--safe-area-right))
+        max(24px, var(--safe-area-bottom)) max(20px, var(--safe-area-left));
+      scroll-padding-block: 24px;
+    }
+    :where(:root[data-glass="experimental"]) .auth-page > div {
+      max-width: 400px;
+      padding: clamp(20px, 5vw, 28px);
+    }
+    :where(:root[data-glass="experimental"])
+      .auth-page
+      .auth-flow
+      > div:first-child {
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-right: 0;
+    }
+    :where(:root[data-glass="experimental"])
+      .auth-page
+      .auth-flow
+      [role="combobox"] {
+      min-width: 0;
+      width: 128px;
+    }
+    :where(:root[data-glass="experimental"])
+      .auth-page
+      .auth-flow
+      > :not(:last-child) {
+      margin-block-end: 16px;
+    }
+    :where(:root[data-glass="experimental"])
+      .auth-page
+      .auth-flow
+      form
+      > :not(:last-child) {
+      margin-block-end: 12px;
+    }
+    :where(:root[data-glass="experimental"])
+      .auth-page
+      .auth-flow
+      > p:last-child {
+      padding-top: 4px;
+    }
+  }
   :where(:root[data-glass="experimental"])
     :is(
       .companion-card.is-active,

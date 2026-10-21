@@ -8,6 +8,7 @@ export default defineConfig({
     ...base.test,
     globalSetup: [],
     include: [
+      "client/src/App.test.tsx",
       "client/src/features/auth/*.test.tsx",
       "client/src/features/settings/PasswordSettings.test.tsx",
       "client/src/lib/auth-navigation.test.ts",

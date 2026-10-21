@@ -48,7 +48,13 @@ function Authenticated({ children }: { children: ReactNode }) {
       </div>
     );
   if (!isAuthenticated)
-    return <Redirect to={loginUrl(location + (search ? `?${search}` : ""))} />;
+    return (
+      // 替换私有页历史，避免手机返回后再次触发同一个登录守卫。
+      <Redirect
+        to={loginUrl(location + (search ? `?${search}` : ""))}
+        replace
+      />
+    );
   return children;
 }
 

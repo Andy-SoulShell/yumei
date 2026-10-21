@@ -1,7 +1,7 @@
 /** 公开首页：产品轮播、精选陪伴、前二十个角色、常见问题与注册引导。 */
 import { useState } from "react";
 import { Link } from "wouter";
-import { ArrowRight, ChevronDown, Heart, Sparkles } from "lucide-react";
+import { ArrowRight, ChevronDown, Heart } from "lucide-react";
 import type { StaticMessageKey } from "@shared/i18n";
 import { CHARACTER_PRESETS } from "@shared/characterPresets";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -77,9 +77,6 @@ export default function Landing() {
             >
               <span className="featured-avatar">
                 <img src={preset.imageUrl} alt="" loading="lazy" />
-                <span className="featured-spark">
-                  <Sparkles size={10} />
-                </span>
               </span>
               <span className="featured-name">{preset.name}</span>
               <span className="featured-label">

@@ -775,9 +775,8 @@
   height: var(--avatar-size);
   flex: none;
   aspect-ratio: 1;
-  padding: 3px;
   border-radius: 50%;
-  border: 1px solid color-mix(in oklch, var(--primary) 45%, var(--border));
+  border: 1px solid var(--border);
   transition:
     border-color 0.2s,
     transform 0.2s;
@@ -788,25 +787,12 @@
 }
 .featured-avatar img {
   position: absolute;
-  inset: 3px;
-  width: calc(100% - 6px);
-  height: calc(100% - 6px);
+  inset: 0;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   object-fit: cover;
   object-position: 50% 20%;
-}
-.featured-spark {
-  position: absolute;
-  right: 3px;
-  bottom: 3px;
-  width: 17px;
-  height: 17px;
-  display: grid;
-  place-items: center;
-  color: var(--primary-foreground);
-  background: var(--primary);
-  border: 2px solid var(--background);
-  border-radius: 50%;
 }
 .featured-name {
   width: 100%;

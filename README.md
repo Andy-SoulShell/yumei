@@ -42,6 +42,14 @@ cp .env.example .env
 
 在 `.env` 中设置独立的 `DATABASE_URL`，并为 `JWT_SECRET`、`KEY_ENCRYPTION_KEY` 分别填入两个不同的随机密钥（各至少 32 字符，可分别运行 `openssl rand -hex 32` 生成）。对话需要运营方 AI Key，或登录后在设置中填入自己的 Key。
 
+如果本机没有 MySQL，可用 Docker 单独启动开发数据库：
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --wait db
+```
+
+此时将 `.env` 的 `DATABASE_URL` 设为 `mysql://yumei:devpass@127.0.0.1:3307/yumei`；若设置了 `MYSQL_PASSWORD`，连接字符串中的密码也要对应修改，特殊字符需做 URL 编码。`--wait` 会等待 MySQL 健康检查通过，首次初始化时仅用 `up -d` 后立刻迁移可能报 `PROTOCOL_CONNECTION_LOST`。数据库就绪后执行：
+
 ```bash
 pnpm db:migrate
 pnpm dev

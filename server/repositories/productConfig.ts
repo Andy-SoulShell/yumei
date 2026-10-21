@@ -74,6 +74,7 @@ export async function getProductConfigDraft() {
   const row = await read(await database());
   return {
     config: row.draft,
+    published: row.published,
     revision: row.revision,
     publishedRevision: row.publishedRevision,
     publishedAt: row.publishedAt,

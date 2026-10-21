@@ -397,12 +397,6 @@ export function ConfigForm({
   const header = (
     <span className="flex min-w-0 items-center justify-between gap-3">
       <span className="truncate text-sm font-medium">{label}</span>
-      <span
-        className="max-w-[45%] truncate font-mono text-[10px] font-normal text-muted-foreground/70"
-        title={path}
-      >
-        {key}
-      </span>
     </span>
   );
   if (value === null)

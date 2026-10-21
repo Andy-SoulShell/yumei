@@ -48,7 +48,9 @@ async function waitFor(check: () => boolean) {
 }
 function button(text: string) {
   const result = Array.from(document.querySelectorAll("button")).find(
-    item => item.textContent?.trim() === text
+    item =>
+      item.textContent?.trim() === text ||
+      item.getAttribute("aria-label") === text
   );
   expect(result).toBeTruthy();
   return result!;
@@ -103,6 +105,7 @@ async function mount(
     reload = deferred();
   const product = {
     config: structuredClone(productFixture),
+    published: structuredClone(productFixture),
     revision: 2,
     publishedRevision: 1,
     publishedAt: new Date(),
@@ -121,6 +124,8 @@ async function mount(
     publishedAt: new Date(),
   };
   if (action === "publish") {
+    product.config.site.disclosure["zh-CN"] += "（待发布）";
+    product.config.uploads.avatar.maxBytes = 1024;
     content.characters[0].data.name += "（待发布）";
     content.characters[1].data.tagline["zh-CN"] = "另一个角色的待发布介绍";
     content.home.pageSize++;
@@ -220,6 +225,14 @@ async function mount(
         : title
   );
   if (workspace === "character")
+    await act(async () =>
+      container
+        .querySelector<HTMLButtonElement>(
+          `[aria-label="编辑角色 ${content.characters[0].data.name}"]`
+        )!
+        .click()
+    );
+  if (workspace === "character")
     await waitFor(() => !!container.querySelector('input[id$="-name"]'));
   return {
     write,
@@ -275,10 +288,11 @@ it.each<Workspace>(["product", "home", "character"])(
   "prevents %s publication from clearing edits in a later section",
   async workspace => {
     const state = await mount(workspace, "publish");
-    if (workspace === "product") await click("发布");
-    else {
-      await click("查看发布变更");
-      expect(button("确认发布全部变更").disabled).toBe(true);
+    {
+      await click(workspace === "product" ? "查看设置变更" : "查看发布变更");
+      const confirmation =
+        workspace === "product" ? "确认发布设置" : "确认发布全部变更";
+      expect(button(confirmation).disabled).toBe(true);
       await act(async () =>
         document
           .querySelector<HTMLInputElement>(
@@ -286,7 +300,7 @@ it.each<Workspace>(["product", "home", "character"])(
           )!
           .click()
       );
-      await click("确认发布全部变更");
+      await click(confirmation);
     }
     await waitFor(state.writing);
     expect(button("套餐与额度").disabled).toBe(true);
@@ -415,4 +429,121 @@ it("requires review of other roles and homepage changes before any publication r
   await click("返回编辑");
   expect(state.calls).not.toContain("discovery.admin.publish");
   expect(container.querySelector("h1")!.textContent).toBe("官方角色");
+});
+
+it("returns to the same filtered library after editing a character", async () => {
+  const state = await mount("character", "save");
+  await click("返回角色库");
+  const search = container.querySelector<HTMLInputElement>(
+    '[aria-label="搜索官方角色"]'
+  )!;
+  await change(search, state.content.characters[0].data.name);
+  expect(container.textContent).toContain("找到 1 个角色");
+  await act(async () =>
+    container
+      .querySelector<HTMLButtonElement>(
+        `[aria-label="编辑角色 ${state.content.characters[0].data.name}"]`
+      )!
+      .click()
+  );
+  await click("返回角色库");
+  expect(
+    container.querySelector<HTMLInputElement>('[aria-label="搜索官方角色"]')!
+      .value
+  ).toBe(state.content.characters[0].data.name);
+  await click("已归档");
+  expect(container.textContent).toContain("没有找到符合条件的角色");
+  expect(state.writing()).toBe(false);
+});
+
+it("saves visual featured ordering without altering multilingual homepage copy", async () => {
+  const state = await mount("home", "save");
+  const previous = structuredClone(state.content.home);
+  const first = state.content.characters.find(
+    item => item.id === previous.featuredIds[0]
+  )!.data.name;
+  await act(async () =>
+    container
+      .querySelector<HTMLButtonElement>(`[aria-label="下移${first}"]`)!
+      .click()
+  );
+  await click("保存草稿");
+  await act(async () => {
+    state.write.resolve();
+    state.reload.resolve();
+  });
+  await waitFor(() => !button("套餐与额度").disabled);
+  expect(state.content.home.featuredIds.slice(0, 2)).toEqual([
+    previous.featuredIds[1],
+    previous.featuredIds[0],
+  ]);
+  expect(state.content.home.faqs).toEqual(previous.faqs);
+  expect(state.content.home.slides).toEqual(previous.slides);
+});
+
+it("validates a new homepage FAQ and preserves existing translations", async () => {
+  const state = await mount("home", "save");
+  await click(`常见问题 (${state.content.home.faqs.length})`);
+  await click("新增问答");
+  expect(document.activeElement).toBe(field("问题6"));
+  expect(button("保存草稿").disabled).toBe(true);
+  await change(field("问题6"), "新的运营问题？");
+  await change(field("回答6"), "这是直接编辑的中文回答。");
+  expect(button("保存草稿").disabled).toBe(false);
+  await click("预览首页");
+  expect(document.querySelector('[role="dialog"]')!.textContent).toContain(
+    "新的运营问题？"
+  );
+  expect(
+    document.querySelector<HTMLButtonElement>('[role="dialog"] .hero-primary')!
+      .disabled
+  ).toBe(true);
+  expect(state.writing()).toBe(false);
+  await act(async () =>
+    document
+      .querySelector<HTMLButtonElement>(
+        '[role="dialog"] [data-slot="dialog-close"]'
+      )!
+      .click()
+  );
+  expect(field("问题6").value).toBe("新的运营问题？");
+  await click("保存草稿");
+  await act(async () => {
+    state.write.resolve();
+    state.reload.resolve();
+  });
+  await waitFor(() => !button("套餐与额度").disabled);
+  expect(state.content.home.faqs.at(-1)?.answer["zh-CN"]).toBe(
+    "这是直接编辑的中文回答。"
+  );
+  expect(state.content.home.faqs[0].answer.en).toBe(
+    initialDiscovery().home.faqs[0].answer.en
+  );
+});
+
+it("reviews changes from all setting sections without publishing on cancellation", async () => {
+  const state = await mount("product", "publish");
+  await click("查看设置变更");
+  const dialog = document.querySelector('[role="dialog"]')!;
+  expect(dialog.textContent).toContain("运营链接与页脚");
+  expect(dialog.textContent).toContain("上传与录音");
+  expect(button("确认发布设置").disabled).toBe(true);
+  await click("返回编辑");
+  expect(state.calls).not.toContain("productConfig.admin.publish");
+});
+
+it("summarizes content and settings in the publication center", async () => {
+  const state = await mount("character", "publish");
+  await click("发布中心");
+  expect(container.querySelector("h1")!.textContent).toBe("发布中心");
+  expect(container.textContent).toContain(
+    state.content.characters[1].data.name
+  );
+  expect(button("核对官方内容变更").disabled).toBe(false);
+  expect(button("核对设置变更").disabled).toBe(false);
+  await click("核对设置变更");
+  expect(document.querySelector('[role="dialog"]')!.textContent).toContain(
+    "2 个设置分区待发布"
+  );
+  expect(state.writing()).toBe(false);
 });

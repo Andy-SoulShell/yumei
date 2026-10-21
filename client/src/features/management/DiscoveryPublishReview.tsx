@@ -16,7 +16,7 @@ import {
   type FieldChange,
 } from "./officialEditor";
 
-function Changes({ fields }: { fields: FieldChange[] }) {
+export function Changes({ fields }: { fields: FieldChange[] }) {
   return (
     <dl className="mt-3 space-y-3">
       {fields.map((change, index) => (

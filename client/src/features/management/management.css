@@ -4,6 +4,142 @@
   gap: 12px;
   min-height: 28px;
 }
+
+.admin-shell {
+  --admin-gap: 24px;
+  --admin-radius: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.admin-eyebrow {
+  margin-bottom: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--primary);
+}
+.admin-title {
+  font-size: clamp(24px, 2.4vw, 32px);
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.035em;
+}
+.admin-welcome {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 32px;
+  background: linear-gradient(
+    120deg,
+    color-mix(in oklch, var(--primary) 9%, var(--card)),
+    var(--background)
+  );
+}
+.admin-welcome-art {
+  position: absolute;
+  right: 24px;
+  top: 24px;
+  width: 160px;
+  height: 160px;
+  color: var(--primary);
+  opacity: 0.08;
+  transform: rotate(-12deg);
+}
+.admin-panel,
+.admin-stat,
+.admin-role-card {
+  border: 1px solid var(--border);
+  border-radius: var(--admin-radius);
+  background: var(--card);
+  min-width: 0;
+}
+.admin-panel {
+  padding: 24px;
+}
+.admin-stat {
+  padding: 20px;
+  text-align: left;
+  transition: border-color 0.2s;
+}
+.admin-stat:hover,
+.admin-role-card:hover {
+  border-color: color-mix(in oklch, var(--primary) 50%, var(--border));
+}
+.admin-role-card {
+  overflow: hidden;
+  text-align: left;
+  transition:
+    border-color 0.2s,
+    transform 0.2s;
+}
+.admin-role-card:hover {
+  transform: translateY(-2px);
+}
+.admin-role-card:focus-visible,
+.admin-stat:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.admin-select {
+  height: 40px;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--background);
+  padding: 0 12px;
+  font-size: 13px;
+}
+.admin-empty {
+  border: 1px dashed var(--border);
+  border-radius: var(--admin-radius);
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--muted-foreground);
+}
+.admin-nav-group {
+  margin-bottom: 16px;
+}
+.admin-nav-group > summary {
+  cursor: pointer;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.admin-nav-group > div {
+  margin-top: 4px;
+}
+@media (max-width: 639px) {
+  .admin-welcome {
+    padding: 24px;
+  }
+  .admin-panel {
+    padding: 16px;
+  }
+  .admin-stat {
+    padding: 16px;
+  }
+  .admin-toolbar > div {
+    min-width: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-role-card,
+  .admin-stat {
+    transition: none;
+  }
+  .admin-role-card:hover {
+    transform: none;
+  }
+}
 .admin-config-group > summary::-webkit-details-marker {
   display: none;
 }

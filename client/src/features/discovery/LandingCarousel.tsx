@@ -16,9 +16,11 @@ import { Button } from "@/components/ui/button";
 export function LandingCarousel({
   slides,
   intervalMs,
+  preview = false,
 }: {
   slides: ReturnType<typeof localizeDiscovery>["home"]["slides"];
   intervalMs: number;
+  preview?: boolean;
 }) {
   const { t } = useI18n();
   const [index, setIndex] = useState(0);
@@ -109,12 +111,19 @@ export function LandingCarousel({
           </h1>
         </div>
         <div className="hero-actions">
-          <Button asChild className="hero-primary">
-            <Link href={slide.href}>
+          {preview ? (
+            <Button className="hero-primary" disabled>
               {slide.action}
               <ArrowRight />
-            </Link>
-          </Button>
+            </Button>
+          ) : (
+            <Button asChild className="hero-primary">
+              <Link href={slide.href}>
+                {slide.action}
+                <ArrowRight />
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
       {slides.length > 1 && (

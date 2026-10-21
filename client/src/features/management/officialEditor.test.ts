@@ -78,6 +78,35 @@ describe("official character editing", () => {
   });
 });
 describe("official publication review", () => {
+  it("shows only the edited FAQ field instead of all unchanged multilingual questions", () => {
+    const state = draft();
+    state.home.faqs[0].answer["zh-CN"] = "新的中文答案";
+    const review = discoveryPublicationReview(state, rules);
+    expect(review.home).toHaveLength(1);
+    expect(review.home[0]).toMatchObject({
+      field: expect.stringContaining("回答 · 简体中文"),
+      before: state.published.home.faqs[0].answer["zh-CN"],
+      after: "新的中文答案",
+    });
+    expect(review.home[0].before).not.toContain(
+      state.published.home.faqs[1].question["zh-CN"]
+    );
+  });
+  it("reports carousel ordering and added or removed entries separately by stable ID", () => {
+    const state = draft(),
+      original = structuredClone(state.home.slides);
+    state.home.slides = [
+      original[1],
+      original[0],
+      { ...original[2], id: "new-slide" },
+    ];
+    const fields = discoveryPublicationReview(state, rules).home.map(
+      item => item.field
+    );
+    expect(fields).toContain("轮播 · 展示顺序");
+    expect(fields.some(field => field.includes("新增"))).toBe(true);
+    expect(fields.some(field => field.includes("移除"))).toBe(true);
+  });
   it("includes all changed roles, archives and homepage drafts with before/after values", () => {
     const state = draft();
     state.characters[0].data.name = "新的名字";

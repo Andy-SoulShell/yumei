@@ -280,21 +280,74 @@ export function discoveryPublicationReview(
       draft.published.characters
     ),
     afterHome = namedHome(draft.home, active);
-  const home = changes(draft.published.home, draft.home).map(change => {
-    const key =
-      change.field === "默认角色"
-        ? "defaultPresetId"
-        : change.field === "精选角色"
-          ? "featuredIds"
-          : null;
-    return key
-      ? {
-          ...change,
-          before: display(beforeHome[key]),
-          after: display(afterHome[key]),
-        }
-      : change;
-  });
+  const basics = (home: DiscoverySnapshot["home"]) =>
+    Object.fromEntries(
+      Object.entries(home).filter(([key]) => key !== "slides" && key !== "faqs")
+    );
+  const home = changes(basics(draft.published.home), basics(draft.home)).map(
+    change => {
+      const key =
+        change.field === "默认角色"
+          ? "defaultPresetId"
+          : change.field === "精选角色"
+            ? "featuredIds"
+            : null;
+      return key
+        ? {
+            ...change,
+            before: display(beforeHome[key]),
+            after: display(afterHome[key]),
+          }
+        : change;
+    }
+  );
+  for (const key of ["slides", "faqs"] as const) {
+    const before = draft.published.home[key],
+      after = draft.home[key],
+      label = key === "slides" ? "轮播" : "常见问题";
+    const title = (item: (typeof before)[number]) =>
+      (
+        ("question" in item ? item.question : item.title)["zh-CN"] ||
+        "未命名条目"
+      ).slice(0, 32);
+    const copy = (item: (typeof before)[number]) =>
+      Object.fromEntries(Object.entries(item).filter(([key]) => key !== "id"));
+    const oldOrder = before
+        .filter(item => after.some(next => next.id === item.id))
+        .map(item => item.id),
+      newOrder = after
+        .filter(item => before.some(old => old.id === item.id))
+        .map(item => item.id);
+    if (!sameConfigValue(oldOrder, newOrder))
+      home.push({
+        field: `${label} · 展示顺序`,
+        before: before.map(title).join(" → "),
+        after: after.map(title).join(" → "),
+      });
+    for (const item of after) {
+      const previous = before.find(old => old.id === item.id);
+      if (!previous)
+        home.push({
+          field: `${label} · 新增「${title(item)}」`,
+          before: "无",
+          after: display(copy(item)),
+        });
+      else
+        home.push(
+          ...changes(copy(previous), copy(item)).map(change => ({
+            ...change,
+            field: `${label} · ${title(item)} · ${change.field}`,
+          }))
+        );
+    }
+    for (const previous of before)
+      if (!after.some(item => item.id === previous.id))
+        home.push({
+          field: `${label} · 移除「${title(previous)}」`,
+          before: display(copy(previous)),
+          after: "无",
+        });
+  }
   const homeReferences = items
     .filter(item =>
       [

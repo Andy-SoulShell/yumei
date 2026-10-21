@@ -271,6 +271,9 @@ describe("published product configuration", () => {
         config,
       });
       await initializeProductConfig();
+      const pending = await admin.productConfig.admin.getDraft();
+      expect(pending.published).toEqual(draft.published);
+      expect(pending.published.billing).toEqual(initial.billing);
       expect((await admin.productConfig.admin.getDraft()).config).toEqual(
         config
       );

@@ -667,14 +667,17 @@ export function useChatController() {
     if (previous) void submitChat({ content: previous.content });
   };
 
-  const handleSpeakMessage = (text: string, messageId: number) => {
-    if (!isCurrentScope()) return;
-    if (isSpeaking && activeMessageId === messageId) {
-      stop();
-    } else {
-      speak(text, messageId);
-    }
-  };
+  const handleSpeakMessage = useCallback(
+    (text: string, messageId: number) => {
+      if (!isCurrentScope()) return;
+      if (isSpeaking && activeMessageId === messageId) {
+        stop();
+      } else {
+        speak(text, messageId);
+      }
+    },
+    [isCurrentScope, isSpeaking, activeMessageId, stop, speak]
+  );
 
   // 相机按钮改为打开姿势选择器；姿势随亲密度解锁。
   const handleSelectPose = async (

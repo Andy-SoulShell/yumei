@@ -3,6 +3,38 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { expect, it, vi } from "vitest";
 import { useAutosizeTextarea } from "./useAutosizeTextarea";
+it("追加文字未换行时不重置高度，换行和删除时仍正确伸缩", () => {
+  const textarea = document.createElement("textarea");
+  let height = 44;
+  Object.defineProperties(textarea, {
+    clientHeight: { get: () => Number.parseFloat(textarea.style.height) || 44 },
+    scrollHeight: { get: () => height },
+  });
+  const ref = { current: textarea };
+  const node = document.createElement("div");
+  document.body.append(node);
+  const root = createRoot(node);
+  function Harness({ value }: { value: string }) {
+    useAutosizeTextarea(ref, value);
+    return null;
+  }
+  try {
+    act(() => root.render(<Harness value="原文" />));
+    const writes = vi.spyOn(textarea.style, "height", "set");
+    act(() => root.render(<Harness value="原文继续输入" />));
+    expect(writes).not.toHaveBeenCalled();
+    height = 68;
+    act(() => root.render(<Harness value="原文继续输入并换行" />));
+    expect(writes.mock.calls).toEqual([["68px"]]);
+    height = 44;
+    act(() => root.render(<Harness value="原" />));
+    expect(textarea.style.height).toBe("44px");
+    writes.mockRestore();
+  } finally {
+    act(() => root.unmount());
+    node.remove();
+  }
+});
 it("resizes on the next frame after a width change and cancels pending work on unmount", () => {
   let notify: () => void = () => {};
   let next: FrameRequestCallback | undefined;

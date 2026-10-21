@@ -52,7 +52,7 @@ export function useTTS() {
 
   // 获取用户的 TTS 配置
   const { data: apiConfig } = trpc.apiConfig.get.useQuery();
-  const ttsGenerate = trpc.tts.generate.useMutation();
+  const { mutate: generateSpeech } = trpc.tts.generate.useMutation();
 
   // 分别读取偏好与脱敏后的密钥状态。
   const ttsProvider = apiConfig?.preferences?.ttsProvider || "browser";
@@ -99,7 +99,7 @@ export function useTTS() {
   // API 语音（ElevenLabs / Fish Audio）
   const speakApi = useCallback(
     (text: string, request: number) => {
-      ttsGenerate.mutate(
+      generateSpeech(
         { text },
         {
           onSuccess: data => {
@@ -135,7 +135,7 @@ export function useTTS() {
         }
       );
     },
-    [ttsGenerate, playbackSpeed, t, finish]
+    [generateSpeech, playbackSpeed, t, finish]
   );
 
   const speak = useCallback(

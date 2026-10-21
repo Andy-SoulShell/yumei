@@ -9,8 +9,9 @@ const mock = vi.hoisted(() => ({
   provider: "browser",
   mutate: vi.fn(),
   error: vi.fn(),
+  translate: (key: string) => key,
 }));
-vi.mock("@/lib/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
+vi.mock("@/lib/i18n", () => ({ useI18n: () => ({ t: mock.translate }) }));
 vi.mock("sonner", () => ({ toast: { error: mock.error } }));
 vi.mock("@/lib/trpc", () => ({
   trpc: {
@@ -82,6 +83,17 @@ function unmount() {
   act(() => root.unmount());
   unmounted = true;
 }
+
+it("无关状态更新不会重建播放回调，速度改变后仍使用新的配置", () => {
+  render();
+  const speak = state.speak;
+  act(() => state.toggleAutoPlay());
+  expect(state.speak).toBe(speak);
+  act(() => state.updateSpeed(1.5));
+  expect(state.speak).not.toBe(speak);
+  act(() => state.speak("新语速", 11));
+  expect(utterances[0].rate).toBeCloseTo(1.5 * 0.95);
+});
 
 it("tracks the selected message and ignores the previous utterance ending after a switch", () => {
   render();

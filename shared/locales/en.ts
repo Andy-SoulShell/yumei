@@ -434,7 +434,8 @@ export default {
     yourOwnKeyUsesYourOwnAccountBypasses:
       "Your own key bills your account, bypasses the allowance and lets you choose a model.",
     loadingAvailableModels: "Loading available models…",
-    selectedModel: "Selected model",
+    activeChatModel: "Active chat model",
+    selectedModel: "Selected model preference (applied after saving)",
     context: "Context:",
     kTokensInput: "K tokens | Input:",
     tokenOutput: "/token | Output:",

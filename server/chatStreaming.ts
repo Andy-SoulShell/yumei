@@ -14,7 +14,7 @@ import {
 import type { ChatTurnSnapshot } from "../shared/chatStreaming";
 import { METERS } from "../shared/quotas";
 import { detectSelfHarm } from "../shared/safety";
-import { resolveChatProvider } from "./_core/chatProvider";
+import { resolveChatModel, resolveChatProvider } from "./_core/chatProvider";
 import { parseChatProviderStream } from "./_core/chatStreamProvider";
 import { log, providerErrorSummary } from "./_core/log";
 import { getTierLimits, isBillingEnforced, upsellHint } from "./billing";
@@ -207,12 +207,12 @@ export async function submitChatTurn(
     provider: provider.name,
     baseUrl: provider.baseUrl,
     isByok: provider.isByok,
-    model:
-      provider.name === "deepseek"
-        ? provider.model
-        : isBillingEnforced(policy) && limits.modelLocked && !provider.isByok
-          ? policy.billing.defaultChatModel
-          : config?.llmModel || policy.billing.defaultChatModel,
+    model: resolveChatModel(
+      provider,
+      config?.llmModel,
+      policy,
+      limits.modelLocked
+    ),
   };
   const id = await withUserTransaction(user.id, async tx => {
     const [duplicate] = await tx

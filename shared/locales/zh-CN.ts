@@ -418,7 +418,8 @@ export default {
     yourOwnKeyUsesYourOwnAccountBypasses:
       "自己的 Key 由你的账户付费，不占额度，可自由选模型。",
     loadingAvailableModels: "正在加载可用模型列表...",
-    selectedModel: "当前模型",
+    activeChatModel: "当前实际运行模型",
+    selectedModel: "所选模型偏好（保存后应用）",
     context: "上下文：",
     kTokensInput: "K tokens | 输入：",
     tokenOutput: "/token | 输出：",

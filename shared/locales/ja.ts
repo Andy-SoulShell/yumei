@@ -441,7 +441,8 @@ export default {
     yourOwnKeyUsesYourOwnAccountBypasses:
       "自分のキーは自身のアカウントで課金され、枠を消費せずモデルを選べます。",
     loadingAvailableModels: "利用可能なモデルを読み込み中…",
-    selectedModel: "選択中のモデル",
+    activeChatModel: "現在の実行モデル",
+    selectedModel: "選択したモデル設定（保存後に適用）",
     context: "コンテキスト：",
     kTokensInput: "K トークン | 入力：",
     tokenOutput: "/トークン | 出力：",

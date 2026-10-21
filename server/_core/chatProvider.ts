@@ -3,6 +3,20 @@
 import type { ProductConfig } from "../../shared/productConfig";
 import { getPublishedProductConfig } from "../repositories/productConfig";
 import { keyProvider } from "./keyProvider";
+import { isBillingEnforced } from "../billing";
+
+/** 设置页报告和聊天任务执行共用模型选择，保留未选择模型时的动态默认语义。 */
+export function resolveChatModel(
+  provider: Pick<ChatProvider, "name" | "model" | "isByok">,
+  preferredModel: string | null | undefined,
+  configuration: ProductConfig,
+  modelLocked: boolean
+) {
+  if (provider.name === "deepseek") return provider.model;
+  if (isBillingEnforced(configuration) && modelLocked && !provider.isByok)
+    return configuration.billing.defaultChatModel;
+  return preferredModel || configuration.billing.defaultChatModel;
+}
 
 /** 一次聊天实际使用的 Provider、模型、基础地址与服务端密钥。 */
 export type ChatProvider = {

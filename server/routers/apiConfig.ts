@@ -2,7 +2,8 @@ import { getPublishedProductConfig } from "../repositories/productConfig";
 import { TRPCError } from "@trpc/server";
 import axios from "axios";
 import { z } from "zod";
-import { resolveChatProvider } from "../_core/chatProvider";
+import { resolveChatModel, resolveChatProvider } from "../_core/chatProvider";
+import { getTierLimits } from "../billing";
 import {
   resolveImageProvider,
   imageGenerationModel,
@@ -23,6 +24,7 @@ export const apiConfigRouter = router({
     const keys = await keyProvider.describeUserKeys(ctx.user.id);
     const policy = await getPublishedProductConfig();
     const chatProvider = await resolveChatProvider(ctx.user.id, policy);
+    const { limits } = await getTierLimits(ctx.user.id, policy);
     const imageProvider = await resolveImageProvider(ctx.user.id, policy);
     return {
       // null when the user hasn't saved preferences yet — frontend
@@ -32,7 +34,12 @@ export const apiConfigRouter = router({
       keys,
       chatProvider: {
         name: chatProvider.name,
-        model: chatProvider.model,
+        model: resolveChatModel(
+          chatProvider,
+          config?.llmModel,
+          policy,
+          limits.modelLocked
+        ),
         configured: !!chatProvider.apiKey,
       },
       imageProvider: {

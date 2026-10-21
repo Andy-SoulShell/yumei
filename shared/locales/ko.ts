@@ -432,7 +432,8 @@ export default {
     yourOwnKeyUsesYourOwnAccountBypasses:
       "본인 키는 본인 계정에 과금되며 한도 없이 모델을 선택할 수 있어요.",
     loadingAvailableModels: "사용 가능한 모델 불러오는 중…",
-    selectedModel: "선택한 모델",
+    activeChatModel: "현재 실행 중인 모델",
+    selectedModel: "선택한 모델 설정 (저장 후 적용)",
     context: "컨텍스트: ",
     kTokensInput: "K 토큰 | 입력: ",
     tokenOutput: "/토큰 | 출력: ",

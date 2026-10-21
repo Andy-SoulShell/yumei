@@ -104,6 +104,16 @@ export function ChatModelSettings({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
+        {apiConfig?.chatProvider.model && (
+          <div className="rounded-xl border bg-primary/5 p-3">
+            <p className="text-xs text-muted-foreground">
+              {t("settings:activeChatModel")}
+            </p>
+            <p className="mt-1 break-all font-mono text-sm">
+              {apiConfig.chatProvider.model}
+            </p>
+          </div>
+        )}
         <div className="space-y-2">
           <Label
             htmlFor="openRouterKey"

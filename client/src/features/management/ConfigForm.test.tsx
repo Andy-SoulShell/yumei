@@ -2,7 +2,7 @@
 /** 管理控件修改同一份草稿：颜色双向同步、固定色卡与数组排序。 */
 import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { themesConfigSchema, productConfigSchema } from "@shared/productConfig";
 import { productFixture } from "../../../../server/testProductConfig";
@@ -11,6 +11,18 @@ import { ThemeEditor } from "./ThemeEditor";
 let root: Root, container: HTMLDivElement;
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+  );
+  HTMLElement.prototype.scrollIntoView = vi.fn();
+  HTMLElement.prototype.hasPointerCapture = () => false;
+  HTMLElement.prototype.setPointerCapture = vi.fn();
+  HTMLElement.prototype.releasePointerCapture = vi.fn();
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -18,6 +30,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
+  vi.unstubAllGlobals();
 });
 async function change(
   element: HTMLInputElement | HTMLSelectElement,
@@ -32,6 +45,23 @@ async function change(
     element.dispatchEvent(new Event("change", { bubbles: true }));
     element.dispatchEvent(new Event("input", { bubbles: true }));
   });
+}
+async function choose(trigger: HTMLElement, label: string) {
+  await act(async () => {
+    trigger.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+    );
+    await new Promise(resolve => setTimeout(resolve, 20));
+  });
+  const option = Array.from(
+    document.querySelectorAll<HTMLElement>('[role="option"]')
+  ).find(item => item.textContent?.includes(label))!;
+  expect(option).toBeTruthy();
+  await act(async () =>
+    option.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+    )
+  );
 }
 it("synchronizes the color picker, hex input and preview while keeping invalid text editable", async () => {
   let color = "";
@@ -82,7 +112,9 @@ it("offers role references by label, retains the ID and reorders the same array"
     );
   }
   await act(async () => root.render(<Probe />));
-  expect(container.querySelector("select")!.textContent).toContain("小桃");
+  expect(container.querySelector('[role="combobox"]')!.textContent).toContain(
+    "小桃"
+  );
   await act(async () =>
     container
       .querySelector<HTMLButtonElement>(
@@ -91,7 +123,7 @@ it("offers role references by label, retains the ID and reorders the same array"
       .click()
   );
   expect(value).toEqual(["two", "one"]);
-  await change(container.querySelector("select")!, "one");
+  await choose(container.querySelector('[role="combobox"]')!, "小桃");
   expect(value[0]).toBe("one");
 });
 it("previews the draft theme and edits the fixed three-color palette without array deletion", async () => {
@@ -253,9 +285,8 @@ it("offers constrained format checkboxes and retains at least one allowed upload
     );
   }
   await act(async () => root.render(<Probe />));
-  const boxes = container.querySelectorAll<HTMLInputElement>(
-    'input[type="checkbox"]'
-  );
+  const boxes =
+    container.querySelectorAll<HTMLButtonElement>('[role="checkbox"]');
   expect(boxes).toHaveLength(4);
   expect(boxes[0].disabled).toBe(true);
   await act(async () => boxes[1].click());
@@ -280,6 +311,6 @@ it("preserves numeric enum values rather than sending strings", async () => {
     );
   }
   await act(async () => root.render(<Probe />));
-  await change(container.querySelector("select")!, "1.5");
+  await choose(container.querySelector('[role="combobox"]')!, "1.5");
   expect(value).toBe(1.5);
 });

@@ -172,11 +172,47 @@ export function nullableLabel(path: string) {
   if (/checkoutUrl|lemonVariantId/.test(path)) return "未关联支付";
   if (/temperature|topP/.test(path)) return "使用模型默认值";
   if (/bonusThreshold/.test(path)) return "不使用额外奖励阈值";
-  if (/model|openrouter|deepseek|semantic/i.test(path))
-    return "使用服务默认模型";
+  if (/comfyuiBaseUrl$/.test(path)) return "未配置 ComfyUI 服务";
+  if (/BaseUrl$/.test(path)) return "使用默认服务地址";
+  if (/(?:[Mm]odel|openrouter|deepseek)$/.test(path)) return "使用服务默认模型";
   return "未设置";
 }
 export function fieldHint(path: string): string | undefined {
+  if (path.startsWith("prompts.")) {
+    const fixed: Record<string, string[]> = {
+      "prompts.chat.system": [
+        "characterData",
+        "expression",
+        "verbosity",
+        "initiative",
+        "relationship",
+        "tone",
+        "cause",
+        "emotionIntensity",
+        "styleData",
+        "preferencesData",
+        "languageRule",
+        "lengthRule",
+        "memoryState",
+      ],
+      "prompts.chat.languageRule": ["language"],
+      "prompts.chat.lengthRule": ["length"],
+      "prompts.chat.turnLanguage": ["language"],
+      "prompts.image.reference": ["scene"],
+      "prompts.image.text": ["scene", "appearance"],
+      "prompts.image.couple": ["scene"],
+      "prompts.extraction": ["maxLength"],
+      "prompts.memoryContext": ["records"],
+    };
+    if (fixed[path])
+      return `必须保留且只能使用这些变量：${fixed[path].map(name => `{{${name}}}`).join("、")}`;
+    if (!/^prompts\.(quickTemplates|context)\./.test(path))
+      return "纯文本指令，不使用模板变量；保存前会验证必需内容。";
+  }
+  if (path.startsWith("proactive.templates."))
+    return /private(Title|Preview)/.test(path)
+      ? "隐私文案不能包含角色、记忆或事件变量。"
+      : "可使用 {{name}}、{{memory}}、{{eventDay}}；其他变量会阻止保存。";
   if (/timeZone$/.test(path))
     return "使用 IANA 时区，例如 Asia/Shanghai；时段均按此时区解释。";
   if (/quiet(Start|End)$/.test(path))

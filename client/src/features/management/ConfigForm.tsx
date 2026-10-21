@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+import { ChoiceField } from "./ChoiceField";
 import { officialImageSchema } from "@shared/discovery";
 import { ColorField, isHexColor } from "./ColorField";
 import { NumberField } from "./NumberField";
@@ -381,6 +384,30 @@ const labels: Record<string, string> = {
   clientPollMs: "客户端重连检查间隔",
   defaultDays: "默认统计天数",
   sampleSize: "统计样本数量",
+  tone: "情绪语气",
+  cause: "互动原因",
+  calm: "平静",
+  concerned: "关心",
+  hurt: "受伤",
+  relationshipStages: "关系阶段",
+  instruction: "阶段指令",
+  languageRule: "回复语言规则",
+  lengthRule: "回复长度规则",
+  turnLanguage: "本轮语言提示",
+  memoryEnabled: "记忆启用提示",
+  memoryDisabled: "记忆关闭提示",
+  defaultScene: "默认自拍场景",
+  defaultCoupleScene: "默认合照场景",
+  memoryContext: "记忆上下文模板",
+  memoryTemporal: "时间记忆说明",
+  unknown: "未知时间",
+  undated: "未注明日期",
+  past: "过往事件",
+  dated: "指定日期",
+  fact: "事实",
+  preference: "偏好",
+  event: "事件",
+  relationship: "关系",
 };
 export function fieldLabel(key: string) {
   return (labels[key] ?? key.replace(/([a-z])([A-Z])/g, "$1 $2")).replace(
@@ -434,6 +461,8 @@ function itemName(value: unknown, index: number): string {
         return String(item["zh-CN"]);
     }
   }
+  if (value && typeof value === "object" && "minLevel" in value)
+    return `${value.minLevel} 级起`;
   return `第 ${index + 1} 项`;
 }
 export type FieldChoice = { value: string; label: string; imageUrl?: string };
@@ -575,15 +604,14 @@ export function ConfigForm({
                   key={String(option)}
                   className="flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm"
                 >
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={checked}
                     disabled={
                       disabled || (checked && value.length <= (s.minItems ?? 0))
                     }
-                    onChange={event =>
+                    onCheckedChange={checked =>
                       onChange(
-                        event.target.checked
+                        checked === true
                           ? [...value, option]
                           : value.filter(item => item !== option)
                       )
@@ -848,7 +876,15 @@ export function ConfigForm({
           {fields}
         </div>
       );
-    if (flat && depth === 0) return <div className="min-w-0">{fields}</div>;
+    if (flat)
+      return depth === 0 ? (
+        <div className="min-w-0">{fields}</div>
+      ) : (
+        <fieldset className="min-w-0 rounded-xl border p-4">
+          <legend className="px-1 text-sm font-medium">{label}</legend>
+          {fields}
+        </fieldset>
+      );
     return (
       <details
         open={depth < 1}
@@ -875,6 +911,19 @@ export function ConfigForm({
     );
   const values: FieldChoice[] | undefined =
     choices?.(path) ??
+    (textKind(path) === "timezone"
+      ? Array.from(
+          new Set(["UTC", String(value), ...Intl.supportedValuesOf("timeZone")])
+        )
+          .filter(Boolean)
+          .map(value => ({ value, label: value }))
+      : textKind(path) === "currency"
+        ? Array.from(
+            new Set([String(value), ...Intl.supportedValuesOf("currency")])
+          )
+            .filter(Boolean)
+            .map(value => ({ value, label: value }))
+        : undefined) ??
     s.enum?.map(item => ({
       value: String(item),
       label:
@@ -899,38 +948,24 @@ export function ConfigForm({
   const hint = fieldHint(path);
   const helpId = `${id}-help`;
   return (
-    <div className="min-w-0 space-y-2">
-      <Label htmlFor={id} className="block">
+    <Field className="min-w-0 gap-2" data-invalid={!!error}>
+      <FieldLabel htmlFor={id} className="block">
         {header}
-      </Label>
+      </FieldLabel>
       {values ? (
         <>
-          <select
+          <ChoiceField
             id={id}
+            label={label}
             disabled={disabled}
-            className="h-10 w-full rounded-xl border bg-background px-3 text-sm"
             value={String(value)}
-            aria-invalid={!!error}
-            aria-describedby={helpId}
-            onChange={event =>
-              onChange(
-                typeof value === "number"
-                  ? Number(event.target.value)
-                  : event.target.value
-              )
+            choices={values}
+            error={error}
+            describedBy={helpId}
+            onChange={next =>
+              onChange(typeof value === "number" ? Number(next) : next)
             }
-          >
-            {!selected && (
-              <option value={String(value)}>
-                {String(value) || "请选择"}（需要重新选择）
-              </option>
-            )}
-            {values.map(item => (
-              <option key={item.value} value={item.value}>
-                {item.label}
-              </option>
-            ))}
-          </select>
+          />
           {selected?.imageUrl &&
             officialImageSchema.safeParse(selected.imageUrl).success && (
               <div className="flex items-center gap-3 rounded-xl bg-muted/20 p-3">
@@ -1004,7 +1039,7 @@ export function ConfigForm({
           className="space-y-1 text-xs text-muted-foreground"
           aria-live="polite"
         >
-          {error && <p className="text-destructive">{error}</p>}
+          {error && <FieldError className="text-xs">{error}</FieldError>}
           {typeof value === "string" && s.maxLength !== undefined && (
             <p>
               {value.length} / {s.maxLength} 字符
@@ -1087,6 +1122,6 @@ export function ConfigForm({
             : nullableLabel(path)}
         </Button>
       )}
-    </div>
+    </Field>
   );
 }

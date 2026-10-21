@@ -1,0 +1,384 @@
+/** 套餐、姿势、等级和快捷模板使用内容卡片与独立编辑区。 */
+import { useState } from "react";
+import { Plus, Trash2, ArrowUp, ArrowDown, Search } from "lucide-react";
+import type { ProductConfig } from "@shared/productConfig";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import type { FormSchema } from "./ConfigForm";
+import { SettingsFields } from "./SettingsFields";
+export type CollectionKind = "plans" | "poses" | "levels" | "quickTemplates";
+type Item = Record<string, unknown>;
+const titles: Record<CollectionKind, string> = {
+  plans: "套餐",
+  poses: "姿势",
+  levels: "等级",
+  quickTemplates: "快捷模板",
+};
+const text = (value: unknown) =>
+  value && typeof value === "object"
+    ? String((value as Item)["zh-CN"] || "")
+    : String(value || "");
+export const collectionName = (item: Item) =>
+  text(item.label ?? item.name) || "未命名";
+function summary(kind: CollectionKind, item: Item) {
+  if (kind === "plans") {
+    const price = item.price as {
+      amount: number;
+      currency: string;
+      period: string;
+    };
+    try {
+      return `${new Intl.NumberFormat("zh-CN", { style: "currency", currency: price.currency }).format(price.amount)} / ${price.period === "year" ? "年" : "月"}`;
+    } catch {
+      return "请完善价格与币种";
+    }
+  }
+  if (kind === "poses")
+    return `${item.minLevel} 级解锁 · ${item.mode === "mirror" ? "镜中自拍" : item.mode === "direct" ? "直视镜头" : "自动选择"}`;
+  if (kind === "levels")
+    return `第 ${item.level} 级 · ${item.requiredPoints} 分`;
+  return text(item.text).slice(0, 65) || "填写模板内容";
+}
+export function newCollectionItem(
+  kind: CollectionKind,
+  items: Item[],
+  source?: Item
+): Item {
+  const copy = source ? structuredClone(source) : {};
+  const id = `${kind === "quickTemplates" ? "template" : kind.slice(0, -1)}-${crypto.randomUUID().slice(0, 8)}`;
+  if (kind === "levels") {
+    const last = items.at(-1)!;
+    const gap = Math.max(
+      1,
+      Number(last.requiredPoints) - Number(items.at(-2)?.requiredPoints ?? 0)
+    );
+    return {
+      ...structuredClone(last),
+      level: items.length + 1,
+      requiredPoints: Number(last.requiredPoints) + gap,
+      name: { "zh-CN": "新阶段" },
+      description: { "zh-CN": "新的相处阶段" },
+      petName: { "zh-CN": "伙伴" },
+    };
+  }
+  if (kind === "plans")
+    return {
+      ...copy,
+      id,
+      label: { "zh-CN": "新套餐" },
+      enabled: false,
+      checkoutUrl: null,
+      lemonVariantId: null,
+    };
+  if (kind === "poses")
+    return {
+      ...copy,
+      id,
+      label: { "zh-CN": "新姿势" },
+      enabled: false,
+      aliases: [],
+    };
+  return {
+    ...copy,
+    id,
+    label: { "zh-CN": "新模板" },
+    text: copy.text ?? { "zh-CN": "请输入新的偏好内容" },
+    enabled: false,
+  };
+}
+const groups: Record<CollectionKind, { title: string; fields: string[] }[]> = {
+  plans: [
+    { title: "名称与展示", fields: ["label", "enabled"] },
+    { title: "价格", fields: ["price"] },
+    { title: "用户权益", fields: ["limits"] },
+    { title: "支付关联", fields: ["checkoutUrl", "lemonVariantId"] },
+  ],
+  poses: [
+    {
+      title: "用户看到的姿势",
+      fields: ["label", "emoji", "enabled", "minLevel", "mode"],
+    },
+    { title: "画面与识别", fields: ["promptFragment", "aliases"] },
+  ],
+  levels: [
+    {
+      title: "阶段与经验",
+      fields: ["name", "requiredPoints", "description", "petName", "emoji"],
+    },
+    { title: "阶段配色", fields: ["color", "gradientFrom", "gradientTo"] },
+  ],
+  quickTemplates: [
+    { title: "模板名称", fields: ["label", "enabled"] },
+    { title: "偏好内容", fields: ["text"] },
+  ],
+};
+export function SettingsCollection({
+  kind,
+  items,
+  schema,
+  path,
+  config,
+  issues,
+  disabled,
+  onChange,
+}: {
+  kind: CollectionKind;
+  items: Item[];
+  schema?: FormSchema;
+  path: string;
+  config: ProductConfig;
+  issues: Record<string, string>;
+  disabled: boolean;
+  onChange: (items: Item[]) => void;
+}) {
+  const [selected, setSelected] = useState(
+    String(items[0]?.id ?? items[0]?.level ?? "")
+  );
+  const [search, setSearch] = useState("");
+  const index = Math.max(
+    0,
+    items.findIndex(item => String(item.id ?? item.level) === selected)
+  );
+  const item = items[index],
+    name = item ? collectionName(item) : "";
+  const defaultId =
+    kind === "plans"
+      ? config.billing.defaultTierId
+      : kind === "poses"
+        ? config.selfies.defaultPoseId
+        : undefined;
+  const protectedItem =
+    (kind === "plans" &&
+      (item?.id === config.billing.defaultTierId ||
+        item?.id === config.billing.selfHostedTierId)) ||
+    (kind === "poses" && item?.id === defaultId);
+  const lastLevelReferenced =
+    kind === "levels" &&
+    (config.selfies.poses.some(p => p.minLevel >= items.length) ||
+      config.memory.levelRules.some(p => p.minLevel >= items.length) ||
+      Object.values(config.prompts.chat.relationshipStages).some(stages =>
+        stages.some(p => p.minLevel >= items.length)
+      ));
+  const removeDisabled =
+    disabled ||
+    protectedItem ||
+    items.length <= (schema?.minItems ?? 0) ||
+    (kind === "levels" && (index !== items.length - 1 || lastLevelReferenced));
+  const addDisabled =
+    disabled ||
+    items.length >= (schema?.maxItems ?? Infinity) ||
+    (kind === "levels" && Number(items.at(-1)?.requiredPoints) >= 100000000);
+  const select = (row: Item) => setSelected(String(row.id ?? row.level));
+  const update = (next: unknown) =>
+    onChange(items.map((old, i) => (i === index ? (next as Item) : old)));
+  const move = (to: number) => {
+    const next = [...items];
+    [next[index], next[to]] = [next[to], next[index]];
+    onChange(next);
+  };
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative min-w-0 flex-1 sm:max-w-sm">
+          <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+          <Input
+            aria-label={`搜索${titles[kind]}`}
+            className="pl-9"
+            placeholder={`搜索${titles[kind]}名称`}
+            value={search}
+            disabled={disabled}
+            onChange={event => setSearch(event.target.value)}
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={addDisabled}
+          onClick={() => {
+            const next = newCollectionItem(kind, items, item);
+            onChange([...items, next]);
+            select(next);
+            setSearch("");
+          }}
+        >
+          <Plus className="size-4" />
+          {kind === "levels" ? "添加下一等级" : `复制为新${titles[kind]}`}
+        </Button>
+      </div>
+      <div
+        className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+        aria-label={`${titles[kind]}内容库`}
+      >
+        {items
+          .map((row, i) => ({ row, i }))
+          .filter(({ row }) =>
+            collectionName(row).toLowerCase().includes(search.toLowerCase())
+          )
+          .map(({ row, i }) => {
+            const count = Object.keys(issues).filter(
+              key => key === `${path}.${i}` || key.startsWith(`${path}.${i}.`)
+            ).length;
+            return (
+              <button
+                key={String(row.id ?? row.level)}
+                type="button"
+                disabled={disabled}
+                aria-pressed={i === index}
+                onClick={() => select(row)}
+                className={`min-w-0 rounded-2xl border p-4 text-left transition-colors focus-visible:outline-2 focus-visible:outline-ring ${i === index ? "border-primary bg-primary/5" : "hover:bg-muted/40"}`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-2xl">
+                    {kind === "plans"
+                      ? "✦"
+                      : kind === "quickTemplates"
+                        ? "✎"
+                        : String(row.emoji || "♡")}
+                  </span>
+                  <div className="flex gap-1">
+                    {row.id === defaultId && (
+                      <Badge variant="secondary">默认</Badge>
+                    )}
+                    {count > 0 ? (
+                      <Badge variant="destructive">{count} 处待完善</Badge>
+                    ) : (
+                      kind !== "levels" && (
+                        <Badge variant="outline">
+                          {row.enabled ? "启用" : "停用"}
+                        </Badge>
+                      )
+                    )}
+                  </div>
+                </div>
+                <h3 className="mt-3 truncate font-semibold">
+                  {collectionName(row)}
+                </h3>
+                <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                  {summary(kind, row)}
+                </p>
+                {kind === "plans" && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {(row.limits as { dailyMessages: number | null })
+                      .dailyMessages === null
+                      ? "聊天不限量"
+                      : `每日 ${(row.limits as { dailyMessages: number }).dailyMessages} 条消息`}
+                  </p>
+                )}
+              </button>
+            );
+          })}
+      </div>
+      {!items.some(row =>
+        collectionName(row).toLowerCase().includes(search.toLowerCase())
+      ) && (
+        <p className="rounded-xl bg-muted/30 p-5 text-center text-sm text-muted-foreground">
+          没有匹配的{titles[kind]}，可以更换关键词。
+        </p>
+      )}
+      {item && (
+        <section
+          aria-label={`编辑${titles[kind]}`}
+          className="space-y-5 rounded-2xl border p-4 sm:p-5"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold">编辑{name}</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {kind === "levels"
+                  ? `第 ${item.level} 级保持不变，只能从末级删除。`
+                  : `标识 ${item.id} 自动保持不变。`}
+              </p>
+            </div>
+            <div className="flex gap-1">
+              {kind !== "levels" && (
+                <>
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    aria-label={`${name}上移`}
+                    disabled={disabled || index === 0}
+                    onClick={() => move(index - 1)}
+                  >
+                    <ArrowUp className="size-4" />
+                  </Button>
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    aria-label={`${name}下移`}
+                    disabled={disabled || index === items.length - 1}
+                    onClick={() => move(index + 1)}
+                  >
+                    <ArrowDown className="size-4" />
+                  </Button>
+                </>
+              )}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="ghost" disabled={removeDisabled}>
+                    <Trash2 className="size-4" />
+                    删除
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>从草稿中删除{name}？</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      删除后需要保存并发布才会影响用户。发布前仍可重新读取已保存的草稿。
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>保留</AlertDialogCancel>
+                    <AlertDialogAction
+                      disabled={disabled}
+                      onClick={() => {
+                        onChange(items.filter((_, i) => i !== index));
+                        select(items[Math.max(0, index - 1)] ?? {});
+                      }}
+                    >
+                      删除草稿中的条目
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
+          {(protectedItem || lastLevelReferenced) && (
+            <p className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
+              {protectedItem
+                ? "默认或自托管使用的条目需要先更换关联，才能删除。"
+                : "末级仍被姿势、记忆或关系阶段引用，请先调整关联规则。"}
+            </p>
+          )}
+          {groups[kind].map(group => (
+            <section key={group.title} className="space-y-3 border-t pt-4">
+              <h4 className="text-sm font-semibold">{group.title}</h4>
+              <SettingsFields
+                key={String(item.id ?? item.level) + group.title}
+                value={item}
+                schema={schema?.items}
+                path={`${path}.${index}`}
+                fields={group.fields}
+                config={config}
+                issues={issues}
+                disabled={disabled}
+                onChange={update}
+              />
+            </section>
+          ))}
+        </section>
+      )}
+    </div>
+  );
+}

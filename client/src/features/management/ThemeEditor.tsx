@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ConfigForm, type FormSchema } from "./ConfigForm";
 import { isHexColor } from "./ColorField";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 type Theme = ThemesConfig["items"][number];
 const title = (value: Theme) => value.name["zh-CN"] || value.id;
 function ThemePreview({
@@ -88,11 +89,13 @@ export function ThemeEditor({
   schema,
   onChange,
   disabled,
+  issues,
 }: {
   value: ThemesConfig;
   schema?: FormSchema;
   onChange: (value: ThemesConfig) => void;
   disabled: boolean;
+  issues?: Record<string, string>;
 }) {
   const [index, setIndex] = useState(0),
     id = useId();
@@ -214,24 +217,69 @@ export function ThemeEditor({
         <ThemePreview theme={selected} mode="light" />
         <ThemePreview theme={selected} mode="dark" />
       </div>
-      <ConfigForm
-        key={id + index}
-        value={selected}
-        path={`themes.items.${index}`}
-        schema={schema?.properties?.items?.items}
-        disabled={disabled}
-        onChange={next => {
-          const item = next as Theme;
-          onChange({
-            ...value,
-            defaultThemeId:
-              selected.id === value.defaultThemeId
-                ? item.id
-                : value.defaultThemeId,
-            items: value.items.map((old, i) => (i === index ? item : old)),
-          });
-        }}
-      />
+      <p className="text-xs text-muted-foreground">
+        主题标识 {selected.id} 保持不变；颜色、文案和启用状态按当前草稿编辑。
+      </p>
+      <Tabs defaultValue="appearance">
+        <TabsList aria-label="主题编辑分区">
+          <TabsTrigger value="appearance" disabled={disabled}>
+            配色与外观
+          </TabsTrigger>
+          <TabsTrigger value="copy" disabled={disabled}>
+            名称与文案
+          </TabsTrigger>
+        </TabsList>
+        {[
+          {
+            id: "appearance",
+            fields: [
+              "hue",
+              "colors",
+              "light",
+              "dark",
+              "background",
+              "foreground",
+            ],
+          },
+          { id: "copy", fields: ["name", "description", "enabled"] },
+        ].map(tab => (
+          <TabsContent key={tab.id} value={tab.id}>
+            <ConfigForm
+              key={id + index}
+              flat
+              value={Object.fromEntries(
+                Object.entries(selected).filter(([key]) =>
+                  tab.fields.includes(key)
+                )
+              )}
+              path={`themes.items.${index}`}
+              schema={{
+                ...schema?.properties?.items?.items,
+                properties: Object.fromEntries(
+                  Object.entries(
+                    schema?.properties?.items?.items?.properties ?? {}
+                  ).filter(([key]) => tab.fields.includes(key))
+                ),
+              }}
+              disabled={disabled}
+              issues={issues}
+              onChange={next => {
+                const item = { ...selected, ...(next as Partial<Theme>) };
+                onChange({
+                  ...value,
+                  defaultThemeId:
+                    selected.id === value.defaultThemeId
+                      ? item.id
+                      : value.defaultThemeId,
+                  items: value.items.map((old, i) =>
+                    i === index ? item : old
+                  ),
+                });
+              }}
+            />
+          </TabsContent>
+        ))}
+      </Tabs>
     </div>
   );
 }

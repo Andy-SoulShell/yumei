@@ -23,6 +23,11 @@ export interface SearchSelectOption {
 
 /** 受控搜索与选择，以及当前高亮选项的独立操作。 */
 interface SearchSelectProps {
+  id?: string;
+  disabled?: boolean;
+  invalid?: boolean;
+  describedBy?: string;
+  selectedLabel?: string;
   value: string;
   label: string;
   placeholder: string;
@@ -37,6 +42,11 @@ interface SearchSelectProps {
 
 /** 支持方向键高亮、回车选择、Escape 关闭与焦点归还，过滤由调用方负责。 */
 export function SearchSelect({
+  id,
+  disabled,
+  invalid,
+  describedBy,
+  selectedLabel,
   value,
   label,
   placeholder,
@@ -68,6 +78,10 @@ export function SearchSelect({
     >
       <PopoverTrigger asChild>
         <Button
+          id={id}
+          disabled={disabled}
+          aria-invalid={invalid}
+          aria-describedby={describedBy}
           type="button"
           variant="outline"
           role="combobox"
@@ -77,7 +91,9 @@ export function SearchSelect({
           aria-label={label}
           className="w-full min-w-0 justify-between"
         >
-          <span className="truncate">{selected?.label || value || label}</span>
+          <span className="truncate">
+            {selectedLabel || selected?.label || value || label}
+          </span>
           <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>

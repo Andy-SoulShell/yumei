@@ -29,11 +29,8 @@ import { trpc } from "@/lib/trpc";
 import { useProductConfig } from "@/features/product/useProductConfig";
 import { productConfigSchema, type ProductConfig } from "@shared/productConfig";
 import { homepageSchema, officialCharacterSchema } from "@shared/discovery";
-import {
-  ConfigForm,
-  fieldLabel,
-  type FormSchema,
-} from "@/features/management/ConfigForm";
+import { fieldLabel, type FormSchema } from "@/features/management/ConfigForm";
+import { SettingsEditor } from "@/features/management/SettingsEditor";
 import { ThemeEditor } from "@/features/management/ThemeEditor";
 import { useOfficialUpload } from "@/features/management/useOfficialUpload";
 import { sameConfigValue } from "@/features/management/editorState";
@@ -390,6 +387,7 @@ function ProductWorkspace({
             section === "themes" ? (
               <ThemeEditor
                 value={value.themes}
+                issues={fieldIssues}
                 schema={productForm.properties?.themes}
                 disabled={busy}
                 onChange={themes => {
@@ -398,14 +396,14 @@ function ProductWorkspace({
                 }}
               />
             ) : (
-              <ConfigForm
-                value={value[section]}
+              <SettingsEditor
+                section={section}
+                config={value}
                 schema={productForm.properties?.[section]}
-                path={section}
                 issues={fieldIssues}
                 disabled={busy}
                 onChange={next => {
-                  setValue({ ...value, [section]: next });
+                  setValue(next);
                   setError("");
                 }}
               />

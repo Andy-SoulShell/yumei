@@ -1,6 +1,13 @@
 /** 带单位与边界的数值控件，单位切换只影响展示，清空不会变成 0。 */
 import { useId, useState } from "react";
 import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupInput,
+  InputGroupAddon,
+  InputGroupText,
+} from "@/components/ui/input-group";
+import { Slider } from "@/components/ui/slider";
 import type { FormSchema } from "./ConfigForm";
 import {
   defaultUnit,
@@ -105,8 +112,8 @@ export function NumberField({
         </select>
       ) : (
         <>
-          <div className="flex min-w-0 items-center gap-2">
-            <Input
+          <InputGroup className="min-w-0" data-disabled={disabled}>
+            <InputGroupInput
               {...props}
               className="min-w-0 flex-1"
               type="number"
@@ -135,43 +142,46 @@ export function NumberField({
                 onChange(next);
               }}
             />
-            {units.length > 1 ? (
-              <select
-                aria-label={`${label}单位`}
-                className="admin-select w-24 shrink-0"
-                disabled={disabled}
-                value={selected.factor}
-                onChange={event => setFactor(Number(event.target.value))}
-              >
-                {units.map(item => (
-                  <option key={item.label} value={item.factor}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <span className="shrink-0 text-xs text-muted-foreground">
-                {selected.label}
-              </span>
-            )}
-          </div>
+            <InputGroupAddon align="inline-end">
+              {units.length > 1 ? (
+                <select
+                  aria-label={`${label}单位`}
+                  className="max-w-24 cursor-pointer border-0 bg-transparent text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  disabled={disabled}
+                  value={selected.factor}
+                  onChange={event => setFactor(Number(event.target.value))}
+                >
+                  {units.map(item => (
+                    <option key={item.label} value={item.factor}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <InputGroupText className="shrink-0 text-xs">
+                  {selected.label}
+                </InputGroupText>
+              )}
+            </InputGroupAddon>
+          </InputGroup>
           {slider && lower !== undefined && upper !== undefined && (
-            <input
-              type="range"
+            <Slider
               aria-label={`${label}滑块`}
               aria-describedby={help}
               disabled={disabled}
               min={lower / selected.factor}
               max={upper / selected.factor}
-              step="any"
-              value={
-                Number.isFinite(value) ? Number(shown) : lower / selected.factor
-              }
-              className="w-full accent-primary"
-              onChange={event =>
+              step={selected.label === "%" || /hue$/.test(path) ? 1 : 0.01}
+              value={[
+                Number.isFinite(value)
+                  ? Number(shown)
+                  : lower / selected.factor,
+              ]}
+              className="my-4"
+              onValueChange={values =>
                 onChange(
                   storedNumber(
-                    event.target.value,
+                    String(values[0]),
                     selected.factor,
                     schema.type === "integer"
                   )

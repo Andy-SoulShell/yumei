@@ -1,10 +1,11 @@
 /** 站内图片预览，支持键盘、触摸翻页并在关闭后归还焦点。 */
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { ChevronLeft, ChevronRight, Download, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Loader2, X } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -51,7 +52,9 @@ export function PhotoViewer({
       }}
     >
       <DialogContent
-        className="photo-viewer gap-3 p-3 sm:p-5"
+        className="photo-viewer"
+        overlayClassName="photo-viewer-overlay"
+        showCloseButton={false}
         onCloseAutoFocus={event => {
           if (returnFocus.current?.isConnected) {
             event.preventDefault();
@@ -67,21 +70,33 @@ export function PhotoViewer({
       >
         {photo && selected !== null && (
           <>
-            <DialogHeader className="pr-12 text-left">
-              <DialogTitle>
-                {t("gallery:photoPosition", {
-                  current: selected + 1,
-                  total: photos.length,
-                })}
-              </DialogTitle>
-              <DialogDescription
-                className={
-                  photo.caption ? "line-clamp-2 break-words" : "sr-only"
-                }
-              >
-                {photo.caption || t("gallery:selfie")}
-              </DialogDescription>
-            </DialogHeader>
+            <div className="photo-viewer-topbar">
+              <DialogHeader className="photo-viewer-heading">
+                <DialogTitle>{t("gallery:selfie")}</DialogTitle>
+                <DialogDescription
+                  className={
+                    photo.caption ? "line-clamp-2 break-words" : "sr-only"
+                  }
+                >
+                  {photo.caption ||
+                    t("gallery:photoPosition", {
+                      current: selected + 1,
+                      total: photos.length,
+                    })}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogClose asChild>
+                <Button
+                  type="button"
+                  variant="plain"
+                  size="icon"
+                  className="photo-viewer-close"
+                  aria-label={t("common:close2")}
+                >
+                  <X className="size-5" />
+                </Button>
+              </DialogClose>
+            </div>
             <div
               className="photo-viewer-stage"
               onPointerDown={event => {
@@ -117,36 +132,51 @@ export function PhotoViewer({
                   draggable={false}
                 />
               )}
-              {photos.length > 1 && (
-                <>
+            </div>
+            <div className="photo-viewer-toolbar">
+              <div className="photo-viewer-pagination">
+                {photos.length > 1 && (
                   <Button
                     type="button"
-                    variant="secondary"
+                    variant="plain"
                     size="icon"
                     className="photo-viewer-previous"
                     aria-label={t("gallery:previousPhoto")}
                     onClick={() => move(-1)}
                   >
-                    <ChevronLeft />
+                    <ChevronLeft className="size-5" />
                   </Button>
+                )}
+                <span
+                  className="photo-viewer-position"
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  {t("gallery:photoPosition", {
+                    current: selected + 1,
+                    total: photos.length,
+                  })}
+                </span>
+                {photos.length > 1 && (
                   <Button
                     type="button"
-                    variant="secondary"
+                    variant="plain"
                     size="icon"
                     className="photo-viewer-next"
                     aria-label={t("gallery:nextPhoto")}
                     onClick={() => move(1)}
                   >
-                    <ChevronRight />
+                    <ChevronRight className="size-5" />
                   </Button>
-                </>
-              )}
-            </div>
-            {onDownload && (
-              <div className="flex justify-end">
+                )}
+              </div>
+              {onDownload && (
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="plain"
+                  className="photo-viewer-download"
+                  aria-label={t("gallery:downloadPhoto")}
                   disabled={downloading}
                   onClick={async () => {
                     setDownloading(true);
@@ -162,10 +192,10 @@ export function PhotoViewer({
                   ) : (
                     <Download className="size-4" />
                   )}
-                  {t("gallery:downloadPhoto")}
+                  <span>{t("gallery:downloadPhoto")}</span>
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </>
         )}
       </DialogContent>

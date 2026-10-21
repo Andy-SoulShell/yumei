@@ -310,22 +310,101 @@
   box-shadow: 0 2px 10px #0003;
 }
 
-/* 图片预览保留聊天上下文，横屏也给图片留出独立的可用空间。 */
+/* 看图跟随亮暗主题，工具区独立排布，不覆盖照片。 */
+.photo-viewer-overlay[data-slot="dialog-overlay"] {
+  background: #100c1870;
+}
+.dark .photo-viewer-overlay[data-slot="dialog-overlay"] {
+  background: #09080bd9;
+}
 .photo-viewer[data-slot="dialog-content"] {
-  width: min(960px, calc(100vw - 24px));
+  --viewer-edge: color-mix(in oklch, var(--foreground) 8%, transparent);
+  --viewer-control-fill: color-mix(in oklch, var(--foreground) 6%, transparent);
+  --viewer-control-hover: color-mix(
+    in oklch,
+    var(--foreground) 10%,
+    transparent
+  );
+  top: calc(
+    (var(--app-height) + var(--safe-area-top) - var(--safe-area-bottom)) / 2
+  );
+  width: min(1040px, calc(100vw - 64px));
   max-width: none;
-  max-height: calc(100dvh - 24px);
+  height: min(
+    880px,
+    calc(
+      var(--app-height) - var(--safe-area-top) - var(--safe-area-bottom) - 64px
+    )
+  );
+  max-height: none;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--viewer-edge);
+  border-radius: 24px;
+  background: var(--popover);
+  color: var(--foreground);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: var(--shadow-floating);
+}
+.photo-viewer-topbar,
+.photo-viewer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  gap: 16px;
+  padding: 12px 20px;
+}
+.photo-viewer-heading[data-slot="dialog-header"] {
+  min-width: 0;
+  gap: 3px;
+  text-align: left;
+}
+.photo-viewer-heading [data-slot="dialog-title"] {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.photo-viewer-heading [data-slot="dialog-description"] {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.photo-viewer-close[data-slot="dialog-close"],
+.photo-viewer-previous,
+.photo-viewer-next,
+.photo-viewer-download {
+  position: static;
+  flex: none;
+  min-width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--foreground);
+  box-shadow: none;
+}
+.photo-viewer-close[data-slot="dialog-close"],
+.photo-viewer-previous,
+.photo-viewer-next {
+  width: 44px;
+}
+.photo-viewer
+  :is(.photo-viewer-close, .photo-viewer-previous, .photo-viewer-next):hover {
+  background: var(--viewer-control-hover);
 }
 .photo-viewer-stage {
   position: relative;
   display: grid;
   place-items: center;
   min-height: 0;
-  height: min(65dvh, 720px);
+  min-width: 0;
   overflow: hidden;
-  border-radius: 8px;
-  background: var(--muted);
+  background: color-mix(in oklch, var(--foreground) 3%, var(--background));
   touch-action: pan-y pinch-zoom;
 }
 .photo-viewer-stage > img {
@@ -337,29 +416,68 @@
 }
 .photo-viewer-stage > [role="alert"] {
   gap: 8px;
-  padding: 8px 50px;
+  padding: 16px;
 }
 .photo-viewer-stage > [role="alert"] > svg {
   display: none;
 }
-.photo-viewer-previous,
-.photo-viewer-next {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  box-shadow: 0 1px 6px #0003;
+.photo-viewer-pagination {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
 }
-.photo-viewer-previous {
-  left: 8px;
+.photo-viewer-position {
+  min-width: 76px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  white-space: nowrap;
 }
-.photo-viewer-next {
-  right: 8px;
+.photo-viewer-download {
+  margin-left: auto;
+  padding-inline: 16px;
+  background: var(--viewer-control-fill);
+  font-size: 13px;
+}
+.photo-viewer-download:hover {
+  background: var(--viewer-control-hover);
+}
+@supports (backdrop-filter: blur(1px)) {
+  :where(:root[data-glass="experimental"])
+    .photo-viewer[data-slot="dialog-content"] {
+    background: color-mix(in oklch, var(--popover) 94%, transparent);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+  }
+}
+@media (max-width: 900px) {
+  .photo-viewer[data-slot="dialog-content"] {
+    top: calc(var(--app-height) / 2);
+    width: 100%;
+    height: var(--app-height);
+    padding: var(--safe-area-top) var(--safe-area-right) var(--safe-area-bottom)
+      var(--safe-area-left);
+    border: 0;
+    border-radius: 0;
+  }
+  .photo-viewer-topbar,
+  .photo-viewer-toolbar {
+    gap: 12px;
+    padding: 10px 16px;
+  }
+  .photo-viewer-download {
+    width: 44px;
+    padding: 0;
+  }
+  .photo-viewer-download > span {
+    display: none;
+  }
 }
 @media (max-height: 480px) {
-  .photo-viewer-stage {
-    height: max(80px, calc(100dvh - 160px));
-  }
-  .photo-viewer [data-slot="dialog-description"] {
-    display: none;
+  .photo-viewer-topbar,
+  .photo-viewer-toolbar {
+    padding-block: 4px;
   }
 }

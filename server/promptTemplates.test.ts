@@ -1,75 +1,91 @@
-/** 覆盖自拍模式识别与提示词组合。 */
+/** 覆盖本次描述优先、空输入兜底和完整文本保留。 */
 
 import { describe, expect, it } from "vitest";
-import { detectMode, buildSmartPrompt } from "./promptTemplates";
+import { SELFIE_POSES } from "../shared/selfiePoses";
+import { buildCoupleImagePrompt, buildImagePrompt } from "./promptTemplates";
 
-describe("detectMode", () => {
-  it("should detect mirror mode for clothing keywords", () => {
-    expect(detectMode("wearing a red dress")).toBe("mirror");
-    expect(detectMode("showing my new outfit")).toBe("mirror");
-    expect(detectMode("full-body photo")).toBe("mirror");
-  });
+const request = "海边侧面全身照，穿红色长裙，双手自然下垂，不看镜头，不拿手机";
+const appearance = "成年女性，黑色长发，蓝色衬衫";
 
-  it("should detect direct mode for location keywords", () => {
-    expect(detectMode("at a cozy cafe")).toBe("direct");
-    expect(detectMode("on the beach")).toBe("direct");
-    expect(detectMode("close-up portrait")).toBe("direct");
-  });
+describe.each(["reference", "text"] as const)(
+  "%s image prompts",
+  generationMode => {
+    it.each(SELFIE_POSES)("gives explicit text priority over $id", pose => {
+      const { prompt } = buildImagePrompt({
+        userContext: request,
+        generationMode,
+        appearance,
+        pose,
+      });
+      expect(prompt).toContain(request);
+      expect(prompt).not.toContain(pose.promptFragment);
+      expect(prompt).not.toMatch(
+        /close-up selfie|mirror selfie|direct eye contact|phone held at arm's length/
+      );
+      expect(prompt).not.toContain("media-context");
+    });
 
-  it("should default to mirror mode for ambiguous input", () => {
-    expect(detectMode("just chilling")).toBe("mirror");
-    expect(detectMode("having fun")).toBe("mirror");
+    it("keeps multiline input and requirements beyond the old 1000-character cutoff", () => {
+      const longRequest =
+        "画面细节。".repeat(300) +
+        "\n最后的要求：侧面全身，绿色雨伞，黄色长靴。";
+      const { prompt } = buildImagePrompt({
+        userContext: longRequest,
+        generationMode,
+        appearance,
+      });
+      expect(prompt.endsWith(longRequest)).toBe(true);
+    });
+
+    it("uses the selected pose only for a blank input", () => {
+      const pose = SELFIE_POSES.find(item => item.id === "elegant")!;
+      const result = buildImagePrompt({
+        userContext: " \n ",
+        generationMode,
+        appearance,
+        pose,
+      });
+      expect(result.prompt.endsWith(pose.promptFragment)).toBe(true);
+      expect(result.mode).toBe("mirror");
+      expect(result.prompt).not.toContain("mirror selfie");
+    });
+
+    it("can generate without an input or a selected pose", () => {
+      const { prompt } = buildImagePrompt({
+        userContext: "",
+        generationMode,
+        appearance,
+      });
+      expect(prompt).toContain("一张自然的人物照片");
+    });
+  }
+);
+
+it("uses the reference for identity without injecting the saved outfit", () => {
+  const { prompt } = buildImagePrompt({
+    userContext: request,
+    generationMode: "reference",
+    appearance,
   });
+  expect(prompt).toContain("人物身份");
+  expect(prompt).not.toContain(appearance);
 });
 
-describe("buildSmartPrompt", () => {
-  it("should build mirror prompt correctly", () => {
-    const result = buildSmartPrompt({
-      userContext: "wearing a red dress",
-    });
-
-    expect(result.mode).toBe("mirror");
-    expect(result.prompt).toContain("mirror selfie");
-    expect(result.prompt).toContain("wearing a red dress");
-    expect(result.userContext).toBe("wearing a red dress");
+it("uses the appearance as subordinate context only for text-to-image", () => {
+  const { prompt } = buildImagePrompt({
+    userContext: request,
+    generationMode: "text",
+    appearance,
   });
+  expect(prompt).toContain(appearance);
+  expect(prompt).toContain("冲突时以本次要求为准");
+  expect(prompt.endsWith(request)).toBe(true);
+});
 
-  it("should build direct prompt correctly", () => {
-    const result = buildSmartPrompt({
-      userContext: "at a cozy cafe",
-    });
-
-    expect(result.mode).toBe("direct");
-    expect(result.prompt).toContain("selfie");
-    expect(result.prompt).toContain("at a cozy cafe");
-    expect(result.prompt).toContain("phone held at arm's length");
-  });
-
-  it("should allow manual mode override", () => {
-    const result = buildSmartPrompt({
-      userContext: "at a cafe",
-      mode: "mirror", // 强制使用 mirror 模式
-    });
-
-    expect(result.mode).toBe("mirror");
-    expect(result.prompt).toContain("mirror selfie");
-  });
-
-  it("should handle empty user context", () => {
-    const result = buildSmartPrompt({
-      userContext: "",
-    });
-
-    expect(result.mode).toBe("mirror");
-    expect(result.prompt).toBeDefined();
-    expect(result.userContext).toBe("");
-  });
-
-  it("should generate different prompts for different contexts", () => {
-    const result1 = buildSmartPrompt({ userContext: "wearing a blue dress" });
-    const result2 = buildSmartPrompt({ userContext: "at the beach" });
-
-    expect(result1.prompt).not.toBe(result2.prompt);
-    expect(result1.mode).not.toBe(result2.mode);
-  });
+it("preserves explicit couple requirements and uses a fallback only when blank", () => {
+  const request = "两个人在海边，背对镜头，红色外套，远景全身照";
+  expect(buildCoupleImagePrompt(request).endsWith(request)).toBe(true);
+  expect(buildCoupleImagePrompt(request)).not.toContain("两人自然合照");
+  expect(buildCoupleImagePrompt(undefined)).toContain("两人自然合照");
+  expect(buildCoupleImagePrompt(" \n ")).toContain("两人自然合照");
 });

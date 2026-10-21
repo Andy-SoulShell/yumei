@@ -951,14 +951,16 @@ export default {
   selfie: {
     invalidCoupleImage: "请选择 10MB 以内的 JPG、PNG 或 WebP 图片。",
     askForAPhoto: "拍张照片",
-    unlockPosesAsYouGrowCloserTextIn: "姿势随亲密度解锁，输入框可填写场景。",
+    unlockPosesAsYouGrowCloserTextIn:
+      "优先按输入框的文字生成，留空时使用所选姿势。姿势随亲密度解锁。",
     generationMode: "生图方式",
     fromReference: "参考图生图",
     fromText: "文生图",
 
-    usesTheCharacterReferenceToHelpKeepThe: "使用参考图，尽量保持外貌一致。",
+    usesTheCharacterReferenceToHelpKeepThe:
+      "参考图用于保持人物身份，画面按输入文字生成。",
     generatesFromTheCharacterDescriptionAndSceneText:
-      "按外貌和场景描述生成，不使用参考图。",
+      "优先按输入文字生成，角色外貌只补充未指定的细节。",
     unlocksAtIntimacyLv: "亲密度 Lv.{{level}} 解锁",
     uploadYourPhotoToAppearTogether: "上传照片，生成合照",
     couplePhotosRequireProOrYourOwnFal:

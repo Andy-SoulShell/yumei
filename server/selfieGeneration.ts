@@ -13,10 +13,6 @@ import {
 import { log, providerErrorSummary } from "./_core/log";
 import { checkRateLimit } from "./_core/quota";
 import { getTierLimits, isBillingEnforced, upsellHint } from "./billing";
-import {
-  buildCompanionMediaContext,
-  getChatBehaviorContext,
-} from "./companionContext";
 import { recordGenerationTelemetry } from "./generationTelemetry";
 import {
   completeImageGeneration,
@@ -26,15 +22,12 @@ import {
   type GenerationMeter,
 } from "./generations";
 import { flushMediaDeletions, queueMediaDeletion } from "./mediaCleanup";
-import { buildSmartPrompt } from "./promptTemplates";
+import { buildImagePrompt, IMAGE_PROMPT_VERSION } from "./promptTemplates";
 import { getActiveGirlfriend } from "./repositories/companions";
-import {
-  getConversation,
-  getRecentMessages,
-} from "./repositories/conversations";
+import { getConversation } from "./repositories/conversations";
 import { storagePut } from "./storage";
 
-/** 自拍生成参数，场景文本可与姿势片段一起参与提示词构建。 */
+/** 图片生成参数；本次场景文本优先，姿势只用于空输入兜底。 */
 type SelfieInput = {
   conversationId: number;
   userContext: string;
@@ -124,42 +117,14 @@ export async function generateConversationSelfie(
   }
 
   const selfieTier = await getTierLimits(user.id);
-  const recent = await getRecentMessages(input.conversationId, 4);
-  let behaviorContext;
-  try {
-    behaviorContext = await getChatBehaviorContext(
-      user.id,
-      girlfriend.id,
-      input.userContext
-    );
-  } catch {
-    /* 图片仍可使用已校验角色资料，状态读取失败不额外调用其它服务。 */
-  }
-  const sceneContext = buildCompanionMediaContext(
-    girlfriend,
-    behaviorContext,
-    recent.filter(
-      message =>
-        !message.imageUrl &&
-        message.id > (girlfriend.memoryForgottenThroughId ?? 0)
-    ),
-    input.userContext
-  );
-  // 3. 使用 自拍提示词模板生成提示词
-  const combinedContext = pose
-    ? sceneContext.trim()
-      ? `${pose.promptFragment}, ${sceneContext.trim()}`
-      : pose.promptFragment
-    : sceneContext;
-  const promptResult = buildSmartPrompt({
-    userContext: combinedContext,
-    mode: pose && pose.mode !== "auto" ? pose.mode : "auto",
+  // 3. 本次输入决定画面；无输入时才使用所选姿势，不读取旧对白或情绪。
+  const promptResult = buildImagePrompt({
+    userContext: input.userContext,
+    generationMode: input.generationMode,
+    appearance: girlfriend.appearance,
+    pose,
   });
-
-  const imagePrompt =
-    input.generationMode === "text"
-      ? `生成一张角色照片。角色外貌：${girlfriend.appearance}。场景与姿势：${combinedContext || "自然微笑，随手自拍"}。自然光线，画面清晰。`
-      : promptResult.prompt;
+  const imagePrompt = promptResult.prompt;
 
   const fileKey = `selfie-${user.id}-${nanoid()}.png`;
   const meter: GenerationMeter | undefined =
@@ -254,7 +219,7 @@ export async function generateConversationSelfie(
     });
   } finally {
     await recordGenerationTelemetry(requestId, user.id, {
-      promptVersion: "companion-media/1",
+      promptVersion: IMAGE_PROMPT_VERSION,
       provider: imageProvider.name,
       model: imageGenerationModel(imageProvider.name, input.generationMode, 1),
       isByok: imageProvider.isByok,

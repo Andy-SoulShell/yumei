@@ -8,9 +8,9 @@ export interface SelfiePose {
   emoji: string;
   /** 使用该姿势所需的最低亲密度等级，范围为 1 至 10。 */
   minLevel: number;
-  /** 附加到图片提示词中的英文场景片段。 */
+  /** 输入框为空时使用的英文场景片段。 */
   promptFragment: string;
-  /** 指定自拍构图模式，auto 表示继续按场景关键词判断。 */
+  /** 空输入时的相册构图标签，auto 使用通用直拍标签，不决定实际画面。 */
   mode: "mirror" | "direct" | "auto";
 }
 

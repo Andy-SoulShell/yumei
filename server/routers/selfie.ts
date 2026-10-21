@@ -1,10 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import {
-  buildCompanionMediaContext,
-  getChatBehaviorContext,
-} from "../companionContext";
 import { recordGenerationTelemetry } from "../generationTelemetry";
 import { METERS } from "../../shared/quotas";
 import { BusinessRuleError } from "../_core/businessError";
@@ -27,10 +23,11 @@ import {
 } from "../generations";
 import { flushMediaDeletions, queueMediaDeletion } from "../mediaCleanup";
 import { getActiveGirlfriend } from "../repositories/companions";
+import { getConversation } from "../repositories/conversations";
 import {
-  getConversation,
-  getRecentMessages,
-} from "../repositories/conversations";
+  buildCoupleImagePrompt,
+  IMAGE_PROMPT_VERSION,
+} from "../promptTemplates";
 import {
   deleteSelfie,
   getGirlfriendSelfies,
@@ -46,7 +43,7 @@ export const selfieRouter = router({
     .input(
       z.object({
         conversationId: z.number(),
-        userContext: z.string(), // 用户的上下文描述，如 "wearing a red dress"
+        userContext: z.string().max(8_000), // 与聊天输入框上限一致，保留完整画面要求
         generationMode: z.enum(["reference", "text"]).default("reference"),
         // 亲密度解锁的姿势 id（shared/selfiePoses.ts）
         poseId: z.string().optional(),
@@ -61,7 +58,7 @@ export const selfieRouter = router({
         conversationId: z.number(),
         userPhotoBase64: z.string().min(1),
         userPhotoMimeType: z.string(),
-        userContext: z.string().optional(),
+        userContext: z.string().max(8_000).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -129,31 +126,7 @@ export const selfieRouter = router({
       const ext = input.userPhotoMimeType.split("/")[1];
       const photoKey = `couple-input-${ctx.user.id}-${nanoid()}.${ext}`;
 
-      let behaviorContext;
-      try {
-        behaviorContext = await getChatBehaviorContext(
-          ctx.user.id,
-          girlfriend.id,
-          input.userContext || "合照"
-        );
-      } catch {
-        /* 角色资料已验证，状态读取失败仍可使用有限资料。 */
-      }
-      const recent = await getRecentMessages(input.conversationId, 4);
-      const scene = buildCompanionMediaContext(
-        girlfriend,
-        behaviorContext,
-        recent.filter(
-          message =>
-            !message.imageUrl &&
-            message.id > (girlfriend.memoryForgottenThroughId ?? 0)
-        ),
-        input.userContext?.trim() || "自然合照"
-      );
-      const prompt =
-        imageProvider.name === "comfyui"
-          ? `Create a natural couple photo of the people from <image1> and <image2> together. Use each image as an identity reference and preserve both faces. ${scene}`
-          : `A natural couple photo of these two people together. Keep both faces consistent with the source images. ${scene}`;
+      const prompt = buildCoupleImagePrompt(input.userContext);
 
       const fileKey = `couple-${ctx.user.id}-${nanoid()}.png`;
       const meter: GenerationMeter | undefined =
@@ -251,7 +224,7 @@ export const selfieRouter = router({
         });
       } finally {
         await recordGenerationTelemetry(requestId, ctx.user.id, {
-          promptVersion: "companion-media/1",
+          promptVersion: IMAGE_PROMPT_VERSION,
           provider: imageProvider.name,
           model: imageGenerationModel(imageProvider.name, "reference", 2),
           isByok: imageProvider.isByok,

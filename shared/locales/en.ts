@@ -1012,15 +1012,15 @@ export default {
     invalidCoupleImage: "Choose a JPG, PNG or WebP image up to 10MB.",
     askForAPhoto: "Take a photo",
     unlockPosesAsYouGrowCloserTextIn:
-      "Intimacy unlocks poses. Add a scene in the message box.",
+      "Your message takes priority. The selected pose is used when the box is empty. Intimacy unlocks poses.",
     generationMode: "Generation mode",
     fromReference: "From reference",
     fromText: "From text",
 
     usesTheCharacterReferenceToHelpKeepThe:
-      "Uses the reference to help preserve appearance.",
+      "Uses the reference for character identity and your text for the scene.",
     generatesFromTheCharacterDescriptionAndSceneText:
-      "Uses appearance and scene descriptions, without a reference photo.",
+      "Follows your text first. The character description fills in unspecified details.",
     unlocksAtIntimacyLv: "Unlocks at intimacy Lv.{{level}}",
     uploadYourPhotoToAppearTogether: "Upload a photo for a couple portrait",
     couplePhotosRequireProOrYourOwnFal:

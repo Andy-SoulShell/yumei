@@ -72,7 +72,7 @@ async function seed() {
 }
 
 it.each(["camera", "couple"] as const)(
-  "%s carries current role style/emotion and omits forgotten visual history",
+  "%s follows the current request without stored emotion, behavior or chat history",
   async mode => {
     const a = await seed();
     await createMessage({
@@ -81,7 +81,6 @@ it.each(["camera", "couple"] as const)(
       content: "我穿着蓝色衬衫。",
       generationStatus: "succeeded",
     });
-    await clearMemories(a.userId, a.gf.id);
     const generate = vi
       .spyOn(imageProvider, "generateProviderImage")
       .mockResolvedValue(png);
@@ -100,9 +99,10 @@ it.each(["camera", "couple"] as const)(
           });
     expect(result.message.imageKey).toBeTruthy();
     const prompt = generate.mock.calls[0][1].prompt;
-    expect(prompt).toContain('"expression":"reserved"');
-    expect(prompt).toContain('"relationshipLevel":6');
-    expect(prompt).toContain('"tone":"concerned"');
+    expect(prompt).not.toContain('"expression"');
+    expect(prompt).not.toContain('"relationshipLevel"');
+    expect(prompt).not.toContain('"tone"');
+    expect(prompt.endsWith(userContext)).toBe(true);
     expect(prompt).toContain("白色衬衫");
     expect(prompt).not.toContain("蓝色衬衫");
   }

@@ -1008,15 +1008,15 @@ export default {
     invalidCoupleImage: "10MB以下のJPG、PNG、WebP画像を選んでください。",
     askForAPhoto: "写真を撮る",
     unlockPosesAsYouGrowCloserTextIn:
-      "親密度でポーズが解放されます。入力欄で場面を指定できます。",
+      "入力した文章を優先し、空欄の場合は選択したポーズを使います。ポーズは親密度で解放されます。",
     generationMode: "生成方法",
     fromReference: "参考画像から",
     fromText: "テキストから",
 
     usesTheCharacterReferenceToHelpKeepThe:
-      "参考画像を使い、外見の一貫性を保ちます。",
+      "参考画像で人物の特徴を保ち、画面は入力した文章に従います。",
     generatesFromTheCharacterDescriptionAndSceneText:
-      "参考画像を使わず、外見と場面の説明から生成します。",
+      "入力した文章を優先し、未指定の特徴だけキャラクターの外見説明で補います。",
     unlocksAtIntimacyLv: "親密度 Lv.{{level}} で解放",
     uploadYourPhotoToAppearTogether: "写真をアップしてツーショット",
     couplePhotosRequireProOrYourOwnFal:

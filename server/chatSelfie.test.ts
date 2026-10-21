@@ -116,10 +116,28 @@ describe("chat-triggered selfies", () => {
       expect.objectContaining({ name: "comfyui" }),
       expect.objectContaining({
         mode: "reference",
-        prompt: expect.stringContaining("蓝色衬衫"),
+        prompt: expect.stringContaining("发张自拍"),
         references: [{ key: "misaki.jpg", url: "http://app/files/misaki.jpg" }],
       })
     );
+    expect(conversationsDb.getRecentMessages).not.toHaveBeenCalled();
+    const prompt = vi.mocked(providers.generateProviderImage).mock.calls[0][1]
+      .prompt;
+    expect(prompt).not.toContain("蓝色衬衫");
+    expect(prompt).not.toContain("职业衬衫");
+    expect(prompt).not.toContain("natural genuine smile");
+  });
+  it("keeps the complete chat request instead of overriding it with the default pose", async () => {
+    const content =
+      "发张自拍，海边侧面全身照，穿红色长裙，双手自然下垂，不看镜头，不拿手机";
+    await caller().chat.sendMessage({ conversationId: 42, content });
+    const prompt = vi.mocked(providers.generateProviderImage).mock.calls[0][1]
+      .prompt;
+    expect(prompt.endsWith(content)).toBe(true);
+    expect(prompt).not.toMatch(
+      /close-up selfie|direct eye contact|phone held at arm's length|natural genuine smile/
+    );
+    expect(conversationsDb.getRecentMessages).not.toHaveBeenCalled();
   });
   it("does not write or generate for another user's conversation, locked poses or unconfigured service", async () => {
     vi.mocked(conversationsDb.getConversation).mockResolvedValueOnce(undefined);

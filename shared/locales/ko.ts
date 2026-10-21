@@ -994,15 +994,15 @@ export default {
     invalidCoupleImage: "10MB 이하의 JPG, PNG 또는 WebP 이미지를 선택하세요.",
     askForAPhoto: "사진 찍기",
     unlockPosesAsYouGrowCloserTextIn:
-      "친밀도에 따라 포즈가 열려요. 입력창에 장면을 적을 수 있어요.",
+      "입력한 글을 우선하고, 비어 있을 때만 선택한 포즈를 사용해요. 친밀도에 따라 포즈가 열려요.",
     generationMode: "생성 방식",
     fromReference: "참고 이미지로 생성",
     fromText: "텍스트로 생성",
 
     usesTheCharacterReferenceToHelpKeepThe:
-      "참고 사진으로 외모의 일관성을 유지해요.",
+      "참고 사진으로 인물의 특징을 유지하고 장면은 입력한 글을 따라요.",
     generatesFromTheCharacterDescriptionAndSceneText:
-      "참고 사진 없이 외모와 장면 설명으로 만들어요.",
+      "입력한 글을 우선하고, 지정하지 않은 특징만 캐릭터 외모 설명으로 채워요.",
     unlocksAtIntimacyLv: "친밀도 Lv.{{level}}에서 해제",
     uploadYourPhotoToAppearTogether: "사진을 올려 함께 찍기",
     couplePhotosRequireProOrYourOwnFal:

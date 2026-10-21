@@ -479,6 +479,18 @@ it("uses chat content for photo progress and success without success popups", as
   expect(mock.success).not.toHaveBeenCalled();
   expect(mock.info).not.toHaveBeenCalled();
 });
+it("passes the complete current composer text to image generation", async () => {
+  const userContext =
+    "画面细节。".repeat(250) + "\n海边侧面全身照，不看镜头，不拿手机";
+  await act(async () => controller.setMessage(userContext));
+  await act(async () => controller.handleSelectPose("sweet_smile", "text"));
+  expect(mock.selfie).toHaveBeenCalledWith({
+    conversationId: expect.any(Number),
+    userContext,
+    poseId: "sweet_smile",
+    generationMode: "text",
+  });
+});
 
 async function prepareVoiceRead() {
   mock.duration = 2;

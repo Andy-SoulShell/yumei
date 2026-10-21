@@ -121,7 +121,60 @@ describe("ComfyUI selfie integration", () => {
     expect(result.message.imageUrl).toBe("/files/generated.png");
     expect(result.selfie?.imageUrl).toBe("/files/generated.png");
     expect(key).not.toHaveBeenCalled();
+    expect(conversationsDb.getRecentMessages).not.toHaveBeenCalled();
   });
+
+  it.each(["reference", "text"] as const)(
+    "passes a long camera request intact in %s mode without the selected pose or old chats",
+    async generationMode => {
+      vi.spyOn(conversationsDb, "getConversation").mockResolvedValue({
+        id: 1,
+        girlfriendId: 2,
+      } as any);
+      vi.spyOn(companionsDb, "getActiveGirlfriend").mockResolvedValue({
+        id: 2,
+        appearance: "成年女性，黑色长发",
+        intimacyLevel: 10,
+        referenceImageKey: "ref.png",
+        referenceImageUrl: "/files/ref.png",
+      } as any);
+      const history = vi
+        .spyOn(conversationsDb, "getRecentMessages")
+        .mockResolvedValue([
+          { id: 1, role: "assistant", content: "咖啡厅，蓝色衬衫，正面特写" },
+        ] as any);
+      vi.spyOn(storage, "storagePut").mockResolvedValue({
+        key: "generated.png",
+        url: "/files/generated.png",
+      });
+      const generate = vi
+        .spyOn(providers, "generateProviderImage")
+        .mockResolvedValue(png);
+      const userContext =
+        "细节要求。".repeat(250) +
+        "\n海边侧面全身，红色长裙，双手自然下垂，不拿手机";
+      await caller().selfie.generate({
+        conversationId: 1,
+        userContext,
+        poseId: "sweet_smile",
+        generationMode,
+      });
+      const prompt = generate.mock.calls[0][1].prompt;
+      expect(prompt.endsWith(userContext)).toBe(true);
+      expect(prompt).not.toContain("咖啡厅");
+      expect(prompt).not.toContain("蓝色衬衫");
+      expect(prompt).not.toMatch(
+        /close-up|sweet smile|phone held at arm's length/
+      );
+      expect(history).not.toHaveBeenCalled();
+      expect(generations.completeImageGeneration).toHaveBeenCalledWith(
+        "mock-request",
+        expect.any(String),
+        expect.objectContaining({ prompt, userContext }),
+        undefined
+      );
+    }
+  );
 
   it("checks conversation ownership and intimacy before submitting a task", async () => {
     const conversation = vi

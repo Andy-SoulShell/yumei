@@ -220,7 +220,7 @@ function WorkspaceHeader({
         <span className="text-xs text-muted-foreground">
           草稿 {revision} · 已发布 {publishedRevision}
         </span>
-        <div className="flex flex-wrap gap-2">
+        <div className="management-actions flex flex-wrap gap-2">
           <Button size="sm" variant="ghost" disabled={busy} onClick={onReload}>
             <RefreshCw className="mr-1.5 size-3.5" />
             重新读取

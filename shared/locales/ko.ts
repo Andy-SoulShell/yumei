@@ -503,7 +503,7 @@ export default {
       "녹음이 너무 짧아요. 다시 시도해 주세요.",
     couldNotReadTheAudio: "오디오 데이터를 읽지 못했어요",
     recordingUnsupported: "이 브라우저는 녹음을 지원하지 않아요.",
-    invalidRecording: "녹음은 {{formats}} 형식, {{maxMB}}MB 이하여야 해요.",
+    invalidRecording: "녹음은 {{formats}} 형식, {{maxSize}} 이하여야 해요.",
     recordingMaxDuration: "최대 녹음 시간인 {{seconds}}초에 도달했어요.",
     microphonePermissionDenied:
       "마이크 접근이 거부되었어요. 브라우저 설정에서 허용해 주세요.",
@@ -742,7 +742,7 @@ export default {
     avatarUploaded: "프로필 사진을 업로드했어요!",
     avatarUploadFailed: "프로필 사진을 업로드하지 못했어요: {{error}}",
     chooseAJPGPNGGIFOrWebPImage:
-      "{{maxMB}}MB 이하의 {{formats}} 이미지를 선택하세요",
+      "{{maxSize}} 이하의 {{formats}} 이미지를 선택하세요",
     unsupportedFormatChooseJPGPNGGIFOrWebP:
       "지원하지 않는 형식이에요. JPG, PNG, GIF 또는 WebP를 선택하세요.",
     imageIsTooLargeMBChooseAnImage:
@@ -754,7 +754,7 @@ export default {
     createYourCompanion: "캐릭터 만들기",
 
     avatar: "프로필 사진",
-    uploadAnAvatarForTheHomeAndChat: "{{formats}}, 최대 {{maxMB}}MB",
+    uploadAnAvatarForTheHomeAndChat: "{{formats}}, 최대 {{maxSize}}",
     upload: "업로드",
     uploading: "업로드 중…",
     confirmUpload: "업로드 확인",
@@ -764,7 +764,7 @@ export default {
     referencePhoto: "참고 사진",
     change: "변경",
     clickToUploadAPhoto: "클릭하여 사진 업로드",
-    jpgPNGGIFOrWebPUpTo10: "{{formats}}, 최대 {{maxMB}}MB",
+    jpgPNGGIFOrWebPUpTo10: "{{formats}}, 최대 {{maxSize}}",
     restorePresetReference: "프리셋 참고 이미지 복원",
     referencePhotosCannotBeChangedWhileEditingCreate:
       "참고 사진을 바꾸려면 새 캐릭터를 만드세요.",
@@ -966,7 +966,7 @@ export default {
     "levels.10.petName": "♡",
   },
   selfie: {
-    invalidCoupleImage: "{{maxMB}}MB 이하의 {{formats}} 이미지를 선택하세요.",
+    invalidCoupleImage: "{{maxSize}} 이하의 {{formats}} 이미지를 선택하세요.",
     askForAPhoto: "사진 찍기",
     unlockPosesAsYouGrowCloserTextIn:
       "입력한 글을 우선하고, 비어 있을 때만 선택한 포즈를 사용해요. 친밀도에 따라 포즈가 열려요.",

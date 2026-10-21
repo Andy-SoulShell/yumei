@@ -14,7 +14,7 @@ export function useOfficialUpload(onError: (message: string) => void) {
       if (!rule) throw new Error("上传规则尚未加载");
       if (!acceptsUpload(rule, file)) {
         const info = uploadDescription(rule);
-        throw new Error(`请选择 ${info.formats}，最大 ${info.maxMB}MB`);
+        throw new Error(`请选择 ${info.formats}，最大 ${info.maxSize}`);
       }
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();

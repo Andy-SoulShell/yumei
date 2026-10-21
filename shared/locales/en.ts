@@ -506,7 +506,7 @@ export default {
     couldNotReadTheAudio: "Could not read the audio",
     recordingUnsupported: "This browser does not support audio recording.",
     invalidRecording:
-      "Recording must use {{formats}} and be no larger than {{maxMB}}MB.",
+      "Recording must use {{formats}} and be no larger than {{maxSize}}.",
     recordingMaxDuration:
       "The {{seconds}}-second recording limit has been reached.",
     microphonePermissionDenied:
@@ -748,8 +748,7 @@ export default {
     couldNotUpdate: "Could not update: {{error}}",
     avatarUploaded: "Avatar uploaded!",
     avatarUploadFailed: "Avatar upload failed: {{error}}",
-    chooseAJPGPNGGIFOrWebPImage:
-      "Choose a {{formats}} image up to {{maxMB}} MB",
+    chooseAJPGPNGGIFOrWebPImage: "Choose a {{formats}} image up to {{maxSize}}",
     unsupportedFormatChooseJPGPNGGIFOrWebP:
       "Unsupported format. Choose JPG, PNG, GIF or WebP.",
     imageIsTooLargeMBChooseAnImage:
@@ -761,7 +760,7 @@ export default {
     createYourCompanion: "Create a character",
 
     avatar: "Avatar",
-    uploadAnAvatarForTheHomeAndChat: "{{formats}}, up to {{maxMB}}MB",
+    uploadAnAvatarForTheHomeAndChat: "{{formats}}, up to {{maxSize}}",
     upload: "Upload",
     uploading: "Uploading…",
     confirmUpload: "Confirm upload",
@@ -771,7 +770,7 @@ export default {
     referencePhoto: "Reference photo",
     change: "Change",
     clickToUploadAPhoto: "Click to upload a photo",
-    jpgPNGGIFOrWebPUpTo10: "{{formats}}, up to {{maxMB}}MB",
+    jpgPNGGIFOrWebPUpTo10: "{{formats}}, up to {{maxSize}}",
     restorePresetReference: "Restore preset reference",
     referencePhotosCannotBeChangedWhileEditingCreate:
       "To change the reference photo, create a new character.",
@@ -985,7 +984,7 @@ export default {
     "levels.10.petName": "♡",
   },
   selfie: {
-    invalidCoupleImage: "Choose a {{formats}} image up to {{maxMB}}MB.",
+    invalidCoupleImage: "Choose a {{formats}} image up to {{maxSize}}.",
     askForAPhoto: "Take a photo",
     unlockPosesAsYouGrowCloserTextIn:
       "Your message takes priority. The selected pose is used when the box is empty. Intimacy unlocks poses.",

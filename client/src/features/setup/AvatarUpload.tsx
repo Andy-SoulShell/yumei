@@ -43,7 +43,7 @@ export function AvatarUpload({
           "setup:uploadAnAvatarForTheHomeAndChat",
           uploads
             ? uploadDescription(uploads.avatar)
-            : { formats: "", maxMB: 0 }
+            : { formats: "", maxSize: "" }
         )}
       </p>
       <div className="flex items-center gap-4">

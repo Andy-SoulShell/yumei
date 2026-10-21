@@ -35,7 +35,7 @@ export function enforceUpload(
   if (!acceptsUpload(limit, { size: data.length, type: mimeType }))
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: `请选择 ${uploadDescription(limit).formats} 文件，最大 ${uploadDescription(limit).maxMB}MB`,
+      message: `请选择 ${uploadDescription(limit).formats} 文件，最大 ${uploadDescription(limit).maxSize}`,
     });
 }
 

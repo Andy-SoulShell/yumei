@@ -180,7 +180,7 @@ export function SelfiePoseDialog({
                       "selfie:invalidCoupleImage",
                       policy.raw
                         ? uploadDescription(policy.raw.uploads.couple)
-                        : { formats: "", maxMB: 0 }
+                        : { formats: "", maxSize: "" }
                     )
                   );
                   return;

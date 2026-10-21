@@ -190,11 +190,18 @@ export type UploadLimit =
   z.infer<typeof imageUpload> | z.infer<typeof uploadsConfigSchema>["audio"];
 /** 仅描述规则；所有数值从发布配置生成。 */
 export function uploadDescription(limit: UploadLimit) {
+  // 保留字节级精度，避免小容量被四舍五入成 0MB，或提示的上限大于执行上限。
+  const unit =
+    limit.maxBytes % (1024 * 1024) === 0
+      ? { bytes: 1024 * 1024, label: "MiB" }
+      : limit.maxBytes % 1024 === 0
+        ? { bytes: 1024, label: "KiB" }
+        : { bytes: 1, label: "B" };
   return {
     formats: limit.mimeTypes
       .map(mime => mime.split("/")[1].toUpperCase())
       .join(" / "),
-    maxMB: Number((limit.maxBytes / 1024 / 1024).toFixed(2)),
+    maxSize: `${limit.maxBytes / unit.bytes} ${unit.label}`,
   };
 }
 /** 使用 MIME 主类型匹配录音编码参数。 */

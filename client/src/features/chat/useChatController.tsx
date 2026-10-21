@@ -799,7 +799,7 @@ export function useChatController() {
       toast.error(
         t(
           "chat:invalidRecording",
-          audio ? uploadDescription(audio) : { formats: "", maxMB: 0 }
+          audio ? uploadDescription(audio) : { formats: "", maxSize: "" }
         )
       );
       return;

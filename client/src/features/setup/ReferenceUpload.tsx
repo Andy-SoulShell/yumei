@@ -78,7 +78,7 @@ export function ReferenceUpload({
                 "setup:jpgPNGGIFOrWebPUpTo10",
                 uploads
                   ? uploadDescription(uploads.reference)
-                  : { formats: "", maxMB: 0 }
+                  : { formats: "", maxSize: "" }
               )}
             </span>
           </Button>

@@ -265,7 +265,7 @@ export function useSetupController() {
             "setup:chooseAJPGPNGGIFOrWebPImage",
             uploads
               ? uploadDescription(uploads.reference)
-              : { formats: "", maxMB: 0 }
+              : { formats: "", maxSize: "" }
           )
         );
         e.target.value = "";
@@ -310,7 +310,7 @@ export function useSetupController() {
           "setup:chooseAJPGPNGGIFOrWebPImage",
           uploads
             ? uploadDescription(uploads.avatar)
-            : { formats: "", maxMB: 0 }
+            : { formats: "", maxSize: "" }
         )
       );
       return;

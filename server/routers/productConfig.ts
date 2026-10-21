@@ -22,14 +22,18 @@ export const productConfigRouter = router({
           .strict()
       )
       .mutation(({ ctx, input }) =>
-        editProductConfig(ctx.user.id, input.expectedRevision, input.config)
+        editProductConfig(
+          ctx.administrator.id,
+          input.expectedRevision,
+          input.config
+        )
       ),
     publish: adminProcedure
       .input(
         z.object({ expectedRevision: z.number().int().positive() }).strict()
       )
       .mutation(({ ctx, input }) =>
-        editProductConfig(ctx.user.id, input.expectedRevision)
+        editProductConfig(ctx.administrator.id, input.expectedRevision)
       ),
   }),
 });

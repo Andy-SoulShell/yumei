@@ -1,5 +1,6 @@
 /** 为 tRPC 请求解析会话，并读取应用用户资料。 */
 
+import { readAdministrator, type Administrator } from "../managementAuth";
 import { TRPCError } from "@trpc/server";
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { User } from "../../drizzle/schema";
@@ -13,6 +14,7 @@ export type TrpcContext = {
   res: CreateExpressContextOptions["res"];
   /** 认证并查库成功的应用用户，未登录或已删除时为 null。 */
   user: User | null;
+  administrator?: Administrator | null;
   /** 与响应头和服务日志关联的请求标识。 */
   requestId?: string;
 };
@@ -46,6 +48,7 @@ export async function createContext(
     req: opts.req,
     res: opts.res,
     user,
+    administrator: await readAdministrator(opts.req),
     requestId,
   };
 }

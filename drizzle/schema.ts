@@ -866,3 +866,13 @@ export const memoryExtractionJobs = mysqlTable(
     byRole: index("idx_memory_job_role").on(table.girlfriendId),
   })
 );
+
+/** 单密码管理会话独立于用户表；仅保存随机令牌摘要和密码签名。 */
+export const managementSessions = mysqlTable("managementSessions", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  credentialFingerprint: varchar("credentialFingerprint", {
+    length: 64,
+  }).notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});

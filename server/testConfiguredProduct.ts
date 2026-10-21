@@ -19,6 +19,7 @@ export async function configured(
   const userId = await createTestUser();
   const admin = appRouter.createCaller({
     user: { id: userId, role: "admin", birthDate: new Date("1990-01-01") },
+    administrator: { id: "management" },
     req: {},
     res: {},
   } as never);

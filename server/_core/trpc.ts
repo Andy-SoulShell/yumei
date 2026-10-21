@@ -62,19 +62,21 @@ const requireUser = t.middleware(async opts => {
 /** 要求上下文存在认证用户的过程基类，不自动验证具体资源归属。 */
 export const protectedProcedure = publicProcedure.use(requireUser);
 
-/** 要求当前用户具有 admin 角色的过程基类。 */
+/** 要求独立单密码管理会话的过程基类。 */
 export const adminProcedure = publicProcedure.use(
   t.middleware(async opts => {
     const { ctx, next } = opts;
 
-    if (!ctx.user || ctx.user.role !== "admin") {
+    ctx.res.setHeader?.("Cache-Control", "no-store");
+
+    if (!ctx.administrator) {
       throw new TRPCError({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
     }
 
     return next({
       ctx: {
         ...ctx,
-        user: ctx.user,
+        administrator: ctx.administrator,
       },
     });
   })

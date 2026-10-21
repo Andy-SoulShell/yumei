@@ -13,6 +13,7 @@ services:
       # Public URL of this deployment (magic links + file URLs).
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
       # Secrets — generate two DIFFERENT values with: openssl rand -hex 32
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
       KEY_ENCRYPTION_KEY: ${KEY_ENCRYPTION_KEY:?set KEY_ENCRYPTION_KEY in .env}
       # Email (magic-link sign-in). Resend by default; see .env.example

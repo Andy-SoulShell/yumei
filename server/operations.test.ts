@@ -49,6 +49,7 @@ describe("generation operations", () => {
     ]);
     const caller = appRouter.createCaller({
       user: { id: userId, role: "admin" },
+      administrator: { id: "management" },
       req: {},
       res: {},
     } as never);
@@ -113,6 +114,7 @@ describe("generation operations", () => {
     ]);
     const caller = appRouter.createCaller({
       user: { id: userId, role: "admin" },
+      administrator: { id: "management" },
       req: {},
       res: {},
     } as never);

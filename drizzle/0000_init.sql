@@ -185,6 +185,14 @@ CREATE TABLE `girlfriends` (
 	CONSTRAINT `girlfriends_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
+CREATE TABLE `managementSessions` (
+	`id` varchar(64) NOT NULL,
+	`credentialFingerprint` varchar(64) NOT NULL,
+	`expiresAt` timestamp NOT NULL,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `managementSessions_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
 CREATE TABLE `mediaDeletions` (
 	`key` varchar(500) NOT NULL,
 	`userId` varchar(255) NOT NULL,

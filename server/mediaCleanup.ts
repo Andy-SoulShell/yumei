@@ -1,4 +1,5 @@
 /** 基于事务清理任务回收媒体，保留仍被其他记录引用的共享文件。 */
+import { cleanupManagementAuthentication } from "./managementAuth";
 import { getPublishedProductConfig } from "./repositories/productConfig";
 import { and, eq, isNull, lte, or, sql } from "drizzle-orm";
 import {
@@ -168,6 +169,7 @@ export function startMediaCleanupScheduler(): () => void {
         await module.runMemoryExtractionJobs();
       },
     ],
+    ["management", cleanupManagementAuthentication],
     [
       "expiry",
       async () => {
@@ -179,12 +181,15 @@ export function startMediaCleanupScheduler(): () => void {
         await db
           .delete(rateWindows)
           .where(
-            lte(
-              rateWindows.updatedAt,
-              new Date(
-                Date.now() -
-                  (await getPublishedProductConfig()).runtime.maintenance
-                    .rateWindowRetentionMs
+            and(
+              sql`${rateWindows.action} <> 'management'`,
+              lte(
+                rateWindows.updatedAt,
+                new Date(
+                  Date.now() -
+                    (await getPublishedProductConfig()).runtime.maintenance
+                      .rateWindowRetentionMs
+                )
               )
             )
           );

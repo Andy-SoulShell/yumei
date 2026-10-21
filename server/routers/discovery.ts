@@ -12,7 +12,7 @@ import { adminProcedure, publicProcedure, router } from "../_core/trpc";
 import { decodeBase64Upload, enforceUpload } from "../_core/uploads";
 import { officialImageMime } from "../characterPresets";
 import { putStagedMedia, publishMedia } from "../managedMedia";
-import { withUserTransaction } from "../database";
+import { getDb } from "../database";
 import {
   archiveOfficialCharacter,
   getDiscoveryDraft,
@@ -36,7 +36,7 @@ export const discoveryRouter = router({
       )
       .mutation(({ ctx, input }) =>
         saveOfficialCharacter(
-          ctx.user.id,
+          ctx.administrator.id,
           input.expectedRevision,
           input.character
         )
@@ -44,17 +44,21 @@ export const discoveryRouter = router({
     archiveCharacter: adminProcedure
       .input(z.object({ expectedRevision, id: officialIdSchema }).strict())
       .mutation(({ ctx, input }) =>
-        archiveOfficialCharacter(ctx.user.id, input.expectedRevision, input.id)
+        archiveOfficialCharacter(
+          ctx.administrator.id,
+          input.expectedRevision,
+          input.id
+        )
       ),
     saveHomepage: adminProcedure
       .input(z.object({ expectedRevision, home: homepageSchema }).strict())
       .mutation(({ ctx, input }) =>
-        saveHomepage(ctx.user.id, input.expectedRevision, input.home)
+        saveHomepage(ctx.administrator.id, input.expectedRevision, input.home)
       ),
     publish: adminProcedure
       .input(z.object({ expectedRevision }).strict())
       .mutation(({ ctx, input }) =>
-        publishDiscovery(ctx.user.id, input.expectedRevision)
+        publishDiscovery(ctx.administrator.id, input.expectedRevision)
       ),
     uploadImage: adminProcedure
       .input(z.object({ imageBase64: z.string().min(1) }).strict())
@@ -76,10 +80,10 @@ export const discoveryRouter = router({
         }
         const ext = mimeType === "image/jpeg" ? "jpg" : mimeType.split("/")[1];
         const key = `official-${nanoid()}.${ext}`;
-        await putStagedMedia(ctx.user.id, key, data, mimeType);
+        await putStagedMedia(ctx.administrator.id, key, data, mimeType);
         // 官方媒体持久保留，可被多条草稿和历史发布内容引用。
-        await withUserTransaction(ctx.user.id, tx =>
-          publishMedia(tx, ctx.user.id, [key])
+        await (await getDb())!.transaction(tx =>
+          publishMedia(tx, ctx.administrator.id, [key])
         );
         return { imageUrl: `/files/${key}`, mimeType };
       }),

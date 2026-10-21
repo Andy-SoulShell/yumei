@@ -34,6 +34,7 @@ const guest = appRouter.createCaller({ user: null, req: {}, res: {} } as never);
 const caller = (id: string, role = "admin") =>
   appRouter.createCaller({
     user: { id, role, birthDate: new Date("1990-01-01") },
+    administrator: role === "admin" ? { id: "management" } : null,
     req: {},
     res: {},
   } as never);

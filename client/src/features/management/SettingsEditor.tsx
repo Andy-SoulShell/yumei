@@ -18,6 +18,9 @@ import { SettingsFields } from "./SettingsFields";
 import { SettingsCollection } from "./SettingsCollection";
 import { WorkflowEditor } from "./WorkflowEditor";
 import { SettingsScenario } from "./SettingsScenario";
+import { BillingSetupEditor, PlanLibrary } from "./BillingEditor";
+import { NotificationComposer } from "./NotificationComposer";
+import { ContactScheduleEditor } from "./ContactScheduleEditor";
 import {
   settingsJourneys,
   taskFieldGroups,
@@ -72,6 +75,23 @@ export function SettingsEditor({
     Record<string, SettingsViewState>
   >({});
   const current = config[section];
+  const contextLevel =
+    section === "intimacy"
+      ? Number(view.selections["intimacy.levels"] ?? 1)
+      : section === "memory"
+        ? Number(view.selections["memory.capacityLevel"] ?? 1)
+        : section === "selfies"
+          ? (config.selfies.poses.find(
+              pose => pose.id === view.selections["selfies.poses"]
+            )?.minLevel ?? config.selfies.poses[0].minLevel)
+          : 1;
+  const contextPoints =
+    config.intimacy.levels.find(item => item.level === contextLevel)
+      ?.requiredPoints ?? 0;
+  const showScenario =
+    !(section === "proactive" && ["copy", "delivery"].includes(tab)) &&
+    !(section === "intimacy" && tab !== "levels") &&
+    !(section === "memory" && !["capacity", "extraction"].includes(tab));
   const update = (next: unknown) => onChange({ ...config, [section]: next });
   return (
     <div className="min-w-0 space-y-6">
@@ -141,7 +161,47 @@ export function SettingsEditor({
                   {item.description}
                 </p>
               </div>
-              {item.collection ? (
+              {section === "billing" &&
+              (item.id === "plans" || item.id === "subscription") ? (
+                item.id === "plans" ? (
+                  <PlanLibrary
+                    config={config}
+                    schema={schema}
+                    issues={issues}
+                    disabled={disabled}
+                    onChange={onChange}
+                    view={view}
+                    onViewChange={onViewChange}
+                  />
+                ) : (
+                  <BillingSetupEditor
+                    config={config}
+                    schema={schema}
+                    issues={issues}
+                    disabled={disabled}
+                    onChange={onChange}
+                    view={view}
+                    onViewChange={onViewChange}
+                  />
+                )
+              ) : section === "proactive" && item.id === "schedule" ? (
+                <ContactScheduleEditor
+                  config={config}
+                  schema={schema}
+                  issues={issues}
+                  disabled={disabled}
+                  onChange={onChange}
+                />
+              ) : section === "proactive" && item.id === "copy" ? (
+                <NotificationComposer
+                  config={config}
+                  issues={issues}
+                  disabled={disabled}
+                  onChange={onChange}
+                  view={view}
+                  onViewChange={onViewChange}
+                />
+              ) : item.collection ? (
                 <SettingsCollection
                   kind={item.collection}
                   onConfigChange={onChange}
@@ -311,7 +371,16 @@ export function SettingsEditor({
           ))}
         </div>
       </Tabs>
-      <SettingsScenario section={section} panel={tab} config={config} />
+      {showScenario && (
+        <SettingsScenario
+          key={`${section}:${tab}:${contextLevel}`}
+          section={section}
+          panel={tab}
+          config={config}
+          initialLevel={contextLevel}
+          initialPoints={contextPoints}
+        />
+      )}
       {!embedded && (
         <section
           aria-label="关联设置"
@@ -333,6 +402,14 @@ export function SettingsEditor({
                     [item.section]: {
                       ...(old[item.section] ?? createSettingsView()),
                       task: item.task,
+                      selections: {
+                        ...(old[item.section]?.selections ?? {}),
+                        ...(item.section === "memory"
+                          ? { "memory.capacityLevel": String(contextLevel) }
+                          : item.section === "intimacy"
+                            ? { "intimacy.levels": String(contextLevel) }
+                            : {}),
+                      },
                     },
                   }));
                   setRelated(item);

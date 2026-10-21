@@ -75,6 +75,7 @@ const identity = (value: unknown) =>
     ? String(
         (value as { id?: string; level?: number }).id ??
           (value as { level?: number }).level ??
+          (value as { minLevel?: number }).minLevel ??
           ""
       )
     : "";
@@ -88,6 +89,7 @@ const itemLabel = (value: unknown, index: number) => {
         (name as Record<string, string>)["zh-CN"] || `第 ${index + 1} 项`
       );
     if (item.level) return `第 ${item.level} 级`;
+    if (item.minLevel) return `第 ${item.minLevel} 级起`;
   }
   return `第 ${index + 1} 项`;
 };

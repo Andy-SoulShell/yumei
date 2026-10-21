@@ -23,23 +23,40 @@ export function SettingsScenario({
   section,
   panel,
   config,
+  initialPoints = 0,
+  initialLevel = 1,
 }: {
   section: SettingsSection;
   panel: string;
   config: ProductConfig;
+  initialPoints?: number;
+  initialLevel?: number;
 }) {
   const id = useId();
-  const [points, setPoints] = useState(0),
+  const [points, setPoints] = useState(initialPoints),
     [rounds, setRounds] = useState(1),
     [message, setMessage] = useState("谢谢你"),
-    [level, setLevel] = useState(1);
+    [level, setLevel] = useState(initialLevel);
   const [consent, setConsent] = useState(false),
     [active, setActive] = useState(false),
     [unread, setUnread] = useState(0);
   const [now, setNow] = useState(() => new Date().toISOString().slice(0, 16)),
     [last, setLast] = useState("");
-  const [size, setSize] = useState(1),
-    [mime, setMime] = useState("image/jpeg");
+  const uploadKey = [
+    "avatar",
+    "reference",
+    "couple",
+    "official",
+    "audio",
+  ].includes(panel)
+    ? (panel as "avatar" | "reference" | "couple" | "official" | "audio")
+    : "avatar";
+  const [size, setSize] = useState(
+      () => Math.min(1048576, config.uploads[uploadKey].maxBytes) / 1048576
+    ),
+    [mime, setMime] = useState(
+      () => config.uploads[uploadKey].mimeTypes[0] as string
+    );
   const numberInput = (
     label: string,
     value: number,

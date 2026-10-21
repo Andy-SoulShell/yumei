@@ -387,6 +387,11 @@ it("rejects inconsistent operational configuration before replacing a draft", ()
         };
       },
       (c: typeof productFixture) => {
+        c.proactive.templates["notifications:title.thinkingOfYou"] = {
+          "zh-CN": "{{memory}}的新提醒",
+        };
+      },
+      (c: typeof productFixture) => {
         c.uploads.requestMaxBytes = 1024 * 1024;
       },
       (c: typeof productFixture) => {

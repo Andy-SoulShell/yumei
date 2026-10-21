@@ -60,3 +60,31 @@ it("compares reordered plans by stable identity and shows only order plus genuin
     })
   );
 });
+it("names the shared notification title and scene body in publication review", () => {
+  const value = structuredClone(productFixture);
+  value.proactive.templates["notifications:title.thinkingOfYou"]["zh-CN"] =
+    "{{name}} · 惦记着你";
+  value.proactive.templates["notifications:eventUpcoming"]["zh-CN"] =
+    "明天记得：{{memory}}";
+  value.memory.levelRules[2].capacity = 78;
+  const fields = productPublicationReview(
+    value,
+    productFixture,
+    []
+  ).groups.find(item => item.id === "proactive")!.fields;
+  expect(fields).toHaveLength(2);
+  expect(fields.map(item => item.field)).toEqual(
+    expect.arrayContaining([
+      expect.stringContaining("普通联系标题（场景共用）"),
+      expect.stringContaining("事件即将到来正文"),
+    ])
+  );
+  expect(fields.every(item => !item.field.includes("notifications:"))).toBe(
+    true
+  );
+  expect(
+    productPublicationReview(value, productFixture, []).groups.find(
+      item => item.id === "memory"
+    )!.fields[0].field
+  ).toContain("第 3 级起");
+});

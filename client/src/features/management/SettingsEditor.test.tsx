@@ -96,12 +96,176 @@ async function clickText(text: string, scope: ParentNode = document) {
   expect(button, text).toBeTruthy();
   await act(async () => button.click());
 }
+it("routes billing mode to the effective plan and opens only the selected plan's applicable controls", async () => {
+  await act(async () => root.render(<Probe section="billing" />));
+  const original = structuredClone(current.billing.plans);
+  await clickText("自托管不限额");
+  expect(
+    container.querySelector('[aria-label="自托管用户的套餐身份"]')
+  ).not.toBeNull();
+  expect(container.querySelector('[aria-label="默认免费套餐"]')).toBeNull();
+  await clickText("编辑这份套餐");
+  expect(document.querySelector('[role="dialog"]')!.textContent).toContain(
+    "备用权益"
+  );
+  expect(document.querySelector('[role="dialog"]')!.textContent).not.toContain(
+    "支付关联"
+  );
+  await clickText("完成套餐编辑");
+  await clickText("免费提供服务");
+  const free = container.querySelector<HTMLSelectElement>(
+    '[aria-label="默认免费套餐"]'
+  )!;
+  expect(
+    Array.from(free.options).every(option =>
+      current.billing.plans.some(
+        plan =>
+          plan.id === option.value && plan.enabled && plan.price.amount === 0
+      )
+    )
+  ).toBe(true);
+  await clickText("编辑这份套餐");
+  expect(
+    document.querySelector<HTMLInputElement>(
+      '[role="dialog"] input[aria-label="金额"]'
+    )!.disabled
+  ).toBe(true);
+  expect(
+    document.querySelector<HTMLButtonElement>(
+      '[role="dialog"] [role="switch"]'
+    )!.disabled
+  ).toBe(true);
+  await clickText("完成套餐编辑");
+  await clickText("付费订阅");
+  await clickText("编辑这份套餐");
+  await clickText("支付关联");
+  expect(document.querySelector('[role="dialog"]')!.textContent).toContain(
+    "结账地址"
+  );
+  expect(current.billing.plans).toEqual(original);
+  expect(productConfigSchema.safeParse(current).success).toBe(true);
+});
+it("reorders a plan from its dialog without changing its ID or payment mapping", async () => {
+  await act(async () => root.render(<Probe section="billing" />));
+  const plan = structuredClone(current.billing.plans[1]);
+  const button = container.querySelector<HTMLButtonElement>(
+    `[aria-label="编辑套餐：${plan.label["zh-CN"]}"]`
+  )!;
+  await act(async () => button.click());
+  await change(
+    document.querySelector<HTMLSelectElement>('[aria-label="套餐排序位置"]')!,
+    "0"
+  );
+  expect(current.billing.plans[0]).toEqual(plan);
+  expect(new Set(current.billing.plans.map(plan => plan.id)).size).toBe(
+    current.billing.plans.length
+  );
+  expect(productConfigSchema.safeParse(current).success).toBe(true);
+});
+it("edits paired notification copy with actual interpolation, locale fallback and privacy-safe controls", async () => {
+  await act(async () => root.render(<Probe section="proactive" />));
+  await tab("通知文案");
+  await clickText("事件当天");
+  await change(
+    document.querySelector<HTMLInputElement>('[aria-label="通知标题"]')!,
+    "来自{{name}}的关心"
+  );
+  await change(
+    document.querySelector<HTMLTextAreaElement>('[aria-label="通知正文"]')!,
+    "一起记住{{memory}}"
+  );
+  expect(
+    document.querySelector('[aria-label="这条通知的实际预览"]')!.textContent
+  ).toContain("来自葵的关心");
+  expect(
+    document.querySelector('[aria-label="这条通知的实际预览"]')!.textContent
+  ).toContain("一起记住一场重要的面试");
+  const body = document.querySelector<HTMLTextAreaElement>(
+    '[aria-label="通知正文"]'
+  )!;
+  await change(body, "前后");
+  body.setSelectionRange(1, 1);
+  await clickText("插入事件内容");
+  expect(body.value).toBe("前{{memory}}后");
+  expect(body.selectionStart).toBe(11);
+  await clickText("English");
+  await change(
+    document.querySelector<HTMLInputElement>('[aria-label="通知标题"]')!,
+    ""
+  );
+  await change(
+    document.querySelector<HTMLTextAreaElement>('[aria-label="通知正文"]')!,
+    ""
+  );
+  expect(
+    current.proactive.templates["notifications:eventToday"].en
+  ).toBeUndefined();
+  expect(
+    document.querySelector('[aria-label="这条通知的实际预览"]')!.textContent
+  ).toContain("前一场重要的面试后");
+  expect(
+    document
+      .querySelector<HTMLInputElement>('[aria-label="通知标题"]')!
+      .getAttribute("aria-invalid")
+  ).toBe("false");
+  await clickText("完成通知编辑");
+  await clickText("隐藏通知内容");
+  expect(document.querySelector('[role="dialog"]')!.textContent).not.toContain(
+    "插入角色名"
+  );
+  await clickText("简体中文");
+  await change(
+    document.querySelector<HTMLTextAreaElement>('[aria-label="通知正文"]')!,
+    "{{memory}}"
+  );
+  expect(productConfigSchema.safeParse(current).success).toBe(false);
+  await change(
+    document.querySelector<HTMLTextAreaElement>('[aria-label="通知正文"]')!,
+    "你有一条新的问候"
+  );
+  expect(productConfigSchema.safeParse(current).success).toBe(true);
+  expect(current.proactive.templates["notifications:eventToday"]["zh-CN"]).toBe(
+    "前{{memory}}后"
+  );
+});
+it("edits a single default contact arrangement and keeps consent false while tightening frequency bounds", async () => {
+  await act(async () => root.render(<Probe section="proactive" />));
+  expect(container.querySelector('[aria-label="默认联系间隔"]')).toBeNull();
+  await clickText("新用户默认联系安排");
+  const interval = document.querySelector<HTMLInputElement>(
+    '[aria-label="默认联系间隔"]'
+  )!;
+  await change(interval, "3");
+  await clickText("围绕事件关心");
+  await change(
+    document.querySelector<HTMLInputElement>('[aria-label="免打扰开始"]')!,
+    "23:15"
+  );
+  await clickText("完成联系安排");
+  expect(current.proactive.defaults).toMatchObject({
+    frequencyDays: 3,
+    proactiveMode: "events",
+    quietStart: 1395,
+    proactiveEnabled: false,
+  });
+  expect(
+    container.querySelector('[aria-label="编辑新用户默认联系安排"]')!
+      .textContent
+  ).toContain("每 3 天");
+  const minimum = container.querySelector<HTMLInputElement>(
+    'input[aria-label="最小值"]'
+  )!;
+  await change(minimum, "4");
+  expect(current.proactive.defaults.frequencyDays).toBe(4);
+  expect(productConfigSchema.safeParse(current).success).toBe(true);
+});
 it("opens a focused capability dialog for the selected level and saves all dependencies into the same draft", async () => {
   await act(async () => root.render(<Probe section="intimacy" />));
   const selected = Array.from(
     container.querySelectorAll<HTMLButtonElement>("button")
   ).find(button => button.textContent?.includes("第 3 级 ·"))!;
   await act(async () => selected.click());
+  expect(container.querySelector("output")!.textContent).toContain("3 级");
   const benefits = Array.from(
     container.querySelectorAll<HTMLButtonElement>('[role="radio"]')
   ).find(button => button.textContent === "解锁与能力")!;
@@ -416,16 +580,17 @@ it("copies a plan into an independent inactive draft and edits its price using i
     productFixture.billing.plans.length + 1
   );
   expect(current.billing.plans.at(-1)!.enabled).toBe(false);
-  const input = container.querySelector<HTMLInputElement>(
+  const input = document.querySelector<HTMLInputElement>(
     'input[aria-label="金额"]'
   )!;
   await change(input, "12.34");
   expect(current.billing.plans.at(-1)!.price.amount).toBe(12.34);
   expect(current.billing.plans[0]).toEqual(productFixture.billing.plans[0]);
   expect(
-    container.querySelector('[aria-label="编辑套餐"]')!.textContent
+    document.querySelector('[aria-label="编辑套餐"]')!.textContent
   ).toContain("USD");
   expect(productConfigSchema.safeParse(current).success).toBe(true);
+  await clickText("完成套餐编辑");
   await change(
     container.querySelector<HTMLInputElement>('[aria-label="搜索套餐"]')!,
     "新套餐"
@@ -435,8 +600,9 @@ it("copies a plan into an independent inactive draft and edits its price using i
   expect(
     container.querySelector<HTMLInputElement>('[aria-label="搜索套餐"]')!.value
   ).toBe("新套餐");
+  await clickText("新套餐");
   expect(
-    container.querySelector<HTMLInputElement>('[aria-label="金额"]')!.value
+    document.querySelector<HTMLInputElement>('[aria-label="金额"]')!.value
   ).toBe("12.34");
 });
 it("keeps malformed workflow input through tab changes and blocks the shared save contract until repaired", async () => {
@@ -493,9 +659,11 @@ it("disables task navigation and content controls while a save or publication is
 
 it("keeps image quotas mutually exclusive when switching day, month and unlimited", async () => {
   await act(async () => root.render(<Probe section="billing" />));
+  await clickText("编辑这份套餐");
+  await clickText("用户权益");
   const selectMode = async (label: string) => {
     const option = Array.from(
-      container.querySelectorAll<HTMLButtonElement>('[role="radio"]')
+      document.querySelectorAll<HTMLButtonElement>('[role="radio"]')
     ).find(item => item.textContent === label)!;
     await act(async () => option.click());
     expect(productConfigSchema.safeParse(current).success).toBe(true);
@@ -506,10 +674,10 @@ it("keeps image quotas mutually exclusive when switching day, month and unlimite
     monthlySelfies: 1,
   });
   await change(
-    container.querySelector<HTMLInputElement>('[aria-label="每月图片额度"]')!,
+    document.querySelector<HTMLInputElement>('[aria-label="每月图片额度"]')!,
     "8"
   );
-  const imageGroup = container.querySelector('[aria-label="图片额度周期"]')!;
+  const imageGroup = document.querySelector('[aria-label="图片额度周期"]')!;
   await act(async () =>
     Array.from(imageGroup.querySelectorAll<HTMLButtonElement>('[role="radio"]'))
       .find(item => item.textContent === "不限量")!

@@ -43,6 +43,13 @@ export type FormSchema = {
   const?: unknown;
 };
 const labels: Record<string, string> = {
+  "notifications:title.thinkingOfYou": "普通联系标题（场景共用）",
+  "notifications:privateTitle": "隐藏内容通知标题",
+  "notifications:privatePreview": "隐藏内容通知正文",
+  "notifications:eventUpcoming": "事件即将到来正文",
+  "notifications:eventToday": "事件当天正文",
+  "notifications:eventFollowUp": "事后关心正文",
+  "notifications:dailyCompanion": "日常陪伴正文",
   home: "首页展示",
   character: "角色资料",
   id: "标识 ID",

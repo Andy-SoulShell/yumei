@@ -32,6 +32,15 @@ const notificationTemplates = z
           message: "通知只支持 name、memory、eventDay 变量",
         });
     }
+    for (const [locale, text] of Object.entries(
+      templates["notifications:title.thinkingOfYou"] ?? {}
+    ))
+      if (/\{\{(?:memory|eventDay)\}\}/.test(text ?? ""))
+        ctx.addIssue({
+          code: "custom",
+          path: ["notifications:title.thinkingOfYou", locale],
+          message: "普通联系通知标题仅支持角色名变量",
+        });
     for (const id of ["privateTitle", "privatePreview"])
       if (
         Object.values(templates[`notifications:${id}`] ?? {}).some(text =>

@@ -1,3 +1,4 @@
+/** 按角色和账号偏好朗读消息，并管理播放取消、语速及自动朗读状态。 */
 import { useProductConfig } from "@/features/product/useProductConfig";
 import { apiErrorMessage } from "@/lib/errors";
 import { useI18n } from "@/lib/i18n";
@@ -6,7 +7,20 @@ import { trpc } from "@/lib/trpc";
 import { readDeviceValue, writeDeviceValue } from "@/lib/deviceStorage";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-export function useTTS() {
+/** 优先使用角色绑定的克隆音色，切换角色或音色后停止并忽略旧播放。 */
+export function useTTS(companion?: {
+  id: number;
+  omnivoiceVoiceId?: string | null;
+}) {
+  const girlfriendId = companion?.id;
+  const voiceId = companion?.omnivoiceVoiceId;
+  const scope = useRef({ girlfriendId, voiceId });
+  if (
+    scope.current.girlfriendId !== girlfriendId ||
+    scope.current.voiceId !== voiceId
+  )
+    scope.current = { girlfriendId, voiceId };
+  const identity = scope.current;
   const product = useProductConfig();
   const rules = product.raw?.experience.playback;
   const { t } = useI18n();
@@ -38,11 +52,13 @@ export function useTTS() {
   }, []);
   useEffect(() => {
     mounted.current = true;
+    setIsSpeaking(false);
+    setActiveMessageId(null);
     return () => {
       mounted.current = false;
       stopPlayback();
     };
-  }, [stopPlayback]);
+  }, [identity, stopPlayback]);
   const finish = useCallback((request: number) => {
     if (request !== playbackRequest.current) return;
     setIsSpeaking(false);
@@ -54,8 +70,11 @@ export function useTTS() {
   const { mutate: generateSpeech } = trpc.tts.generate.useMutation();
 
   // 分别读取偏好与脱敏后的密钥状态。
-  const ttsProvider =
-    apiConfig?.preferences?.ttsProvider || rules?.defaultProvider || "browser";
+  const ttsProvider = voiceId
+    ? "omnivoice"
+    : apiConfig?.preferences?.ttsProvider ||
+      rules?.defaultProvider ||
+      "browser";
 
   // 更新播放速度
   const updateSpeed = useCallback(
@@ -106,7 +125,7 @@ export function useTTS() {
   const speakApi = useCallback(
     (text: string, request: number) => {
       generateSpeech(
-        { text },
+        { text, ...(girlfriendId === undefined ? {} : { girlfriendId }) },
         {
           onSuccess: data => {
             if (request !== playbackRequest.current) return;
@@ -141,12 +160,12 @@ export function useTTS() {
         }
       );
     },
-    [generateSpeech, playbackSpeed, t, finish]
+    [generateSpeech, playbackSpeed, t, finish, girlfriendId]
   );
 
   const speak = useCallback(
     (text: string, messageId?: number) => {
-      if (!mounted.current) return;
+      if (!mounted.current || scope.current !== identity) return;
       stopPlayback();
       const request = playbackRequest.current;
       setIsSpeaking(true);
@@ -157,7 +176,7 @@ export function useTTS() {
         speakApi(text, request);
       }
     },
-    [ttsProvider, speakBrowser, speakApi, stopPlayback]
+    [ttsProvider, speakBrowser, speakApi, stopPlayback, identity]
   );
 
   const stop = useCallback(() => {

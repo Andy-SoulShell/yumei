@@ -105,6 +105,7 @@ beforeEach(async () => {
       interests: "音乐",
       referenceImageUrl: "/reference.jpg",
       avatarUrl: "/avatar.jpg",
+      omnivoiceVoiceId: "clone_original",
       behavior: {
         ...DEFAULT_COMPANION_BEHAVIOR,
         expression: "reserved",
@@ -172,6 +173,28 @@ it("removes only the avatar and keeps the form and its draft open", async () => 
   expect(controller.name).toBe("正在修改的名字");
   expect(mock.navigate).not.toHaveBeenCalled();
 });
+it("loads the character voice without replacing a draft on refresh, and persists an explicit unbind", async () => {
+  expect(controller.omnivoiceVoiceId).toBe("clone_original");
+  await act(async () => controller.setOmnivoiceVoiceId("clone_new"));
+  mock.roles = [{ ...mock.roles[0], omnivoiceVoiceId: "clone_refreshed" }];
+  await render();
+  expect(controller.omnivoiceVoiceId).toBe("clone_new");
+  await act(async () =>
+    controller.handleSubmit({ preventDefault: vi.fn() } as any)
+  );
+  expect(mock.update).toHaveBeenCalledWith(
+    expect.objectContaining({ id: 1, omnivoiceVoiceId: "clone_new" })
+  );
+  // A fresh edit allows clearing the override with null.
+  await remount();
+  await act(async () => controller.setOmnivoiceVoiceId(""));
+  await act(async () =>
+    controller.handleSubmit({ preventDefault: vi.fn() } as any)
+  );
+  expect(mock.update).toHaveBeenLastCalledWith(
+    expect.objectContaining({ id: 1, omnivoiceVoiceId: null })
+  );
+});
 it("rejects whitespace-only required fields without a request", async () => {
   await act(async () => controller.setName("   "));
   await act(async () => {
@@ -179,6 +202,34 @@ it("rejects whitespace-only required fields without a request", async () => {
   });
   expect(mock.update).not.toHaveBeenCalled();
   expect(mock.error).toHaveBeenCalled();
+});
+it("blocks character submission while a voice is cloning, and keeps profile drafts after binding refresh", async () => {
+  await act(async () => {
+    controller.setName("未保存的名字");
+    controller.setIsCloningVoice(true);
+  });
+  expect(controller.isPending).toBe(true);
+  await act(async () =>
+    controller.handleSubmit({ preventDefault: vi.fn() } as any)
+  );
+  expect(mock.update).not.toHaveBeenCalled();
+  mock.roles = [{ ...mock.roles[0], omnivoiceVoiceId: "clone_new" }];
+  await render();
+  expect(controller.name).toBe("未保存的名字");
+  await act(async () => {
+    controller.setOmnivoiceVoiceId("clone_new");
+    controller.setIsCloningVoice(false);
+  });
+  await act(async () =>
+    controller.handleSubmit({ preventDefault: vi.fn() } as any)
+  );
+  expect(mock.update).toHaveBeenCalledWith(
+    expect.objectContaining({
+      id: 1,
+      name: "未保存的名字",
+      omnivoiceVoiceId: "clone_new",
+    })
+  );
 });
 it("loads saved style and examples and sends edited behavior in the update", async () => {
   expect(controller.behavior).toEqual(mock.roles[0].behavior);

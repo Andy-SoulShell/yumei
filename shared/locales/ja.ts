@@ -847,6 +847,24 @@ export default {
     "categories.relationship": "ふたりの関係",
   },
   setup: {
+    roleVoiceCloneAndBind: "クローンしてこのキャラクターに設定",
+    roleVoiceCloneAndSelect: "クローンして音声を選択",
+    roleVoiceCloneBound:
+      "音声をクローンして設定しました。チャットの読み上げに使用します。",
+    roleVoiceCloneSelected:
+      "音声を保存して選択しました。キャラクター作成時に設定されます。",
+    roleVoiceInlineHint:
+      "音声はこのキャラクターに直接設定されます。他のプロフィール変更は「変更を保存」で保存してください。",
+    roleVoiceCreateHint:
+      "クローンした音声が自動選択され、キャラクター作成時に設定されます。",
+    roleVoiceTitle: "キャラクターの音声",
+    roleVoiceDefault: "アカウントの音声設定に従う",
+    roleVoiceHint:
+      "クローン音声を選ぶと、このキャラクターの手動・自動読み上げに優先して使用します（OmniVoice）。アカウント設定を選ぶと解除できます。キャラクターを保存すると適用されます。",
+    roleVoiceEmpty:
+      "クローン音声がありません。下で参照録音をアップロードできます。",
+    roleVoiceManage: "クローン音声を管理",
+    roleVoiceUnavailable: "設定済みの音声（読み込み中または利用不可）",
     behaviorTitle: "会話スタイル",
     behaviorDescription:
       "キャラクターの話し方や、親しくなるペースを選びましょう。",

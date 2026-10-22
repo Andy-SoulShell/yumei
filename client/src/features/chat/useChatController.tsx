@@ -81,6 +81,36 @@ export function useChatController() {
   const { theme, toggleTheme } = useTheme();
 
   const {
+    data: activeGirlfriend,
+    isLoading: activeLoading,
+    error: activeError,
+    refetch: retryActive,
+  } = trpc.girlfriend.getActive.useQuery(undefined, { enabled: !params.id });
+
+  const {
+    data: conversation,
+    isLoading: conversationLoading,
+    error: conversationError,
+    refetch: retryConversation,
+  } = trpc.conversation.get.useQuery(
+    { id: conversationId! },
+    { enabled: !!conversationId && !invalidConversation }
+  );
+
+  const {
+    data: girlfriends,
+    isLoading: girlfriendsLoading,
+    error: girlfriendsError,
+    refetch: retryRoles,
+  } = trpc.girlfriend.list.useQuery(undefined, {
+    enabled: !!conversationId && !invalidConversation,
+  });
+
+  const girlfriend = conversationId
+    ? girlfriends?.find(gf => gf.id === conversation?.girlfriendId)
+    : activeGirlfriend;
+
+  const {
     speak,
     stop,
     isSpeaking,
@@ -91,7 +121,7 @@ export function useChatController() {
     speedOptions,
     playbackSpeed,
     updateSpeed,
-  } = useTTS();
+  } = useTTS(girlfriend);
 
   const [message, setMessage] = useChatInputDraft(
     user?.id,
@@ -235,36 +265,6 @@ export function useChatController() {
   useEffect(() => {
     recordingDurationRef.current = duration;
   }, [duration]);
-
-  const {
-    data: activeGirlfriend,
-    isLoading: activeLoading,
-    error: activeError,
-    refetch: retryActive,
-  } = trpc.girlfriend.getActive.useQuery(undefined, { enabled: !params.id });
-
-  const {
-    data: conversation,
-    isLoading: conversationLoading,
-    error: conversationError,
-    refetch: retryConversation,
-  } = trpc.conversation.get.useQuery(
-    { id: conversationId! },
-    { enabled: !!conversationId && !invalidConversation }
-  );
-
-  const {
-    data: girlfriends,
-    isLoading: girlfriendsLoading,
-    error: girlfriendsError,
-    refetch: retryRoles,
-  } = trpc.girlfriend.list.useQuery(undefined, {
-    enabled: !!conversationId && !invalidConversation,
-  });
-
-  const girlfriend = conversationId
-    ? girlfriends?.find(gf => gf.id === conversation?.girlfriendId)
-    : activeGirlfriend;
 
   const utils = trpc.useUtils();
 
@@ -975,7 +975,9 @@ export function useChatController() {
       : ttsProvider === "fishaudio"
         ? "Fish"
         : ttsProvider === "omnivoice"
-          ? "OmniVoice"
+          ? girlfriend?.omnivoiceVoiceId
+            ? `OmniVoice · ${t("setup:roleVoiceTitle")}`
+            : "OmniVoice"
           : "";
 
   const currentMoodInfo = moodData

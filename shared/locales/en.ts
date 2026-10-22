@@ -847,6 +847,23 @@ export default {
     "categories.relationship": "Our relationship",
   },
   setup: {
+    roleVoiceCloneAndBind: "Clone and bind to this character",
+    roleVoiceCloneAndSelect: "Clone and select voice",
+    roleVoiceCloneBound:
+      "Voice cloned and bound. Chat read-aloud will use this voice.",
+    roleVoiceCloneSelected:
+      "Voice saved and selected. It will be bound when you create the character.",
+    roleVoiceInlineHint:
+      "Cloning binds the voice directly to this character. Save changes separately to apply other profile edits.",
+    roleVoiceCreateHint:
+      "The cloned voice is selected automatically and bound when you create the character.",
+    roleVoiceTitle: "Character voice",
+    roleVoiceDefault: "Use account voice settings",
+    roleVoiceHint:
+      "Bind a cloned voice to use it for this character's manual and automatic chat read-aloud (OmniVoice). Choose account settings to remove the override. Save the character to apply.",
+    roleVoiceEmpty: "No cloned voices yet. Upload a reference recording below.",
+    roleVoiceManage: "Manage cloned voices",
+    roleVoiceUnavailable: "Bound voice (loading or unavailable)",
     behaviorTitle: "Conversation style",
     behaviorDescription:
       "Choose how this character talks and grows closer to you.",

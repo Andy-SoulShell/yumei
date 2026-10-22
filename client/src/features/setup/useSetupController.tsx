@@ -40,6 +40,7 @@ export function useSetupController() {
   const initializedEdit = useRef<number | null>(null);
   const submissionBusy = useRef(false);
   const [isReadingImage, setIsReadingImage] = useState(false);
+  const [isCloningVoice, setIsCloningVoice] = useState(false);
   const search = useSearch();
   const discovery = useDiscovery();
   const characters =
@@ -95,6 +96,7 @@ export function useSetupController() {
   const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
 
   const [customPrompt, setCustomPrompt] = useState("");
+  const [omnivoiceVoiceId, setOmnivoiceVoiceId] = useState("");
 
   const [showCustomPrompt, setShowCustomPrompt] = useState(false);
 
@@ -161,6 +163,7 @@ export function useSetupController() {
           );
         setExistingImageUrl(gf.referenceImageUrl);
         setCustomPrompt(gf.customPrompt || "");
+        setOmnivoiceVoiceId(gf.omnivoiceVoiceId || "");
         setExistingAvatarUrl(gf.avatarUrl || null);
         if (gf.customPrompt) setShowCustomPrompt(true);
       }
@@ -293,6 +296,7 @@ export function useSetupController() {
     );
     setBehaviorError(false);
     setCustomPrompt("");
+    setOmnivoiceVoiceId("");
     setImageFile(null);
     setImagePreview(null);
     if (imageInputRef.current) imageInputRef.current.value = "";
@@ -358,6 +362,7 @@ export function useSetupController() {
 
     if (
       submissionBusy.current ||
+      isCloningVoice ||
       isUploadingAvatar ||
       !behavior ||
       !product.raw
@@ -411,6 +416,7 @@ export function useSetupController() {
         interests: interests.trim(),
         customPrompt: customPrompt || null,
         behavior: parsedBehavior.data,
+        omnivoiceVoiceId: omnivoiceVoiceId || null,
       });
     } else {
       // 创建模式
@@ -429,6 +435,7 @@ export function useSetupController() {
           customPrompt: customPrompt || undefined,
           presetId: presetId!,
           behavior: parsedBehavior.data,
+          omnivoiceVoiceId: omnivoiceVoiceId || null,
         });
         return;
       }
@@ -452,6 +459,7 @@ export function useSetupController() {
           customPrompt: customPrompt || undefined,
           presetId: presetId || undefined,
           behavior: parsedBehavior.data,
+          omnivoiceVoiceId: omnivoiceVoiceId || null,
           referenceImageBase64: base64,
           referenceImageMimeType: imageFile.type as
             "image/jpeg" | "image/png" | "image/gif" | "image/webp",
@@ -471,7 +479,10 @@ export function useSetupController() {
         !girlfriends.some(g => g.id === editId)));
 
   const isPending =
-    createGirlfriend.isPending || updateGirlfriend.isPending || isReadingImage;
+    createGirlfriend.isPending ||
+    updateGirlfriend.isPending ||
+    isReadingImage ||
+    isCloningVoice;
 
   const displayImage =
     imagePreview ||
@@ -492,6 +503,8 @@ export function useSetupController() {
     setLocation,
     t,
     isEditing,
+    editId: validEditId ? editId : null,
+    setIsCloningVoice,
     editLoading,
     editError,
     editNotFound,
@@ -523,6 +536,8 @@ export function useSetupController() {
     setAppearance,
     interests,
     setInterests,
+    omnivoiceVoiceId,
+    setOmnivoiceVoiceId,
     behavior: behavior!,
     setBehavior,
     behaviorError,

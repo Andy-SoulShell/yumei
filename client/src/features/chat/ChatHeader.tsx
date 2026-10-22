@@ -21,6 +21,7 @@ import {
   Ellipsis,
   Image as ImageIcon,
   Moon,
+  Mic,
   Plus,
   Settings,
   Sun,
@@ -288,6 +289,16 @@ export function ChatHeader({
         >
           <Settings className="w-5 h-5" />
         </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="hidden sm:inline-flex"
+          onClick={() => setLocation(`/setup/${girlfriend.id}`)}
+          aria-label={t("setup:roleVoiceTitle")}
+          title={t("setup:roleVoiceTitle")}
+        >
+          <Mic className="w-5 h-5" />
+        </Button>
       </div>
       <div className="chat-compact-actions">
         <DropdownMenu>
@@ -351,6 +362,12 @@ export function ChatHeader({
             <DropdownMenuItem onSelect={() => setLocation("/settings")}>
               <Settings />
               {t("common:settings")}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => setLocation(`/setup/${girlfriend.id}`)}
+            >
+              <Mic />
+              {t("setup:roleVoiceTitle")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

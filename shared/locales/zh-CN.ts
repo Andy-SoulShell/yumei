@@ -794,6 +794,20 @@ export default {
     "categories.relationship": "我们之间",
   },
   setup: {
+    roleVoiceCloneAndBind: "克隆并绑定此角色",
+    roleVoiceCloneAndSelect: "克隆并选择音色",
+    roleVoiceCloneBound: "音色已克隆并绑定，聊天朗读将使用该声音。",
+    roleVoiceCloneSelected: "音色已保存并选中，创建角色时将自动绑定。",
+    roleVoiceInlineHint:
+      "克隆音色会直接绑定此角色。其他资料更改仍需点击“保存修改”。",
+    roleVoiceCreateHint: "克隆成功后会自动选中，在创建角色时绑定。",
+    roleVoiceTitle: "角色音色",
+    roleVoiceDefault: "跟随账号语音设置",
+    roleVoiceHint:
+      "绑定克隆音色后，此角色的聊天手动朗读和自动朗读会优先使用该声音（OmniVoice）。选择“跟随账号语音设置”可解除绑定，保存角色后生效。",
+    roleVoiceEmpty: "还没有克隆音色，可以直接在下方上传参考录音。",
+    roleVoiceManage: "管理克隆音色",
+    roleVoiceUnavailable: "已绑定音色（正在读取或已不可用）",
     behaviorTitle: "聊天风格",
     behaviorDescription: "选择角色的表达方式，以及与你逐渐熟悉的节奏。",
     behaviorExpression: "表达方式",

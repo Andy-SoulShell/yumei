@@ -17,6 +17,8 @@ const mock = vi.hoisted(() => ({
   mutate: vi.fn(),
   error: vi.fn(),
   translate: (key: string) => key,
+  companion: undefined as
+    { id: number; omnivoiceVoiceId?: string | null } | undefined,
 }));
 vi.mock("@/lib/i18n", () => ({ useI18n: () => ({ t: mock.translate }) }));
 vi.mock("sonner", () => ({ toast: { error: mock.error } }));
@@ -40,12 +42,13 @@ const utterances: any[] = [];
 const audio: any[] = [];
 const cancel = vi.fn();
 function Harness() {
-  state = useTTS();
+  state = useTTS(mock.companion);
   return null;
 }
 beforeEach(() => {
   localStorage.clear();
   mock.provider = "browser";
+  mock.companion = undefined;
   mock.mutate.mockReset();
   mock.error.mockReset();
   cancel.mockReset();
@@ -188,3 +191,37 @@ it.each(["NaN", "0", "100", "1.5bad"])(
     expect(state.playbackSpeed).toBe(1);
   }
 );
+
+it("uses a character binding even with a browser default and sends the current role to the server", () => {
+  mock.companion = { id: 7, omnivoiceVoiceId: "clone_a" };
+  render();
+  expect(state.ttsProvider).toBe("omnivoice");
+  act(() => state.speak("角色的台词", 11));
+  expect(mock.mutate.mock.calls[0][0]).toEqual({
+    text: "角色的台词",
+    girlfriendId: 7,
+  });
+  expect(utterances).toHaveLength(0);
+});
+
+it("cancels old audio and ignores late results or callbacks after switching roles", () => {
+  mock.companion = { id: 7, omnivoiceVoiceId: "clone_a" };
+  render();
+  const oldSpeak = state.speak;
+  act(() => state.speak("A", 11));
+  const pending = mock.mutate.mock.calls[0][1];
+  mock.companion = { id: 8, omnivoiceVoiceId: "clone_b" };
+  render();
+  act(() => pending.onSuccess({ audioUrl: "/late-a.wav" }));
+  act(() => oldSpeak("late A", 12));
+  expect(audio).toHaveLength(0);
+  expect(state.isSpeaking).toBe(false);
+  expect(mock.mutate).toHaveBeenCalledOnce();
+  act(() => state.speak("B", 13));
+  expect(mock.mutate.mock.calls[1][0]).toEqual({ text: "B", girlfriendId: 8 });
+  act(() => mock.mutate.mock.calls[1][1].onSuccess({ audioUrl: "/b.wav" }));
+  mock.companion = { id: 8, omnivoiceVoiceId: null };
+  render();
+  expect(audio[0].pause).toHaveBeenCalledOnce();
+  expect(state.ttsProvider).toBe("browser");
+});

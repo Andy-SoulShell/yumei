@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AvatarUpload } from "@/features/setup/AvatarUpload";
 import { BehaviorEditor } from "@/features/setup/BehaviorEditor";
 import { CharacterPrompt } from "@/features/setup/CharacterPrompt";
+import { CharacterVoice } from "@/features/setup/CharacterVoice";
 import { ReferenceUpload } from "@/features/setup/ReferenceUpload";
 import { useSetupController } from "@/features/setup/useSetupController";
 import { ArrowLeft, Loader2, Trash2 } from "lucide-react";
@@ -170,6 +171,7 @@ export default function Setup() {
                 </div>
 
                 <BehaviorEditor {...state} />
+                <CharacterVoice key={state.editId ?? "new"} {...state} />
 
                 {/* 高级提示词定制 */}
                 <CharacterPrompt {...state} />

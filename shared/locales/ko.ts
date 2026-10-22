@@ -832,6 +832,24 @@ export default {
     "categories.relationship": "우리 사이",
   },
   setup: {
+    roleVoiceCloneAndBind: "복제 후 이 캐릭터에 지정",
+    roleVoiceCloneAndSelect: "복제 후 음색 선택",
+    roleVoiceCloneBound:
+      "음색을 복제하고 지정했습니다. 채팅 읽기에 사용됩니다.",
+    roleVoiceCloneSelected:
+      "음색을 저장하고 선택했습니다. 캐릭터를 만들 때 지정됩니다.",
+    roleVoiceInlineHint:
+      "복제 음색은 이 캐릭터에 바로 지정됩니다. 다른 프로필 변경은 별도로 저장하세요.",
+    roleVoiceCreateHint:
+      "복제 음색이 자동 선택되며 캐릭터를 만들 때 지정됩니다.",
+    roleVoiceTitle: "캐릭터 음색",
+    roleVoiceDefault: "계정 음성 설정 사용",
+    roleVoiceHint:
+      "복제 음색을 지정하면 이 캐릭터의 수동 및 자동 채팅 읽기에 우선 사용합니다(OmniVoice). 계정 설정을 선택하면 연결을 해제합니다. 캐릭터를 저장하면 적용됩니다.",
+    roleVoiceEmpty:
+      "복제 음색이 없습니다. 아래에서 참조 녹음을 업로드할 수 있습니다.",
+    roleVoiceManage: "복제 음색 관리",
+    roleVoiceUnavailable: "지정된 음색(로딩 중 또는 사용 불가)",
     behaviorTitle: "대화 스타일",
     behaviorDescription: "캐릭터의 말투와 서로 가까워지는 속도를 선택하세요.",
     behaviorExpression: "표현 방식",

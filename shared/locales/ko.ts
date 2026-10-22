@@ -348,6 +348,21 @@ export default {
       "선택한 동반자 {{count}}명을 삭제할까요? {{days}}일 안에 휴지통에서 복원할 수 있어요.",
   },
   settings: {
+    omnivoiceCloned: "내 복제 음색",
+    omnivoiceCloneTitle: "참조 오디오로 음색 복제",
+    omnivoiceCloneHint:
+      "한 사람의 선명한 음성 3~30초(권장 3~10초, WAV / MP3 / FLAC / OGG, 최대 5 MB)와 정확한 대본을 입력하세요. 음색은 본인만 사용할 수 있으며 최대 10개까지 저장할 수 있습니다.",
+    omnivoiceCloneName: "음색 이름",
+    omnivoiceReferenceAudio: "참조 녹음",
+    omnivoiceReferenceText: "녹음 대본",
+    omnivoiceCreateClone: "복제 음색 저장",
+    omnivoiceDeleteClone: "이 복제 음색 삭제",
+    omnivoiceCloneCreated:
+      "음색을 저장하고 선택했습니다. 음성 설정을 저장하면 미리 듣기와 채팅 읽기에 사용할 수 있습니다.",
+    omnivoiceCloneDeleted: "복제 음색을 삭제하고 기본 음색으로 복원했습니다.",
+    omnivoiceCloneFailed: "음색을 변경하지 못했습니다. 다시 시도하세요.",
+    omnivoiceUploadInvalid:
+      "5 MB 이하의 WAV, MP3, FLAC 또는 OGG 오디오를 선택하세요.",
     omnivoiceDescription: "음색 디자인과 음성 복제를 지원하는 로컬 음성 합성.",
     omnivoiceChecking: "로컬 서비스 확인 중…",
     omnivoiceAvailable: "로컬 서비스 연결됨",

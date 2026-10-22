@@ -335,6 +335,20 @@ export default {
       "确定要删除选中的 {{count}} 位女友吗？她们将被移入回收站，{{days}} 天内可以恢复。",
   },
   settings: {
+    omnivoiceCloned: "我的克隆音色",
+    omnivoiceCloneTitle: "上传参考音频，克隆音色",
+    omnivoiceCloneHint:
+      "上传 3～30 秒的清晰单人人声（建议 3～10 秒，WAV / MP3 / FLAC / OGG，最大 5 MB），并填写录音中的准确原文。音色仅自己可用，最多保存 10 个。",
+    omnivoiceCloneName: "音色名称",
+    omnivoiceReferenceAudio: "参考录音",
+    omnivoiceReferenceText: "录音原文",
+    omnivoiceCreateClone: "保存克隆音色",
+    omnivoiceDeleteClone: "删除此克隆音色",
+    omnivoiceCloneCreated:
+      "克隆音色已保存并选中，请保存语音设置后试听或用于聊天朗读。",
+    omnivoiceCloneDeleted: "克隆音色已删除，已恢复默认音色。",
+    omnivoiceCloneFailed: "音色操作失败，请重试。",
+    omnivoiceUploadInvalid: "请选择 5 MB 以内的 WAV、MP3、FLAC 或 OGG 音频。",
     omnivoiceDescription: "本地语音合成，支持音色设计和声音克隆。",
     omnivoiceChecking: "正在检查本地服务…",
     omnivoiceAvailable: "本地服务已连接",

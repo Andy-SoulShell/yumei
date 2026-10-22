@@ -352,6 +352,22 @@ export default {
       "Delete the {{count}} selected companions? You can restore them from trash within {{days}} days.",
   },
   settings: {
+    omnivoiceCloned: "My cloned voice",
+    omnivoiceCloneTitle: "Clone a voice from reference audio",
+    omnivoiceCloneHint:
+      "Upload 3–30 seconds of clear speech from one speaker (3–10 seconds recommended; WAV / MP3 / FLAC / OGG, up to 5 MB) and its exact transcript. Voices are private to your account; save up to 10.",
+    omnivoiceCloneName: "Voice name",
+    omnivoiceReferenceAudio: "Reference recording",
+    omnivoiceReferenceText: "Recording transcript",
+    omnivoiceCreateClone: "Save cloned voice",
+    omnivoiceDeleteClone: "Delete this cloned voice",
+    omnivoiceCloneCreated:
+      "Voice saved and selected. Save voice settings to preview it or use it for chat read-aloud.",
+    omnivoiceCloneDeleted:
+      "Cloned voice deleted. The default voice is restored.",
+    omnivoiceCloneFailed: "Could not update the voice. Please retry.",
+    omnivoiceUploadInvalid:
+      "Choose a WAV, MP3, FLAC or OGG audio file up to 5 MB.",
     omnivoiceDescription:
       "Local speech synthesis with voice design and cloning.",
     omnivoiceChecking: "Checking local service…",

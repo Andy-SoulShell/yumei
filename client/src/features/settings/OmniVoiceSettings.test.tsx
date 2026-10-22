@@ -8,9 +8,26 @@ const service = vi.hoisted(() => ({
   data: undefined as any,
   isLoading: false,
   refetch: vi.fn(),
+  create: vi.fn(),
+  remove: vi.fn(),
+  invalidate: vi.fn(),
 }));
 vi.mock("@/lib/trpc", () => ({
-  trpc: { tts: { omnivoiceStatus: { useQuery: () => service } } },
+  trpc: {
+    useUtils: () => ({
+      girlfriend: { invalidate: vi.fn() },
+      apiConfig: { get: { invalidate: service.invalidate } },
+    }),
+    tts: {
+      omnivoiceStatus: { useQuery: () => service },
+      createOmnivoiceVoice: {
+        useMutation: () => ({ mutateAsync: service.create, isPending: false }),
+      },
+      deleteOmnivoiceVoice: {
+        useMutation: () => ({ mutateAsync: service.remove, isPending: false }),
+      },
+    },
+  },
 }));
 let container: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
@@ -30,10 +47,10 @@ afterEach(async () => {
   container.remove();
 });
 
-async function render(dirty = false) {
+async function render(dirty = false, voice = "") {
   const props = {
     t: (key: string) => key,
-    omnivoiceVoiceId: "",
+    omnivoiceVoiceId: voice,
     setOmnivoiceVoiceId: selectVoice,
     handleTestApiVoice: preview,
     ttsGenerate: { isPending: false },
@@ -81,4 +98,100 @@ it("disables the connection button while checking", async () => {
   await render();
   expect(container.textContent).toContain("settings:omnivoiceChecking");
   expect(container.querySelector("button")!.disabled).toBe(true);
+});
+
+function inputValue(selector: string, value: string) {
+  const input = container.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+    selector
+  )!;
+  const prototype =
+    input.tagName === "TEXTAREA"
+      ? HTMLTextAreaElement.prototype
+      : HTMLInputElement.prototype;
+  Object.getOwnPropertyDescriptor(prototype, "value")!.set!.call(input, value);
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function button(key: string) {
+  return Array.from(container.querySelectorAll("button")).find(
+    b => b.textContent === key
+  )!;
+}
+
+it("uploads a named reference and transcript, then selects the new voice for saving", async () => {
+  service.data = {
+    configured: true,
+    available: true,
+    voices: [{ id: "default", name: "Default" }],
+  };
+  service.create.mockResolvedValue({
+    id: "clone_test",
+    name: "My voice",
+    durationMs: 4000,
+  });
+  await render();
+  await act(async () => {
+    inputValue("#omnivoice-clone-name", "My voice");
+    inputValue("#omnivoice-reference-text", "Reference transcript");
+    const input =
+      container.querySelector<HTMLInputElement>('input[type="file"]')!;
+    Object.defineProperty(input, "files", {
+      configurable: true,
+      value: [new File(["wave-bytes"], "voice.wav", { type: "audio/wav" })],
+    });
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  expect(button("settings:omnivoiceCreateClone").disabled).toBe(false);
+  await act(async () => {
+    button("settings:omnivoiceCreateClone").click();
+    await new Promise(resolve => setTimeout(resolve, 50));
+  });
+  expect(service.create).toHaveBeenCalledWith({
+    name: "My voice",
+    text: "Reference transcript",
+    audio: btoa("wave-bytes"),
+  });
+  expect(selectVoice).toHaveBeenCalledWith("clone_test");
+  expect(
+    container.querySelector<HTMLInputElement>("#omnivoice-clone-name")!.value
+  ).toBe("");
+});
+
+it("rejects oversized reference files before uploading", async () => {
+  service.data = {
+    configured: true,
+    available: true,
+    voices: [{ id: "default", name: "Default" }],
+  };
+  await render();
+  await act(async () => {
+    const input =
+      container.querySelector<HTMLInputElement>('input[type="file"]')!;
+    Object.defineProperty(input, "files", {
+      configurable: true,
+      value: [new File([new Uint8Array(5 * 1024 * 1024 + 1)], "voice.wav")],
+    });
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+    "settings:omnivoiceUploadInvalid"
+  );
+  expect(button("settings:omnivoiceCreateClone").disabled).toBe(true);
+  expect(service.create).not.toHaveBeenCalled();
+});
+
+it("deletes only the selected private voice and resets the selection", async () => {
+  service.data = {
+    configured: true,
+    available: true,
+    voices: [
+      { id: "default", name: "Default" },
+      { id: "clone_test", name: "My voice", cloned: true },
+    ],
+  };
+  await render(false, "clone_test");
+  await act(async () => button("settings:omnivoiceDeleteClone").click());
+  expect(service.remove).toHaveBeenCalledWith({ id: "clone_test" });
+  expect(selectVoice).toHaveBeenCalledWith("default");
+  expect(service.invalidate).toHaveBeenCalledOnce();
 });

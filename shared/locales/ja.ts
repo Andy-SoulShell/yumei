@@ -355,6 +355,21 @@ export default {
       "選択した{{count}}人を削除しますか？ゴミ箱から{{days}}日以内なら復元できます。",
   },
   settings: {
+    omnivoiceCloned: "自分のクローン音声",
+    omnivoiceCloneTitle: "参照音声から声をクローン",
+    omnivoiceCloneHint:
+      "一人の話者の明瞭な録音を3～30秒（推奨3～10秒、WAV / MP3 / FLAC / OGG、最大5 MB）アップロードし、正確な文字起こしを入力してください。自分専用の音声を最大10個保存できます。",
+    omnivoiceCloneName: "音声名",
+    omnivoiceReferenceAudio: "参照録音",
+    omnivoiceReferenceText: "録音の文字起こし",
+    omnivoiceCreateClone: "クローン音声を保存",
+    omnivoiceDeleteClone: "このクローン音声を削除",
+    omnivoiceCloneCreated:
+      "音声を保存して選択しました。音声設定を保存すると、試聴とチャットの読み上げに使えます。",
+    omnivoiceCloneDeleted: "クローン音声を削除し、標準音声に戻しました。",
+    omnivoiceCloneFailed: "音声を更新できませんでした。再試行してください。",
+    omnivoiceUploadInvalid:
+      "5 MB以下のWAV、MP3、FLAC、OGG音声を選択してください。",
     omnivoiceDescription: "音声デザインとクローンに対応するローカル音声合成。",
     omnivoiceChecking: "ローカルサービスを確認中…",
     omnivoiceAvailable: "ローカルサービスに接続済み",

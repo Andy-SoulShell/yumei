@@ -157,10 +157,10 @@ export function SettingsCollection({
   const selected =
     view.selections[path] ?? String(items[0]?.id ?? items[0]?.level ?? "");
   const search = view.searches[path] ?? "";
-  const index = Math.max(
-    0,
-    items.findIndex(item => String(item.id ?? item.level) === selected)
+  const selectedIndex = items.findIndex(
+    item => String(item.id ?? item.level) === selected
   );
+  const index = focused ? selectedIndex : Math.max(0, selectedIndex);
   const item = items[index],
     name = item ? collectionName(item) : "";
   const defaultId =
@@ -386,7 +386,8 @@ export function SettingsCollection({
                       disabled={disabled}
                       onClick={() => {
                         onChange(items.filter((_, i) => i !== index));
-                        select(items[Math.max(0, index - 1)] ?? {});
+                        if (!focused)
+                          select(items[Math.max(0, index - 1)] ?? {});
                       }}
                     >
                       删除草稿中的条目

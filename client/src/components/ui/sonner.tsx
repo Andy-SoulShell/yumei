@@ -22,10 +22,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
         closeButton
         toastOptions={{ closeButtonAriaLabel: t("common:close2") }}
         offset={{
-          top: "calc(var(--keyboard-viewport-top, 0px) + max(12px, var(--safe-area-top)))",
+          top: "calc(var(--keyboard-viewport-top, 0px) + var(--toast-header-offset, 0px) + max(12px, var(--safe-area-top)))",
         }}
         mobileOffset={{
-          top: "calc(var(--keyboard-viewport-top, 0px) + max(12px, var(--safe-area-top)))",
+          top: "calc(var(--keyboard-viewport-top, 0px) + var(--toast-header-offset, 0px) + max(12px, var(--safe-area-top)))",
           left: 16,
           right: 16,
         }}

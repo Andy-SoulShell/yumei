@@ -241,6 +241,21 @@ export function ProductExperience(props: Props) {
   };
   const workbenchSection = related?.section ?? section;
   const workbenchTask = related?.task ?? editing;
+  const changeEditorConfig = (next: ProductConfig) => {
+    onChange(next);
+    const panel = related
+      ? settingsPanels[related.section].find(item => item.id === related.task)
+      : task;
+    if (panel?.collection && editorRoute.item) {
+      const items = (
+        next[workbenchSection] as unknown as Record<string, unknown>
+      )[panel.fields[0]] as Record<string, unknown>[];
+      if (
+        !items.some(item => String(item.id ?? item.level) === editorRoute.item)
+      )
+        editorRoute.close();
+    }
+  };
   if (section === "themes" && editing)
     return (
       <ThemeExperience
@@ -316,7 +331,7 @@ export function ProductExperience(props: Props) {
           rootSchema={rootSchema}
           issues={issues}
           disabled={busy}
-          onChange={onChange}
+          onChange={changeEditorConfig}
           view={{ ...view, task: workbenchTask }}
           onViewChange={onViewChange}
         />
@@ -686,7 +701,7 @@ export function ProductExperience(props: Props) {
               rootSchema={rootSchema}
               issues={issues}
               disabled={busy}
-              onChange={onChange}
+              onChange={changeEditorConfig}
               view={related ? { ...view, task: related.task } : view}
               onViewChange={onViewChange}
             />

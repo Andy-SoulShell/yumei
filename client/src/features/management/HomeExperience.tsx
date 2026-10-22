@@ -144,7 +144,7 @@ export function HomeExperience(props: Props) {
             return (
               <article
                 key={item.id}
-                className="admin-panel flex flex-wrap items-center gap-4"
+                className={`admin-panel grid items-center gap-4 ${"images" in item ? "grid-cols-[4rem_minmax(0,1fr)]" : "grid-cols-1"} sm:flex sm:flex-nowrap`}
               >
                 {"images" in item && (
                   <img
@@ -156,7 +156,7 @@ export function HomeExperience(props: Props) {
                 <Button
                   variant="plain"
                   size="none"
-                  className="min-w-0 flex-1 text-left whitespace-normal"
+                  className="min-w-0 flex-1 flex-col items-start text-left whitespace-normal"
                   aria-label={`编辑${label}`}
                   onClick={() => route.open(key, item.id)}
                 >
@@ -170,22 +170,24 @@ export function HomeExperience(props: Props) {
                     )}
                   </span>
                 </Button>
-                <OrderActions
-                  index={index}
-                  length={list.length}
-                  label={label}
-                  onMove={target => {
-                    const next = [...list];
-                    [next[index], next[target]] = [next[target], next[index]];
-                    props.onChange({ ...value, [key]: next });
-                  }}
-                  onRemove={() => {
-                    props.onChange({
-                      ...value,
-                      [key]: list.filter(row => row.id !== item.id),
-                    });
-                  }}
-                />
+                <div className="col-span-full flex justify-end">
+                  <OrderActions
+                    index={index}
+                    length={list.length}
+                    label={label}
+                    onMove={target => {
+                      const next = [...list];
+                      [next[index], next[target]] = [next[target], next[index]];
+                      props.onChange({ ...value, [key]: next });
+                    }}
+                    onRemove={() => {
+                      props.onChange({
+                        ...value,
+                        [key]: list.filter(row => row.id !== item.id),
+                      });
+                    }}
+                  />
+                </div>
               </article>
             );
           })}

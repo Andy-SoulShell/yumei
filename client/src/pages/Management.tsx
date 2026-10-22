@@ -1,5 +1,5 @@
 /** 单密码运营后台：直接调用既有管理 API 编辑草稿、校验并发布。 */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   managementRoute,
@@ -43,6 +43,7 @@ import {
   createOfficialCharacter,
   prepareOfficialCharacter,
   officialCharacterIssues,
+  discoveryPublicationReview,
 } from "@/features/management/officialEditor";
 import "@/features/management/management.css";
 import { Button } from "@/components/ui/button";
@@ -118,8 +119,7 @@ function LoadError({ retry }: { retry: () => void }) {
 function WorkspaceHeader({
   title,
   description,
-  revision,
-  publishedRevision,
+  pending,
   busy,
   dirty,
   onSave,
@@ -130,8 +130,7 @@ function WorkspaceHeader({
 }: {
   title: string;
   description: string;
-  revision: number;
-  publishedRevision: number;
+  pending: boolean;
   busy: boolean;
   dirty: boolean;
   onSave: () => void;
@@ -151,31 +150,23 @@ function WorkspaceHeader({
         </div>
         <Badge
           className="admin-draft-badge"
-          variant={
-            dirty || revision !== publishedRevision ? "outline" : "secondary"
-          }
+          variant={dirty || pending ? "outline" : "secondary"}
         >
-          {dirty
-            ? "有未保存修改"
-            : revision !== publishedRevision
-              ? "草稿待发布"
-              : "已发布"}
+          {dirty ? "有未保存修改" : pending ? "草稿待发布" : "已发布"}
         </Badge>
       </div>
-      {(dirty || revision !== publishedRevision || busy) && (
+      {(dirty || pending || busy) && (
         <div className="admin-workspace-toolbar">
           <span className="admin-save-status" role="status" aria-live="polite">
             <span
               className="admin-status-dot"
-              data-pending={
-                dirty || revision !== publishedRevision || undefined
-              }
+              data-pending={dirty || pending || undefined}
             />
             {busy
               ? "正在处理，请稍候…"
               : dirty
                 ? "修改尚未保存"
-                : revision !== publishedRevision
+                : pending
                   ? "草稿已保存，发布后用户可见"
                   : "已与公开版本同步"}
           </span>
@@ -204,7 +195,7 @@ function WorkspaceHeader({
             </Button>
             <Button
               size="sm"
-              disabled={busy || dirty || revision === publishedRevision}
+              disabled={busy || dirty || !pending}
               onClick={onPublish}
               title={dirty ? "请先保存草稿" : undefined}
             >
@@ -374,8 +365,7 @@ function ProductWorkspace({
       <WorkspaceHeader
         title={info.name}
         description={info.description}
-        revision={draft.revision}
-        publishedRevision={draft.publishedRevision}
+        pending={!sameConfigValue(draft.config, draft.published)}
         busy={busy}
         dirty={dirty}
         saveDisabled={issues.length > 0}
@@ -467,6 +457,13 @@ function HomeWorkspace({
 }) {
   const [value, setValue] = useState(() => structuredClone(draft.home));
   const policy = useProductConfig();
+  const pending = useMemo(
+    () =>
+      policy.raw
+        ? discoveryPublicationReview(draft, policy.raw.characters).changed
+        : draft.revision !== draft.publishedRevision,
+    [draft, policy.raw]
+  );
   const [reviewOpen, setReviewOpen] = useState(false);
   const [mode, setMode] = useState<"form" | "json">("form"),
     [raw, setRaw] = useState(() => JSON.stringify(value, null, 2)),
@@ -530,8 +527,7 @@ function HomeWorkspace({
       <WorkspaceHeader
         title="首页内容"
         description="挑选精选角色，编排轮播与问答，预览后再发布。"
-        revision={draft.revision}
-        publishedRevision={draft.publishedRevision}
+        pending={pending}
         busy={busy}
         dirty={dirty}
         saveDisabled={issues.length > 0}
@@ -649,6 +645,13 @@ function CharacterWorkspace({
 }) {
   const policy = useProductConfig(),
     source = draft.characters.find(item => item.id === selected);
+  const pending = useMemo(
+    () =>
+      policy.raw
+        ? discoveryPublicationReview(draft, policy.raw.characters).changed
+        : draft.revision !== draft.publishedRevision,
+    [draft, policy.raw]
+  );
   const [value, setValue] = useState(() => {
       if (source) return structuredClone(source.data);
       if (selected.startsWith("copy:")) {
@@ -779,8 +782,7 @@ function CharacterWorkspace({
       <WorkspaceHeader
         title="官方角色"
         description="填写角色资料 → 保存草稿 → 预览并核对变更 → 发布。只有名字和人物设定必填。"
-        revision={draft.revision}
-        publishedRevision={draft.publishedRevision}
+        pending={pending}
         busy={busy}
         dirty={dirty}
         onSave={() => void operations.run(submit)}

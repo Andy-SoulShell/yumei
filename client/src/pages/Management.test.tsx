@@ -892,3 +892,51 @@ it("keeps the default playback speed available while editing allowed choices", a
     productFixture.experience.playback.defaultProvider
   );
 });
+
+it.each<Workspace>(["product", "home", "character"])(
+  "shows %s as synchronized when saved content equals publication despite a newer revision",
+  async workspace => {
+    await mount(workspace, "save");
+    await waitFor(
+      () =>
+        container.querySelector(".admin-draft-badge")?.textContent === "已发布"
+    );
+    expect(container.querySelector(".admin-draft-badge")?.textContent).toBe(
+      "已发布"
+    );
+    expect(container.textContent).not.toContain("草稿待发布");
+  }
+);
+
+it("clears pending publication after an edited draft is saved back to the public content", async () => {
+  const state = await mount("product", "save");
+  const original = state.product.config.site.disclosure["zh-CN"]!;
+  await change(editor(original), `${original} · 待确认文案`);
+  await click("保存草稿");
+  await act(async () => {
+    state.write.resolve();
+    state.reload.resolve();
+  });
+  await waitFor(() => !button("运营链接与页脚").disabled);
+  expect(container.querySelector(".admin-draft-badge")?.textContent).toBe(
+    "草稿待发布"
+  );
+  await change(editor(`${original} · 待确认文案`), original);
+  await click("保存草稿");
+  await waitFor(
+    () =>
+      state.product.config.site.disclosure["zh-CN"] === original &&
+      !button("运营链接与页脚").disabled
+  );
+  expect(state.product.revision).toBeGreaterThan(
+    state.product.publishedRevision
+  );
+  expect(container.querySelector(".admin-draft-badge")?.textContent).toBe(
+    "已发布"
+  );
+  await click("返回预览");
+  await waitFor(() => !document.querySelector('[role="dialog"]'));
+  expect(container.textContent).not.toContain("草稿待发布");
+  expect(container.textContent).not.toContain("查看设置变更");
+  expect(state.calls).not.toContain("productConfig.admin.publish");
+});

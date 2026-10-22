@@ -1,4 +1,9 @@
 /* 管理端复用用户端的语义主题、表面材质、阴影与安全区。 */
+@media (max-width: 767px) {
+  body:has(.admin-shell) {
+    --toast-header-offset: 64px;
+  }
+}
 .admin-shell {
   --admin-header-height: calc(64px + var(--safe-area-top));
   --admin-radius: 20px;

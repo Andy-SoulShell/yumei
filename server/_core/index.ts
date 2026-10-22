@@ -18,6 +18,7 @@ import { auth } from "./auth";
 import { getOperatorChatProvider } from "./chatProvider";
 import { registerChatStreamRoutes } from "./chatStreamRoutes";
 import { startChatTurnScheduler } from "../chatStreaming";
+import { startVideoScheduler } from "../videoGeneration";
 import { createContext } from "./context";
 import { csrfCookieMiddleware, csrfVerifyMiddleware } from "./csrf";
 import { ENV } from "./env";
@@ -170,6 +171,7 @@ async function startServer() {
   const stopPush = startProactiveScheduler();
   const stopMediaCleanup = startMediaCleanupScheduler();
   const stopChatTurns = startChatTurnScheduler();
+  const stopVideos = startVideoScheduler();
 
   // 收到退出信号后停止接收新连接，等待现有连接处理完毕。
   const shutdown = (signal: string) => {
@@ -177,6 +179,7 @@ async function startServer() {
     stopMediaCleanup();
     stopPush();
     stopChatTurns();
+    stopVideos();
     server.close(() => process.exit(0));
     // 最多等待十秒，避免挂起的上游请求阻止退出。
     setTimeout(() => process.exit(1), 10_000).unref();

@@ -13,6 +13,7 @@ const mediaFields = new Set([
   "avatarUrl",
   "referenceImageUrl",
   "audioUrl",
+  "videoUrl",
   "girlfriendImage",
 ]);
 

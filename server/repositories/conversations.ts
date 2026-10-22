@@ -15,6 +15,7 @@ import {
 } from "drizzle-orm";
 import {
   conversations,
+  generationRequests,
   girlfriends,
   messages,
   type Conversation,
@@ -377,12 +378,23 @@ export async function getMessagePage(
   conversationId: number,
   cursor?: number | null,
   limit?: number
-): Promise<Message[]> {
+): Promise<
+  (Message & {
+    generationKind?: (typeof generationRequests.$inferSelect)["kind"] | null;
+  })[]
+> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const rows = await db
-    .select()
+    .select({
+      ...getTableColumns(messages),
+      generationKind: generationRequests.kind,
+    })
     .from(messages)
+    .leftJoin(
+      generationRequests,
+      eq(generationRequests.id, messages.generationRequestId)
+    )
     .where(
       and(
         eq(messages.conversationId, conversationId),

@@ -1,6 +1,6 @@
 /** 本地磁盘与 S3 兼容存储的统一接口，区分持久文件地址和临时读取地址。 */
 
-import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
+import { mkdir, readFile, writeFile, rm, stat } from "node:fs/promises";
 import { createReadStream, existsSync } from "node:fs";
 import path from "node:path";
 import { ENV } from "./_core/env";
@@ -46,11 +46,25 @@ async function localPut(
 }
 
 /** 为文件路由创建本地读取流，文件不存在时返回 null。 */
-export function localFileStream(relKey: string) {
+export function localFileStream(
+  relKey: string,
+  range?: { start: number; end: number }
+) {
   const key = normalizeKey(relKey);
   const filePath = localPathFor(key);
   if (!existsSync(filePath)) return null;
-  return createReadStream(filePath);
+  return createReadStream(filePath, range);
+}
+
+/** 返回本地普通文件的字节数，文件不存在时返回 null。 */
+export async function localFileSize(relKey: string): Promise<number | null> {
+  try {
+    const result = await stat(localPathFor(normalizeKey(relKey)));
+    return result.isFile() ? result.size : null;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
+  }
 }
 
 /** 按存储键读取本地文件的完整字节，不存在或不可读时抛出错误。 */
@@ -113,14 +127,21 @@ async function s3Put(
 }
 
 /** 为私有 S3 对象按发布配置生成临时 GET 地址。 */
-export async function s3PresignedGetUrl(relKey: string): Promise<string> {
+export async function s3PresignedGetUrl(
+  relKey: string,
+  download = false
+): Promise<string> {
   const key = normalizeKey(relKey);
   const { client, mod } = await getS3();
   const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
   const rules = (await getPublishedProductConfig()).runtime.storage;
   return getSignedUrl(
     client,
-    new mod.GetObjectCommand({ Bucket: ENV.s3Bucket, Key: key }),
+    new mod.GetObjectCommand({
+      Bucket: ENV.s3Bucket,
+      Key: key,
+      ...(download ? { ResponseContentDisposition: "attachment" } : {}),
+    }),
     { expiresIn: rules.signedUrlTtlSeconds }
   );
 }

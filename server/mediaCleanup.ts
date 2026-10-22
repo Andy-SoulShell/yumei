@@ -4,6 +4,7 @@ import { getPublishedProductConfig } from "./repositories/productConfig";
 import { and, eq, isNull, lte, or, sql } from "drizzle-orm";
 import {
   girlfriends,
+  generationRequests,
   mediaDeletions,
   messages,
   rateWindows,
@@ -33,6 +34,18 @@ async function hasReferences(
     .where(eq(selfies.imageKey, key))
     .limit(1);
   if (photo) return true;
+  const [video] = await db
+    .select({ id: generationRequests.id })
+    .from(generationRequests)
+    .where(
+      and(
+        eq(generationRequests.kind, "video"),
+        eq(generationRequests.status, "pending"),
+        sql`JSON_UNQUOTE(JSON_EXTRACT(${generationRequests.videoTask}, '$.referenceKey')) = ${key}`
+      )
+    )
+    .limit(1);
+  if (video) return true;
   const [message] = await db
     .select({ id: messages.id })
     .from(messages)

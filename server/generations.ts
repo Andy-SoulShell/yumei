@@ -82,7 +82,7 @@ export async function requireGenerationConversation(
 export type ReserveGenerationInput = {
   userId: string;
   conversationId: number;
-  kind: "chat" | "selfie" | "couple";
+  kind: "chat" | "selfie" | "couple" | "video";
   meter?: GenerationMeter;
   timeoutMs?: number;
   outputKey?: string;
@@ -233,6 +233,11 @@ export async function failGeneration(
     }
     await refundGenerationInTransaction(tx, request);
     await cleanupGenerationMedia(tx, request, true);
+    if (request.kind === "video")
+      await tx
+        .update(messages)
+        .set({ generationStatus: "failed" })
+        .where(eq(messages.generationRequestId, request.id));
     await tx
       .update(generationRequests)
       .set({ status: "failed" })

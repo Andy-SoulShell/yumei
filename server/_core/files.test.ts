@@ -31,6 +31,37 @@ afterAll(async () => {
 });
 
 describe("file HTTP route", () => {
+  it("serves video MIME, byte ranges, suffix ranges and HEAD without changing audio MIME", async () => {
+    const key = `video-${crypto.randomUUID()}.mp4`;
+    await storagePut(key, "0123456789", "video/mp4");
+    const partial = await fetch(`${baseUrl}/files/${key}`, {
+      headers: { Range: "bytes=2-5" },
+    });
+    expect(partial.status).toBe(206);
+    expect(partial.headers.get("Content-Type")).toBe("video/mp4");
+    expect(partial.headers.get("Content-Range")).toBe("bytes 2-5/10");
+    expect(await partial.text()).toBe("2345");
+    const suffix = await fetch(`${baseUrl}/files/${key}`, {
+      headers: { Range: "bytes=-3" },
+    });
+    expect(await suffix.text()).toBe("789");
+    const invalid = await fetch(`${baseUrl}/files/${key}`, {
+      headers: { Range: "bytes=50-60" },
+    });
+    expect(invalid.status).toBe(416);
+    expect(invalid.headers.get("Content-Range")).toBe("bytes */10");
+    const head = await fetch(`${baseUrl}/files/${key}`, { method: "HEAD" });
+    expect(head.headers.get("Content-Length")).toBe("10");
+    expect(await head.text()).toBe("");
+    const download = await fetch(`${baseUrl}/files/${key}?download=1`);
+    expect(download.headers.get("Content-Disposition")).toBe("attachment");
+    await storagePut("audio-route.mp4", "audio", "audio/mp4");
+    expect(
+      (await fetch(`${baseUrl}/files/audio-route.mp4`)).headers.get(
+        "Content-Type"
+      )
+    ).toBe("audio/mp4");
+  });
   it("hides an unreferenced file pending deletion even if storage deletion is delayed", async () => {
     const key = `file-route/deleted-${crypto.randomUUID()}.png`;
     await storagePut(key, "private");

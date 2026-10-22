@@ -1,4 +1,5 @@
 import { managementRouter } from "./routers/management";
+import { videoRouter } from "./routers/video";
 /** 业务路由组合入口；每个领域拥有独立的校验和处理过程。 */
 import { systemRouter } from "./_core/systemRouter";
 import { router } from "./_core/trpc";
@@ -21,6 +22,7 @@ import { discoveryRouter } from "./routers/discovery";
 import { productConfigRouter } from "./routers/productConfig";
 
 export const appRouter = router({
+  video: videoRouter,
   management: managementRouter,
   productConfig: productConfigRouter,
   discovery: discoveryRouter,

@@ -508,6 +508,12 @@ export default {
       "{{name}}、今は少し慰めてほしいな。話を聞いて、優しい言葉をかけてくれる？",
     changeTopicAction: "話題を変えよう",
     changeTopicDraft: "別の話をしよう。何か話したいことはある？",
+    voicePreviewTitle: "音声の文字起こし",
+    discardVoicePreview: "文字起こしを破棄して戻る",
+    voicePreviewText: "文字起こしを編集",
+    voicePreviewHint:
+      "編集してから送信できます。元の下書きはそのまま残ります。",
+    sendVoicePreview: "文字起こしを送信",
     streamGenerating: "返信中…",
     streamStopped: "返信を停止しました。受信済みの文章は保存されています。",
     streamFailed: "返信を完了できませんでした。再試行できます。",

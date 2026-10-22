@@ -127,3 +127,21 @@ it("receives snapshot events and disconnects without invoking the stop endpoint"
 const browserChatStreamTransport = createBrowserChatStreamTransport(
   productFixture.experience.transport
 );
+
+it("keeps the voice reply preference local without sending a credential for edited text", async () => {
+  const fetcher = vi
+    .fn()
+    .mockResolvedValue({ ok: true, json: async () => ({ id: "turn" }) });
+  vi.stubGlobal("fetch", fetcher);
+  await browserChatStreamTransport.create({
+    clientRequestId: "request",
+    conversationId: 42,
+    content: "修改的转写",
+    replyWithVoice: true,
+  });
+  expect(JSON.parse(fetcher.mock.calls[0][1].body)).toEqual({
+    clientRequestId: "request",
+    conversationId: 42,
+    content: "修改的转写",
+  });
+});

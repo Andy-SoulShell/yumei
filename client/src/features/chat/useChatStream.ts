@@ -14,7 +14,10 @@ import {
   type ChatTurnSnapshot,
 } from "@shared/chatStreaming";
 
-export type ChatStreamDraft = { content: string; transcriptionId?: string };
+export type ChatStreamDraft = Pick<
+  StoredChatSubmission,
+  "content" | "transcriptionId" | "replyWithVoice"
+>;
 export type ChatStreamSubmission = StoredChatSubmission;
 export type FailedStreamSubmission = {
   submission: ChatStreamSubmission;
@@ -80,7 +83,15 @@ export function createBrowserChatStreamTransport(
   rules: ProductConfig["experience"]["transport"]
 ): ChatStreamTransport {
   return {
-    create: submission => request(rules, "/api/chat/turns", submission),
+    create: submission =>
+      request(rules, "/api/chat/turns", {
+        conversationId: submission.conversationId,
+        clientRequestId: submission.clientRequestId,
+        content: submission.content,
+        ...(submission.transcriptionId
+          ? { transcriptionId: submission.transcriptionId }
+          : {}),
+      }),
     discover: conversationId =>
       request(rules, `/api/chat/turns?conversationId=${conversationId}`),
     stop: turnId =>

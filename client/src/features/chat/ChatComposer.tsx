@@ -20,6 +20,7 @@ import {
   Plus,
   Square,
 } from "lucide-react";
+import { ChatVoicePreview } from "./ChatVoicePreview";
 
 import type { ChatController } from "./useChatController";
 type Props = Pick<
@@ -48,6 +49,10 @@ type Props = Pick<
   | "handleRecordingComplete"
   | "cancelRecording"
   | "insertChatDraft"
+  | "voicePreview"
+  | "updateVoicePreview"
+  | "discardVoicePreview"
+  | "sendVoicePreview"
 > & { girlfriend: NonNullable<ChatController["girlfriend"]> };
 
 /** 紧凑输入区支持多行草稿；等待回复时仍可继续输入。 */
@@ -77,12 +82,16 @@ export function ChatComposer({
   handleRecordingComplete,
   cancelRecording,
   insertChatDraft,
+  voicePreview,
+  updateVoicePreview,
+  discardVoicePreview,
+  sendVoicePreview,
 }: Props) {
   const [toolsOpen, setToolsOpen] = useState(false);
   const toolsId = useId();
   // 已保存的语音偏好不能阻止不支持录音的环境继续使用文字聊天。
   const textInput = inputMode === "text" || !voiceSupported;
-  useAutosizeTextarea(inputRef, message, textInput);
+  useAutosizeTextarea(inputRef, message, textInput && !voicePreview);
   const busy =
     isAccepting ||
     generateSelfie.isPending ||
@@ -99,8 +108,19 @@ export function ChatComposer({
           : t("chat:selfieQuotaReached");
 
   return (
-    <form onSubmit={handleSendMessage} className="chat-composer">
-      <Collapsible open={toolsOpen} onOpenChange={setToolsOpen}>
+    <form
+      onSubmit={event => {
+        if (voicePreview) {
+          event.preventDefault();
+          sendVoicePreview();
+        } else handleSendMessage(event);
+      }}
+      className="chat-composer"
+    >
+      <Collapsible
+        open={toolsOpen && !voicePreview}
+        onOpenChange={setToolsOpen}
+      >
         <CollapsibleContent id={toolsId} className="chat-quick-panel">
           <p className="mb-2 text-xs text-muted-foreground">
             {t("chat:draftSuggestionHint")}
@@ -208,123 +228,136 @@ export function ChatComposer({
               )}
             </div>
           )}
-          <CollapsibleTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              disabled={busy}
-              aria-label={t("chat:quickCompanionActions")}
-              title={t("chat:quickCompanionActions")}
-              aria-controls={toolsId}
-              className="chat-composer-tool relative"
-            >
-              {generateSelfie.isPending || generateCouple.isPending ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <Plus className={toolsOpen ? "rotate-45" : ""} />
-              )}
-            </Button>
-          </CollapsibleTrigger>
-
-          {textInput ? (
+          {voicePreview ? (
+            <ChatVoicePreview
+              text={voicePreview.text}
+              t={t}
+              maxMessageLength={maxMessageLength}
+              busy={busy}
+              updateVoicePreview={updateVoicePreview}
+              discardVoicePreview={discardVoicePreview}
+            />
+          ) : (
             <>
-              <Textarea
-                ref={inputRef}
-                rows={1}
-                maxLength={maxMessageLength}
-                value={message}
-                onChange={event => setMessage(event.target.value)}
-                placeholder={t("chat:messagePlaceholder")}
-                aria-label={t("chat:saySomethingTo", {
-                  name: girlfriend.name,
-                })}
-                className="chat-composer-input"
-                onKeyDown={event => {
-                  if (
-                    event.key !== "Enter" ||
-                    event.shiftKey ||
-                    event.altKey ||
-                    event.nativeEvent.isComposing ||
-                    event.keyCode === 229
-                  )
-                    return;
-                  const desktop = window.matchMedia?.(
-                    "(hover: hover) and (pointer: fine)"
-                  ).matches;
-                  if (!desktop && !event.ctrlKey && !event.metaKey) return;
-                  event.preventDefault();
-                  if (!busy && message.trim())
-                    event.currentTarget.form?.requestSubmit();
-                }}
-              />
-              {voiceSupported && !message.trim() && !isAccepting ? (
+              <CollapsibleTrigger asChild>
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  onClick={() => switchInputMode("voice")}
                   disabled={busy}
-                  aria-label={t("chat:switchToVoiceInput")}
-                  title={t("chat:switchToVoiceInput")}
-                  className="chat-composer-tool"
+                  aria-label={t("chat:quickCompanionActions")}
+                  title={t("chat:quickCompanionActions")}
+                  aria-controls={toolsId}
+                  className="chat-composer-tool relative"
                 >
-                  <Mic />
-                </Button>
-              ) : (
-                <Button
-                  type="submit"
-                  size="icon"
-                  disabled={!message.trim() || busy}
-                  aria-label={t("chat:sendMessage")}
-                  title={t("chat:sendMessage")}
-                  className="chat-composer-send"
-                  onMouseDown={event => {
-                    // 保留焦点；不取消 pointerdown，避免 Safari 吞掉触摸 click。
-                    if (event.button === 0) event.preventDefault();
-                  }}
-                >
-                  {isAccepting ? (
+                  {generateSelfie.isPending || generateCouple.isPending ? (
                     <Loader2 className="animate-spin" />
                   ) : (
-                    <ArrowUp />
+                    <Plus className={toolsOpen ? "rotate-45" : ""} />
                   )}
                 </Button>
+              </CollapsibleTrigger>
+
+              {textInput ? (
+                <>
+                  <Textarea
+                    ref={inputRef}
+                    rows={1}
+                    maxLength={maxMessageLength}
+                    value={message}
+                    onChange={event => setMessage(event.target.value)}
+                    placeholder={t("chat:messagePlaceholder")}
+                    aria-label={t("chat:saySomethingTo", {
+                      name: girlfriend.name,
+                    })}
+                    className="chat-composer-input"
+                    onKeyDown={event => {
+                      if (
+                        event.key !== "Enter" ||
+                        event.shiftKey ||
+                        event.altKey ||
+                        event.nativeEvent.isComposing ||
+                        event.keyCode === 229
+                      )
+                        return;
+                      const desktop = window.matchMedia?.(
+                        "(hover: hover) and (pointer: fine)"
+                      ).matches;
+                      if (!desktop && !event.ctrlKey && !event.metaKey) return;
+                      event.preventDefault();
+                      if (!busy && message.trim())
+                        event.currentTarget.form?.requestSubmit();
+                    }}
+                  />
+                  {voiceSupported && !message.trim() && !isAccepting ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => switchInputMode("voice")}
+                      disabled={busy}
+                      aria-label={t("chat:switchToVoiceInput")}
+                      title={t("chat:switchToVoiceInput")}
+                      className="chat-composer-tool"
+                    >
+                      <Mic />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="submit"
+                      size="icon"
+                      disabled={!message.trim() || busy}
+                      aria-label={t("chat:sendMessage")}
+                      title={t("chat:sendMessage")}
+                      className="chat-composer-send"
+                      onMouseDown={event => {
+                        // 保留焦点；不取消 pointerdown，避免 Safari 吞掉触摸 click。
+                        if (event.button === 0) event.preventDefault();
+                      }}
+                    >
+                      {isAccepting ? (
+                        <Loader2 className="animate-spin" />
+                      ) : (
+                        <ArrowUp />
+                      )}
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <VoiceRecordButton
+                    isRecording={isRecording}
+                    isTranscribing={isTranscribing}
+                    duration={duration}
+                    onStart={startRecording}
+                    onEnd={handleRecordingComplete}
+                    onCancel={cancelRecording}
+                    disabled={
+                      isAccepting ||
+                      generateSelfie.isPending ||
+                      generateCouple.isPending
+                    }
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={event => {
+                      // 同步切换会把此按钮复用为发送按钮，阻止同一次点击的默认提交。
+                      event.preventDefault();
+                      // 在点击手势内挂载并聚焦，兼容 iOS 的软键盘唤起规则。
+                      flushSync(() => switchInputMode("text"));
+                      inputRef.current?.focus({ preventScroll: true });
+                    }}
+                    disabled={isRecording || isTranscribing}
+                    aria-label={t("chat:switchToTextInput")}
+                    title={t("chat:switchToTextInput")}
+                    className="chat-composer-tool"
+                  >
+                    <Keyboard />
+                  </Button>
+                </>
               )}
-            </>
-          ) : (
-            <>
-              <VoiceRecordButton
-                isRecording={isRecording}
-                isTranscribing={isTranscribing}
-                duration={duration}
-                onStart={startRecording}
-                onEnd={handleRecordingComplete}
-                onCancel={cancelRecording}
-                disabled={
-                  isAccepting ||
-                  generateSelfie.isPending ||
-                  generateCouple.isPending
-                }
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={event => {
-                  // 同步切换会把此按钮复用为发送按钮，阻止同一次点击的默认提交。
-                  event.preventDefault();
-                  // 在点击手势内挂载并聚焦，兼容 iOS 的软键盘唤起规则。
-                  flushSync(() => switchInputMode("text"));
-                  inputRef.current?.focus({ preventScroll: true });
-                }}
-                disabled={isRecording || isTranscribing}
-                aria-label={t("chat:switchToTextInput")}
-                title={t("chat:switchToTextInput")}
-                className="chat-composer-tool"
-              >
-                <Keyboard />
-              </Button>
             </>
           )}
         </div>

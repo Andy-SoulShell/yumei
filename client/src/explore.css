@@ -627,6 +627,24 @@
   min-height: 44px;
   white-space: normal;
 }
+.chat-voice-preview {
+  flex: 0 0 100%;
+  min-width: 0;
+  padding-inline: 8px;
+}
+.chat-voice-preview-heading,
+.chat-voice-preview-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.chat-transcript-input {
+  width: 100%;
+}
+.chat-voice-preview-footer {
+  padding-bottom: 4px;
+}
 @media (hover: hover) and (pointer: fine) {
   .chat-message-actions {
     opacity: 0;

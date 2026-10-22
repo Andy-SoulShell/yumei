@@ -505,6 +505,12 @@ export default {
     changeTopicAction: "Change the topic",
     changeTopicDraft:
       "Let's talk about something else. What would you like to chat about?",
+    voicePreviewTitle: "Voice transcript",
+    discardVoicePreview: "Discard transcript and return",
+    voicePreviewText: "Edit voice transcript",
+    voicePreviewHint:
+      "Edit before sending. Your text draft is kept separately.",
+    sendVoicePreview: "Send transcript",
     streamGenerating: "Replying…",
     streamStopped: "Reply stopped. Text already received has been saved.",
     streamFailed: "The reply could not finish. You can retry.",

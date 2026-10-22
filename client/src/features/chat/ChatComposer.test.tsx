@@ -16,12 +16,15 @@ let stopping = false;
 let connection = "connected";
 let voiceSupported = true;
 let preferredInputMode: "text" | "voice" = "text";
+let initialPreview: string | null = null;
 let initialMessage = "";
 const stopped = vi.fn();
 const submitted = vi.fn();
+const previewSent = vi.fn();
 const poseOpened = vi.fn();
 function Harness() {
   const [message, setMessage] = useState(initialMessage);
+  const [preview, setPreview] = useState(initialPreview);
   const [inputMode, switchInputMode] = useState<"text" | "voice">(
     preferredInputMode
   );
@@ -46,6 +49,10 @@ function Harness() {
       setMessage(current => (current.trim() ? `${current}\n${text}` : text));
       switchInputMode("text");
     },
+    voicePreview: preview === null ? null : { text: preview },
+    updateVoicePreview: setPreview,
+    discardVoicePreview: () => setPreview(null),
+    sendVoicePreview: () => previewSent(preview),
     isRecording: false,
     isTranscribing: false,
     apiConfig: { imageProvider: { configured: true } },
@@ -74,9 +81,11 @@ beforeEach(async () => {
   connection = "connected";
   voiceSupported = true;
   preferredInputMode = "text";
+  initialPreview = null;
   initialMessage = "";
   stopped.mockClear();
   submitted.mockClear();
+  previewSent.mockClear();
   poseOpened.mockClear();
   vi.stubGlobal(
     "matchMedia",
@@ -280,4 +289,36 @@ it("opens the existing photo picker from shortcuts without sending the draft", a
   expect(poseOpened).toHaveBeenCalledWith(true);
   expect(input().value).toBe("海边的夕阳");
   expect(submitted).not.toHaveBeenCalled();
+});
+
+it("edits a voice preview and preserves touch Enter and IME confirmation", async () => {
+  desktop = false;
+  initialPreview = "识别的文字";
+  await act(async () => root.render(<Harness key="voice-preview" />));
+  expect(input().getAttribute("aria-label")).toBe("编辑语音转写文字");
+  await fill("修改后的文字");
+  expect((await key()).defaultPrevented).toBe(false);
+  await key({ isComposing: true, ctrlKey: true });
+  expect(previewSent).not.toHaveBeenCalled();
+  await act(async () =>
+    container
+      .querySelector<HTMLButtonElement>('[aria-label="发送转写文字"]')!
+      .click()
+  );
+  expect(previewSent).toHaveBeenCalledWith("修改后的文字");
+  expect(submitted).not.toHaveBeenCalled();
+});
+
+it("cancels a voice preview and returns to normal input", async () => {
+  initialPreview = "不发送的识别文字";
+  await act(async () => root.render(<Harness key="cancel-preview" />));
+  await act(async () =>
+    container
+      .querySelector<HTMLButtonElement>('[aria-label="取消转写并返回"]')!
+      .click()
+  );
+  expect(input().getAttribute("aria-label")).toBe(
+    i18n.getFixedT("zh-CN")("chat:saySomethingTo", { name: "小雨" })
+  );
+  expect(previewSent).not.toHaveBeenCalled();
 });

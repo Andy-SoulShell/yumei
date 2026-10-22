@@ -562,7 +562,8 @@ async function leaveVoiceScope(mode: string) {
   await render();
 }
 
-it("submits a current recording transcription exactly once", async () => {
+it("previews a recording without sending or replacing the text draft, then confirms once", async () => {
+  await act(async () => controller.setMessage("原来的文字草稿"));
   const reader = await prepareVoiceRead();
   await act(async () => reader.onloadend?.());
   const callbacks = mock.transcribe.mock.calls[0][1];
@@ -574,11 +575,138 @@ it("submits a current recording transcription exactly once", async () => {
     callbacks.onSuccess(response);
     callbacks.onSuccess(response);
   });
+  expect(mock.streamSubmit).not.toHaveBeenCalled();
+  expect(controller.voicePreview?.text).toBe(response.text);
+  expect(controller.message).toBe("原来的文字草稿");
+  await act(async () => {
+    controller.sendVoicePreview();
+    controller.sendVoicePreview();
+  });
   expect(mock.streamSubmit).toHaveBeenCalledOnce();
   expect(mock.streamSubmit).toHaveBeenCalledWith({
     content: response.text,
     transcriptionId: response.transcriptionId,
+    replyWithVoice: true,
   });
+  expect(controller.voicePreview).toBeNull();
+  expect(controller.message).toBe("原来的文字草稿");
+});
+
+async function previewVoice(text = "语音原文") {
+  const reader = await prepareVoiceRead();
+  await act(async () => reader.onloadend?.());
+  const transcriptionId = crypto.randomUUID();
+  await act(async () =>
+    mock.transcribe.mock.calls[0][1].onSuccess({ text, transcriptionId })
+  );
+  return transcriptionId;
+}
+
+it("sends corrected transcription as text without reusing an original-text credential", async () => {
+  await previewVoice();
+  await act(async () => controller.updateVoicePreview("修正后的文字"));
+  await act(async () => controller.sendVoicePreview());
+  expect(mock.streamSubmit).toHaveBeenCalledWith({
+    content: "修正后的文字",
+    replyWithVoice: true,
+  });
+  await act(async () =>
+    mock.options.stream.onComplete(
+      {
+        status: "succeeded",
+        assistantMessage: { content: "仍然用语音回应", id: 99 },
+      },
+      { content: "修正后的文字", replyWithVoice: true }
+    )
+  );
+  expect(mock.speak).toHaveBeenCalledWith("仍然用语音回应", 99);
+});
+
+it("cancels a transcript and restores the untouched draft without a message request", async () => {
+  await act(async () => controller.setMessage("还没发的草稿"));
+  await previewVoice();
+  await act(async () => controller.discardVoicePreview());
+  expect(controller.voicePreview).toBeNull();
+  expect(controller.message).toBe("还没发的草稿");
+  expect(mock.streamSubmit).not.toHaveBeenCalled();
+  expect(mock.send).not.toHaveBeenCalled();
+});
+
+it("keeps voice reply metadata local when a configuration failure is retried", async () => {
+  await previewVoice();
+  await act(async () => controller.updateVoicePreview("修正的语音内容"));
+  mock.productReady = false;
+  mock.productFetch.mockRejectedValueOnce(new Error("configuration offline"));
+  await render();
+  await act(async () => controller.sendVoicePreview());
+  const failed = controller.failedMessages[0];
+  expect(failed.replyWithVoice).toBe(true);
+  await act(async () => controller.retryMessage(failed));
+  const sent = mock.send.mock.calls[0][0];
+  expect(sent.content).toBe("修正的语音内容");
+  expect(sent).not.toHaveProperty("replyWithVoice");
+  expect(sent.transcriptionId).toBeUndefined();
+});
+
+it.each(["conversation", "account"])(
+  "does not submit a preview or its stale handlers after changing %s",
+  async mode => {
+    await previewVoice();
+    const send = controller.sendVoicePreview;
+    const edit = controller.updateVoicePreview;
+    await leaveVoiceScope(mode);
+    expect(controller.voicePreview).toBeNull();
+    await act(async () => {
+      send();
+      edit("旧账号的内容");
+    });
+    expect(controller.voicePreview).toBeNull();
+    expect(mock.streamSubmit).not.toHaveBeenCalled();
+  }
+);
+
+it("appends suggestions and quoted lines without sending or overwriting an existing draft", async () => {
+  await act(async () => controller.setMessage("已经写了一半"));
+  await act(async () => controller.insertChatDraft("聊聊今天"));
+  expect(controller.message).toBe("已经写了一半\n聊聊今天");
+  await act(async () => controller.quoteMessage("第一行\n第二行", "小雨"));
+  expect(controller.message).toBe(
+    "> 小雨\n> 第一行\n> 第二行\n\n已经写了一半\n聊聊今天"
+  );
+  expect(mock.streamSubmit).not.toHaveBeenCalled();
+});
+
+it("keeps draft suggestions usable when a microphone request finishes without recording", async () => {
+  await act(async () => controller.startRecording());
+  await act(async () => controller.insertChatDraft("仍然可以聊聊今天"));
+  expect(controller.message).toBe("仍然可以聊聊今天");
+  expect(mock.streamSubmit).not.toHaveBeenCalled();
+});
+
+it("blocks draft suggestions during a voice preview and leaves oversized drafts intact", async () => {
+  await act(async () => controller.setMessage("保留草稿"));
+  await previewVoice();
+  await act(async () => controller.insertChatDraft("新话题"));
+  expect(controller.message).toBe("保留草稿");
+  await act(async () => controller.discardVoicePreview());
+  await act(async () =>
+    controller.insertChatDraft("太长了".repeat(controller.maxMessageLength!))
+  );
+  expect(controller.message).toBe("保留草稿");
+  expect(mock.info).toHaveBeenLastCalledWith("chat:draftTooLong");
+});
+
+it("keeps empty or oversized voice previews editable until valid confirmation", async () => {
+  await previewVoice();
+  await act(async () => controller.updateVoicePreview(" "));
+  await act(async () => controller.sendVoicePreview());
+  expect(controller.voicePreview).not.toBeNull();
+  await act(async () =>
+    controller.updateVoicePreview("字".repeat(controller.maxMessageLength! + 1))
+  );
+  await act(async () => controller.sendVoicePreview());
+  expect(controller.voicePreview).not.toBeNull();
+  expect(mock.streamSubmit).not.toHaveBeenCalled();
 });
 it("waits for an earlier microphone request to settle before starting in a new scope", async () => {
   let finish!: () => void;
@@ -723,22 +851,4 @@ it("discards recording bytes resolved after changing account", async () => {
   });
   expect(readers).toHaveLength(0);
   expect(mock.transcribe).not.toHaveBeenCalled();
-});
-
-it("appends suggestions and quoted lines without sending or overwriting an existing draft", async () => {
-  await act(async () => controller.setMessage("已经写了一半"));
-  await act(async () => controller.insertChatDraft("聊聊今天"));
-  expect(controller.message).toBe("已经写了一半\n聊聊今天");
-  await act(async () => controller.quoteMessage("第一行\n第二行", "小雨"));
-  expect(controller.message).toBe(
-    "> 小雨\n> 第一行\n> 第二行\n\n已经写了一半\n聊聊今天"
-  );
-  expect(mock.streamSubmit).not.toHaveBeenCalled();
-});
-
-it("keeps draft suggestions usable when a microphone request finishes without recording", async () => {
-  await act(async () => controller.startRecording());
-  await act(async () => controller.insertChatDraft("仍然可以聊聊今天"));
-  expect(controller.message).toBe("仍然可以聊聊今天");
-  expect(mock.streamSubmit).not.toHaveBeenCalled();
 });

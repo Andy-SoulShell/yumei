@@ -32,6 +32,7 @@ type Props = Pick<
   | "quoteMessage"
   | "isRecording"
   | "isTranscribing"
+  | "voicePreview"
   | "isSpeaking"
   | "activeMessageId"
   | "user"
@@ -63,6 +64,7 @@ export function ChatMessages({
   quoteMessage,
   isRecording,
   isTranscribing,
+  voicePreview,
   isSpeaking,
   activeMessageId,
   user,
@@ -135,7 +137,9 @@ export function ChatMessages({
                   name={girlfriend.name}
                   t={t}
                   onSelect={insertChatDraft}
-                  disabled={isRecording || isTranscribing}
+                  disabled={
+                    isRecording || isTranscribing || Boolean(voicePreview)
+                  }
                 />
               </div>
             )

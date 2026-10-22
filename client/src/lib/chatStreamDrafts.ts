@@ -5,6 +5,8 @@ export type StoredChatSubmission = {
   clientRequestId: string;
   content: string;
   transcriptionId?: string;
+  /** 本地播放偏好，不发送给服务端，也不作为语音奖励凭据。 */
+  replyWithVoice?: boolean;
 };
 
 const DRAFT_PREFIX = "yumei:chat-pending:";
@@ -82,7 +84,9 @@ export function readChatStreamDrafts(
         item.content.length > 0 &&
         item.content.length <= CHAT_INPUT_CAPACITY &&
         (item.transcriptionId === undefined ||
-          typeof item.transcriptionId === "string")
+          typeof item.transcriptionId === "string") &&
+        (item.replyWithVoice === undefined ||
+          typeof item.replyWithVoice === "boolean")
     );
   } catch {
     return [];

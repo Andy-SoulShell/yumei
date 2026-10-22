@@ -28,6 +28,7 @@ type FailedChatMessage = {
   conversationId: number;
   content: string;
   transcriptionId?: string;
+  replyWithVoice?: boolean;
 };
 
 /** 页面查询、草稿与操作流程；展示组件只消费此状态。 */
@@ -96,6 +97,16 @@ export function useChatController() {
     productRules.raw?.runtime.chat.maxInputChars
   );
   const [failedMessages, setFailedMessages] = useState<FailedChatMessage[]>([]);
+  const [voicePreviewState, setVoicePreviewState] = useState<{
+    identity: typeof identity;
+    text: string;
+    originalText: string;
+    transcriptionId: string;
+  } | null>(null);
+  const voicePreview =
+    voicePreviewState?.identity === identity ? voicePreviewState : null;
+  const voicePreviewRef = useRef(voicePreview);
+  voicePreviewRef.current = voicePreview;
   const draftRef = useRef(message);
   draftRef.current = message;
 
@@ -136,7 +147,11 @@ export function useChatController() {
   const applyChatDraft = useCallback(
     (text: string) => {
       if (!isCurrentScope()) return;
-      if (voiceInputBusy.current || startingRecording.current) {
+      if (
+        voiceInputBusy.current ||
+        startingRecording.current ||
+        voicePreviewRef.current
+      ) {
         toast.info(t("chat:finishVoiceFirst"));
         return;
       }
@@ -430,7 +445,7 @@ export function useChatController() {
         void refreshConversation();
         if (
           snapshot.status === "succeeded" &&
-          (autoPlay || draft.transcriptionId) &&
+          (autoPlay || draft.transcriptionId || draft.replyWithVoice) &&
           snapshot.assistantMessage.content
         ) {
           speak(
@@ -638,6 +653,7 @@ export function useChatController() {
     e.preventDefault();
     if (
       !isCurrentScope() ||
+      voicePreviewRef.current ||
       !message.trim() ||
       !currentConversationId ||
       isAccepting ||
@@ -666,7 +682,16 @@ export function useChatController() {
       return;
     stop();
     void chatStream.stop().then(stopped => {
-      if (stopped && isCurrentScope()) sendMediaMessage.mutate(failed);
+      if (stopped && isCurrentScope()) {
+        lastInputWasVoiceRef.current = Boolean(
+          failed.transcriptionId || failed.replyWithVoice
+        );
+        sendMediaMessage.mutate({
+          conversationId: failed.conversationId,
+          content: failed.content,
+          transcriptionId: failed.transcriptionId,
+        });
+      }
     });
   };
 
@@ -699,9 +724,12 @@ export function useChatController() {
         const stopped = await stopChatStream();
         if (!isCurrentScope()) return;
         if (stopped) {
-          lastInputWasVoiceRef.current = !!draft.transcriptionId;
+          lastInputWasVoiceRef.current = Boolean(
+            draft.transcriptionId || draft.replyWithVoice
+          );
           sendMediaMessage.mutate({
-            ...draft,
+            content: draft.content,
+            transcriptionId: draft.transcriptionId,
             conversationId: currentConversationId,
           });
         } else {
@@ -876,13 +904,15 @@ export function useChatController() {
             recordingScope.current = null;
             setIsTranscribing(false);
             if (data.text) {
-              // 自动发送转写文字
-              lastInputWasVoiceRef.current = true;
-              void submitChat({
-                content: data.text,
+              // 转写与原有文字草稿分开，确认前不发送消息。
+              const preview = {
+                identity,
+                text: data.text,
+                originalText: data.text.trim(),
                 transcriptionId: data.transcriptionId,
-              });
-              // 触发语音消息亲密度经验值
+              };
+              voicePreviewRef.current = preview;
+              setVoicePreviewState(preview);
             } else {
               toast.error(t("chat:noSpeechWasRecognizedPleaseTryAgain"));
             }
@@ -915,7 +945,6 @@ export function useChatController() {
     currentConversationId,
     setIsTranscribing,
     transcribeMutation,
-    submitChat,
     isCurrentScope,
     identity,
   ]);
@@ -940,6 +969,50 @@ export function useChatController() {
     maxMessageLength,
     insertChatDraft,
     quoteMessage,
+    voicePreview,
+    updateVoicePreview: (text: string) => {
+      const preview = voicePreviewRef.current;
+      if (!isCurrentScope() || !preview) return;
+      const next = { ...preview, text };
+      voicePreviewRef.current = next;
+      setVoicePreviewState(next);
+    },
+    discardVoicePreview: () => {
+      if (!isCurrentScope()) return;
+      voicePreviewRef.current = null;
+      setVoicePreviewState(null);
+    },
+    sendVoicePreview: () => {
+      const preview = voicePreviewRef.current;
+      if (
+        !isCurrentScope() ||
+        !preview ||
+        isAccepting ||
+        generateSelfie.isPending ||
+        generateCouple.isPending ||
+        isRecording ||
+        isTranscribing
+      )
+        return;
+      const content = preview.text.trim();
+      if (!content) return;
+      if (maxMessageLength !== undefined && content.length > maxMessageLength) {
+        toast.info(t("chat:draftTooLong", { max: maxMessageLength }));
+        return;
+      }
+      // 服务端凭据仅接受原文；编辑后的转写作为普通文字提交。
+      const draft =
+        content === preview.originalText
+          ? {
+              content,
+              transcriptionId: preview.transcriptionId,
+              replyWithVoice: true,
+            }
+          : { content, replyWithVoice: true };
+      voicePreviewRef.current = null;
+      setVoicePreviewState(null);
+      void submitChat(draft);
+    },
     effectiveIntimacyLevel: productRules.data
       ? getLevelByPoints(
           girlfriend?.intimacyPoints ?? 0,
@@ -1017,7 +1090,12 @@ export function useChatController() {
     switchInputMode,
     duration,
     startRecording: async () => {
-      if (!isCurrentScope() || startingRecording.current) return;
+      if (
+        !isCurrentScope() ||
+        startingRecording.current ||
+        voicePreviewRef.current
+      )
+        return;
       startingRecording.current = true;
       const recording = { identity, token: Symbol() };
       recordingScope.current = recording;

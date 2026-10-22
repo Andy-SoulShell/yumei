@@ -6,6 +6,11 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { i18n, type Translator } from "@shared/i18n";
 import { ChatMessages } from "./ChatMessages";
 import type { PhotoViewer } from "@/components/PhotoViewer";
+vi.mock("./VideoMessage", () => ({
+  VideoMessage: ({ requestId }: { requestId: string }) => (
+    <div data-video-request={requestId} />
+  ),
+}));
 
 vi.mock("@/hooks/useChatScrollAnchor", () => ({
   useChatScrollAnchor: vi.fn(),
@@ -82,6 +87,30 @@ afterEach(async () => {
 async function render() {
   await act(async () => root.render(<ChatMessages {...props} />));
 }
+
+it("uses persisted generation kind for video rows and never treats ordinary text as a video", async () => {
+  props.chatMessages = [
+    {
+      id: 9,
+      role: "assistant",
+      content: "[视频]",
+      generationRequestId: "chat-id",
+      generationKind: "chat",
+    },
+  ] as any;
+  await render();
+  expect(container.textContent).toContain("[视频]");
+  expect(container.querySelector("[data-video-request]")).toBeNull();
+  props.chatMessages = [
+    { ...props.chatMessages[0], generationKind: "video" },
+  ] as any;
+  await render();
+  expect(
+    container
+      .querySelector("[data-video-request]")
+      ?.getAttribute("data-video-request")
+  ).toBe("chat-id");
+});
 
 it("renders separate stable segment bubbles within one canonical assistant message", async () => {
   await render();

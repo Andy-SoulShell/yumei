@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { ChatVoicePreview } from "./ChatVoicePreview";
 import { ChatQuoteCard } from "./ChatQuoteCard";
+import { VideoComposer } from "./VideoComposer";
 import { formatChatQuote, parseChatQuote } from "./chatQuote";
 
 import type { ChatController } from "./useChatController";
@@ -57,7 +58,10 @@ type Props = Pick<
   | "updateVoicePreview"
   | "discardVoicePreview"
   | "sendVoicePreview"
-> & { girlfriend: NonNullable<ChatController["girlfriend"]> };
+> &
+  Partial<Pick<ChatController, "currentConversationId" | "chatMessages">> & {
+    girlfriend: NonNullable<ChatController["girlfriend"]>;
+  };
 
 /** 紧凑输入区支持多行草稿；等待回复时仍可继续输入。 */
 export function ChatComposer({
@@ -79,6 +83,8 @@ export function ChatComposer({
   message,
   setMessage,
   girlfriend,
+  currentConversationId,
+  chatMessages,
   voiceSupported,
   switchInputMode,
   duration,
@@ -145,6 +151,17 @@ export function ChatComposer({
             role="group"
             aria-label={t("chat:quickCompanionActions")}
           >
+            {currentConversationId && (
+              <VideoComposer
+                key={currentConversationId}
+                conversationId={currentConversationId}
+                referenceImage={girlfriend.referenceImageUrl}
+                photos={(chatMessages ?? [])
+                  .filter(item => !!item.imageUrl)
+                  .map(item => ({ id: item.id, imageUrl: item.imageUrl! }))}
+                disabled={busy}
+              />
+            )}
             <Button
               type="button"
               variant="outline"

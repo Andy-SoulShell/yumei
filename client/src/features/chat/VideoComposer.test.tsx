@@ -1,13 +1,16 @@
 // @vitest-environment jsdom
-/** 实际视频对话框支持两种模式、发布参数和未知送达时的幂等提交。 */
-import { act } from "react";
+/** 视频入口沿用自拍九宫格、亲密度解锁和文字优先，并保留未知响应的幂等键。 */
+import { act, type ComponentProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { i18n } from "@shared/i18n";
+import { localizeProductConfig } from "@shared/productConfig";
+import { productFixture } from "../../../../server/testProductConfig";
 import { VideoComposer } from "./VideoComposer";
 
 const mocks = vi.hoisted(() => ({
   enabled: true,
+  pending: false,
   create: vi.fn(),
   invalidate: vi.fn(),
 }));
@@ -15,19 +18,19 @@ vi.mock("@/lib/i18n", () => ({
   useI18n: () => ({ t: i18n.getFixedT("zh-CN") }),
 }));
 vi.mock("@/features/product/useProductConfig", () => ({
-  useProductConfig: () => ({
-    raw: {
-      models: { video: { enabled: mocks.enabled } },
-      runtime: {
-        video: {
-          defaultDurationSeconds: 3,
-          minDurationSeconds: 2,
-          maxDurationSeconds: 7,
-          maxPromptChars: 25,
-        },
-      },
-    },
-  }),
+  useProductConfig: () => {
+    const config = structuredClone(productFixture);
+    config.models.video.enabled = mocks.enabled;
+    Object.assign(config.runtime.video, {
+      defaultDurationSeconds: 3,
+      minDurationSeconds: 2,
+      maxDurationSeconds: 7,
+      maxPromptChars: 25,
+    });
+    config.selfies.poses[0].label = { "zh-CN": "运营预设" };
+    config.selfies.poses.at(-1)!.enabled = false;
+    return { raw: config, data: localizeProductConfig(config, "zh-CN") };
+  },
 }));
 vi.mock("@/lib/trpc", () => ({
   trpc: {
@@ -39,7 +42,7 @@ vi.mock("@/lib/trpc", () => ({
     }),
     video: {
       create: {
-        useMutation: () => ({ mutate: mocks.create, isPending: false }),
+        useMutation: () => ({ mutate: mocks.create, isPending: mocks.pending }),
       },
     },
   },
@@ -51,6 +54,7 @@ beforeEach(() => {
   HTMLElement.prototype.scrollIntoView = vi.fn();
   vi.clearAllMocks();
   mocks.enabled = true;
+  mocks.pending = false;
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -59,25 +63,39 @@ afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
 });
-async function render() {
+async function render(
+  props: Partial<ComponentProps<typeof VideoComposer>> = {}
+) {
   await act(async () =>
     root.render(
       <VideoComposer
         conversationId={42}
         referenceImage="/character.png"
+        intimacyPoints={0}
         photos={[{ id: 9, imageUrl: "/photo.png" }]}
+        {...props}
       />
     )
   );
 }
-async function open() {
-  await render();
+async function click(text: string) {
+  const button = Array.from(document.querySelectorAll("button")).find(
+    item =>
+      item.textContent?.trim() === text ||
+      item.title === text ||
+      item.querySelector("span.truncate")?.textContent === text
+  )!;
+  expect(button, text).toBeTruthy();
+  await act(async () => button.click());
+}
+async function open(props: Partial<ComponentProps<typeof VideoComposer>> = {}) {
+  await render(props);
   await act(async () => container.querySelector("button")!.click());
 }
-async function choose(id: string, label: string) {
+async function chooseReference(label: string) {
   await act(async () =>
     document
-      .getElementById(id)!
+      .getElementById("video-reference")!
       .dispatchEvent(
         new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true })
       )
@@ -90,53 +108,99 @@ async function choose(id: string, label: string) {
     option.dispatchEvent(new MouseEvent("click", { bubbles: true }))
   );
 }
-async function submit() {
-  const button = Array.from(document.querySelectorAll("button")).find(
-    item => item.textContent === "开始生成"
-  )!;
-  await act(async () => button.click());
-}
 
 it("hides the entry when video is disabled", async () => {
   mocks.enabled = false;
   await render();
   expect(container.querySelector("button")).toBeNull();
 });
-it("uses published constraints and supports character, chat-image and text inputs without mixing modes", async () => {
+it("shows published presets and locks by current points; an unlocked preset generates with a blank description", async () => {
   await open();
+  expect(
+    document
+      .querySelector('[aria-label="视频预设"]')!
+      .querySelectorAll("button")
+  ).toHaveLength(8);
+  expect(
+    document.querySelector('button[title="亲密度 Lv.4 解锁"]')
+  ).toHaveProperty("disabled", true);
+  await click("优雅");
+  expect(mocks.create).not.toHaveBeenCalled();
+  await click("运营预设");
+  expect(mocks.create.mock.calls[0][0]).toMatchObject({
+    conversationId: 42,
+    mode: "reference",
+    poseId: "casual",
+    prompt: "",
+    referenceMessageId: null,
+    durationSeconds: 3,
+  });
+  expect(document.getElementById("video-prompt")).toBeNull();
+});
+it("uses the chat draft ahead of presets and reuses the request ID after an unknown response", async () => {
+  await open({ draft: " 微笑，镜头推进 " });
+  expect(document.querySelector('[role="dialog"]')!.textContent).toContain(
+    "本次描述：微笑，镜头推进"
+  );
+  await click("运营预设");
+  await click("运营预设");
+  const [a, b] = mocks.create.mock.calls.map(call => call[0]);
+  expect(a).toMatchObject({ prompt: "微笑，镜头推进", poseId: "casual" });
+  expect(a.clientRequestId).toBe(b.clientRequestId);
+  await click("甜甜微笑");
+  expect(mocks.create.mock.calls.at(-1)![0].clientRequestId).not.toBe(
+    a.clientRequestId
+  );
+});
+it("keeps configurable duration, first-frame selection and custom descriptions in expandable settings", async () => {
+  await open({ draft: "微笑，镜头推进" });
+  await click("描述、首帧与时长");
   const duration = document.getElementById(
     "video-duration"
   ) as HTMLInputElement;
   expect([duration.min, duration.max, duration.value]).toEqual(["2", "7", "3"]);
   const prompt = document.getElementById("video-prompt") as HTMLTextAreaElement;
   expect(prompt.maxLength).toBe(25);
-  await act(async () => {
-    Object.getOwnPropertyDescriptor(
-      HTMLTextAreaElement.prototype,
-      "value"
-    )!.set!.call(prompt, "微笑，镜头推进");
-    prompt.dispatchEvent(new Event("input", { bubbles: true }));
+  await chooseReference("聊天图片 1");
+  await click("开始生成");
+  expect(mocks.create.mock.calls.at(-1)![0]).toMatchObject({
+    referenceMessageId: 9,
   });
-  await submit();
-  await submit();
-  expect(mocks.create.mock.calls[0][0]).toMatchObject({
-    conversationId: 42,
-    mode: "reference",
-    referenceMessageId: null,
-    prompt: "微笑，镜头推进",
-    durationSeconds: 3,
-  });
-  expect(mocks.create.mock.calls[0][0].clientRequestId).toBe(
-    mocks.create.mock.calls[1][0].clientRequestId
-  );
-  await choose("video-reference", "聊天图片 1");
-  await submit();
-  expect(mocks.create.mock.calls.at(-1)?.[0].referenceMessageId).toBe(9);
-  await choose("video-mode", "文生视频");
+  expect(mocks.create.mock.calls.at(-1)![0].poseId).toBeUndefined();
+  await click("文生视频");
   expect(document.getElementById("video-reference")).toBeNull();
-  await submit();
-  expect(mocks.create.mock.calls.at(-1)?.[0]).toMatchObject({
+  await click("开始生成");
+  expect(mocks.create.mock.calls.at(-1)![0]).toMatchObject({
     mode: "text",
     referenceMessageId: null,
+  });
+});
+it("unlocks higher presets as current points increase and blocks all submission while pending", async () => {
+  await open({
+    intimacyPoints: productFixture.intimacy.levels[3].requiredPoints,
+  });
+  await click("优雅");
+  expect(mocks.create.mock.calls[0][0].poseId).toBe("elegant");
+  mocks.pending = true;
+  await render({
+    intimacyPoints: productFixture.intimacy.levels[3].requiredPoints,
+  });
+  const presets = document
+    .querySelector('[aria-label="视频预设"]')!
+    .querySelectorAll("button");
+  expect(Array.from(presets).every(button => button.disabled)).toBe(true);
+});
+it("requires a usable first frame only for reference mode", async () => {
+  await open({ referenceImage: "" });
+  await click("运营预设");
+  expect(mocks.create).not.toHaveBeenCalled();
+  expect(document.querySelector('[role="status"]')!.textContent).toContain(
+    "首帧"
+  );
+  await click("文生视频");
+  await click("运营预设");
+  expect(mocks.create.mock.calls[0][0]).toMatchObject({
+    mode: "text",
+    poseId: "casual",
   });
 });

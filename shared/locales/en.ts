@@ -11,6 +11,17 @@ export default {
       "This video has already been submitted and will continue in the background.",
     requestConflictError: "This request ID belongs to different content.",
     create: "Create video",
+    presetDescription:
+      "Your chat draft takes priority. A blank description uses the selected preset. Intimacy unlocks presets.",
+    presets: "Video presets",
+    referenceHint:
+      "The first frame keeps the character’s identity; your description sets the action and camera movement.",
+    textHint:
+      "Your description takes priority; the character’s appearance fills in unspecified details.",
+    settings: "Description, first frame and duration",
+    currentDescription: "Current description: {{text}}",
+    chooseReferenceHint:
+      "Choose an available first frame in settings, or switch to text to video.",
     description:
       "Generate a video from text or an image, including the workflow’s audio.",
     mode: "Generation mode",

@@ -2,6 +2,17 @@
 import type { MessageCatalog } from "./types";
 export default {
   video: {
+    presetDescription:
+      "チャット入力欄の文章を優先し、空欄の場合は選択したプリセットを使います。親密度に応じて解放されます。",
+    presets: "動画プリセット",
+    referenceHint:
+      "最初のフレームで人物の同一性を保ち、動きとカメラは今回の説明に従います。",
+    textHint:
+      "今回の説明を優先し、キャラクターの外見は指定のない部分を補います。",
+    settings: "説明・最初のフレーム・長さ",
+    currentDescription: "今回の説明：{{text}}",
+    chooseReferenceHint:
+      "設定で使用できる最初のフレームを選ぶか、テキストから動画に切り替えてください。",
     disabledError: "動画生成は有効になっていません。",
     inputError: "説明または長さが現在の制限を超えています。",
     busyError: "現在の動画が完成するまでお待ちください。",

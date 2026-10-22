@@ -156,8 +156,12 @@ export function ChatComposer({
                 key={currentConversationId}
                 conversationId={currentConversationId}
                 referenceImage={girlfriend.referenceImageUrl}
+                intimacyPoints={girlfriend.intimacyPoints}
+                draft={draftText}
                 photos={(chatMessages ?? [])
-                  .filter(item => !!item.imageUrl)
+                  .filter(
+                    item => !!item.imageUrl && item.generationKind !== "video"
+                  )
                   .map(item => ({ id: item.id, imageUrl: item.imageUrl! }))}
                 disabled={busy}
               />

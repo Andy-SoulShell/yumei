@@ -8,10 +8,11 @@ import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/lib/i18n";
 import { apiErrorMessage } from "@/lib/errors";
 import { createUuid } from "@/lib/uuid";
+import { contentText } from "@shared/discovery";
 
 /** 请求编号只用于查询，任务归属在服务端逐次校验。 */
 export function VideoMessage({ requestId }: { requestId: string }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const policy = useProductConfig();
   const utils = trpc.useUtils();
   const retryId = useRef<string | null>(null);
@@ -131,7 +132,12 @@ export function VideoMessage({ requestId }: { requestId: string }) {
           )}
         </>
       )}
-      <p className="whitespace-pre-wrap break-words text-sm">{data.prompt}</p>
+      <p className="whitespace-pre-wrap break-words text-sm">
+        {data.prompt ||
+          (data.preset
+            ? `${data.preset.emoji} ${contentText(data.preset.label, locale)}`
+            : "")}
+      </p>
       <p className="text-xs text-muted-foreground">
         {t("video:actualDuration", {
           seconds: Math.round(data.durationSeconds * 100) / 100,

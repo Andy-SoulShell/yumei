@@ -2,6 +2,17 @@
 import type { MessageCatalog } from "./types";
 export default {
   video: {
+    presetDescription:
+      "채팅 입력 내용을 우선 사용하고, 비어 있으면 선택한 프리셋을 사용해요. 친밀도에 따라 프리셋이 잠금 해제돼요.",
+    presets: "동영상 프리셋",
+    referenceHint:
+      "첫 프레임으로 인물의 정체성을 유지하고, 동작과 카메라는 이번 설명을 따라요.",
+    textHint:
+      "이번 설명을 우선 사용하고, 캐릭터 외모는 지정하지 않은 부분을 보완해요.",
+    settings: "설명, 첫 프레임, 길이",
+    currentDescription: "이번 설명: {{text}}",
+    chooseReferenceHint:
+      "설정에서 사용 가능한 첫 프레임을 선택하거나 텍스트로 동영상 만들기로 전환하세요.",
     disabledError: "동영상 생성이 활성화되지 않았습니다.",
     inputError: "설명이나 길이가 현재 제한을 초과합니다.",
     busyError: "현재 동영상이 완성될 때까지 기다려 주세요.",

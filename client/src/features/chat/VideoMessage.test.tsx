@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
   setData: vi.fn(),
 }));
 vi.mock("@/lib/i18n", () => ({
-  useI18n: () => ({ t: i18n.getFixedT("zh-CN") }),
+  useI18n: () => ({ t: i18n.getFixedT("zh-CN"), locale: "zh-CN" }),
 }));
 vi.mock("@/features/product/useProductConfig", () => ({
   useProductConfig: () => ({ raw: { runtime: { video: { pollMs: 3000 } } } }),
@@ -90,6 +90,24 @@ it("renders a mobile inline native video with controls and no autoplay", async (
   expect(video.preload).toBe("metadata");
   expect(video.autoplay).toBe(false);
   expect(container.textContent).toContain("5.17");
+});
+it("shows the captured localized preset and retains it when retrying a blank description", async () => {
+  const presetInput = { ...input, prompt: "", poseId: "casual" };
+  await render({
+    status: "failed",
+    prompt: "",
+    input: presetInput,
+    preset: {
+      label: { "zh-CN": "旧预设名称", en: "Previous preset" },
+      emoji: "😊",
+    },
+  });
+  expect(container.textContent).toContain("😊 旧预设名称");
+  await act(async () => container.querySelector("button")!.click());
+  expect(mocks.create.mock.calls[0][0]).toMatchObject({
+    prompt: "",
+    poseId: "casual",
+  });
 });
 it("allows cancellation only before remote submission and reuses one retry key", async () => {
   await render({ status: "pending", phase: "queued" });

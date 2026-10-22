@@ -18,6 +18,7 @@ import type { NotificationMessage } from "../shared/notifications";
 import type { CompanionBehavior } from "../shared/companionBehavior";
 import type { CompanionEmotion } from "../shared/companionEmotion";
 import type { ProductConfig } from "../shared/productConfig";
+import { TTS_PROVIDERS } from "../shared/ttsProviders";
 
 /** 三类业务规则的草稿和统一发布快照，前后端共用同一发布数据。 */
 export const productConfiguration = mysqlTable("productConfiguration", {
@@ -293,13 +294,14 @@ export const apiConfigs = mysqlTable("apiConfigs", {
   userId: varchar("userId", { length: 255 }).notNull().unique(),
   llmModel: varchar("llmModel", { length: 200 }), // 用户选择的模型 ID（如 openai/gpt-4o）
   // TTS 语音配置
-  ttsProvider: mysqlEnum("ttsProvider", ["browser", "elevenlabs", "fishaudio"])
+  ttsProvider: mysqlEnum("ttsProvider", TTS_PROVIDERS)
     .default("browser")
     .notNull(),
   elevenlabsVoiceId: varchar("elevenlabsVoiceId", { length: 200 }),
   elevenlabsVoiceName: varchar("elevenlabsVoiceName", { length: 200 }),
   fishAudioModelId: varchar("fishAudioModelId", { length: 200 }),
   fishAudioModelName: varchar("fishAudioModelName", { length: 200 }),
+  omnivoiceVoiceId: varchar("omnivoiceVoiceId", { length: 200 }),
   // 全局提示词配置
   globalPrompt: text("globalPrompt"),
   replyLanguage: varchar("replyLanguage", { length: 50 }).default("中文"),

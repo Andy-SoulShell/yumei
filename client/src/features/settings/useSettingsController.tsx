@@ -46,6 +46,7 @@ export function useSettingsController() {
               apiConfig.preferences?.elevenlabsVoiceName || "",
             fishAudioModelId: apiConfig.preferences?.fishAudioModelId || "",
             fishAudioModelName: apiConfig.preferences?.fishAudioModelName || "",
+            omnivoiceVoiceId: apiConfig.preferences?.omnivoiceVoiceId || "",
             globalPrompt: apiConfig.preferences?.globalPrompt || "",
             replyLanguage: apiConfig.preferences?.replyLanguage || "",
             replyLengthLimit: apiConfig.preferences?.replyLengthLimit || "",
@@ -62,6 +63,7 @@ export function useSettingsController() {
       elevenlabsVoiceName: "",
       fishAudioModelId: "",
       fishAudioModelName: "",
+      omnivoiceVoiceId: "",
       globalPrompt: "",
       replyLanguage: "",
       replyLengthLimit: "",
@@ -92,6 +94,8 @@ export function useSettingsController() {
   const catalogs = useProviderCatalogs(apiConfig, selectedModel);
   // 语音合成偏好。
   const [ttsProvider, setTtsProvider] = settingsDraft.field("ttsProvider");
+  const [omnivoiceVoiceId, setOmnivoiceVoiceId] =
+    settingsDraft.field("omnivoiceVoiceId");
 
   // Whisper 语音转写配置。
   const whisperApiKey = drafts["openai"];
@@ -137,6 +141,7 @@ export function useSettingsController() {
     "elevenlabsVoiceName",
     "fishAudioModelId",
     "fishAudioModelName",
+    "omnivoiceVoiceId",
   ]);
 
   // fal.ai 配置变更追踪
@@ -200,6 +205,7 @@ export function useSettingsController() {
           Object.keys(preferences) as (keyof typeof submitted)[],
           submitted
         );
+        await utils2.apiConfig.get.invalidate();
       }
       const result = await saveDirtyKeys(names);
       if (result.failed.length) return false;
@@ -227,6 +233,7 @@ export function useSettingsController() {
       {
         llmModel: selectedModel || undefined,
         ttsProvider,
+        omnivoiceVoiceId: omnivoiceVoiceId || null,
         elevenlabsVoiceId: elevenlabsVoiceId || undefined,
         elevenlabsVoiceName: elevenlabsVoiceName || undefined,
         fishAudioModelId: fishAudioModelId || undefined,
@@ -325,6 +332,7 @@ export function useSettingsController() {
     saveSection(
       {
         ttsProvider,
+        omnivoiceVoiceId: omnivoiceVoiceId || null,
         elevenlabsVoiceId: elevenlabsVoiceId || undefined,
         elevenlabsVoiceName: elevenlabsVoiceName || undefined,
         fishAudioModelId: fishAudioModelId || undefined,
@@ -379,6 +387,8 @@ export function useSettingsController() {
     handleTtsToggle,
     ttsProvider,
     setTtsProvider,
+    omnivoiceVoiceId,
+    setOmnivoiceVoiceId,
     handleTestBrowserVoice,
     elevenlabsApiKey,
     apiConfig,

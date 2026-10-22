@@ -535,6 +535,7 @@ const optionLabels: Record<string, string> = {
   browser: "浏览器朗读",
   elevenlabs: "ElevenLabs",
   fishaudio: "Fish Audio",
+  omnivoice: "OmniVoice 本地语音",
   disabled: "关闭",
   enabled: "开启",
   month: "每月",

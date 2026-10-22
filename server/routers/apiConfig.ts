@@ -1,4 +1,5 @@
 import { getPublishedProductConfig } from "../repositories/productConfig";
+import { TTS_PROVIDERS } from "../../shared/ttsProviders";
 import { TRPCError } from "@trpc/server";
 import axios from "axios";
 import { z } from "zod";
@@ -67,7 +68,8 @@ export const apiConfigRouter = router({
     .input(
       z.object({
         llmModel: z.string().optional(),
-        ttsProvider: z.enum(["browser", "elevenlabs", "fishaudio"]).optional(),
+        ttsProvider: z.enum(TTS_PROVIDERS).optional(),
+        omnivoiceVoiceId: z.string().min(1).max(200).nullable().optional(),
         elevenlabsVoiceId: z.string().optional(),
         elevenlabsVoiceName: z.string().optional(),
         fishAudioModelId: z.string().optional(),

@@ -335,6 +335,16 @@ export default {
       "确定要删除选中的 {{count}} 位女友吗？她们将被移入回收站，{{days}} 天内可以恢复。",
   },
   settings: {
+    omnivoiceDescription: "本地语音合成，支持音色设计和声音克隆。",
+    omnivoiceChecking: "正在检查本地服务…",
+    omnivoiceAvailable: "本地服务已连接",
+    omnivoiceNotConfigured: "当前站点尚未启用 OmniVoice 本地服务。",
+    omnivoiceOffline: "无法连接本地服务，请启动服务后重试。",
+    omnivoiceRefresh: "检查连接",
+    omnivoiceVoice: "OmniVoice 音色",
+    omnivoicePreview: "试听 OmniVoice 语音",
+    omnivoicePreviewHint:
+      "请先保存语音设置再试听。首次使用需要加载模型，耗时会较长。",
     profileTitle: "个人资料",
     profileDescription: "用户名和头像会显示在账号与聊天中，保存后生效。",
     profileUsername: "用户名",

@@ -974,7 +974,9 @@ export function useChatController() {
       ? "ElevenLabs"
       : ttsProvider === "fishaudio"
         ? "Fish"
-        : "";
+        : ttsProvider === "omnivoice"
+          ? "OmniVoice"
+          : "";
 
   const currentMoodInfo = moodData
     ? (productRules.data?.emotion.moods[moodData.mood] ?? null)

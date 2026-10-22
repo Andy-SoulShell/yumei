@@ -3,6 +3,8 @@
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
+import { TTS_PROVIDERS } from "../shared/ttsProviders";
+import { createTestUser } from "./testFixtures";
 
 // 创建认证上下文
 function createAuthContext(): { ctx: TrpcContext } {
@@ -122,18 +124,18 @@ describe("TTS Providers - Fish Audio Model List API", () => {
 });
 
 describe("TTS Providers - ttsProvider enum validation", () => {
-  it("should accept 'browser' as ttsProvider", () => {
-    // Test the enum values are correctly defined
-    const validProviders = ["browser", "elevenlabs", "fishaudio"];
-    validProviders.forEach(provider => {
-      expect(["browser", "elevenlabs", "fishaudio"]).toContain(provider);
-    });
-  });
-
-  it("should have three provider options", () => {
-    const providers = ["browser", "elevenlabs", "fishaudio"];
-    expect(providers).toHaveLength(3);
-  });
+  it.each(TTS_PROVIDERS)(
+    "persists %s through the real preferences route",
+    async provider => {
+      const { ctx } = createAuthContext();
+      ctx.user!.id = await createTestUser();
+      const caller = appRouter.createCaller(ctx);
+      await caller.apiConfig.updatePreferences({ ttsProvider: provider });
+      expect((await caller.apiConfig.get()).preferences?.ttsProvider).toBe(
+        provider
+      );
+    }
+  );
 });
 
 describe("TTS Providers - Router Structure", () => {

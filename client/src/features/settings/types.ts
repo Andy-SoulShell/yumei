@@ -9,4 +9,4 @@ export type ElevenLabsVoice =
   Outputs["apiConfig"]["listElevenLabsVoices"]["voices"][number];
 export type FishAudioModel =
   Outputs["apiConfig"]["listFishAudioModels"]["models"][number];
-export type TTSProvider = "browser" | "elevenlabs" | "fishaudio";
+export type { TTSProvider } from "@shared/ttsProviders";

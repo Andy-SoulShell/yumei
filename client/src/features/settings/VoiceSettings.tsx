@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Check, Globe, Loader2, Mic, Music, Save, Volume2 } from "lucide-react";
 import { ElevenLabsVoiceSettings } from "./ElevenLabsVoiceSettings";
 import { FishVoiceSettings } from "./FishVoiceSettings";
+import { OmniVoiceSettings } from "./OmniVoiceSettings";
 import type { TTSProvider } from "./types";
 import type { SettingsController } from "./useSettingsController";
 type Props = Pick<
@@ -15,6 +16,8 @@ type Props = Pick<
   | "handleTtsToggle"
   | "ttsProvider"
   | "setTtsProvider"
+  | "omnivoiceVoiceId"
+  | "setOmnivoiceVoiceId"
   | "handleTestBrowserVoice"
   | "elevenlabsApiKey"
   | "apiConfig"
@@ -87,6 +90,12 @@ export function VoiceSettings(state: Props) {
       label: "Fish Audio",
       icon: <Music className="w-5 h-5" />,
       desc: t("settings:optimizedForChineseWithAWideVoiceSelection"),
+    },
+    {
+      value: "omnivoice",
+      label: "OmniVoice",
+      icon: <Volume2 className="w-5 h-5" />,
+      desc: t("settings:omnivoiceDescription"),
     },
   ];
 
@@ -181,6 +190,7 @@ export function VoiceSettings(state: Props) {
 
         {/* ===== Fish Audio 配置 ===== */}
         {ttsProvider === "fishaudio" && <FishVoiceSettings {...state} />}
+        {ttsProvider === "omnivoice" && <OmniVoiceSettings {...state} />}
 
         {/* 语音配置保存生效按钮 */}
         {ttsProvider !== "browser" && (

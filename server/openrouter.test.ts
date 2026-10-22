@@ -49,6 +49,7 @@ describe("OpenRouter API integration", () => {
       elevenlabsVoiceName: null,
       fishAudioModelId: null,
       fishAudioModelName: null,
+      omnivoiceVoiceId: null,
       globalPrompt: null,
       replyLanguage: null,
       replyLengthLimit: null,

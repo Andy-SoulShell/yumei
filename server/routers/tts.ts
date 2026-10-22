@@ -12,8 +12,15 @@ import { putStagedMedia } from "../managedMedia";
 import { getUserApiConfig } from "../repositories/apiConfig";
 import { runMeteredAiTask } from "../aiTaskRuntime";
 import { ensureAgeConfirmed } from "./guards";
+import {
+  generateOmniVoiceSpeech,
+  getOmniVoiceCatalog,
+  getOmniVoiceConfig,
+} from "../_core/omnivoice";
 
 export const ttsRouter = router({
+  /** 服务连通性和公开音色；不返回运营方地址或密钥。 */
+  omnivoiceStatus: protectedProcedure.query(() => getOmniVoiceCatalog()),
   /** 检查请求频率、套餐与文本长度后生成语音，并保存可播放文件。 */
   generate: protectedProcedure
     .input(
@@ -33,12 +40,50 @@ export const ttsRouter = router({
         });
 
       const apiConfig = await getUserApiConfig(ctx.user.id);
-      if (!apiConfig) {
-        throw new Error("未配置 API");
-      }
-
       const provider =
-        apiConfig.ttsProvider || policy.experience.playback.defaultProvider;
+        apiConfig?.ttsProvider || policy.experience.playback.defaultProvider;
+
+      if (provider === "omnivoice") {
+        const config = getOmniVoiceConfig();
+        if (!config) throw new Error("OmniVoice 本地服务尚未配置");
+        if (input.text.length > 5000)
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "OmniVoice 语音文本最多 5000 字符",
+          });
+        const audio = await runMeteredAiTask(
+          {
+            userId: ctx.user.id,
+            kind: "tts",
+            provider: "omnivoice",
+            model: "omnivoice",
+            isByok: false,
+            promptVersion: `product-config/${policy.revision}:voice`,
+          },
+          async signal => ({
+            value: await generateOmniVoiceSpeech(
+              input.text,
+              apiConfig?.omnivoiceVoiceId || "default",
+              signal
+            ),
+          }),
+          {
+            ...policy,
+            runtime: {
+              ...policy.runtime,
+              ai: { ...policy.runtime.ai, taskTimeoutMs: config.timeout },
+            },
+          }
+        );
+        const { url } = await putStagedMedia(
+          ctx.user.id,
+          `tts-${ctx.user.id}-${nanoid()}.wav`,
+          audio,
+          "audio/wav",
+          policy.runtime.voice.ttsRetentionMs
+        );
+        return { audioUrl: url, provider: "omnivoice" as const };
+      }
 
       const ttsKey =
         provider === "elevenlabs" || provider === "fishaudio"
@@ -68,7 +113,7 @@ export const ttsRouter = router({
       if (provider === "elevenlabs") {
         // resolve key via KeyProvider (BYOK → operator).
         const elevenKey = ttsKey?.value;
-        if (!elevenKey || !apiConfig.elevenlabsVoiceId) {
+        if (!elevenKey || !apiConfig?.elevenlabsVoiceId) {
           throw new Error(
             elevenKey
               ? "请先在 Settings 中选择 ElevenLabs 声音"
@@ -127,7 +172,7 @@ export const ttsRouter = router({
         }
       } else if (provider === "fishaudio") {
         const fishKey = ttsKey?.value;
-        if (!fishKey || !apiConfig.fishAudioModelId) {
+        if (!fishKey || !apiConfig?.fishAudioModelId) {
           throw new Error(
             fishKey
               ? "请先在 Settings 中选择 Fish Audio 声音模型"

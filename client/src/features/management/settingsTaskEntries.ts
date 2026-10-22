@@ -43,6 +43,7 @@ const names: Record<string, string> = {
   fal: "fal",
   elevenlabs: "ElevenLabs",
   fishaudio: "Fish Audio",
+  omnivoice: "OmniVoice",
 };
 export const taskEntryName = (key: string) => names[key] ?? fieldLabel(key);
 export function taskCollections(section: SettingsSection, task: string) {

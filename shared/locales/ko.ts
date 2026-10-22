@@ -348,6 +348,18 @@ export default {
       "선택한 동반자 {{count}}명을 삭제할까요? {{days}}일 안에 휴지통에서 복원할 수 있어요.",
   },
   settings: {
+    omnivoiceDescription: "음색 디자인과 음성 복제를 지원하는 로컬 음성 합성.",
+    omnivoiceChecking: "로컬 서비스 확인 중…",
+    omnivoiceAvailable: "로컬 서비스 연결됨",
+    omnivoiceNotConfigured:
+      "이 사이트에서는 아직 OmniVoice가 활성화되지 않았습니다.",
+    omnivoiceOffline:
+      "로컬 서비스에 연결할 수 없습니다. 시작 후 다시 시도하세요.",
+    omnivoiceRefresh: "연결 확인",
+    omnivoiceVoice: "OmniVoice 음색",
+    omnivoicePreview: "OmniVoice 미리 듣기",
+    omnivoicePreviewHint:
+      "미리 듣기 전에 음성 설정을 저장하세요. 처음 사용할 때는 모델 로딩에 시간이 걸립니다.",
     profileTitle: "개인 프로필",
     profileDescription:
       "사용자 이름과 아바타가 계정과 채팅에 표시됩니다. 저장하면 적용됩니다.",

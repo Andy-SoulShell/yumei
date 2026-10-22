@@ -3,6 +3,8 @@ node_modules/
 .pnpm-store/
 .eslintcache
 *.tsbuildinfo
+__pycache__/
+*.pyc
 
 # Build and test outputs
 dist/
@@ -10,6 +12,7 @@ build/
 coverage/
 .playwright-cli/
 output/playwright/
+output/omnivoice/
 *.lcov
 
 # Local configuration and runtime data

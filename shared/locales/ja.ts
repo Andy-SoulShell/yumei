@@ -355,6 +355,18 @@ export default {
       "選択した{{count}}人を削除しますか？ゴミ箱から{{days}}日以内なら復元できます。",
   },
   settings: {
+    omnivoiceDescription: "音声デザインとクローンに対応するローカル音声合成。",
+    omnivoiceChecking: "ローカルサービスを確認中…",
+    omnivoiceAvailable: "ローカルサービスに接続済み",
+    omnivoiceNotConfigured:
+      "このサイトでは OmniVoice がまだ有効になっていません。",
+    omnivoiceOffline:
+      "ローカルサービスに接続できません。起動して再試行してください。",
+    omnivoiceRefresh: "接続を確認",
+    omnivoiceVoice: "OmniVoice の音声",
+    omnivoicePreview: "OmniVoice を試聴",
+    omnivoicePreviewHint:
+      "試聴の前に音声設定を保存してください。初回はモデルの読み込みに時間がかかります。",
     profileTitle: "プロフィール",
     profileDescription:
       "ユーザー名とアバターはアカウントとチャットに表示されます。保存すると反映されます。",

@@ -2,6 +2,7 @@
 import { z } from "zod";
 import { contentTextSchema } from "./discovery";
 import { companionBehaviorSchema } from "./companionBehavior";
+import { TTS_PROVIDERS } from "./ttsProviders";
 const integer = (min: number, max: number) =>
   z.number().int().min(min).max(max);
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
@@ -132,7 +133,7 @@ export const experienceConfigSchema = z
         pitch: z.number().min(0).max(2),
         volume: z.number().min(0).max(1),
         defaultLanguage: z.string().min(1).max(35),
-        defaultProvider: z.enum(["browser", "elevenlabs", "fishaudio"]),
+        defaultProvider: z.enum(TTS_PROVIDERS),
       })
       .strict(),
     transport: z

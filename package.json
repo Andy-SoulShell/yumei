@@ -7,6 +7,8 @@
     "dev": "node scripts/run.mjs dev",
     "build": "node scripts/run.mjs build",
     "start": "node scripts/run.mjs start",
+    "omnivoice:install": "node scripts/omnivoice.mjs install",
+    "omnivoice:start": "node scripts/omnivoice.mjs start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix --max-warnings 0",

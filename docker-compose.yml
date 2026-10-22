@@ -75,6 +75,12 @@ services:
       OPERATOR_OPENAI_KEY: ${OPERATOR_OPENAI_KEY:-}
       OPERATOR_ELEVENLABS_KEY: ${OPERATOR_ELEVENLABS_KEY:-}
       OPERATOR_FISH_AUDIO_KEY: ${OPERATOR_FISH_AUDIO_KEY:-}
+      # Optional Python service on the host or a private network.
+      OMNIVOICE_BASE_URL: ${OMNIVOICE_BASE_URL:-}
+      OMNIVOICE_API_KEY: ${OMNIVOICE_API_KEY:-}
+      OMNIVOICE_TIMEOUT_MS: ${OMNIVOICE_TIMEOUT_MS:-180000}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - uploads:/app/data/uploads
     depends_on:

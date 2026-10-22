@@ -95,6 +95,27 @@ async function mount() {
   };
 }
 
+it("saves a local voice without requesting a cloud API key", async () => {
+  const probe = await mount();
+  await act(async () => {
+    probe.current.setTtsProvider("omnivoice");
+    probe.current.setOmnivoiceVoiceId("custom");
+  });
+  expect(probe.current.hasUnsavedVoiceChanges).toBe(true);
+  await act(async () => {
+    await probe.current.handleSaveVoiceConfig();
+  });
+  expect(state.savePreferences).toHaveBeenCalledWith(
+    expect.objectContaining({
+      ttsProvider: "omnivoice",
+      omnivoiceVoiceId: "custom",
+    })
+  );
+  expect(state.saveKey).not.toHaveBeenCalled();
+  expect(probe.current.hasUnsavedVoiceChanges).toBe(false);
+  await probe.unmount();
+});
+
 it("keeps settings and favorites usable when device storage is denied or malformed", async () => {
   localStorage.setItem("favorite-models", '{"broken":true}');
   const probe = await mount();

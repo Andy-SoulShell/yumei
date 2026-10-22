@@ -352,6 +352,19 @@ export default {
       "Delete the {{count}} selected companions? You can restore them from trash within {{days}} days.",
   },
   settings: {
+    omnivoiceDescription:
+      "Local speech synthesis with voice design and cloning.",
+    omnivoiceChecking: "Checking local service…",
+    omnivoiceAvailable: "Local service connected",
+    omnivoiceNotConfigured:
+      "The operator has not enabled OmniVoice on this deployment.",
+    omnivoiceOffline:
+      "The local service is unreachable. Start it and try again.",
+    omnivoiceRefresh: "Check connection",
+    omnivoiceVoice: "OmniVoice voice",
+    omnivoicePreview: "Test OmniVoice speech",
+    omnivoicePreviewHint:
+      "Save voice settings before testing. First use loads the model and may take longer.",
     profileTitle: "Personal profile",
     profileDescription:
       "Your username and avatar appear in your account and chats. Save to apply changes.",

@@ -1,0 +1,2 @@
+ALTER TABLE `apiConfigs` MODIFY COLUMN `ttsProvider` enum('browser','elevenlabs','fishaudio','omnivoice') NOT NULL DEFAULT 'browser';--> statement-breakpoint
+ALTER TABLE `apiConfigs` ADD `omnivoiceVoiceId` varchar(200);

@@ -102,7 +102,7 @@ export function useTTS() {
     [playbackSpeed, t, apiConfig?.preferences?.replyLanguage, finish, rules]
   );
 
-  // API 语音（ElevenLabs / Fish Audio）
+  // API 语音（ElevenLabs / Fish Audio / 本地 OmniVoice）
   const speakApi = useCallback(
     (text: string, request: number) => {
       generateSpeech(

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "default",
+    "name": "Female / 女声",
+    "instruct": "female, young adult",
+    "seed": 42
+  },
+  {
+    "id": "male",
+    "name": "Male / 男声",
+    "instruct": "male, young adult, low pitch",
+    "seed": 43
+  },
+  {
+    "id": "whisper",
+    "name": "Whisper / 耳语",
+    "instruct": "female, young adult, whisper",
+    "seed": 44
+  }
+]

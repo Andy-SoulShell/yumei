@@ -435,6 +435,8 @@ export function semanticFieldLabel(path: string) {
     "prompts.image.reference": "有参考图的自拍模板",
     "prompts.image.text": "无参考图的自拍模板",
     "prompts.image.couple": "合照生成模板",
+    "prompts.video.reference": "图生视频模板",
+    "prompts.video.text": "文生视频模板",
     "prompts.chat.cause.support": "用户需要支持时的指令",
     "emotion.deltas.support": "用户需要支持时的情绪变化",
     "experience.operations.maxDays": "最多可统计天数",

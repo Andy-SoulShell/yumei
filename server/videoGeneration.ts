@@ -32,6 +32,9 @@ import { storagePut, storageRead } from "./storage";
 import { queueMediaDeletion } from "./mediaCleanup";
 import { ensureAgeConfirmed } from "./routers/guards";
 import { inspectMp4 } from "./_core/mp4Metadata";
+import { getPose } from "../shared/selfiePoses";
+import { getLevelByPoints } from "../shared/intimacy";
+import { buildVideoPrompt } from "./promptTemplates";
 
 type Request = typeof generationRequests.$inferSelect;
 let scanning = false;
@@ -58,6 +61,7 @@ function snapshot(row: Request) {
     phase: task.phase,
     mode: task.input.mode,
     prompt: task.input.prompt,
+    preset: task.preset ?? null,
     durationSeconds: task.output?.durationSeconds ?? task.frames / task.fps,
     width: task.output?.width ?? null,
     height: task.output?.height ?? null,
@@ -96,6 +100,7 @@ export async function acceptVideo(user: User, input: VideoInput) {
         !previous ||
         previous.conversationId !== input.conversationId ||
         previous.prompt !== input.prompt ||
+        previous.poseId !== input.poseId ||
         previous.mode !== input.mode ||
         previous.durationSeconds !== input.durationSeconds ||
         previous.referenceMessageId !== input.referenceMessageId
@@ -109,11 +114,40 @@ export async function acceptVideo(user: User, input: VideoInput) {
     if (!model.enabled || !model.comfyuiBaseUrl)
       rejectVideo("disabledError", "PRECONDITION_FAILED");
     if (
+      (!input.prompt.trim() && !input.poseId) ||
       input.prompt.length > runtime.maxPromptChars ||
       input.durationSeconds < runtime.minDurationSeconds ||
       input.durationSeconds > runtime.maxDurationSeconds
     )
       rejectVideo("inputError", "BAD_REQUEST");
+    const pose = input.poseId
+      ? getPose(input.poseId, policy.selfies.poses)
+      : undefined;
+    if (input.poseId && !pose) rejectVideo("inputError", "BAD_REQUEST");
+    const currentLevel = getLevelByPoints(
+      role.intimacyPoints,
+      policy.intimacy.levels
+    ).level;
+    if (pose && pose.minLevel > currentLevel)
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "LEVEL_LOCKED",
+        cause: new BusinessRuleError({
+          reason: "LEVEL_LOCKED",
+          requiredLevel: pose.minLevel,
+          currentLevel,
+        }),
+      });
+    const [companion] = await tx
+      .select()
+      .from(girlfriends)
+      .where(eq(girlfriends.id, role.girlfriendId));
+    const prompt = buildVideoPrompt(policy, {
+      userContext: input.prompt,
+      generationMode: input.mode,
+      appearance: companion.appearance,
+      pose,
+    });
     const pending = await tx
       .select({ id: generationRequests.id })
       .from(generationRequests)
@@ -142,10 +176,6 @@ export async function acceptVideo(user: User, input: VideoInput) {
           rejectVideo("referenceError", "BAD_REQUEST");
         referenceKey = image.imageKey;
       } else {
-        const [companion] = await tx
-          .select()
-          .from(girlfriends)
-          .where(eq(girlfriends.id, role.girlfriendId));
         referenceKey = companion.referenceImageKey;
         if (!referenceKey) rejectVideo("referenceError", "BAD_REQUEST");
       }
@@ -180,6 +210,8 @@ export async function acceptVideo(user: User, input: VideoInput) {
     });
     const task: VideoTask = {
       input,
+      prompt,
+      preset: pose ? { label: pose.label, emoji: pose.emoji } : undefined,
       workflow,
       runtime,
       baseUrl: model.comfyuiBaseUrl,

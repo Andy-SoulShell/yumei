@@ -152,6 +152,12 @@ export const promptsConfigSchema = z
         defaultCoupleScene: instruction,
       })
       .strict(),
+    video: z
+      .object({
+        reference: template(["scene"]),
+        text: template(["scene", "appearance"]),
+      })
+      .strict(),
     extraction: template(["maxLength"]),
     summary: instruction,
     memoryContext: template(["records"]),

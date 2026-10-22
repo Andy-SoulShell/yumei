@@ -5,9 +5,10 @@ import { ComfyUIVideoClient } from "./comfyuiVideo";
 import { productFixture } from "../testProductConfig";
 import type { VideoTask } from "../../shared/video";
 
-function client() {
+function client(prompt?: string) {
   const task: VideoTask = {
     baseUrl: "http://comfy.test:8188",
+    prompt,
     input: {
       clientRequestId: crypto.randomUUID(),
       conversationId: 1,
@@ -52,6 +53,17 @@ it("submits the request correlation marker and retains audio while replacing run
   };
   expect(body.prompt["105:104"].inputs.length).toBe(124);
   expect(body.prompt["105:91"].inputs.audio).toEqual(["105:23", 0]);
+  expect(body.prompt["105:104"].inputs.prompt).toBe("用户描述");
+});
+
+it("submits the captured rendered prompt instead of the raw user description", async () => {
+  const post = vi
+    .spyOn(axios, "post")
+    .mockResolvedValue({ data: { prompt_id: "remote-id" } });
+  await client("已渲染并保存的动作预设").submit("local-preset-id");
+  expect(post.mock.calls[0][1]).toMatchObject({
+    prompt: { "105:104": { inputs: { prompt: "已渲染并保存的动作预设" } } },
+  });
 });
 
 it("recovers an accepted task from either queue or completed history", async () => {

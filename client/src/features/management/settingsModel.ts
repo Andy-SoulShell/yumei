@@ -393,6 +393,12 @@ export const settingsPanels: Record<SettingsSection, SettingsPanel[]> = {
     ),
     panel("image", "图片提示", "设置自拍、合照和默认场景的提示词。", ["image"]),
     panel(
+      "video",
+      "视频提示",
+      "设置两种视频模式的提示词；本次文字优先，空描述使用自拍预设及其解锁等级。",
+      ["video"]
+    ),
+    panel(
       "memory",
       "记忆与语音提示",
       "设置提取、摘要、记忆上下文和语音转写指令。",

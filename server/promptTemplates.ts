@@ -40,3 +40,21 @@ export function buildCoupleImagePrompt(
     scene: userContext?.trim() || config.prompts.image.defaultCoupleScene,
   });
 }
+
+/** 视频优先使用本次文字；预设仅兜底，文生模式补充角色外貌。 */
+export function buildVideoPrompt(
+  config: ProductConfig,
+  options: {
+    userContext: string;
+    generationMode: "reference" | "text";
+    appearance: string;
+    pose?: SelfiePose;
+  }
+): string {
+  const scene = options.userContext.trim() || options.pose?.promptFragment;
+  if (!scene) throw new Error("视频需要本次描述或预设");
+  return renderPrompt(config.prompts.video[options.generationMode], {
+    scene,
+    appearance: options.appearance,
+  });
+}

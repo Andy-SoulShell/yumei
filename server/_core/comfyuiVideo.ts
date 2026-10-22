@@ -96,6 +96,7 @@ export class ComfyUIVideoClient {
   async submit(id: string, reference?: string) {
     const prompt = buildVideoWorkflow(this.task.workflow, {
       ...this.task.input,
+      prompt: this.task.prompt ?? this.task.input.prompt,
       reference,
       prefix: `yumei-video/${id}`,
     });

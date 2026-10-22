@@ -15,6 +15,13 @@
       "when": 1792645918449,
       "tag": "0001_video_generation",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1792650758240,
+      "tag": "0002_video_presets",
+      "breakpoints": true
     }
   ]
 }

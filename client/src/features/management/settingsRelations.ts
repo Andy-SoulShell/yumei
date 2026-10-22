@@ -79,10 +79,10 @@ export const settingsJourneys: Record<SettingsSection, SettingsJourney> = {
     steps: [
       "启用姿势，用户才看得见",
       "达到等级，用户才可选择",
-      "画面提示交给图片服务生成",
+      "画面提示交给图片或视频服务生成",
     ],
     scope:
-      "发布后更新姿势选项和解锁门槛；已生成的图片保留。名称用于展示，别名用于识别，画面提示影响新图片。",
+      "发布后同步更新自拍和视频预设的选项与解锁门槛。名称用于展示，别名用于识别，画面提示影响新图片和视频。",
     related: [
       related(
         "intimacy",

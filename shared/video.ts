@@ -1,5 +1,6 @@
 /** 视频工作流绑定、运行边界和持久任务快照；所有业务数值由发布配置提供。 */
 import { z } from "zod";
+import type { ContentText } from "./discovery";
 
 const binding = z
   .object({ node: z.string().min(1), input: z.string().min(1) })
@@ -124,12 +125,16 @@ export const videoInputSchema = z
     clientRequestId: z.string().uuid(),
     conversationId: z.number().int().positive(),
     mode: z.enum(["text", "reference"]),
-    prompt: z.string().trim().min(1).max(8000),
+    prompt: z.string().trim().max(8000),
+    /** 留空描述时使用已发布姿势；选中姿势始终校验亲密度。 */
+    poseId: z.string().trim().min(1).max(100).optional(),
     durationSeconds: z.number().positive().max(60),
     referenceMessageId: z.number().int().positive().nullable(),
   })
   .strict()
   .superRefine((value, ctx) => {
+    if (!value.prompt && !value.poseId)
+      ctx.addIssue({ code: "custom", message: "请输入视频描述或选择预设" });
     if (value.mode === "text" && value.referenceMessageId !== null)
       ctx.addIssue({ code: "custom", message: "文生视频不接受首帧图片" });
   });
@@ -137,6 +142,10 @@ export type VideoInput = z.infer<typeof videoInputSchema>;
 /** 路由、工作流和参数在接收时固定；不保存服务端凭据。 */
 export type VideoTask = {
   input: VideoInput;
+  /** 接收时渲染的实际提示词；早先仅接受文字的任务直接使用 input.prompt。 */
+  prompt?: string;
+  /** 预设展示快照，保证配置变更后仍能识别空描述任务。 */
+  preset?: { label: ContentText; emoji: string };
   baseUrl: string;
   workflow: VideoWorkflow;
   runtime: VideoRuntime;

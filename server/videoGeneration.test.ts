@@ -2,7 +2,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AxiosError } from "axios";
 import { eq } from "drizzle-orm";
-import { generationRequests, messages, users } from "../drizzle/schema";
+import {
+  generationRequests,
+  girlfriends,
+  messages,
+  users,
+} from "../drizzle/schema";
 import { getDb } from "./database";
 import { createTestGirlfriend } from "./testFixtures";
 import {
@@ -141,6 +146,83 @@ describe("video workflow adaptation", () => {
 });
 
 describe("durable video jobs", () => {
+  it("captures a blank-description preset and rendered prompt so later configuration edits cannot change recovery", async () => {
+    const { user, input, userId } = await seed();
+    const presetInput = { ...input, prompt: "", poseId: "casual" };
+    expect(videoInputSchema.safeParse(presetInput).success).toBe(true);
+    const task = await acceptVideo(user, presetInput);
+    expect(task.input.prompt).toBe("");
+    expect(task.preset?.label).toEqual(productFixture.selfies.poses[0].label);
+    const db = (await getDb())!;
+    const [row] = await db
+      .select()
+      .from(generationRequests)
+      .where(eq(generationRequests.id, task.id));
+    expect(row.videoTask!.prompt).toContain(
+      productFixture.selfies.poses[0].promptFragment
+    );
+    expect(row.videoTask!.prompt).toContain("自然");
+    stubProductConfig("prompts.video.text", "新模板 {{appearance}} {{scene}}");
+    stubProductConfig("selfies.poses.0.promptFragment", "新的预设");
+    expect((await acceptVideo(user, presetInput)).id).toBe(task.id);
+    await advance(userId, task.id);
+    const [resumed] = await db
+      .select()
+      .from(generationRequests)
+      .where(eq(generationRequests.id, task.id));
+    expect(resumed.videoTask!.prompt).toBe(row.videoTask!.prompt);
+    await expect(
+      acceptVideo(user, { ...presetInput, poseId: "sweet_smile" })
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+  });
+  it("enforces published preset levels from actual points even with explicit text and spends no quota on rejection", async () => {
+    const { user, input, userId, role } = await seed();
+    const db = (await getDb())!;
+    await db
+      .update(girlfriends)
+      .set({ intimacyLevel: 10, intimacyPoints: 0 })
+      .where(eq(girlfriends.id, role.id));
+    await expect(
+      acceptVideo(user, { ...input, poseId: "elegant" })
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      cause: { details: { reason: "LEVEL_LOCKED" } },
+    });
+    for (const poseId of ["missing", "casual"]) {
+      if (poseId === "casual")
+        stubProductConfig("selfies.poses.0.enabled", false);
+      await expect(
+        acceptVideo(user, { ...input, prompt: "", poseId })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    }
+    await expect(
+      acceptVideo(user, { ...input, prompt: "" })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(videoInputSchema.safeParse({ ...input, prompt: " " }).success).toBe(
+      false
+    );
+    expect(await getDailyMeter(userId, "video")).toBe(0);
+    expect(
+      await db
+        .select()
+        .from(messages)
+        .where(eq(messages.conversationId, input.conversationId))
+    ).toHaveLength(0);
+    await db
+      .update(girlfriends)
+      .set({ intimacyPoints: productFixture.intimacy.levels[3].requiredPoints })
+      .where(eq(girlfriends.id, role.id));
+    const task = await acceptVideo(user, { ...input, poseId: "elegant" });
+    const [row] = await db
+      .select()
+      .from(generationRequests)
+      .where(eq(generationRequests.id, task.id));
+    expect(row.videoTask!.prompt).toContain(input.prompt);
+    expect(row.videoTask!.prompt).not.toContain(
+      productFixture.selfies.poses.find(pose => pose.id === "elegant")!
+        .promptFragment
+    );
+  });
   it("deduplicates concurrent acceptance, binds the payload and reserves quota only once", async () => {
     const { user, input, userId } = await seed();
     const [a, b] = await Promise.all([

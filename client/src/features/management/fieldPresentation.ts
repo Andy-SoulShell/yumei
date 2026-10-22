@@ -29,6 +29,7 @@ export function valueUnits(path: string, currency?: string): ValueUnit[] {
   if (key === "amount") return unit(currency || "货币单位");
   if (key === "hue") return unit("°");
   if (key === "sampleRate") return unit("Hz");
+  if (/^(frameMultiple|frameRemainder|minFrames)$/.test(key)) return unit("帧");
   if (key === "age") return unit("岁");
   if (key === "sortOrder") return unit("序号");
   if (/^billing\.rateLimits\./.test(path)) return unit("次 / 分钟");

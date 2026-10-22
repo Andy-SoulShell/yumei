@@ -43,6 +43,11 @@ export type FormSchema = {
   const?: unknown;
 };
 const labels: Record<string, string> = {
+  video: "视频",
+  maxVideoBytes: "视频文件上限（字节）",
+  maxPromptChars: "描述字数上限",
+  minDurationSeconds: "最短视频时长（秒）",
+  defaultDurationSeconds: "默认视频时长（秒）",
   "notifications:title.thinkingOfYou": "普通联系标题（场景共用）",
   "notifications:privateTitle": "隐藏内容通知标题",
   "notifications:privatePreview": "隐藏内容通知正文",

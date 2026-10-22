@@ -1,6 +1,52 @@
 /** 与英文基准包保持相同 key 和插值参数。 */
 import type { MessageCatalog } from "./types";
 export default {
+  video: {
+    disabledError: "동영상 생성이 활성화되지 않았습니다.",
+    inputError: "설명이나 길이가 현재 제한을 초과합니다.",
+    busyError: "현재 동영상이 완성될 때까지 기다려 주세요.",
+    referenceError: "선택한 첫 프레임 이미지를 사용할 수 없습니다.",
+    quotaError: "오늘의 동영상 사용 한도에 도달했습니다.",
+    unavailableError: "이 동영상 작업을 사용할 수 없습니다.",
+    submittedError: "이미 제출된 동영상은 백그라운드에서 계속 생성됩니다.",
+    requestConflictError: "이 요청 ID는 다른 내용에 사용되었습니다.",
+    create: "동영상 생성",
+    description:
+      "텍스트나 첫 이미지로 워크플로의 소리를 포함한 동영상을 생성합니다.",
+    mode: "생성 방식",
+    reference: "이미지로 동영상",
+    text: "텍스트로 동영상",
+    firstFrame: "첫 프레임",
+    characterImage: "캐릭터 참조 이미지",
+    chatImage: "채팅 이미지 {{count}}",
+    prompt: "동영상 설명",
+    placeholder: "동작, 카메라 움직임, 소리를 설명하세요…",
+    duration: "원하는 길이(초)",
+    durationHint:
+      "{{min}}~{{max}}초. 완성 길이는 모델의 프레임 조건에 맞춰 조정됩니다.",
+    submit: "생성 시작",
+    accepted: "동영상이 대기열에 추가되었습니다. 채팅을 계속할 수 있습니다.",
+    loading: "동영상 불러오는 중…",
+    loadFailed: "동영상 작업을 불러올 수 없습니다.",
+    reload: "다시 불러오기",
+    player: "생성된 동영상",
+    download: "동영상 다운로드",
+    queued: "대기 중",
+    submitting: "제출 중",
+    running: "동영상 생성 중",
+    saving: "동영상 저장 중",
+    succeeded: "동영상 완성",
+    failed: "동영상 생성 실패",
+    cancelled: "동영상 취소됨",
+    backgroundHint:
+      "페이지를 닫아도 생성은 계속됩니다. 돌아와서 결과를 확인하세요.",
+    cancel: "생성 취소",
+    cancelHint:
+      "제출 전 작업만 취소할 수 있습니다. 제출 후에는 백그라운드에서 계속 생성됩니다.",
+    refundHint: "실패하거나 취소한 요청은 동영상 사용량에 포함되지 않습니다.",
+    retry: "다시 생성",
+    actualDuration: "완성 길이: 약 {{seconds}}초",
+  },
   landing: {
     continueWithCharacter: "{{name}}와 대화 이어가기",
     bannerLabel: "YUMEI 만나기",

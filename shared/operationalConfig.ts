@@ -3,6 +3,7 @@ import { z } from "zod";
 import { CHAT_INPUT_CAPACITY } from "./const";
 import { contentTextSchema } from "./discovery";
 import { proactivePreferencesSchema } from "./proactiveContact";
+import { videoWorkflowSchema, videoRuntimeSchema } from "./video";
 const integer = (min: number, max: number) =>
   z.number().int().min(min).max(max);
 /** 模板以通知身份关联；只允许通知中已有的具名变量。 */
@@ -303,11 +304,35 @@ export const modelsConfigSchema = z
         workflows: z.object({ text: workflow, reference: workflow }).strict(),
       })
       .strict(),
+    video: z
+      .object({
+        enabled: z.boolean(),
+        comfyuiBaseUrl: endpoint.nullable(),
+        workflows: z
+          .object({ text: videoWorkflowSchema, reference: videoWorkflowSchema })
+          .strict(),
+      })
+      .strict(),
     transcription: z.object({ model }).strict(),
     tts: z.object({ elevenlabs: model, fishaudio: model }).strict(),
   })
   .strict()
   .superRefine((value, ctx) => {
+    if (value.video.enabled && !value.video.comfyuiBaseUrl)
+      ctx.addIssue({
+        code: "custom",
+        path: ["video", "comfyuiBaseUrl"],
+        message: "启用视频需要配置 ComfyUI 服务地址",
+      });
+    if (
+      !value.video.workflows.reference.reference ||
+      value.video.workflows.text.reference
+    )
+      ctx.addIssue({
+        code: "custom",
+        path: ["video", "workflows"],
+        message: "图生视频必须绑定首帧输入，文生视频不能绑定首帧输入",
+      });
     if (value.image.provider === "comfyui" && !value.image.comfyuiBaseUrl)
       ctx.addIssue({ code: "custom", message: "ComfyUI 需要配置服务地址" });
     if (
@@ -322,6 +347,7 @@ export const modelsConfigSchema = z
 /** 每次执行捕获运行快照；调度器在下一轮读取当前参数。 */
 export const runtimeConfigSchema = z
   .object({
+    video: videoRuntimeSchema,
     ai: z
       .object({
         dailyTaskLimit: integer(1, 10000),

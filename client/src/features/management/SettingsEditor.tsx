@@ -17,6 +17,7 @@ import { SettingsPreview } from "./SettingsPreview";
 import { SettingsFields } from "./SettingsFields";
 import { SettingsCollection } from "./SettingsCollection";
 import { WorkflowEditor } from "./WorkflowEditor";
+import { VideoWorkflowEditor } from "./VideoWorkflowEditor";
 import { SettingsScenario } from "./SettingsScenario";
 import { BillingSetupEditor, PlanLibrary } from "./BillingEditor";
 import { NotificationComposer } from "./NotificationComposer";
@@ -261,6 +262,44 @@ export function SettingsEditor({
                     onChange={next =>
                       update(setSetting(current, item.fields[0], next))
                     }
+                  />
+                ) : item.videoWorkflow ? (
+                  <VideoWorkflowEditor
+                    value={config.models.video.workflows[item.videoWorkflow]}
+                    raw={
+                      workflowBuffers[`video-${item.videoWorkflow}`] ??
+                      JSON.stringify(
+                        config.models.video.workflows[item.videoWorkflow].nodes,
+                        null,
+                        2
+                      )
+                    }
+                    onRawChange={raw =>
+                      onViewChange({
+                        ...view,
+                        buffers: {
+                          ...workflowBuffers,
+                          [`video-${item.videoWorkflow}`]: raw,
+                        },
+                      })
+                    }
+                    onChange={workflow =>
+                      onChange({
+                        ...config,
+                        models: {
+                          ...config.models,
+                          video: {
+                            ...config.models.video,
+                            workflows: {
+                              ...config.models.video.workflows,
+                              [item.videoWorkflow!]: workflow,
+                            },
+                          },
+                        },
+                      })
+                    }
+                    disabled={disabled}
+                    reference={item.videoWorkflow === "reference"}
                   />
                 ) : item.workflow ? (
                   <>

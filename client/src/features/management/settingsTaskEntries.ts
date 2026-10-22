@@ -67,6 +67,7 @@ export function taskEntries(
     !panel ||
     panel.collection ||
     panel.workflow ||
+    panel.videoWorkflow ||
     (section === "billing" && task === "subscription") ||
     (section === "proactive" && ["schedule", "copy"].includes(task))
   )

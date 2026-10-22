@@ -23,6 +23,7 @@ export type SettingsPanel = {
   fields: string[];
   collection?: "plans" | "poses" | "levels" | "quickTemplates";
   workflow?: "text" | "reference";
+  videoWorkflow?: "text" | "reference";
 };
 const panel = (
   id: string,
@@ -233,6 +234,30 @@ export const settingsPanels: Record<SettingsSection, SettingsPanel[]> = {
   ],
   models: [
     panel(
+      "video",
+      "视频服务",
+      "启用文生视频与图生视频，设置独立 ComfyUI 地址；凭据使用服务端 COMFYUI_API_KEY。",
+      ["video.enabled", "video.comfyuiBaseUrl"]
+    ),
+    {
+      ...panel(
+        "video-text-workflow",
+        "文生视频工作流",
+        "导入并绑定视频提示词、种子、帧数与输出。",
+        ["video.workflows.text"]
+      ),
+      videoWorkflow: "text",
+    },
+    {
+      ...panel(
+        "video-reference-workflow",
+        "图生视频工作流",
+        "绑定首帧输入，保留模型和音频生成链路。",
+        ["video.workflows.reference"]
+      ),
+      videoWorkflow: "reference",
+    },
+    panel(
       "chat",
       "聊天服务",
       "选择模型服务和默认模型；凭据继续由服务端密钥管理。",
@@ -273,6 +298,12 @@ export const settingsPanels: Record<SettingsSection, SettingsPanel[]> = {
     ]),
   ],
   runtime: [
+    panel(
+      "video",
+      "视频执行与额度",
+      "管理视频时长、容量、每日额度、并发和任务恢复；不限量使用 null，额度在计费启用时执行。",
+      ["video"]
+    ),
     panel(
       "chat",
       "聊天执行",

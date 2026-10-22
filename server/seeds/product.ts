@@ -41,6 +41,13 @@ export function initialProductConfig() {
     config.models.image.provider) as typeof config.models.image.provider;
   config.models.image.comfyuiBaseUrl =
     process.env.COMFYUI_BASE_URL?.replace(/\/+$/, "") || null;
+  config.models.video.comfyuiBaseUrl =
+    process.env.COMFYUI_VIDEO_BASE_URL?.replace(/\/+$/, "") ||
+    config.models.image.comfyuiBaseUrl;
+  config.models.video.enabled = initialEnabled(
+    "VIDEO_GENERATION_ENABLED",
+    config.models.video.enabled
+  );
   config.models.image.falCouple =
     process.env.FAL_COUPLE_MODEL?.trim() || config.models.image.falCouple;
   const initialNumber = (name: string, fallback: number) =>

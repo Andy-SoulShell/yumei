@@ -1,5 +1,53 @@
 /** 英文基准语言包；key 与插值参数构成类型契约。 */
 export default {
+  video: {
+    disabledError: "Video generation is not enabled.",
+    inputError: "The description or duration exceeds the current limits.",
+    busyError: "Please wait for your current video to finish.",
+    referenceError: "The selected first-frame image is unavailable.",
+    quotaError: "Your daily video allowance has been reached.",
+    unavailableError: "This video task is unavailable.",
+    submittedError:
+      "This video has already been submitted and will continue in the background.",
+    requestConflictError: "This request ID belongs to different content.",
+    create: "Create video",
+    description:
+      "Generate a video from text or an image, including the workflow’s audio.",
+    mode: "Generation mode",
+    reference: "Image to video",
+    text: "Text to video",
+    firstFrame: "First frame",
+    characterImage: "Character reference image",
+    chatImage: "Chat image {{count}}",
+    prompt: "Video description",
+    placeholder: "Describe the action, camera movement and sound…",
+    duration: "Requested duration (seconds)",
+    durationHint:
+      "{{min}}–{{max}} seconds. The final duration follows the model’s frame alignment.",
+    submit: "Generate video",
+    accepted: "Video queued. You can keep chatting.",
+    loading: "Loading video…",
+    loadFailed: "Could not load this video task.",
+    reload: "Reload",
+    player: "Generated video",
+    download: "Download video",
+    queued: "Queued",
+    submitting: "Submitting",
+    running: "Generating video",
+    saving: "Saving video",
+    succeeded: "Video ready",
+    failed: "Video generation failed",
+    cancelled: "Video cancelled",
+    backgroundHint:
+      "Generation continues when you close this page. Return to view the result.",
+    cancel: "Cancel generation",
+    cancelHint:
+      "Only tasks not yet submitted can be cancelled. Submitted videos continue in the background.",
+    refundHint:
+      "Failed and cancelled requests do not count toward your video allowance.",
+    retry: "Generate again",
+    actualDuration: "Output duration: about {{seconds}} seconds",
+  },
   landing: {
     continueWithCharacter: "Continue chatting with {{name}}",
     bannerLabel: "Meet YUMEI",

@@ -10,6 +10,7 @@ export function apiErrorMessage(
   t: Translator
 ) {
   const business = error.data?.business;
+  if (business?.reason === "VIDEO_REJECTED") return t(`video:${business.code}`);
   if (business?.reason === "LEVEL_LOCKED")
     return t("selfie:poseLocked", {
       required: business.requiredLevel,

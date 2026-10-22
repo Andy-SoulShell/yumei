@@ -3,6 +3,7 @@ export type { Tier, TierLimits, RateLimitedAction } from "./productConfig";
 
 /** 数据库中的用量计量名称；每日与每月周期由计量函数决定。 */
 export const METERS = {
+  video: "video",
   chat: "chat",
   selfie: "selfie",
   /** 当日经验总量的计量名称；实际夜间额外加分目前在后续数据层计算。 */

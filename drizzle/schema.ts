@@ -227,7 +227,7 @@ export const messages = mysqlTable(
     role: mysqlEnum("role", ["user", "assistant"]).notNull(),
     content: text("content").notNull(), // 文本消息内容
     imageUrl: text("imageUrl"), // 如果是图片消息，存储图片 URL
-    imageKey: varchar("imageKey", { length: 500 }), // 存储文件 key
+    imageKey: varchar("imageKey", { length: 500 }), // 图片或视频的存储 key，统一参与媒体引用和删除清理
     /** 生成请求及结果状态，null 表示历史或非生成消息。 */
     generationRequestId: varchar("generationRequestId", { length: 36 }),
     generationStatus: mysqlEnum("generationStatus", [
@@ -733,7 +733,9 @@ export const generationRequests = mysqlTable(
     userId: varchar("userId", { length: 255 }).notNull(),
     conversationId: int("conversationId").notNull(),
     transcriptionId: varchar("transcriptionId", { length: 36 }),
-    kind: mysqlEnum("kind", ["chat", "selfie", "couple"]).notNull(),
+    kind: mysqlEnum("kind", ["chat", "selfie", "couple", "video"]).notNull(),
+    /** 视频输入、固定工作流及远端任务身份，供服务重启后恢复。 */
+    videoTask: json("videoTask").$type<import("../shared/video").VideoTask>(),
     contextEpoch: int("contextEpoch"),
     status: mysqlEnum("status", ["pending", "succeeded", "failed", "cancelled"])
       .default("pending")

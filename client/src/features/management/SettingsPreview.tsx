@@ -348,6 +348,11 @@ export function SettingsPreview({
                 : config.models.image.falSelfie,
             ],
             ["转写", "OpenAI", config.models.transcription.model],
+            [
+              "视频",
+              config.models.video.enabled ? "ComfyUI" : "未启用",
+              config.models.video.comfyuiBaseUrl || "待配置地址",
+            ],
           ].map(([label, provider, model]) => (
             <div
               key={label}
@@ -373,7 +378,9 @@ export function SettingsPreview({
                         ? "chat"
                         : label === "图片"
                           ? "image"
-                          : "voice"
+                          : label === "视频"
+                            ? "video"
+                            : "voice"
                     )
                   }
                 >

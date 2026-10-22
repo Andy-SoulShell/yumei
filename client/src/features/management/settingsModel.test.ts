@@ -59,6 +59,23 @@ it("creates a new inactive plan with a stable independent ID and no copied payme
   expect(next.limits).not.toBe(old.limits);
   expect(old.lemonVariantId).toBe("12345678901234567890");
 });
+it("creates a standalone video action without selfie mode or aliases and offers only real unlock levels", () => {
+  const old = productFixture.videos.presets[0];
+  const added = newCollectionItem("videoPresets", [old], old);
+  expect(added).toMatchObject({
+    enabled: false,
+    promptFragment: old.promptFragment,
+    minLevel: old.minLevel,
+  });
+  expect(added.id).not.toBe(old.id);
+  expect(added.mode).toBeUndefined();
+  expect(added.aliases).toBeUndefined();
+  expect(
+    settingsChoices(productFixture, "videos.presets.0.minLevel")!.map(choice =>
+      Number(choice.value)
+    )
+  ).toEqual(productFixture.intimacy.levels.map(level => level.level));
+});
 it("adds only the next intimacy level with a strictly larger experience threshold", () => {
   const levels = structuredClone(productFixture.intimacy.levels);
   const next = newCollectionItem("levels", levels, levels[0]);

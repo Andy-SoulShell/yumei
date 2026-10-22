@@ -146,24 +146,54 @@ describe("video workflow adaptation", () => {
 });
 
 describe("durable video jobs", () => {
+  it("uses only the independent video library even when a selfie has the same ID", async () => {
+    const { user, input, userId } = await seed();
+    stubProductConfig("selfies.poses", [
+      ...productFixture.selfies.poses,
+      {
+        ...productFixture.selfies.poses[0],
+        id: "wave",
+        enabled: false,
+        minLevel: 10,
+        promptFragment: "自拍专用画面",
+      },
+    ]);
+    await expect(
+      acceptVideo(user, { ...input, prompt: "", presetId: "casual" })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(await getDailyMeter(userId, "video")).toBe(0);
+    const task = await acceptVideo(user, {
+      ...input,
+      prompt: "",
+      presetId: "wave",
+    });
+    const [row] = await (await getDb())!
+      .select()
+      .from(generationRequests)
+      .where(eq(generationRequests.id, task.id));
+    expect(row.videoTask!.prompt).toContain(
+      productFixture.videos.presets[0].promptFragment
+    );
+    expect(row.videoTask!.prompt).not.toContain("自拍专用画面");
+  });
   it("captures a blank-description preset and rendered prompt so later configuration edits cannot change recovery", async () => {
     const { user, input, userId } = await seed();
-    const presetInput = { ...input, prompt: "", poseId: "casual" };
+    const presetInput = { ...input, prompt: "", presetId: "wave" };
     expect(videoInputSchema.safeParse(presetInput).success).toBe(true);
     const task = await acceptVideo(user, presetInput);
     expect(task.input.prompt).toBe("");
-    expect(task.preset?.label).toEqual(productFixture.selfies.poses[0].label);
+    expect(task.preset?.label).toEqual(productFixture.videos.presets[0].label);
     const db = (await getDb())!;
     const [row] = await db
       .select()
       .from(generationRequests)
       .where(eq(generationRequests.id, task.id));
     expect(row.videoTask!.prompt).toContain(
-      productFixture.selfies.poses[0].promptFragment
+      productFixture.videos.presets[0].promptFragment
     );
     expect(row.videoTask!.prompt).toContain("自然");
     stubProductConfig("prompts.video.text", "新模板 {{appearance}} {{scene}}");
-    stubProductConfig("selfies.poses.0.promptFragment", "新的预设");
+    stubProductConfig("videos.presets.0.promptFragment", "新的预设");
     expect((await acceptVideo(user, presetInput)).id).toBe(task.id);
     await advance(userId, task.id);
     const [resumed] = await db
@@ -172,7 +202,7 @@ describe("durable video jobs", () => {
       .where(eq(generationRequests.id, task.id));
     expect(resumed.videoTask!.prompt).toBe(row.videoTask!.prompt);
     await expect(
-      acceptVideo(user, { ...presetInput, poseId: "sweet_smile" })
+      acceptVideo(user, { ...presetInput, presetId: "turn" })
     ).rejects.toMatchObject({ code: "CONFLICT" });
   });
   it("enforces published preset levels from actual points even with explicit text and spends no quota on rejection", async () => {
@@ -183,16 +213,16 @@ describe("durable video jobs", () => {
       .set({ intimacyLevel: 10, intimacyPoints: 0 })
       .where(eq(girlfriends.id, role.id));
     await expect(
-      acceptVideo(user, { ...input, poseId: "elegant" })
+      acceptVideo(user, { ...input, presetId: "twirl" })
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
       cause: { details: { reason: "LEVEL_LOCKED" } },
     });
-    for (const poseId of ["missing", "casual"]) {
-      if (poseId === "casual")
-        stubProductConfig("selfies.poses.0.enabled", false);
+    for (const presetId of ["missing", "wave"]) {
+      if (presetId === "wave")
+        stubProductConfig("videos.presets.0.enabled", false);
       await expect(
-        acceptVideo(user, { ...input, prompt: "", poseId })
+        acceptVideo(user, { ...input, prompt: "", presetId })
       ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     }
     await expect(
@@ -212,14 +242,14 @@ describe("durable video jobs", () => {
       .update(girlfriends)
       .set({ intimacyPoints: productFixture.intimacy.levels[3].requiredPoints })
       .where(eq(girlfriends.id, role.id));
-    const task = await acceptVideo(user, { ...input, poseId: "elegant" });
+    const task = await acceptVideo(user, { ...input, presetId: "twirl" });
     const [row] = await db
       .select()
       .from(generationRequests)
       .where(eq(generationRequests.id, task.id));
     expect(row.videoTask!.prompt).toContain(input.prompt);
     expect(row.videoTask!.prompt).not.toContain(
-      productFixture.selfies.poses.find(pose => pose.id === "elegant")!
+      productFixture.videos.presets.find(pose => pose.id === "twirl")!
         .promptFragment
     );
   });

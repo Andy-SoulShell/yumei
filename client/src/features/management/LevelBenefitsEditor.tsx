@@ -130,6 +130,14 @@ export function LevelBenefitsEditor({
           </Button>
         ))}
       </div>
+      <p className="text-sm text-muted-foreground">
+        本级新解锁的视频动作：
+        {config.videos.presets
+          .filter(preset => preset.enabled && preset.minLevel === level)
+          .map(preset => `${preset.emoji} ${preset.label["zh-CN"]}`)
+          .join("、") || "无"}
+        。动作提示词与门槛可在「视频动作」中独立编辑。
+      </p>
       <Dialog
         open={editing !== null}
         onOpenChange={open => {

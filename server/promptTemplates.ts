@@ -4,6 +4,7 @@ import type { SelfiePose } from "../shared/selfiePoses";
 import type { ImageGenerationMode } from "./_core/comfyui";
 import type { ProductConfig } from "../shared/productConfig";
 import { renderPrompt } from "../shared/aiConfig";
+import type { VideoPreset } from "../shared/video";
 
 /** 构建单人图片提示词，不接受聊天历史、关系或情绪作为画面条件。 */
 export function buildImagePrompt(
@@ -48,10 +49,10 @@ export function buildVideoPrompt(
     userContext: string;
     generationMode: "reference" | "text";
     appearance: string;
-    pose?: SelfiePose;
+    preset?: VideoPreset;
   }
 ): string {
-  const scene = options.userContext.trim() || options.pose?.promptFragment;
+  const scene = options.userContext.trim() || options.preset?.promptFragment;
   if (!scene) throw new Error("视频需要本次描述或预设");
   return renderPrompt(config.prompts.video[options.generationMode], {
     scene,

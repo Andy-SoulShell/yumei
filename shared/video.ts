@@ -1,6 +1,33 @@
 /** 视频工作流绑定、运行边界和持久任务快照；所有业务数值由发布配置提供。 */
 import { z } from "zod";
-import type { ContentText } from "./discovery";
+import {
+  contentTextSchema,
+  officialIdSchema,
+  type ContentText,
+} from "./discovery";
+
+/** 视频动作独立配置，不包含自拍构图或图片姿势别名。 */
+export const videoPresetSchema = z
+  .object({
+    id: officialIdSchema,
+    label: contentTextSchema,
+    emoji: z.string().min(1).max(24),
+    minLevel: z.number().int().min(1).max(100),
+    promptFragment: z.string().trim().min(1).max(3000),
+    enabled: z.boolean(),
+  })
+  .strict();
+export type VideoPreset = z.infer<typeof videoPresetSchema>;
+export const videosConfigSchema = z
+  .object({
+    presets: z.array(videoPresetSchema).max(200),
+  })
+  .strict();
+
+/** 只从已发布的视频动作中查找启用预设。 */
+export function getVideoPreset(id: string, presets: readonly VideoPreset[]) {
+  return presets.find(preset => preset.id === id && preset.enabled);
+}
 
 const binding = z
   .object({ node: z.string().min(1), input: z.string().min(1) })
@@ -126,14 +153,14 @@ export const videoInputSchema = z
     conversationId: z.number().int().positive(),
     mode: z.enum(["text", "reference"]),
     prompt: z.string().trim().max(8000),
-    /** 留空描述时使用已发布姿势；选中姿势始终校验亲密度。 */
-    poseId: z.string().trim().min(1).max(100).optional(),
+    /** 视频动作 ID 与自拍姿势独立；选中动作始终校验亲密度。 */
+    presetId: officialIdSchema.optional(),
     durationSeconds: z.number().positive().max(60),
     referenceMessageId: z.number().int().positive().nullable(),
   })
   .strict()
   .superRefine((value, ctx) => {
-    if (!value.prompt && !value.poseId)
+    if (!value.prompt && !value.presetId)
       ctx.addIssue({ code: "custom", message: "请输入视频描述或选择预设" });
     if (value.mode === "text" && value.referenceMessageId !== null)
       ctx.addIssue({ code: "custom", message: "文生视频不接受首帧图片" });

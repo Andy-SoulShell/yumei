@@ -22,6 +22,13 @@
       "when": 1792650758240,
       "tag": "0002_video_presets",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1792664382441,
+      "tag": "0003_video_actions",
+      "breakpoints": true
     }
   ]
 }

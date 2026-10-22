@@ -35,6 +35,12 @@ export const sections: {
     group: "品牌与体验",
   },
   {
+    id: "videos",
+    name: "视频动作",
+    description: "独立管理招手、比心、转身等动作、提示词与解锁等级。",
+    group: "品牌与体验",
+  },
+  {
     id: "billing",
     name: "套餐与额度",
     description: "管理套餐、价格、模型权益与使用额度。",

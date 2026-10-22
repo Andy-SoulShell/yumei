@@ -21,11 +21,13 @@ import { SettingsFields } from "./SettingsFields";
 import type { SettingsNavigation } from "./settingsModel";
 import { LevelBenefitsEditor } from "./LevelBenefitsEditor";
 import { RadioGroup, RadioGroupChoice } from "@/components/ui/radio-group";
-export type CollectionKind = "plans" | "poses" | "levels" | "quickTemplates";
+export type CollectionKind =
+  "plans" | "poses" | "videoPresets" | "levels" | "quickTemplates";
 type Item = Record<string, unknown>;
 const titles: Record<CollectionKind, string> = {
   plans: "套餐",
   poses: "姿势",
+  videoPresets: "视频动作",
   levels: "等级",
   quickTemplates: "快捷模板",
 };
@@ -50,6 +52,8 @@ function summary(kind: CollectionKind, item: Item) {
   }
   if (kind === "poses")
     return `${item.minLevel} 级解锁 · ${item.mode === "mirror" ? "镜中自拍" : item.mode === "direct" ? "直视镜头" : "自动选择"}`;
+  if (kind === "videoPresets")
+    return `${item.minLevel} 级解锁 · ${item.enabled ? "已开放" : "未开放"}`;
   if (kind === "levels")
     return `第 ${item.level} 级 · ${item.requiredPoints} 分`;
   return text(item.text).slice(0, 65) || "填写模板内容";
@@ -60,7 +64,7 @@ export function newCollectionItem(
   source?: Item
 ): Item {
   const copy = source ? structuredClone(source) : {};
-  const id = `${kind === "quickTemplates" ? "template" : kind.slice(0, -1)}-${crypto.randomUUID().slice(0, 8)}`;
+  const id = `${kind === "quickTemplates" ? "template" : kind === "videoPresets" ? "video-preset" : kind.slice(0, -1)}-${crypto.randomUUID().slice(0, 8)}`;
   if (kind === "levels") {
     const last = items.at(-1)!;
     const gap = Math.max(
@@ -93,6 +97,15 @@ export function newCollectionItem(
       enabled: false,
       aliases: [],
     };
+  if (kind === "videoPresets")
+    return {
+      id,
+      label: { "zh-CN": "新动作" },
+      emoji: copy.emoji ?? "🎬",
+      minLevel: copy.minLevel ?? 1,
+      promptFragment: copy.promptFragment ?? "",
+      enabled: false,
+    };
   return {
     ...copy,
     id,
@@ -114,6 +127,13 @@ const groups: Record<CollectionKind, { title: string; fields: string[] }[]> = {
       fields: ["label", "emoji", "enabled", "minLevel", "mode"],
     },
     { title: "画面与识别", fields: ["promptFragment", "aliases"] },
+  ],
+  videoPresets: [
+    {
+      title: "用户看到的动作",
+      fields: ["label", "emoji", "enabled", "minLevel"],
+    },
+    { title: "连续动作与镜头", fields: ["promptFragment"] },
   ],
   levels: [
     {
@@ -178,6 +198,7 @@ export function SettingsCollection({
     kind === "levels" &&
     index === items.length - 1 &&
     (config.selfies.poses.some(p => p.minLevel >= items.length) ||
+      config.videos.presets.some(p => p.minLevel >= items.length) ||
       config.memory.levelRules.some(p => p.minLevel >= items.length) ||
       Object.values(config.prompts.chat.relationshipStages).some(stages =>
         stages.some(p => p.minLevel >= items.length)
@@ -203,8 +224,10 @@ export function SettingsCollection({
     onChange(items.map((old, i) => (i === index ? (next as Item) : old)));
   const move = (to: number) => {
     const next = [...items];
+    const selectedItem = next[index];
     [next[index], next[to]] = [next[to], next[index]];
     onChange(next);
+    select(selectedItem);
   };
   return (
     <div className="space-y-6">
@@ -441,6 +464,16 @@ export function SettingsCollection({
                     本级新解锁：
                     {poses.map(pose => pose.label["zh-CN"]).join("、") ||
                       "没有额外自拍姿势"}
+                    。
+                  </p>
+                  <p>
+                    本级视频动作：
+                    {config.videos.presets
+                      .filter(
+                        preset => preset.enabled && preset.minLevel === level
+                      )
+                      .map(preset => preset.label["zh-CN"])
+                      .join("、") || "没有额外视频动作"}
                     。
                   </p>
                   <p>

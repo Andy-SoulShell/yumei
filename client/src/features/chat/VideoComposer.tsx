@@ -55,7 +55,7 @@ export function VideoComposer(props: Props) {
     <VideoDialog
       {...props}
       rules={policy.raw.runtime.video}
-      poses={policy.data.selfies.poses}
+      presets={policy.data.videos.presets}
       intimacyLevel={
         getLevelByPoints(props.intimacyPoints, policy.raw.intimacy.levels).level
       }
@@ -70,9 +70,9 @@ function VideoDialog({
   draft = "",
   disabled,
   rules,
-  poses,
+  presets,
   intimacyLevel,
-}: Props & { rules: VideoRuntime; poses: Preset[]; intimacyLevel: number }) {
+}: Props & { rules: VideoRuntime; presets: Preset[]; intimacyLevel: number }) {
   const { t } = useI18n();
   const utils = trpc.useUtils();
   const [open, setOpen] = useState(false);
@@ -107,13 +107,13 @@ function VideoDialog({
     duration >= rules.minDurationSeconds &&
     duration <= rules.maxDurationSeconds &&
     (mode === "text" || !!selectedImage);
-  const submit = (poseId?: string) => {
-    if (!valid || (!prompt.trim() && !poseId)) return;
+  const submit = (presetId?: string) => {
+    if (!valid || (!prompt.trim() && !presetId)) return;
     const input = {
       conversationId,
       mode,
       prompt: prompt.trim(),
-      ...(poseId ? { poseId } : {}),
+      ...(presetId ? { presetId } : {}),
       durationSeconds: duration,
       referenceMessageId:
         mode === "reference" && reference !== "character"
@@ -176,11 +176,11 @@ function VideoDialog({
             role="group"
             aria-label={t("video:presets")}
           >
-            {poses.map(pose => {
-              const locked = pose.minLevel > intimacyLevel;
+            {presets.map(preset => {
+              const locked = preset.minLevel > intimacyLevel;
               return (
                 <Button
-                  key={pose.id}
+                  key={preset.id}
                   type="button"
                   variant="plain"
                   size="none"
@@ -188,16 +188,16 @@ function VideoDialog({
                   title={
                     locked
                       ? t("selfie:unlocksAtIntimacyLv", {
-                          level: pose.minLevel,
+                          level: preset.minLevel,
                         })
-                      : pose.label
+                      : preset.label
                   }
                   className={`flex min-h-24 min-w-0 flex-col items-center gap-1 rounded-2xl bg-muted/40 p-3 text-sm transition-colors ${locked ? "cursor-not-allowed opacity-45" : "hover:bg-primary/10"}`}
-                  onClick={() => submit(pose.id)}
+                  onClick={() => submit(preset.id)}
                 >
-                  <span className="text-2xl leading-none">{pose.emoji}</span>
+                  <span className="text-2xl leading-none">{preset.emoji}</span>
                   <span className="w-full truncate text-center">
-                    {pose.label}
+                    {preset.label}
                   </span>
                   {locked ? (
                     <Badge
@@ -206,7 +206,7 @@ function VideoDialog({
                     >
                       <Lock className="size-2.5" />
                       {t("common:lv")}
-                      {pose.minLevel}
+                      {preset.minLevel}
                     </Badge>
                   ) : (
                     <span className="select-none text-[10px] text-transparent">

@@ -96,6 +96,47 @@ async function clickText(text: string, scope: ParentNode = document) {
   expect(button, text).toBeTruthy();
   await act(async () => button.click());
 }
+it("edits, reorders and disables video actions in their own collection without changing selfie settings", async () => {
+  const selfies = structuredClone(current.selfies);
+  await act(async () => root.render(<Probe section="videos" />));
+  expect(container.querySelector('[aria-label="编辑视频动作"]')).toBeTruthy();
+  expect(container.textContent).not.toContain("自拍构图");
+  await act(async () =>
+    container
+      .querySelector<HTMLButtonElement>('[aria-label="招手下移"]')!
+      .click()
+  );
+  expect(current.videos.presets[1].id).toBe("wave");
+  const edit = container.querySelector('[aria-label="编辑视频动作"]')!;
+  const promptLabel = Array.from(
+    edit.querySelectorAll<HTMLLabelElement>("label")
+  ).find(label => label.textContent?.trim() === "动作提示词")!;
+  await change(
+    document.getElementById(promptLabel.htmlFor) as HTMLTextAreaElement,
+    "缓缓招手两次，微笑，镜头稳定"
+  );
+  const unlock = edit.querySelector<HTMLButtonElement>(
+    '[role="combobox"][aria-label="解锁等级"]'
+  )!;
+  await act(async () => unlock.click());
+  const option = Array.from(
+    document.querySelectorAll<HTMLElement>('[role="option"]')
+  ).find(item => item.textContent?.trim().startsWith("3 级"))!;
+  expect(option).toBeTruthy();
+  await act(async () => option.click());
+  await act(async () =>
+    edit.querySelector<HTMLButtonElement>('[role="switch"]')!.click()
+  );
+  expect(
+    current.videos.presets.find(preset => preset.id === "wave")
+  ).toMatchObject({
+    promptFragment: "缓缓招手两次，微笑，镜头稳定",
+    minLevel: 3,
+    enabled: false,
+  });
+  expect(current.selfies).toEqual(selfies);
+  expect(productConfigSchema.safeParse(current).success).toBe(true);
+});
 it("routes billing mode to the effective plan and opens only the selected plan's applicable controls", async () => {
   await act(async () => root.render(<Probe section="billing" />));
   const original = structuredClone(current.billing.plans);

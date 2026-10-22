@@ -22,6 +22,7 @@ import {
   Smile,
   Upload,
   Users,
+  Video,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -35,6 +36,7 @@ const icons: Partial<Record<Pane, LucideIcon>> = {
   site: Link2,
   prompts: MessageSquare,
   selfies: Image,
+  videos: Video,
   billing: CreditCard,
   intimacy: Heart,
   characters: Users,

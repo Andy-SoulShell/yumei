@@ -117,7 +117,11 @@ export function SettingsEditor({
           ? (config.selfies.poses.find(
               pose => pose.id === view.selections["selfies.poses"]
             )?.minLevel ?? config.selfies.poses[0].minLevel)
-          : 1;
+          : section === "videos"
+            ? (config.videos.presets.find(
+                preset => preset.id === view.selections["videos.presets"]
+              )?.minLevel ?? 1)
+            : 1;
   const contextPoints =
     config.intimacy.levels.find(item => item.level === contextLevel)
       ?.requiredPoints ?? 0;

@@ -92,7 +92,7 @@ it("renders a mobile inline native video with controls and no autoplay", async (
   expect(container.textContent).toContain("5.17");
 });
 it("shows the captured localized preset and retains it when retrying a blank description", async () => {
-  const presetInput = { ...input, prompt: "", poseId: "casual" };
+  const presetInput = { ...input, prompt: "", presetId: "wave" };
   await render({
     status: "failed",
     prompt: "",
@@ -106,7 +106,7 @@ it("shows the captured localized preset and retains it when retrying a blank des
   await act(async () => container.querySelector("button")!.click());
   expect(mocks.create.mock.calls[0][0]).toMatchObject({
     prompt: "",
-    poseId: "casual",
+    presetId: "wave",
   });
 });
 it("allows cancellation only before remote submission and reuses one retry key", async () => {

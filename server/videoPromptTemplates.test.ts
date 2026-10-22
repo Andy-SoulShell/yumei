@@ -7,7 +7,7 @@ import { productConfigSchema } from "../shared/productConfig";
 describe.each(["reference", "text"] as const)(
   "%s video prompts",
   generationMode => {
-    const pose = productFixture.selfies.poses[0];
+    const preset = productFixture.videos.presets[0];
     const appearance = "黑色长发，蓝色衬衫";
     it("gives the complete user description priority over the selected preset", () => {
       const request =
@@ -16,10 +16,10 @@ describe.each(["reference", "text"] as const)(
         userContext: request,
         generationMode,
         appearance,
-        pose,
+        preset,
       });
       expect(prompt.endsWith(request)).toBe(true);
-      expect(prompt).not.toContain(pose.promptFragment);
+      expect(prompt).not.toContain(preset.promptFragment);
       expect(prompt.includes(appearance)).toBe(generationMode === "text");
     });
     it("uses the published preset only for a blank description", () => {
@@ -30,9 +30,9 @@ describe.each(["reference", "text"] as const)(
         userContext: " \n ",
         generationMode,
         appearance,
-        pose,
+        preset,
       });
-      expect(prompt.endsWith(pose.promptFragment)).toBe(true);
+      expect(prompt.endsWith(preset.promptFragment)).toBe(true);
       expect(() =>
         buildVideoPrompt(config, {
           userContext: "",

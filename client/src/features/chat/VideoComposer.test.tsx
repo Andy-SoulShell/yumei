@@ -27,8 +27,10 @@ vi.mock("@/features/product/useProductConfig", () => ({
       maxDurationSeconds: 7,
       maxPromptChars: 25,
     });
-    config.selfies.poses[0].label = { "zh-CN": "运营预设" };
-    config.selfies.poses.at(-1)!.enabled = false;
+    config.videos.presets[0].label = { "zh-CN": "运营动作" };
+    config.videos.presets.at(-1)!.enabled = false;
+    config.selfies.poses[0].label = { "zh-CN": "自拍专用" };
+    config.selfies.poses[0].enabled = false;
     return { raw: config, data: localizeProductConfig(config, "zh-CN") };
   },
 }));
@@ -122,15 +124,18 @@ it("shows published presets and locks by current points; an unlocked preset gene
       .querySelectorAll("button")
   ).toHaveLength(8);
   expect(
+    document.querySelector('[aria-label="视频预设"]')!.textContent
+  ).not.toContain("自拍专用");
+  expect(
     document.querySelector('button[title="亲密度 Lv.4 解锁"]')
   ).toHaveProperty("disabled", true);
-  await click("优雅");
+  await click("轻盈转圈");
   expect(mocks.create).not.toHaveBeenCalled();
-  await click("运营预设");
+  await click("运营动作");
   expect(mocks.create.mock.calls[0][0]).toMatchObject({
     conversationId: 42,
     mode: "reference",
-    poseId: "casual",
+    presetId: "wave",
     prompt: "",
     referenceMessageId: null,
     durationSeconds: 3,
@@ -142,12 +147,12 @@ it("uses the chat draft ahead of presets and reuses the request ID after an unkn
   expect(document.querySelector('[role="dialog"]')!.textContent).toContain(
     "本次描述：微笑，镜头推进"
   );
-  await click("运营预设");
-  await click("运营预设");
+  await click("运营动作");
+  await click("运营动作");
   const [a, b] = mocks.create.mock.calls.map(call => call[0]);
-  expect(a).toMatchObject({ prompt: "微笑，镜头推进", poseId: "casual" });
+  expect(a).toMatchObject({ prompt: "微笑，镜头推进", presetId: "wave" });
   expect(a.clientRequestId).toBe(b.clientRequestId);
-  await click("甜甜微笑");
+  await click("转身");
   expect(mocks.create.mock.calls.at(-1)![0].clientRequestId).not.toBe(
     a.clientRequestId
   );
@@ -166,7 +171,7 @@ it("keeps configurable duration, first-frame selection and custom descriptions i
   expect(mocks.create.mock.calls.at(-1)![0]).toMatchObject({
     referenceMessageId: 9,
   });
-  expect(mocks.create.mock.calls.at(-1)![0].poseId).toBeUndefined();
+  expect(mocks.create.mock.calls.at(-1)![0].presetId).toBeUndefined();
   await click("文生视频");
   expect(document.getElementById("video-reference")).toBeNull();
   await click("开始生成");
@@ -179,8 +184,8 @@ it("unlocks higher presets as current points increase and blocks all submission 
   await open({
     intimacyPoints: productFixture.intimacy.levels[3].requiredPoints,
   });
-  await click("优雅");
-  expect(mocks.create.mock.calls[0][0].poseId).toBe("elegant");
+  await click("轻盈转圈");
+  expect(mocks.create.mock.calls[0][0].presetId).toBe("twirl");
   mocks.pending = true;
   await render({
     intimacyPoints: productFixture.intimacy.levels[3].requiredPoints,
@@ -192,15 +197,15 @@ it("unlocks higher presets as current points increase and blocks all submission 
 });
 it("requires a usable first frame only for reference mode", async () => {
   await open({ referenceImage: "" });
-  await click("运营预设");
+  await click("运营动作");
   expect(mocks.create).not.toHaveBeenCalled();
   expect(document.querySelector('[role="status"]')!.textContent).toContain(
     "首帧"
   );
   await click("文生视频");
-  await click("运营预设");
+  await click("运营动作");
   expect(mocks.create.mock.calls[0][0]).toMatchObject({
     mode: "text",
-    poseId: "casual",
+    presetId: "wave",
   });
 });

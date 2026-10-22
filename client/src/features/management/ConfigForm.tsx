@@ -97,6 +97,8 @@ const labels: Record<string, string> = {
   rateLimits: "每分钟请求频率",
   pastDueGraceMs: "欠费宽限（毫秒）",
   selfies: "自拍姿势",
+  videos: "视频动作",
+  presets: "视频预设列表",
   defaultPoseId: "默认姿势",
   poses: "姿势列表",
   minLevel: "解锁等级",
@@ -430,6 +432,7 @@ export function fieldLabel(key: string) {
 }
 /** 同名字段在不同业务阶段有不同含义，不用叶子名称推断用户任务。 */
 export function semanticFieldLabel(path: string) {
+  if (/^videos\.presets\.\d+\.promptFragment$/.test(path)) return "动作提示词";
   const labelsByPath: Record<string, string> = {
     "prompts.chat.defaultLanguage": "未指定回复语言时的指令",
     "prompts.image.reference": "有参考图的自拍模板",

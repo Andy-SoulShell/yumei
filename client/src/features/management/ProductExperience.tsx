@@ -236,6 +236,7 @@ export function ProductExperience(props: Props) {
   };
   const collectionTitle: Partial<Record<CollectionKind, string>> = {
     poses: "自拍姿势",
+    videoPresets: "视频动作",
     levels: "关系阶段",
     quickTemplates: "快捷表达",
   };
@@ -509,7 +510,9 @@ export function ProductExperience(props: Props) {
                     ? "添加下一阶段"
                     : kind === "poses"
                       ? "新增姿势"
-                      : "新增快捷表达"}
+                      : kind === "videoPresets"
+                        ? "新增动作"
+                        : "新增快捷表达"}
                 </Button>
               </div>
               <div
@@ -541,7 +544,7 @@ export function ProductExperience(props: Props) {
                       <span className="mt-2 block text-xs leading-5 text-muted-foreground">
                         {kind === "levels"
                           ? `第 ${item.level} 级 · ${item.requiredPoints} 分开启`
-                          : kind === "poses"
+                          : kind === "poses" || kind === "videoPresets"
                             ? `${item.minLevel} 级解锁 · ${item.enabled ? "已开放" : "未开放"}`
                             : contentText(
                                 item.text as Record<string, string>,

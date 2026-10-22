@@ -1,11 +1,13 @@
 /** 在回滚事务中验证管理 API 与真实套餐、姿势、奖励执行共用发布配置。 */
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { readFile } from "node:fs/promises";
 import {
   girlfriends,
   productConfiguration,
   subscriptions,
   conversations,
+  generationRequests,
 } from "../drizzle/schema";
 import {
   localizeProductConfig,
@@ -92,6 +94,99 @@ async function publish(
     expectedRevision: saved.revision,
   });
 }
+it("publishes independent video action edits while keeping selfie names, prompts and levels intact", () =>
+  isolated(async (_tx, admin) => {
+    const config = structuredClone(productFixture);
+    const selfies = structuredClone(config.selfies);
+    config.videos.presets = [
+      {
+        ...config.videos.presets[0],
+        id: "operator-wave",
+        label: { "zh-CN": "自定义招手" },
+        minLevel: 3,
+        promptFragment: "连续招手两次，镜头缓慢推进",
+      },
+    ];
+    await publish(admin, config);
+    const live = await guest.productConfig.get();
+    expect(live.videos).toEqual(config.videos);
+    expect(live.selfies).toEqual(selfies);
+    const draft = await admin.productConfig.admin.getDraft();
+    const invalid = structuredClone(config);
+    invalid.videos.presets[0].minLevel = invalid.intimacy.levels.length + 1;
+    await expect(
+      admin.productConfig.admin.save({
+        expectedRevision: draft.revision,
+        config: invalid,
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect((await guest.productConfig.get()).videos).toEqual(config.videos);
+  }));
+
+it("migrates video actions without replacing custom rules or changing an in-flight task's captured prompt", () =>
+  isolated(async (tx, _admin, userId) => {
+    const { conversationId } = await roleFixture(tx, userId);
+    const config = structuredClone(productFixture);
+    config.videos.presets[0].promptFragment = "运营自定义视频动作";
+    config.selfies.poses[0].promptFragment = "运营自定义自拍画面";
+    const { videos: _videos, ...oldDraft } = config;
+    await tx
+      .update(productConfiguration)
+      .set({ draft: oldDraft as never, published: config });
+    const id = crypto.randomUUID();
+    const legacyTask = {
+      input: {
+        clientRequestId: crypto.randomUUID(),
+        conversationId,
+        mode: "text",
+        prompt: "",
+        poseId: "casual",
+        durationSeconds: 5,
+        referenceMessageId: null,
+      },
+      prompt: "接收时已渲染的视频提示词",
+      preset: { label: { "zh-CN": "旧预设" }, emoji: "😊" },
+      phase: "running",
+      promptId: "remote-existing",
+      baseUrl: "http://comfy.test",
+      runtime: config.runtime.video,
+      workflow: config.models.video.workflows.text,
+      frames: 124,
+      fps: 24,
+      referenceKey: null,
+    };
+    await tx.insert(generationRequests).values({
+      id,
+      userId,
+      conversationId,
+      kind: "video",
+      videoTask: legacyTask as never,
+      expiresAt: new Date(Date.now() + 60000),
+    });
+    const migration = await readFile(
+      new URL("../drizzle/0003_video_actions.sql", import.meta.url),
+      "utf8"
+    );
+    for (const statement of migration.split("--> statement-breakpoint"))
+      await tx.execute(sql.raw(statement));
+    const [after] = await tx.select().from(productConfiguration);
+    expect(after.draft.videos).toEqual(productFixture.videos);
+    expect(after.draft.selfies).toEqual(config.selfies);
+    expect(after.published.videos).toEqual(config.videos);
+    expect(after.published.selfies).toEqual(config.selfies);
+    const [task] = await tx
+      .select()
+      .from(generationRequests)
+      .where(eq(generationRequests.id, id));
+    expect(task.videoTask).toMatchObject({
+      prompt: legacyTask.prompt,
+      preset: legacyTask.preset,
+      promptId: "remote-existing",
+      phase: "running",
+      input: { presetId: "casual" },
+    });
+    expect(task.videoTask!.input).not.toHaveProperty("poseId");
+  }));
 async function roleFixture(
   tx: database.DbTransaction,
   userId: string,
@@ -442,6 +537,7 @@ describe("published product configuration", () => {
     isolated(async (tx, admin, userId) => {
       const config = structuredClone(productFixture);
       config.intimacy.levels = config.intimacy.levels.slice(0, 3);
+      config.videos.presets = [];
       config.intimacy.levels[1].requiredPoints = 10;
       config.intimacy.levels[2].requiredPoints = 20;
       config.selfies.poses = [

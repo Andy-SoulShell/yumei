@@ -32,11 +32,12 @@ const tasks: { title: string; description: string; links: [Pane, string][] }[] =
       ],
     },
     {
-      title: "让图片和语音顺利使用",
+      title: "让图片、视频和语音顺利使用",
       description: "先满足文件规则与权益，再交给服务生成，最后按体验设置展示。",
       links: [
         ["uploads", "上传与录音"],
         ["selfies", "可选姿势"],
+        ["videos", "视频动作"],
         ["models", "生成服务"],
         ["experience", "播放与浏览"],
       ],

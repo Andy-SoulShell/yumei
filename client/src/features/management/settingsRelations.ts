@@ -61,6 +61,12 @@ export const settingsJourneys: Record<SettingsSection, SettingsJourney> = {
         "等级只是姿势门槛；生成图片还需要套餐额度和可用的图片服务。"
       ),
       related(
+        "videos",
+        "presets",
+        "视频动作解锁",
+        "视频动作独立配置，按同一套亲密度积分与等级判断。"
+      ),
+      related(
         "memory",
         "capacity",
         "每级记忆能力",
@@ -74,15 +80,45 @@ export const settingsJourneys: Record<SettingsSection, SettingsJourney> = {
       ),
     ],
   },
+  videos: {
+    goal: "这段视频里，她会做什么动作？",
+    steps: [
+      "独立编排视频动作",
+      "按亲密度等级解锁",
+      "文字优先，留空使用动作预设",
+    ],
+    scope:
+      "发布后更新视频动作的名称、顺序、连续动作提示词和解锁等级。已接收任务按各自的提示词快照继续生成。",
+    related: [
+      related(
+        "intimacy",
+        "levels",
+        "动作解锁等级",
+        "动作按角色当前积分计算等级，不受自拍姿势设置影响。"
+      ),
+      related(
+        "prompts",
+        "video",
+        "视频提示模板",
+        "本次文字或所选动作填入对应视频模板。"
+      ),
+      related(
+        "models",
+        "video",
+        "视频服务",
+        "启用服务，并配置文生和图生视频工作流。"
+      ),
+    ],
+  },
   selfies: {
     goal: "用户什么时候能选到这个画面？",
     steps: [
       "启用姿势，用户才看得见",
       "达到等级，用户才可选择",
-      "画面提示交给图片或视频服务生成",
+      "画面提示交给图片服务生成",
     ],
     scope:
-      "发布后同步更新自拍和视频预设的选项与解锁门槛。名称用于展示，别名用于识别，画面提示影响新图片和视频。",
+      "发布后更新自拍姿势的选项与解锁门槛。名称用于展示，别名用于识别，画面提示影响新图片。",
     related: [
       related(
         "intimacy",

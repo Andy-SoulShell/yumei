@@ -21,7 +21,7 @@ export type SettingsPanel = {
   title: string;
   description: string;
   fields: string[];
-  collection?: "plans" | "poses" | "levels" | "quickTemplates";
+  collection?: "plans" | "poses" | "videoPresets" | "levels" | "quickTemplates";
   workflow?: "text" | "reference";
   videoWorkflow?: "text" | "reference";
 };
@@ -74,6 +74,17 @@ export const settingsPanels: Record<SettingsSection, SettingsPanel[]> = {
     panel("default", "默认姿势", "选择已启用、在第 1 级即可使用的默认姿势。", [
       "defaultPoseId",
     ]),
+  ],
+  videos: [
+    {
+      ...panel(
+        "presets",
+        "视频动作库",
+        "独立管理视频动作名称、表情、连续动作提示词和亲密度解锁等级。",
+        ["presets"]
+      ),
+      collection: "videoPresets",
+    },
   ],
   intimacy: [
     {
@@ -395,7 +406,7 @@ export const settingsPanels: Record<SettingsSection, SettingsPanel[]> = {
     panel(
       "video",
       "视频提示",
-      "设置两种视频模式的提示词；本次文字优先，空描述使用自拍预设及其解锁等级。",
+      "设置两种视频模式的提示词；本次文字优先，空描述使用独立视频动作预设。",
       ["video"]
     ),
     panel(
@@ -482,7 +493,7 @@ export function settingsChoices(
   path: string
 ): FieldChoice[] | undefined {
   if (
-    /^(selfies\.poses\.\d+|prompts\.chat\.relationshipStages\.(gradual|natural)\.\d+)\.minLevel$/.test(
+    /^(selfies\.poses\.\d+|videos\.presets\.\d+|prompts\.chat\.relationshipStages\.(gradual|natural)\.\d+)\.minLevel$/.test(
       path
     )
   )

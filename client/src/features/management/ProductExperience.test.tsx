@@ -31,6 +31,7 @@ afterEach(async () => {
 
 const cases = [
   ["selfies", "poses", "poses"],
+  ["videos", "presets", "presets"],
   ["prompts", "quickTemplates", "quick"],
   ["intimacy", "levels", "levels"],
 ] as const;
@@ -42,7 +43,11 @@ it.each(cases)(
       field
     ] as Record<string, unknown>[];
     const neighbors = structuredClone(items);
-    const added = newCollectionItem(field as CollectionKind, items, items[0]);
+    const added = newCollectionItem(
+      section === "videos" ? "videoPresets" : (field as CollectionKind),
+      items,
+      items[0]
+    );
     items.push(added);
     const id = String(added.id ?? added.level);
     window.history.replaceState(

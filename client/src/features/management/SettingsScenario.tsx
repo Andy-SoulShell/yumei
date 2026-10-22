@@ -103,12 +103,12 @@ export function SettingsScenario({
     </label>
   );
   let controls: React.ReactNode, result: React.ReactNode;
-  if (section === "intimacy" || section === "selfies") {
+  if (section === "intimacy" || section === "selfies" || section === "videos") {
     const stage = getLevelByPoints(points, config.intimacy.levels),
       rule = memoryLevelRule(stage.level, config.memory);
-    const poses = config.selfies.poses.filter(
-      pose => pose.enabled && pose.minLevel <= stage.level
-    );
+    const poses = (
+      section === "videos" ? config.videos.presets : config.selfies.poses
+    ).filter(pose => pose.enabled && pose.minLevel <= stage.level);
     controls = numberInput("模拟累计积分", points, setPoints, 100000000);
     result = (
       <>
@@ -123,15 +123,26 @@ export function SettingsScenario({
         <p>
           可选择：
           {poses.map(pose => `${pose.emoji} ${text(pose.label)}`).join("、") ||
-            "暂无可用姿势"}
+            (section === "videos" ? "暂无可用视频动作" : "暂无可用姿势")}
         </p>
+        {section === "intimacy" && (
+          <p>
+            可用视频动作：
+            {config.videos.presets
+              .filter(
+                preset => preset.enabled && preset.minLevel <= stage.level
+              )
+              .map(preset => `${preset.emoji} ${text(preset.label)}`)
+              .join("、") || "暂无可用视频动作"}
+          </p>
+        )}
         <p>
           {config.memory.enabled
             ? `记忆容量 ${rule.capacity} 条，普通回复最多召回 ${rule.recallCount} 条。`
             : "记忆功能关闭，容量规则暂不用于自动提取与注入。"}
         </p>
         <p className="text-xs text-muted-foreground">
-          积分试算只判断等级与解锁，生成图片仍需额度与服务可用。
+          积分试算只判断等级与解锁，生成仍需额度与服务可用。
         </p>
       </>
     );

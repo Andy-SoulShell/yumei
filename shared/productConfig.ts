@@ -15,6 +15,7 @@ import {
   runtimeConfigSchema,
 } from "./operationalConfig";
 import { memoryConfigSchema, promptsConfigSchema } from "./aiConfig";
+import { videosConfigSchema } from "./video";
 
 export const REWARD_ACTIONS = [
   "text_message",
@@ -242,6 +243,7 @@ export const productConfigSchema = z
         poses: z.array(selfiePoseSchema).min(1).max(200),
       })
       .strict(),
+    videos: videosConfigSchema,
     intimacy: intimacyConfigSchema,
     prompts: promptsConfigSchema,
     memory: memoryConfigSchema,
@@ -355,6 +357,13 @@ export const productConfigSchema = z
     for (const pose of config.selfies.poses)
       if (pose.minLevel > config.intimacy.levels.length)
         issue(`姿势 ${pose.id} 的解锁等级不存在`);
+    unique(
+      config.videos.presets.map(preset => preset.id),
+      "视频动作 ID 不能重复"
+    );
+    for (const preset of config.videos.presets)
+      if (preset.minLevel > config.intimacy.levels.length)
+        issue(`视频动作 ${preset.id} 的解锁等级不存在`);
     for (const id of [
       "text_message",
       "voice_message",
@@ -376,7 +385,7 @@ export const productConfigSchema = z
   });
 export type ProductConfig = z.infer<typeof productConfigSchema>;
 
-/** 从实际姿势规则生成解锁展示，修改名称或等级时无需维护第二份文案。 */
+/** 从实际自拍与视频规则生成展示，修改名称或等级时无需维护第二份文案。 */
 export function localizeProductConfig(config: ProductConfig, locale: Locale) {
   return {
     ...config,
@@ -438,6 +447,14 @@ export function localizeProductConfig(config: ProductConfig, locale: Locale) {
         .filter(pose => pose.enabled)
         .map(pose => ({ ...pose, label: contentText(pose.label, locale) })),
     },
+    videos: {
+      presets: config.videos.presets
+        .filter(preset => preset.enabled)
+        .map(preset => ({
+          ...preset,
+          label: contentText(preset.label, locale),
+        })),
+    },
     intimacy: {
       ...config.intimacy,
       levels: config.intimacy.levels.map(level => ({
@@ -445,7 +462,7 @@ export function localizeProductConfig(config: ProductConfig, locale: Locale) {
         name: contentText(level.name, locale),
         description: contentText(level.description, locale),
         petName: contentText(level.petName, locale),
-        unlocks: config.selfies.poses
+        unlocks: [...config.selfies.poses, ...config.videos.presets]
           .filter(pose => pose.enabled && pose.minLevel === level.level)
           .map(pose => contentText(pose.label, locale)),
       })),

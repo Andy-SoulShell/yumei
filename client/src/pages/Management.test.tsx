@@ -349,7 +349,8 @@ it("searches the shared navigation and closes the mobile drawer after selecting 
   await waitFor(() => !document.querySelector('[role="dialog"]'));
   await click("打开管理导航");
   const drawer = document.querySelector<HTMLElement>('[role="dialog"]')!;
-  expect(drawer.querySelectorAll(".admin-nav-item")).toHaveLength(18);
+  expect(drawer.querySelectorAll(".admin-nav-item")).toHaveLength(19);
+  expect(drawer.textContent).toContain("视频动作");
   const search = drawer.querySelector<HTMLInputElement>(
     'input[aria-label="查找管理功能"]'
   )!;

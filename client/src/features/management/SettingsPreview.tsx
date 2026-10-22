@@ -73,9 +73,10 @@ export function SettingsPreview({
       );
       break;
     case "selfies":
+    case "videos":
       preview = (
         <div className="flex flex-wrap gap-3">
-          {config.selfies.poses
+          {(section === "videos" ? config.videos.presets : config.selfies.poses)
             .filter(item => item.enabled)
             .map(item => (
               <div
@@ -88,7 +89,10 @@ export function SettingsPreview({
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {item.minLevel} 级解锁
-                  {item.id === config.selfies.defaultPoseId ? " · 默认" : ""}
+                  {section === "selfies" &&
+                  item.id === config.selfies.defaultPoseId
+                    ? " · 默认"
+                    : ""}
                 </p>
               </div>
             ))}

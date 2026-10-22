@@ -17,6 +17,7 @@ beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   window.history.replaceState(null, "", "/admin");
   HTMLElement.prototype.scrollTo = vi.fn();
+  window.scrollTo = vi.fn();
   vi.spyOn(window, "confirm").mockReturnValue(true);
   container = document.createElement("div");
   document.body.append(container);
@@ -509,6 +510,7 @@ it("validates nickname immediately and enables saving once the user corrects it"
   await click("返回预览");
   await waitFor(() => !document.querySelector('[role="dialog"]'));
   await click("编辑相处的细节");
+  await click("编辑对用户的称呼");
   await change(field("对用户的称呼"), "称".repeat(41));
   expect(document.body.textContent).toContain("称呼最多 40 字，当前 41 字");
   expect(field("对用户的称呼").getAttribute("aria-invalid")).toBe("true");
@@ -694,10 +696,8 @@ it("keeps the selected settings task and plan after saving and reloading its rev
   });
   await waitFor(() => !button("套餐与额度").disabled);
   expect(window.location.search).toContain("edit=subscription");
-  expect(document.querySelector('[role="dialog"]')!.textContent).toContain(
-    "订阅与默认"
-  );
-  await click("返回预览");
+  expect(container.textContent).toContain("订阅与默认");
+  await click("返回体验概览");
   await waitFor(() => !document.querySelector('[role="dialog"]'));
   await click("编辑套餐：保存后继续编辑的套餐");
   expect(editor("保存后继续编辑的套餐")).toBeTruthy();
@@ -712,12 +712,15 @@ it("saves changes from a related editor and the original task in one full draft 
   const state = await mount("product", "save");
   await click("记忆规则");
   await click("编辑容量与分类");
+  await click("编辑1 级 · 初识");
   await change(
     document.querySelector<HTMLInputElement>('[aria-label="容量"]')!,
     "55"
   );
   await click("返回预览");
   await waitFor(() => !document.querySelector('[role="dialog"]'));
+  await click("返回体验概览");
+  await waitFor(() => container.textContent!.includes("记忆依赖的等级"));
   const related = Array.from(
     container.querySelectorAll<HTMLButtonElement>("button")
   ).find(item => item.textContent?.startsWith("记忆依赖的等级"))!;
@@ -744,8 +747,148 @@ it("saves changes from a related editor and the original task in one full draft 
   expect(state.product.config.billing).toEqual(productFixture.billing);
   expect(state.product.published).toEqual(productFixture);
   expect(state.calls).not.toContain("productConfig.admin.publish");
+  await click("记忆规则");
   await click("编辑容量与分类");
+  await click("编辑1 级 · 共同成长的阶段");
   expect(
     document.querySelector<HTMLInputElement>('[aria-label="容量"]')!.value
   ).toBe("55");
+});
+
+it("browses prompt documents before editing one and preserves sibling instructions after saving", async () => {
+  const state = await mount("product", "save");
+  await click("返回预览");
+  await waitFor(() => !document.querySelector('[role="dialog"]'));
+  await click("提示词模板");
+  container.setAttribute("data-management-scroll", "");
+  vi.mocked(HTMLElement.prototype.scrollTo).mockClear();
+  await click("编辑表达与关系");
+  expect(HTMLElement.prototype.scrollTo).toHaveBeenCalledWith({
+    top: 0,
+    behavior: "instant",
+  });
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  expect(container.querySelectorAll("textarea")).toHaveLength(0);
+  const original = structuredClone(state.product.config.prompts.chat);
+  await click("编辑表达方式 · 温柔体贴");
+  expect(document.querySelectorAll('[role="dialog"] textarea')).toHaveLength(1);
+  const changed = "认真倾听，温柔地回应具体的事情。";
+  await change(
+    document.querySelector<HTMLTextAreaElement>('[role="dialog"] textarea')!,
+    changed
+  );
+  await click("返回预览");
+  await waitFor(() => !document.querySelector('[role="dialog"]'));
+  expect(container.textContent).toContain(changed);
+  await click("编辑表达方式 · 温柔体贴");
+  expect(
+    document.querySelector<HTMLTextAreaElement>('[role="dialog"] textarea')!
+      .value
+  ).toBe(changed);
+  await click("保存草稿");
+  await act(async () => {
+    state.write.resolve();
+    state.reload.resolve();
+  });
+  await waitFor(() => !button("提示词模板").disabled);
+  expect(state.product.config.prompts.chat).toEqual({
+    ...original,
+    expression: { ...original.expression, warm: changed },
+  });
+  expect(state.product.published).toEqual(productFixture);
+  expect(window.location.search).toContain("item=chat.expression.warm");
+  expect(document.querySelectorAll('[role="dialog"] textarea')).toHaveLength(1);
+});
+
+it("keeps homepage arrangement free of copy fields and opens only the selected FAQ", async () => {
+  const state = await mount("home", "save");
+  await click("管理问答");
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  expect(container.querySelectorAll("input,textarea,select")).toHaveLength(1); // 导航搜索
+  await click("下移问答1");
+  await click("编辑问答2");
+  expect(document.querySelectorAll('[role="dialog"] input')).toHaveLength(1);
+  expect(document.querySelectorAll('[role="dialog"] textarea')).toHaveLength(1);
+  await change(field("回答2"), "单条内容更新");
+  await click("保存草稿");
+  await act(async () => {
+    state.write.resolve();
+    state.reload.resolve();
+  });
+  await waitFor(() => !button("套餐与额度").disabled);
+  expect(state.content.home.faqs[1].id).toBe(
+    initialDiscovery().home.faqs[0].id
+  );
+  expect(state.content.home.faqs[1].answer["zh-CN"]).toBe("单条内容更新");
+  expect(state.content.home.faqs[0]).toEqual(initialDiscovery().home.faqs[1]);
+  expect(state.content.home.faqs[1].answer.en).toBe(
+    initialDiscovery().home.faqs[0].answer.en
+  );
+});
+
+it("opens a theme as an appearance preview and saves only its selected copy task", async () => {
+  const state = await mount("product", "save");
+  await click("返回预览");
+  await waitFor(() => !document.querySelector('[role="dialog"]'));
+  await click("主题配色");
+  const theme = structuredClone(state.product.config.themes.items[0]);
+  await click(`编辑主题 ${theme.name["zh-CN"]}`);
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  expect(container.querySelector('[aria-label="主题明暗预览"]')).not.toBeNull();
+  await click("编辑名称与开放状态");
+  expect(document.querySelector('[role="dialog"] [role="tablist"]')).toBeNull();
+  await change(editor(theme.name["zh-CN"]!), "本轮的主题名称");
+  await click("保存草稿");
+  await act(async () => {
+    state.write.resolve();
+    state.reload.resolve();
+  });
+  await waitFor(() => !button("主题配色").disabled);
+  expect(state.product.config.themes.items[0]).toEqual({
+    ...theme,
+    name: { ...theme.name, "zh-CN": "本轮的主题名称" },
+  });
+  expect(state.product.config.themes.items.slice(1)).toEqual(
+    productFixture.themes.items.slice(1)
+  );
+  expect(window.location.search).toContain("part=copy");
+  expect(editor("本轮的主题名称")).toBeTruthy();
+});
+
+it("keeps the default playback speed available while editing allowed choices", async () => {
+  const state = await mount("product", "save");
+  await click("返回预览");
+  await waitFor(() => !document.querySelector('[role="dialog"]'));
+  await click("分页、播放与连接");
+  await click("编辑朗读体验");
+  await click("编辑用户可选什么倍速");
+  expect(button("允许 1 倍").disabled).toBe(true);
+  const defaults = document.querySelector(
+    '[role="group"][aria-label="默认倍速"]'
+  )!;
+  await act(async () =>
+    Array.from(defaults.querySelectorAll("button"))
+      .find(item => item.textContent === "1.25×")!
+      .click()
+  );
+  await click("允许 1 倍");
+  await change(
+    document.querySelector<HTMLInputElement>('[aria-label="自定义倍速"]')!,
+    "1.75"
+  );
+  await click("添加");
+  await click("保存草稿");
+  await act(async () => {
+    state.write.resolve();
+    state.reload.resolve();
+  });
+  await waitFor(() => !button("分页、播放与连接").disabled);
+  const playback = state.product.config.experience.playback;
+  expect(playback.speeds).toContain(playback.defaultSpeed);
+  expect(playback.defaultSpeed).toBe(1.25);
+  expect(playback.speeds).not.toContain(1);
+  expect(playback.speeds).toContain(1.75);
+  expect(playback.defaultProvider).toBe(
+    productFixture.experience.playback.defaultProvider
+  );
 });

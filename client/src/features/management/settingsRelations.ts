@@ -640,9 +640,21 @@ export const taskFieldGroups: Partial<
     ],
     jobs: [
       group(
-        "提取任务怎样排队和重试",
-        "处理失败会按间隔重试；租约避免同一任务被多个工作器重复执行。",
-        ["jobs"],
+        "每批处理多少任务",
+        "处理批次与最大尝试次数共同限制任务负载。",
+        ["jobs.batchSize", "jobs.maxAttempts"],
+        true
+      ),
+      group(
+        "处理失败后等多久重试",
+        "重试上限不能小于首次重试间隔。",
+        ["jobs.retryBaseMs", "jobs.retryMaxMs"],
+        true
+      ),
+      group(
+        "任务多久交给其他工作器",
+        "租约避免多个工作器重复执行同一任务。",
+        ["jobs.leaseMinimumMs", "jobs.leasePaddingMs"],
         true
       ),
     ],
@@ -793,18 +805,20 @@ export const taskFieldGroups: Partial<
         ["chat.segmentChars", "chat.flushMs", "chat.flushPollMs"]
       ),
       group(
-        "后台并发与任务保活",
-        "心跳加轮询必须小于租约；这是执行调优，和套餐每日额度分别计算。",
+        "后台并发与批次",
+        "决定同一时间能执行多少任务，和套餐每日额度分别计算。",
         [
           "chat.localConcurrency",
           "chat.userConcurrency",
           "chat.burstMessages",
           "chat.batchSize",
-          "chat.leaseMs",
-          "chat.heartbeatMs",
-          "chat.pollMs",
-          "chat.schedulerMs",
         ],
+        true
+      ),
+      group(
+        "任务保活与调度",
+        "心跳加轮询必须小于租约。",
+        ["chat.leaseMs", "chat.heartbeatMs", "chat.pollMs", "chat.schedulerMs"],
         true
       ),
     ],

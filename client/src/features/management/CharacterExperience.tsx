@@ -1,7 +1,15 @@
 /** 官方角色以人物档案呈现，资料、封面和相处细节分别就地编辑。 */
 import { type ComponentProps } from "react";
 import { useExperienceRoute } from "./managementRoutes";
-import { Camera, ChevronRight, Heart, Pencil, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  Camera,
+  ChevronRight,
+  Heart,
+  Pencil,
+  Plus,
+  Sparkles,
+} from "lucide-react";
 import { contentText } from "@shared/discovery";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +43,18 @@ const tasks = [
     icon: Heart,
   },
 ];
+const detailTasks = [
+  ["appearance", "外貌说明"],
+  ["interests", "兴趣"],
+  ["nickname", "对用户的称呼"],
+  ["expression", "表达与主动性"],
+  ["relationship", "关系节奏与情感"],
+  ["en", "English 展示文案"],
+  ["ja", "日本語 展示文案"],
+  ["ko", "한국어 展示文案"],
+  ["sort", "展示顺序"],
+  ["resource", "图片资源"],
+];
 /** 把字段收进单一任务编辑器，默认阅读角色故事与前台效果。 */
 export function CharacterExperience(props: Props) {
   const { value, busy, dirty, error, creating, onSave } = props;
@@ -42,6 +62,121 @@ export function CharacterExperience(props: Props) {
   const editing = route.editing as Part | undefined;
   const setEditing = (next?: Part) => (next ? route.open(next) : route.close());
   const task = tasks.find(item => item.id === editing);
+  if (editing === "more") {
+    const details = [
+      ...detailTasks,
+      ...value.behavior.examples.map((_, index) => [
+        `example.${index}`,
+        `示例对话 ${index + 1}`,
+      ]),
+    ];
+    const selected = details.find(([id]) => id === route.item);
+    return (
+      <div className="space-y-6">
+        <Button variant="ghost" disabled={busy} onClick={route.close}>
+          <ArrowLeft className="size-4" />
+          返回人物档案
+        </Button>
+        <div className="admin-experience-heading">
+          <div>
+            <h2>相处的细节</h2>
+            <p>选择想打磨的细节，其他资料会保留在同一份角色草稿中。</p>
+          </div>
+          <Button
+            variant="outline"
+            disabled={
+              busy ||
+              value.behavior.examples.length >= props.rules.limits.exampleCount
+            }
+            onClick={() => {
+              const index = value.behavior.examples.length;
+              props.onChange({
+                ...value,
+                behavior: {
+                  ...value.behavior,
+                  examples: [
+                    ...value.behavior.examples,
+                    { user: "你好", assistant: "很高兴见到你。" },
+                  ],
+                },
+              });
+              route.open("more", `example.${index}`);
+            }}
+          >
+            <Plus className="size-4" />
+            添加示例对话
+          </Button>
+        </div>
+        <div className="admin-workbench-grid">
+          {details.map(([id, title]) => (
+            <Button
+              variant="plain"
+              size="none"
+              key={id}
+              className="admin-workbench-card"
+              disabled={busy}
+              aria-label={`编辑${title}`}
+              onClick={() => route.open("more", id)}
+            >
+              <strong>{title}</strong>
+              <span className="mt-3 line-clamp-3 text-sm leading-6 text-muted-foreground">
+                {id === "appearance"
+                  ? value.appearance || "留空以封面为准"
+                  : id === "interests"
+                    ? value.interests || "添加喜欢的事"
+                    : id === "nickname"
+                      ? value.behavior.userNickname || "由角色自然称呼"
+                      : "单独调整这项细节"}
+              </span>
+            </Button>
+          ))}
+        </div>
+        {selected && (
+          <ExperienceEditor
+            title={selected[1]}
+            description="修改会保留在角色草稿中，返回人物档案即可预览。"
+            busy={busy}
+            dirty={dirty}
+            error={error}
+            invalid={Object.keys(props.issues).length > 0}
+            onSave={onSave}
+            onClose={route.closeItem}
+          >
+            <OfficialCharacterForm
+              {...props}
+              focusedPart="more"
+              focusedDetail={selected[0]}
+            />
+            {selected[0].startsWith("example.") && (
+              <Button
+                className="mt-5"
+                variant="ghost"
+                disabled={busy}
+                onClick={() => {
+                  const index = Number(selected[0].split(".")[1]);
+                  props.onChange({
+                    ...value,
+                    behavior: {
+                      ...value.behavior,
+                      examples: value.behavior.examples.filter(
+                        (_, at) => at !== index
+                      ),
+                    },
+                  });
+                  route.closeItem();
+                }}
+              >
+                移除此示例对话
+              </Button>
+            )}
+          </ExperienceEditor>
+        )}
+        {route.item && !selected && (
+          <p role="status">这项细节已不存在，请重新选择。</p>
+        )}
+      </div>
+    );
+  }
   return (
     <div className="space-y-6">
       <article className="admin-character-story">

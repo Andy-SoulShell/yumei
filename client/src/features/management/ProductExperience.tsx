@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { useExperienceRoute } from "./managementRoutes";
 import {
   ArrowUpRight,
+  ArrowLeft,
   Check,
   ChevronRight,
   Palette,
@@ -38,6 +39,9 @@ import {
 } from "./settingsModel";
 import { settingsJourneys } from "./settingsRelations";
 import type { FormSchema } from "./ConfigForm";
+import { SettingsTaskWorkbench } from "./SettingsTaskWorkbench";
+import { taskEntries } from "./settingsTaskEntries";
+import { ThemeExperience } from "./ThemeExperience";
 
 type Props = SettingsNavigation & {
   section: keyof ProductConfig;
@@ -235,6 +239,89 @@ export function ProductExperience(props: Props) {
     levels: "关系阶段",
     quickTemplates: "快捷表达",
   };
+  const workbenchSection = related?.section ?? section;
+  const workbenchTask = related?.task ?? editing;
+  if (section === "themes" && editing)
+    return (
+      <ThemeExperience
+        value={config.themes}
+        schema={schema}
+        route={editorRoute}
+        busy={busy}
+        dirty={dirty}
+        error={error}
+        issues={issues}
+        onSave={onSave}
+        onChange={themes => onChange({ ...config, themes })}
+      />
+    );
+  const entries =
+    workbenchSection !== "themes" && workbenchTask
+      ? taskEntries(
+          workbenchSection,
+          workbenchTask,
+          config,
+          rootSchema.properties?.[workbenchSection]
+        )
+      : undefined;
+  if (editing && entries)
+    return (
+      <SettingsTaskWorkbench
+        key={editing}
+        section={workbenchSection as SettingsSection}
+        task={workbenchTask!}
+        title={related?.label ?? task!.title}
+        description={related?.why ?? task!.description}
+        entries={entries}
+        item={editorRoute.item}
+        busy={busy}
+        dirty={dirty}
+        error={error}
+        config={config}
+        rootSchema={rootSchema}
+        issues={issues}
+        onChange={onChange}
+        onSave={onSave}
+        view={view}
+        onViewChange={onViewChange}
+        onOpen={id => editorRoute.open(editing, id)}
+        onBack={editorRoute.close}
+        onCloseItem={editorRoute.closeItem}
+      />
+    );
+  const fullPageTask =
+    (workbenchSection === "billing" &&
+      ["subscription", "plans"].includes(workbenchTask ?? "")) ||
+    (workbenchSection === "proactive" &&
+      ["schedule", "copy"].includes(workbenchTask ?? ""));
+  if (editing && fullPageTask)
+    return (
+      <div className="space-y-6">
+        <Button variant="ghost" disabled={busy} onClick={editorRoute.close}>
+          <ArrowLeft className="size-4" />
+          返回体验概览
+        </Button>
+        <div className="admin-experience-heading">
+          <div>
+            <h2>{related?.label ?? task?.title}</h2>
+            <p>{related?.why ?? task?.description}</p>
+          </div>
+        </div>
+        <SettingsEditor
+          focused
+          embedded
+          section={workbenchSection as SettingsSection}
+          config={config}
+          schema={rootSchema.properties?.[workbenchSection]}
+          rootSchema={rootSchema}
+          issues={issues}
+          disabled={busy}
+          onChange={onChange}
+          view={{ ...view, task: workbenchTask }}
+          onViewChange={onViewChange}
+        />
+      </div>
+    );
   return (
     <div className="admin-product-experience space-y-8">
       {section === "themes" ? (

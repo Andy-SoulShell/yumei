@@ -1,11 +1,11 @@
 /** 首页作为可点击的内容预览，轮播、推荐和问答各自就地编辑。 */
 import { type ComponentProps } from "react";
 import { useExperienceRoute } from "./managementRoutes";
-import { ArrowRight, Pencil, Plus, Settings2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Pencil, Plus, Settings2 } from "lucide-react";
 import { contentText } from "@shared/discovery";
 import { Button } from "@/components/ui/button";
 import { LandingCarousel } from "@/features/discovery/LandingCarousel";
-import { HomepageEditor } from "./HomepageEditor";
+import { HomepageEditor, OrderActions } from "./HomepageEditor";
 import { ExperienceEditor } from "./ProductExperience";
 
 type Props = ComponentProps<typeof HomepageEditor> & {
@@ -33,6 +33,170 @@ export function HomeExperience(props: Props) {
   const featured = value.featuredIds
     .map(id => rows.find(row => row.id === id))
     .filter(row => !!row);
+  const isCollection = editing && ["slides", "faqs"].includes(editing.task);
+  const closeEditor = () =>
+    isCollection && editing.item ? route.closeItem() : route.close();
+  const editor = editing && (!isCollection || editing.item) && (
+    <ExperienceEditor
+      title={names[editing.task]}
+      description="修改后回到首页预览，满意后保存并发布。"
+      busy={busy}
+      dirty={dirty}
+      invalid={invalid}
+      error={error}
+      onSave={onSave}
+      onClose={closeEditor}
+    >
+      <HomepageEditor
+        key={editing.task + editing.item}
+        {...props}
+        onChange={next => {
+          props.onChange(next);
+          if (
+            isCollection &&
+            editing.item &&
+            !next[editing.task as "slides" | "faqs"].some(
+              item => item.id === editing.item
+            )
+          )
+            closeEditor();
+        }}
+        focusedTab={editing.task}
+        focusItem={editing.item}
+      />
+    </ExperienceEditor>
+  );
+  if (isCollection) {
+    const key = editing.task as "slides" | "faqs";
+    const list = value[key];
+    return (
+      <div className="space-y-6">
+        <Button variant="ghost" disabled={busy} onClick={route.close}>
+          <ArrowLeft className="size-4" />
+          返回首页预览
+        </Button>
+        <div className="admin-experience-heading">
+          <div>
+            <h2>{key === "slides" ? "编排轮播" : "管理问答"}</h2>
+            <p>先安排展示顺序，选择一条内容再编辑文案。</p>
+          </div>
+          <Button
+            variant="outline"
+            disabled={
+              busy ||
+              list.length >= (key === "slides" ? 20 : 50) ||
+              (key === "slides" &&
+                !rows.some(row => !row.archived) &&
+                !value.slides.length)
+            }
+            onClick={() => {
+              const id = `${key}-${crypto.randomUUID().slice(0, 8)}`;
+              const next =
+                key === "slides"
+                  ? {
+                      ...value,
+                      slides: [
+                        ...value.slides,
+                        {
+                          id,
+                          title: { "zh-CN": "新的相遇" },
+                          highlight: { "zh-CN": "从一句你好开始。" },
+                          action: { "zh-CN": "探索角色" },
+                          href: "/explore",
+                          images: [
+                            rows.find(row => !row.archived)?.data.imageUrl ||
+                              value.slides[0]?.images[0],
+                          ],
+                        },
+                      ],
+                    }
+                  : {
+                      ...value,
+                      faqs: [
+                        ...value.faqs,
+                        {
+                          id,
+                          question: { "zh-CN": "" },
+                          answer: { "zh-CN": "" },
+                        },
+                      ],
+                    };
+              props.onChange(next);
+              route.open(key, id);
+            }}
+          >
+            <Plus className="size-4" />
+            {key === "slides" ? "新增轮播" : "新增问答"}
+          </Button>
+        </div>
+        <fieldset
+          disabled={busy}
+          className="space-y-3"
+          aria-label={key === "slides" ? "轮播顺序" : "问答顺序"}
+        >
+          {list.map((item, index) => {
+            const label =
+              key === "slides" ? `轮播${index + 1}` : `问答${index + 1}`;
+            const title = contentText(
+              "title" in item ? item.title : item.question,
+              "zh-CN"
+            );
+            return (
+              <article
+                key={item.id}
+                className="admin-panel flex flex-wrap items-center gap-4"
+              >
+                {"images" in item && (
+                  <img
+                    src={item.images[0]}
+                    alt=""
+                    className="size-16 rounded-xl object-cover"
+                  />
+                )}
+                <Button
+                  variant="plain"
+                  size="none"
+                  className="min-w-0 flex-1 text-left whitespace-normal"
+                  aria-label={`编辑${label}`}
+                  onClick={() => route.open(key, item.id)}
+                >
+                  <strong className="block text-sm">
+                    {index + 1}. {title}
+                  </strong>
+                  <span className="mt-2 line-clamp-2 block text-xs leading-6 text-muted-foreground">
+                    {contentText(
+                      "highlight" in item ? item.highlight : item.answer,
+                      "zh-CN"
+                    )}
+                  </span>
+                </Button>
+                <OrderActions
+                  index={index}
+                  length={list.length}
+                  label={label}
+                  onMove={target => {
+                    const next = [...list];
+                    [next[index], next[target]] = [next[target], next[index]];
+                    props.onChange({ ...value, [key]: next });
+                  }}
+                  onRemove={() => {
+                    props.onChange({
+                      ...value,
+                      [key]: list.filter(row => row.id !== item.id),
+                    });
+                  }}
+                />
+              </article>
+            );
+          })}
+          {!list.length && (
+            <p className="admin-empty">还没有内容，先添加第一条。</p>
+          )}
+        </fieldset>
+        {editor}
+      </div>
+    );
+  }
   return (
     <div className="space-y-8">
       <div className="admin-experience-heading">
@@ -176,25 +340,7 @@ export function HomeExperience(props: Props) {
           ))}
         </div>
       </section>
-      {editing && (
-        <ExperienceEditor
-          title={names[editing.task]}
-          description="修改后回到首页预览，满意后保存并发布。"
-          busy={busy}
-          dirty={dirty}
-          invalid={invalid}
-          error={error}
-          onSave={onSave}
-          onClose={() => setEditing(undefined)}
-        >
-          <HomepageEditor
-            key={editing.task + editing.item}
-            {...props}
-            focusedTab={editing.task}
-            focusItem={editing.item}
-          />
-        </ExperienceEditor>
-      )}
+      {editor}
     </div>
   );
 }

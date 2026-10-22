@@ -1154,7 +1154,10 @@ function ManagementConsole({
   }, [dirty, busy]);
   const navigate = (next: Pane) => {
     if (pendingOperations.current || busy) return false;
-    if (next === pane && next !== "official") return true;
+    if (next === pane && next !== "official") {
+      if (window.location.search) setLocation(managementPath(next));
+      return true;
+    }
     if (dirty && !window.confirm("当前有未保存的修改，放弃并切换？"))
       return false;
     setDirty(false);

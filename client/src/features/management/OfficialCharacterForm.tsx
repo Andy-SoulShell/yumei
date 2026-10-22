@@ -59,9 +59,11 @@ export function OfficialCharacterForm({
   onUpload,
   images,
   focusedPart,
+  focusedDetail,
 }: {
   value: OfficialCharacter;
   focusedPart?: "basic" | "display" | "more";
+  focusedDetail?: string;
   onChange: (value: OfficialCharacter) => void;
   issues: Record<string, string>;
   rules: CharacterRules;
@@ -142,6 +144,137 @@ export function OfficialCharacterForm({
       </Field>
     );
   };
+  if (focusedDetail) {
+    if (focusedDetail === "nickname")
+      return (
+        <Field
+          id={`${prefix}-nickname`}
+          label="对用户的称呼"
+          error={issues["behavior.userNickname"]}
+          hint={`${value.behavior.userNickname.length} / ${rules.limits.nickname} 字 · 留空由角色自然称呼`}
+        >
+          <Input
+            id={`${prefix}-nickname`}
+            value={value.behavior.userNickname}
+            disabled={busy}
+            aria-invalid={!!issues["behavior.userNickname"]}
+            onChange={event =>
+              update("behavior", {
+                ...value.behavior,
+                userNickname: event.target.value,
+              })
+            }
+          />
+        </Field>
+      );
+    if (focusedDetail.startsWith("example.")) {
+      const index = Number(focusedDetail.split(".")[1]);
+      return (
+        <ConfigForm
+          flat
+          value={value.behavior.examples[index]}
+          schema={behaviorForm.properties?.examples.items}
+          path={`behavior.examples.${index}`}
+          issues={issues}
+          disabled={busy}
+          onChange={next =>
+            update("behavior", {
+              ...value.behavior,
+              examples: value.behavior.examples.map((item, at) =>
+                at === index ? (next as typeof item) : item
+              ),
+            })
+          }
+        />
+      );
+    }
+    const behaviorKeys: Record<string, string[]> = {
+      expression: ["expression", "verbosity", "initiative"],
+      relationship: ["relationshipPace", "emotionIntensity"],
+      examples: ["examples"],
+      nickname: ["userNickname"],
+    };
+    if (focusedDetail === "appearance" || focusedDetail === "interests")
+      return text(
+        focusedDetail,
+        focusedDetail === "appearance" ? "外貌说明" : "兴趣",
+        rules.limits[focusedDetail],
+        true
+      );
+    if (behaviorKeys[focusedDetail]) {
+      const fields = behaviorKeys[focusedDetail];
+      return (
+        <ConfigForm
+          flat
+          value={Object.fromEntries(
+            fields.map(key => [
+              key,
+              value.behavior[key as keyof OfficialCharacter["behavior"]],
+            ])
+          )}
+          schema={{
+            type: "object",
+            properties: Object.fromEntries(
+              fields.map(key => [key, behaviorForm.properties![key]])
+            ),
+          }}
+          path="behavior"
+          issues={issues}
+          disabled={busy}
+          onChange={next =>
+            update("behavior", {
+              ...value.behavior,
+              ...(next as Partial<OfficialCharacter["behavior"]>),
+            })
+          }
+        />
+      );
+    }
+    if (["en", "ja", "ko"].includes(focusedDetail))
+      return (
+        <div className="space-y-4">
+          {localized(
+            "label",
+            focusedDetail as keyof ContentText,
+            "身份标签",
+            "留空使用简体中文"
+          )}
+          {localized(
+            "tagline",
+            focusedDetail as keyof ContentText,
+            "角色介绍",
+            "留空使用简体中文"
+          )}
+        </div>
+      );
+    if (focusedDetail === "sort")
+      return (
+        <NumberField
+          label="展示顺序"
+          path="character.sortOrder"
+          schema={numberSchemas.sortOrder}
+          disabled={busy}
+          value={value.sortOrder}
+          error={issues.sortOrder}
+          onChange={next => update("sortOrder", next)}
+        />
+      );
+    if (focusedDetail === "resource")
+      return (
+        <Field
+          id={`${prefix}-path`}
+          label="站内图片路径"
+          error={issues.imageUrl}
+        >
+          <Input
+            id={`${prefix}-path`}
+            value={value.imageUrl}
+            disabled={busy}
+            onChange={event => update("imageUrl", event.target.value)}
+          />
+        </Field>
+      );
+  }
   return (
     <div className="space-y-7">
       {(!focusedPart || focusedPart === "basic") && (

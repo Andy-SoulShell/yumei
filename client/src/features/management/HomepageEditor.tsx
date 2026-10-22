@@ -91,7 +91,7 @@ function CopyField({
     </div>
   );
 }
-function OrderActions({
+export function OrderActions({
   index,
   length,
   label,
@@ -530,7 +530,10 @@ export function HomepageEditor({
                     <div className="grid gap-4 sm:grid-cols-2">
                       <CopyField
                         label={`轮播${index + 1}标题`}
-                        autoFocus={item.id === created}
+                        autoFocus={
+                          item.id === created ||
+                          (!!focusedTab && item.id === focusItem)
+                        }
                         value={item.title}
                         locale={locale}
                         onChange={title => slide(index, { title })}
@@ -654,28 +657,30 @@ export function HomepageEditor({
                 </details>
               ) : null
             )}
-            <Button
-              variant="outline"
-              disabled={value.slides.length >= 20 || !images.length}
-              onClick={() => {
-                const id = `slide-${crypto.randomUUID().slice(0, 8)}`;
-                setCreated(id);
-                update("slides", [
-                  ...value.slides,
-                  {
-                    id,
-                    title: { "zh-CN": "新的相遇" },
-                    highlight: { "zh-CN": "从一句你好开始。" },
-                    action: { "zh-CN": "探索角色" },
-                    href: "/explore",
-                    images: [images[0].path],
-                  },
-                ]);
-              }}
-            >
-              <Plus className="size-4" />
-              新增轮播
-            </Button>
+            {!focusItem && (
+              <Button
+                variant="outline"
+                disabled={value.slides.length >= 20 || !images.length}
+                onClick={() => {
+                  const id = `slide-${crypto.randomUUID().slice(0, 8)}`;
+                  setCreated(id);
+                  update("slides", [
+                    ...value.slides,
+                    {
+                      id,
+                      title: { "zh-CN": "新的相遇" },
+                      highlight: { "zh-CN": "从一句你好开始。" },
+                      action: { "zh-CN": "探索角色" },
+                      href: "/explore",
+                      images: [images[0].path],
+                    },
+                  ]);
+                }}
+              >
+                <Plus className="size-4" />
+                新增轮播
+              </Button>
+            )}
           </div>
         )}
         {tab === "faqs" && (
@@ -709,7 +714,10 @@ export function HomepageEditor({
                     />
                     <CopyField
                       label={`问题${index + 1}`}
-                      autoFocus={item.id === created}
+                      autoFocus={
+                        item.id === created ||
+                        (!!focusedTab && item.id === focusItem)
+                      }
                       value={item.question}
                       locale={locale}
                       onChange={question => faq(index, { question })}
@@ -725,25 +733,27 @@ export function HomepageEditor({
                 </details>
               ) : null
             )}
-            <Button
-              variant="outline"
-              disabled={value.faqs.length >= 50}
-              onClick={() => {
-                const id = `faq-${crypto.randomUUID().slice(0, 8)}`;
-                setCreated(id);
-                update("faqs", [
-                  ...value.faqs,
-                  {
-                    id,
-                    question: { "zh-CN": "" },
-                    answer: { "zh-CN": "" },
-                  },
-                ]);
-              }}
-            >
-              <Plus className="size-4" />
-              新增问答
-            </Button>
+            {!focusItem && (
+              <Button
+                variant="outline"
+                disabled={value.faqs.length >= 50}
+                onClick={() => {
+                  const id = `faq-${crypto.randomUUID().slice(0, 8)}`;
+                  setCreated(id);
+                  update("faqs", [
+                    ...value.faqs,
+                    {
+                      id,
+                      question: { "zh-CN": "" },
+                      answer: { "zh-CN": "" },
+                    },
+                  ]);
+                }}
+              >
+                <Plus className="size-4" />
+                新增问答
+              </Button>
+            )}
           </div>
         )}
         {tab === "display" && (

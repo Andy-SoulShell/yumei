@@ -414,6 +414,14 @@ export function setSetting(
   next: unknown
 ): unknown {
   const [key, ...rest] = path.split(".");
+  if (Array.isArray(value))
+    return value.map((item, index) =>
+      index === Number(key)
+        ? rest.length
+          ? setSetting(item, rest.join("."), next)
+          : next
+        : item
+    );
   const object = value as Record<string, unknown>;
   return {
     ...object,
@@ -427,7 +435,8 @@ export function settingSchema(
   return path
     .split(".")
     .reduce<FormSchema | undefined>(
-      (item, key) => item?.properties?.[key],
+      (item, key) =>
+        /^\d+$/.test(key) ? item?.items : item?.properties?.[key],
       schema
     );
 }

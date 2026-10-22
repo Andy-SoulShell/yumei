@@ -971,6 +971,29 @@
     border-color: var(--border);
   }
 }
+.admin-workbench-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 16px;
+}
+.admin-workbench-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  min-width: 0;
+  min-height: 132px;
+  padding: 20px;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--glass-separator, var(--border));
+  border-radius: 20px;
+  background: var(--surface-panel, var(--card));
+}
+.admin-workbench-card:hover {
+  border-color: var(--primary);
+}
 @media (prefers-reduced-motion: reduce) {
   .admin-role-card,
   .admin-stat,

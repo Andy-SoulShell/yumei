@@ -14,6 +14,7 @@ export function MemoryCapacityEditor({
   onChange,
   view,
   onViewChange,
+  focused = false,
 }: {
   value: ProductConfig["memory"]["levelRules"];
   schema?: FormSchema;
@@ -21,6 +22,7 @@ export function MemoryCapacityEditor({
   disabled: boolean;
   issues: Record<string, string>;
   onChange: (next: unknown) => void;
+  focused?: boolean;
 } & SettingsNavigation) {
   const selected = Number(view.selections["memory.capacityLevel"] ?? 1),
     level = config.intimacy.levels.some(item => item.level === selected)
@@ -34,30 +36,33 @@ export function MemoryCapacityEditor({
     ];
   return (
     <div className="space-y-4">
-      <label className="block space-y-2 text-sm font-medium">
-        查看哪个等级的记忆能力
-        <select
-          aria-label="查看哪个等级的记忆能力"
-          value={level}
-          disabled={disabled}
-          className="admin-select w-full"
-          onChange={e =>
-            onViewChange({
-              ...view,
-              selections: {
-                ...view.selections,
-                "memory.capacityLevel": e.target.value,
-              },
-            })
-          }
-        >
-          {config.intimacy.levels.map(item => (
-            <option key={item.level} value={item.level}>
-              {item.level} 级 · {item.name["zh-CN"]}（{item.requiredPoints} 分）
-            </option>
-          ))}
-        </select>
-      </label>
+      {!focused && (
+        <label className="block space-y-2 text-sm font-medium">
+          查看哪个等级的记忆能力
+          <select
+            aria-label="查看哪个等级的记忆能力"
+            value={level}
+            disabled={disabled}
+            className="admin-select w-full"
+            onChange={e =>
+              onViewChange({
+                ...view,
+                selections: {
+                  ...view.selections,
+                  "memory.capacityLevel": e.target.value,
+                },
+              })
+            }
+          >
+            {config.intimacy.levels.map(item => (
+              <option key={item.level} value={item.level}>
+                {item.level} 级 · {item.name["zh-CN"]}（{item.requiredPoints}{" "}
+                分）
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <p
         className="rounded-xl bg-primary/5 p-3 text-sm leading-6"
         aria-live="polite"
@@ -111,34 +116,37 @@ export function MemoryCapacityEditor({
           查看全部容量门槛 · 合并规则
         </summary>
         <div className="mt-3 space-y-3">
-          {value.map((item, i) => (
-            <div
-              key={item.minLevel}
-              className="flex flex-wrap items-center justify-between gap-2 text-xs"
-            >
-              <span>
-                第 {item.minLevel} 级起：存 {item.capacity} 条 / 召回{" "}
-                {item.recallCount} 条
-              </span>
-              {i > 0 && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={disabled}
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `移除第 ${item.minLevel} 级的容量门槛？该范围将继承第 ${value[i - 1].minLevel} 级起的规则。`
-                      )
-                    )
-                      onChange(value.filter((_, at) => at !== i));
-                  }}
+          {value.map(
+            (item, i) =>
+              (!focused || item.minLevel === rule.minLevel) && (
+                <div
+                  key={item.minLevel}
+                  className="flex flex-wrap items-center justify-between gap-2 text-xs"
                 >
-                  移除门槛并继承前一规则
-                </Button>
-              )}
-            </div>
-          ))}
+                  <span>
+                    第 {item.minLevel} 级起：存 {item.capacity} 条 / 召回{" "}
+                    {item.recallCount} 条
+                  </span>
+                  {i > 0 && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={disabled}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `移除第 ${item.minLevel} 级的容量门槛？该范围将继承第 ${value[i - 1].minLevel} 级起的规则。`
+                          )
+                        )
+                          onChange(value.filter((_, at) => at !== i));
+                      }}
+                    >
+                      移除门槛并继承前一规则
+                    </Button>
+                  )}
+                </div>
+              )
+          )}
         </div>
       </details>
     </div>

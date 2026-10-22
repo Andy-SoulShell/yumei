@@ -42,6 +42,13 @@ export function useExperienceRoute(busy = false) {
   const params = new URLSearchParams(
     protectedSearch ? settled.current.search : search
   );
+  const editingTask = params.get("edit");
+  useEffect(() => {
+    const scroller = document.querySelector<HTMLElement>(
+      "[data-management-scroll]"
+    );
+    (scroller ?? window).scrollTo({ top: 0, behavior: "instant" });
+  }, [editingTask]);
   useEffect(() => {
     if (protectedSearch) {
       navigate(
@@ -51,16 +58,45 @@ export function useExperienceRoute(busy = false) {
     } else if (!busy) settled.current = { location, search };
   }, [busy, protectedSearch, location, search, navigate]);
   const openedHere = useRef(false);
+  const openedItemHere = useRef(false);
+  const openedPartHere = useRef(false);
   return {
     editing: params.get("edit") || undefined,
     item: params.get("item") || undefined,
-    open: (task: string, item?: string) => {
+    part: params.get("part") || undefined,
+    open: (task: string, item?: string, part?: string) => {
       const next = new URLSearchParams(search);
       next.set("edit", task);
       if (item) next.set("item", item);
       else next.delete("item");
-      openedHere.current = true;
+      if (part) next.set("part", part);
+      else next.delete("part");
+      if (part && params.get("edit") === task && params.get("item") === item)
+        openedPartHere.current = true;
+      else if (params.get("edit") === task && item)
+        openedItemHere.current = true;
+      else openedHere.current = true;
       navigate(`${location}?${next}`);
+    },
+    closePart: () => {
+      if (openedPartHere.current) {
+        openedPartHere.current = false;
+        window.history.back();
+        return;
+      }
+      const next = new URLSearchParams(search);
+      next.delete("part");
+      navigate(`${location}?${next}`, { replace: true });
+    },
+    closeItem: () => {
+      if (openedItemHere.current) {
+        openedItemHere.current = false;
+        window.history.back();
+        return;
+      }
+      const next = new URLSearchParams(search);
+      next.delete("item");
+      navigate(`${location}?${next}`, { replace: true });
     },
     close: () => {
       if (openedHere.current) {
@@ -70,6 +106,7 @@ export function useExperienceRoute(busy = false) {
         const next = new URLSearchParams(search);
         next.delete("edit");
         next.delete("item");
+        next.delete("part");
         navigate(`${location}${next.size ? `?${next}` : ""}`, {
           replace: true,
         });

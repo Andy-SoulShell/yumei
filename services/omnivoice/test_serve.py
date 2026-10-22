@@ -1,10 +1,13 @@
 """Exercise the HTTP contract without downloading or loading model weights."""
 import unittest
+import base64
+import io
 from unittest.mock import patch
 
 import numpy as np
 from fastapi.testclient import TestClient
 import serve
+import soundfile as sf
 
 
 class FakeModel:
@@ -67,6 +70,36 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(result.status_code, 503)
         self.assertNotIn("private", result.text)
         self.assertFalse(serve.lock.locked())
+
+    def reference(self, seconds=4, rate=44100, format="WAV"):
+        audio = np.sin(np.arange(round(seconds * rate)) * 2 * np.pi * 220 / rate).astype(np.float32) * 0.1
+        output = io.BytesIO()
+        sf.write(output, audio, rate, format=format)
+        return base64.b64encode(output.getvalue()).decode("ascii")
+
+    def test_reference_upload_validation_and_normalization(self):
+        self.assertEqual(self.client.post("/v1/audio/references", json={"audio": "x"}).status_code, 401)
+        for format in ("WAV", "FLAC", "OGG", "MP3"):
+            result = self.client.post("/v1/audio/references", headers=self.headers, json={"audio": self.reference(format=format)})
+            self.assertEqual(result.status_code, 200, result.text[:200])
+            info = sf.info(io.BytesIO(base64.b64decode(result.json()["audio"])))
+            self.assertEqual((info.samplerate, info.channels), (24000, 1))
+            self.assertAlmostEqual(result.json()["durationMs"], 4000, delta=100)
+        for audio in ("not base64!", base64.b64encode(b"not an audio file").decode(), self.reference(seconds=2), self.reference(seconds=31)):
+            result = self.client.post("/v1/audio/references", headers=self.headers, json={"audio": audio})
+            self.assertEqual(result.status_code, 400)
+
+    def test_uploaded_reference_reaches_model_as_audio_not_a_path(self):
+        fake = FakeModel()
+        with patch.object(serve, "get_model", return_value=fake), patch.object(serve, "schedule_unload"):
+            result = self.request(reference={"audio": self.reference(), "text": "参考录音原文。"})
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(fake.options["ref_text"], "参考录音原文。")
+        self.assertEqual(fake.options["ref_audio"][1], 24000)
+        self.assertEqual(tuple(fake.options["ref_audio"][0].shape), (1, 96000))
+        self.assertNotIn("instruct", fake.options)
+        self.assertEqual(self.request(reference={"audio": self.reference(), "text": " "}).status_code, 422)
+        self.assertEqual(self.request(reference={"audio": "https://example.com/voice.wav", "text": "原文"}).status_code, 400)
 
 
 if __name__ == "__main__":

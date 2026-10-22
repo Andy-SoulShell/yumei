@@ -1,6 +1,8 @@
 """Optional local OmniVoice service. Run one worker; models load on first speech."""
 
 import argparse
+import base64
+import binascii
 import gc
 import io
 import json
@@ -50,6 +52,7 @@ class SpeechRequest(BaseModel):
     voice: str = Field(default="default", max_length=200)
     response_format: Literal["wav"] = "wav"
     speed: float = Field(default=1.0, ge=0.5, le=1.5)
+    reference: "VoiceReference | None" = None
 
     @field_validator("input")
     @classmethod
@@ -57,6 +60,64 @@ class SpeechRequest(BaseModel):
         if not value.strip():
             raise ValueError("Speech text cannot be blank")
         return value.strip()
+
+
+class AudioReference(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    audio: str = Field(min_length=1, max_length=6990508)
+
+
+class VoiceReference(AudioReference):
+    text: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("text")
+    @classmethod
+    def nonempty(cls, value):
+        if not value.strip():
+            raise ValueError("Reference text cannot be blank")
+        return value.strip()
+
+
+SpeechRequest.model_rebuild()
+
+
+def decode_reference(encoded: str):
+    """Decode bounded audio bytes only; never accept paths, URLs or serialized tensors."""
+    import numpy as np
+    import soundfile as sf
+    from scipy.signal import resample_poly
+    from math import gcd
+
+    try:
+        raw = base64.b64decode(encoded, validate=True)
+        if not raw or len(raw) > 5 * 1024 * 1024:
+            raise ValueError("Reference size")
+        info = sf.info(io.BytesIO(raw))
+        if (info.format not in ("WAV", "WAVEX", "MP3", "FLAC", "OGG")
+                or not 8000 <= info.samplerate <= 192000 or info.channels not in (1, 2)
+                or not 3 <= info.duration <= 30):
+            raise ValueError("Reference format or duration")
+        samples, rate = sf.read(io.BytesIO(raw), dtype="float32", always_2d=True)
+        if len(samples) != info.frames or not np.isfinite(samples).all():
+            raise ValueError("Invalid samples")
+        samples = samples.mean(axis=1)
+        if np.max(np.abs(samples)) < 0.001:
+            raise ValueError("Silent reference")
+        if rate != 24000:
+            factor = gcd(rate, 24000)
+            samples = resample_poly(samples, 24000 // factor, rate // factor)
+        return samples, 24000
+    except (ValueError, binascii.Error, RuntimeError, sf.LibsndfileError):
+        raise HTTPException(400, "Invalid reference audio; use 3-30 seconds of clear speech, up to 5 MB") from None
+
+
+@app.post("/v1/audio/references", dependencies=[Depends(authorize)])
+def normalize_reference(body: AudioReference):
+    import soundfile as sf
+    samples, rate = decode_reference(body.audio)
+    output = io.BytesIO()
+    sf.write(output, samples, rate, format="WAV", subtype="PCM_16")
+    return {"audio": base64.b64encode(output.getvalue()).decode("ascii"), "durationMs": round(len(samples) / rate * 1000)}
 
 
 def get_model():
@@ -115,6 +176,7 @@ def synthesize(body: SpeechRequest):
     voice = next((v for v in VOICES if v["id"] == body.voice), None)
     if voice is None:
         raise HTTPException(400, "Unknown voice")
+    reference = decode_reference(body.reference.audio) if body.reference else None
     if not lock.acquire(blocking=False):
         raise HTTPException(429, "OmniVoice is busy; retry after the current request", headers={"Retry-After": "5"})
     try:
@@ -126,7 +188,10 @@ def synthesize(body: SpeechRequest):
         current = get_model()
         torch.manual_seed(voice.get("seed", 42))
         options = {"instruct": voice.get("instruct")}
-        if voice.get("ref_audio"):
+        if reference is not None:
+            samples, rate = reference
+            options = {"ref_audio": (torch.from_numpy(samples).unsqueeze(0), rate), "ref_text": body.reference.text}
+        elif voice.get("ref_audio"):
             options.update(ref_audio=voice["ref_audio"], ref_text=voice["ref_text"])
         with torch.inference_mode():
             audio = current.generate(

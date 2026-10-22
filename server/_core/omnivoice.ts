@@ -1,6 +1,43 @@
 /** 仅连接运营方配置的 OmniVoice 地址；客户端不能指定 URL 或服务密钥。 */
 import axios from "axios";
 import { z } from "zod";
+import {
+  OMNIVOICE_REFERENCE_MAX_BASE64,
+  type OmniVoiceReference,
+} from "../../shared/omnivoice";
+
+/** 通过固定本地服务校验并规范化参考录音，仅返回 WAV 字节及毫秒时长。 */
+export async function normalizeOmniVoiceReference(audio: string) {
+  const config = getOmniVoiceConfig();
+  if (!config) throw new Error("OmniVoice 本地服务尚未配置");
+  try {
+    const response = await axios.post(
+      `${config.baseUrl}/v1/audio/references`,
+      { audio },
+      {
+        headers: config.headers,
+        timeout: 30000,
+        maxRedirects: 0,
+        maxBodyLength: 8 * 1024 * 1024,
+        maxContentLength: 3 * 1024 * 1024,
+      }
+    );
+    return z
+      .object({
+        audio: z.string().min(1).max(OMNIVOICE_REFERENCE_MAX_BASE64),
+        durationMs: z.number().int().min(3000).max(30000),
+      })
+      .parse(response.data);
+  } catch (error) {
+    // eslint-disable-next-line preserve-caught-error -- Never expose upstream request headers or local paths.
+    throw new Error(
+      axios.isAxiosError(error) &&
+        [400, 422].includes(error.response?.status ?? 0)
+        ? "参考音频无效，请上传 3～30 秒、5 MB 以内的清晰人声录音（WAV、MP3、FLAC 或 OGG）"
+        : "无法处理参考音频，请检查 OmniVoice 本地服务是否运行"
+    );
+  }
+}
 
 const catalogSchema = z.object({
   voices: z
@@ -61,7 +98,8 @@ export async function getOmniVoiceCatalog() {
 export async function generateOmniVoiceSpeech(
   text: string,
   voice: string,
-  signal: AbortSignal
+  signal: AbortSignal,
+  reference?: OmniVoiceReference
 ) {
   const config = getOmniVoiceConfig();
   if (!config) throw new Error("OmniVoice 本地服务尚未配置");
@@ -73,6 +111,7 @@ export async function generateOmniVoiceSpeech(
         input: text,
         voice,
         response_format: "wav",
+        ...(reference ? { reference } : {}),
       },
       {
         headers: config.headers,

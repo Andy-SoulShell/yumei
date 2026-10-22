@@ -17,6 +17,8 @@ import {
 } from "../_core/keyProvider";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getUserApiConfig, upsertApiConfig } from "../repositories/apiConfig";
+import { OMNIVOICE_CLONE_PREFIX } from "../../shared/omnivoice";
+import { getOmniVoiceClone } from "../repositories/omnivoice";
 
 export const apiConfigRouter = router({
   /** 返回普通偏好、密钥脱敏状态和已解析 Provider 信息，不回传完整密钥。 */
@@ -80,6 +82,8 @@ export const apiConfigRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      if (input.omnivoiceVoiceId?.startsWith(OMNIVOICE_CLONE_PREFIX))
+        await getOmniVoiceClone(ctx.user.id, input.omnivoiceVoiceId);
       const limits = (await getPublishedProductConfig()).characters.limits;
       for (const [key, max] of [
         ["globalPrompt", limits.globalPrompt],

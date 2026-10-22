@@ -19,6 +19,7 @@ import {
   conversationSummaries,
   girlfriendMoods,
   girlfriends,
+  omnivoiceVoices,
   mediaDeletions,
   memories,
   memoryEmbeddings,
@@ -62,6 +63,7 @@ async function insertGirlfriend(
   tx: DbTransaction,
   data: InsertGirlfriend
 ): Promise<Girlfriend> {
+  await validateCompanionVoice(tx, data.userId, data.omnivoiceVoiceId);
   await publishMedia(tx, data.userId, [data.referenceImageKey, data.avatarKey]);
   if (data.isActive ?? true)
     await tx
@@ -86,6 +88,26 @@ async function insertGirlfriend(
     .from(girlfriends)
     .where(eq(girlfriends.id, Number(result.insertId)));
   return created;
+}
+
+/** 在保存角色绑定的同一用户事务内校验私人音色归属。 */
+async function validateCompanionVoice(
+  tx: DbTransaction,
+  userId: string,
+  voiceId?: string | null
+) {
+  if (!voiceId) return;
+  const [voice] = await tx
+    .select({ id: omnivoiceVoices.id })
+    .from(omnivoiceVoices)
+    .where(
+      and(eq(omnivoiceVoices.id, voiceId), eq(omnivoiceVoices.userId, userId))
+    );
+  if (!voice)
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "克隆音色不存在，请重新选择",
+    });
 }
 
 // 陪伴角色。
@@ -243,6 +265,7 @@ export async function updateGirlfriend(
         .set({ isActive: false })
         .where(eq(girlfriends.userId, userId));
     }
+    await validateCompanionVoice(tx, userId, data.omnivoiceVoiceId);
     await publishMedia(tx, userId, [data.avatarKey]);
     await tx.update(girlfriends).set(data).where(eq(girlfriends.id, id));
     if (

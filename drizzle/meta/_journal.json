@@ -36,6 +36,20 @@
       "when": 1792670264151,
       "tag": "0004_omnivoice",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1792675048583,
+      "tag": "0005_omnivoice_clones",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1792676447991,
+      "tag": "0006_character_voice",
+      "breakpoints": true
     }
   ]
 }

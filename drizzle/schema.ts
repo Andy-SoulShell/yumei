@@ -7,6 +7,7 @@ import {
   mysqlEnum,
   mysqlTable,
   text,
+  mediumtext,
   timestamp,
   uniqueIndex,
   varchar,
@@ -76,6 +77,23 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 /** 从 users 表结构推导的新增记录输入，允许省略由数据库填充的字段。 */
 export type InsertUser = typeof users.$inferInsert;
+
+/** 用户私有的音色参考录音与原文，不通过公开媒体路由发布。 */
+export const omnivoiceVoices = mysqlTable(
+  "omnivoiceVoices",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    userId: varchar("userId", { length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 80 }).notNull(),
+    referenceAudio: mediumtext("referenceAudio").notNull(),
+    referenceText: text("referenceText").notNull(),
+    durationMs: int("durationMs").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({ byUser: index("idx_omnivoice_voices_user").on(table.userId) })
+);
 
 /** 账号级界面语言、配色与显示模式；独立于模型和 AI 回复偏好。 */
 export const userPreferences = mysqlTable("userPreferences", {
@@ -162,6 +180,10 @@ export const girlfriends = mysqlTable(
     referenceImageKey: varchar("referenceImageKey", { length: 500 }).notNull(), // 存储文件 key
     customPrompt: text("customPrompt"), // 个体定制提示词，追加在全局提示词之后
     behavior: json("behavior").$type<CompanionBehavior>(),
+    omnivoiceVoiceId: varchar("omnivoiceVoiceId", { length: 64 }).references(
+      () => omnivoiceVoices.id,
+      { onDelete: "set null" }
+    ),
     memoryEnabled: boolean("memoryEnabled").default(true).notNull(),
     memoryEpoch: int("memoryEpoch").default(0).notNull(),
     memoryForgottenThroughId: int("memoryForgottenThroughId")

@@ -37,6 +37,14 @@ import {
   updateGirlfriend,
 } from "../repositories/companions";
 import { getIntimacyInfo } from "../repositories/intimacy";
+import { OMNIVOICE_CLONE_PREFIX } from "../../shared/omnivoice";
+
+const roleVoiceSchema = z
+  .string()
+  .startsWith(OMNIVOICE_CLONE_PREFIX)
+  .max(64)
+  .nullable()
+  .optional();
 
 export const girlfriendRouter = router({
   /** 使用最新已发布官方资料创建，按用户及预设 ID 原子复用已有角色。 */
@@ -88,6 +96,7 @@ export const girlfriendRouter = router({
           interests: z.string().max(10000).optional(),
           customPrompt: z.string().max(10000).optional(),
           behavior: companionBehaviorSchema.optional(),
+          omnivoiceVoiceId: roleVoiceSchema,
           presetId: officialIdSchema.optional(),
           referenceImageBase64: z.string().min(1).optional(),
           referenceImageMimeType: z
@@ -162,6 +171,7 @@ export const girlfriendRouter = router({
             interests: input.interests,
             customPrompt: input.customPrompt || null,
             behavior: input.behavior ?? preset?.behavior,
+            omnivoiceVoiceId: input.omnivoiceVoiceId,
             referenceImageUrl: imageUrl,
             referenceImageKey: fileKey,
             isActive: true,
@@ -207,6 +217,7 @@ export const girlfriendRouter = router({
         interests: z.string().max(10000).optional(),
         customPrompt: z.string().max(10000).nullable().optional(),
         behavior: companionBehaviorSchema.optional(),
+        omnivoiceVoiceId: roleVoiceSchema,
         isActive: z.boolean().optional(),
         avatarUrl: z.null().optional(),
         avatarKey: z.null().optional(),

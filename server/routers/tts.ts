@@ -16,20 +16,94 @@ import {
   generateOmniVoiceSpeech,
   getOmniVoiceCatalog,
   getOmniVoiceConfig,
+  normalizeOmniVoiceReference,
 } from "../_core/omnivoice";
+import {
+  OMNIVOICE_CLONE_PREFIX,
+  OMNIVOICE_REFERENCE_MAX_BASE64,
+  OMNIVOICE_REFERENCE_MAX_BYTES,
+} from "../../shared/omnivoice";
+import {
+  createOmniVoiceClone,
+  deleteOmniVoiceClone,
+  getOmniVoiceClone,
+  listOmniVoiceClones,
+} from "../repositories/omnivoice";
+import { decodeBase64Upload } from "../_core/uploads";
+import { getActiveGirlfriend } from "../repositories/companions";
 
 export const ttsRouter = router({
   /** 服务连通性和公开音色；不返回运营方地址或密钥。 */
-  omnivoiceStatus: protectedProcedure.query(() => getOmniVoiceCatalog()),
+  omnivoiceStatus: protectedProcedure.query(async ({ ctx }) => {
+    const catalog = await getOmniVoiceCatalog();
+    return {
+      ...catalog,
+      voices: [
+        ...catalog.voices.map(v => ({
+          ...v,
+          cloned: false,
+          durationMs: null as number | null,
+        })),
+        ...(await listOmniVoiceClones(ctx.user.id)).map(v => ({
+          ...v,
+          cloned: true,
+        })),
+      ],
+    };
+  }),
+  createOmnivoiceVoice: protectedProcedure
+    .input(
+      z.object({
+        name: z.string().trim().min(1).max(80),
+        audio: z.string().min(1).max(OMNIVOICE_REFERENCE_MAX_BASE64),
+        text: z.string().trim().min(1).max(2000),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      ensureAgeConfirmed(ctx.user);
+      await checkRateLimit(
+        ctx.user.id,
+        "tts",
+        await getPublishedProductConfig()
+      );
+      if (
+        decodeBase64Upload(input.audio).length > OMNIVOICE_REFERENCE_MAX_BYTES
+      )
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "参考音频不能超过 5 MB",
+        });
+      const normalized = await normalizeOmniVoiceReference(input.audio);
+      return createOmniVoiceClone(ctx.user.id, {
+        name: input.name,
+        text: input.text,
+        ...normalized,
+      });
+    }),
+  deleteOmnivoiceVoice: protectedProcedure
+    .input(
+      z.object({ id: z.string().startsWith(OMNIVOICE_CLONE_PREFIX).max(64) })
+    )
+    .mutation(({ ctx, input }) => deleteOmniVoiceClone(ctx.user.id, input.id)),
   /** 检查请求频率、套餐与文本长度后生成语音，并保存可播放文件。 */
   generate: protectedProcedure
     .input(
       z.object({
         text: z.string().min(1).max(20000),
+        girlfriendId: z.number().int().positive().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       ensureAgeConfirmed(ctx.user);
+      const girlfriend =
+        input.girlfriendId === undefined
+          ? undefined
+          : await getActiveGirlfriend(ctx.user.id, input.girlfriendId);
+      if (input.girlfriendId !== undefined && !girlfriend)
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Companion not found",
+        });
       // 服务端限流。
       const policy = await getPublishedProductConfig();
       await checkRateLimit(ctx.user.id, "tts", policy);
@@ -40,10 +114,18 @@ export const ttsRouter = router({
         });
 
       const apiConfig = await getUserApiConfig(ctx.user.id);
-      const provider =
-        apiConfig?.ttsProvider || policy.experience.playback.defaultProvider;
+      const provider = girlfriend?.omnivoiceVoiceId
+        ? "omnivoice"
+        : apiConfig?.ttsProvider || policy.experience.playback.defaultProvider;
 
       if (provider === "omnivoice") {
+        const voiceId =
+          girlfriend?.omnivoiceVoiceId ||
+          apiConfig?.omnivoiceVoiceId ||
+          "default";
+        const clone = voiceId.startsWith(OMNIVOICE_CLONE_PREFIX)
+          ? await getOmniVoiceClone(ctx.user.id, voiceId)
+          : null;
         const config = getOmniVoiceConfig();
         if (!config) throw new Error("OmniVoice 本地服务尚未配置");
         if (input.text.length > 5000)
@@ -63,8 +145,11 @@ export const ttsRouter = router({
           async signal => ({
             value: await generateOmniVoiceSpeech(
               input.text,
-              apiConfig?.omnivoiceVoiceId || "default",
-              signal
+              clone ? "default" : voiceId,
+              signal,
+              clone
+                ? { audio: clone.referenceAudio, text: clone.referenceText }
+                : undefined
             ),
           }),
           {

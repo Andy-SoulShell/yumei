@@ -1,0 +1,2 @@
+ALTER TABLE `girlfriends` ADD `omnivoiceVoiceId` varchar(64);--> statement-breakpoint
+ALTER TABLE `girlfriends` ADD CONSTRAINT `girlfriends_omnivoiceVoiceId_omnivoiceVoices_id_fk` FOREIGN KEY (`omnivoiceVoiceId`) REFERENCES `omnivoiceVoices`(`id`) ON DELETE set null ON UPDATE no action;

@@ -348,6 +348,20 @@ export default {
       "선택한 동반자 {{count}}명을 삭제할까요? {{days}}일 안에 휴지통에서 복원할 수 있어요.",
   },
   settings: {
+    profileTitle: "개인 프로필",
+    profileDescription:
+      "사용자 이름과 아바타가 계정과 채팅에 표시됩니다. 저장하면 적용됩니다.",
+    profileUsername: "사용자 이름",
+    profileUsernameHint: "1~{{max}}자로 입력하세요. 표시 이름으로 사용됩니다.",
+    profileInvalidUsername:
+      "제어 문자를 제외한 1~{{max}}자의 사용자 이름을 입력하세요.",
+    profileAvatar: "내 아바타",
+    profileChangeAvatar: "아바타 선택",
+    profileRemoveAvatar: "아바타 삭제",
+    profileSave: "프로필 저장",
+    profileSaved: "프로필이 저장되었습니다",
+    profileSaveFailed:
+      "프로필을 저장하지 못했습니다. 변경 내용은 유지됩니다. 다시 시도해 주세요.",
     proactiveTitle: "캐릭터의 먼저 연락",
     proactiveDescription:
       "캐릭터가 먼저 안부를 물어도 되는지 선택하세요. 기본값은 꺼짐이에요.",

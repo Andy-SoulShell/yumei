@@ -8,6 +8,7 @@ const mediaHosts = new Set(
   )
 );
 const mediaFields = new Set([
+  "image",
   "url",
   "imageUrl",
   "avatarUrl",

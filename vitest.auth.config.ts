@@ -11,6 +11,7 @@ export default defineConfig({
       "client/src/App.test.tsx",
       "client/src/features/auth/*.test.tsx",
       "client/src/features/settings/PasswordSettings.test.tsx",
+      "client/src/features/settings/ProfileSettings.test.tsx",
       "client/src/lib/auth-navigation.test.ts",
       "client/src/lib/serviceWorker.test.ts",
       "server/_core/email.test.ts",

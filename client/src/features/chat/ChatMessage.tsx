@@ -13,6 +13,7 @@ type Props = {
   companionName: string;
   companionImage?: string | null;
   userInitial: string;
+  userImage?: string | null;
   t: ChatController["t"];
   ttsLabel: string;
   isPlaying: boolean;
@@ -51,6 +52,7 @@ function sameProps(a: Props, b: Props) {
     a.companionName === b.companionName &&
     a.companionImage === b.companionImage &&
     a.userInitial === b.userInitial &&
+    a.userImage === b.userImage &&
     a.t === b.t &&
     a.ttsLabel === b.ttsLabel &&
     a.isPlaying === b.isPlaying &&
@@ -68,6 +70,7 @@ export const ChatMessage = memo(function ChatMessage({
   companionName,
   companionImage,
   userInitial,
+  userImage,
   t,
   ttsLabel,
   isPlaying,
@@ -247,6 +250,7 @@ export const ChatMessage = memo(function ChatMessage({
 
       {msg.role === "user" && (
         <Avatar className="w-8 h-8 flex-shrink-0">
+          <AvatarImage src={userImage || undefined} alt={userInitial} />
           <AvatarFallback>{userInitial}</AvatarFallback>
         </Avatar>
       )}

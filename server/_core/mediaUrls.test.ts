@@ -39,6 +39,7 @@ describe("same-origin media responses", () => {
     const prefix = "http://127.0.0.1:3000/files/";
     const createdAt = new Date("2026-10-20T00:00:00Z");
     const input = {
+      user: { image: `${prefix}user-avatar.png` },
       role: {
         avatarUrl: `${prefix}avatar.png`,
         referenceImageUrl: `${prefix}reference.png`,
@@ -50,6 +51,7 @@ describe("same-origin media responses", () => {
       upload: { key: "file.bin", url: `${prefix}file.bin` },
     };
     const result = normalizeMediaResponse(input);
+    expect(result.user.image).toBe("/files/user-avatar.png");
     expect(result.role.avatarUrl).toBe("/files/avatar.png");
     expect(result.role.referenceImageUrl).toBe("/files/reference.png");
     expect(result.role.createdAt).toBe(createdAt);

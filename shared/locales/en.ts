@@ -352,6 +352,20 @@ export default {
       "Delete the {{count}} selected companions? You can restore them from trash within {{days}} days.",
   },
   settings: {
+    profileTitle: "Personal profile",
+    profileDescription:
+      "Your username and avatar appear in your account and chats. Save to apply changes.",
+    profileUsername: "Username",
+    profileUsernameHint: "Use 1–{{max}} characters. This is your display name.",
+    profileInvalidUsername:
+      "Enter a username of 1–{{max}} characters without control characters.",
+    profileAvatar: "Your avatar",
+    profileChangeAvatar: "Choose avatar",
+    profileRemoveAvatar: "Remove avatar",
+    profileSave: "Save profile",
+    profileSaved: "Profile saved",
+    profileSaveFailed:
+      "Could not save your profile. Your changes are kept. Please try again.",
     proactiveTitle: "Proactive contact",
     proactiveDescription:
       "Choose whether your characters may check in with you. This is off by default.",

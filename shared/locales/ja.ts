@@ -355,6 +355,21 @@ export default {
       "選択した{{count}}人を削除しますか？ゴミ箱から{{days}}日以内なら復元できます。",
   },
   settings: {
+    profileTitle: "プロフィール",
+    profileDescription:
+      "ユーザー名とアバターはアカウントとチャットに表示されます。保存すると反映されます。",
+    profileUsername: "ユーザー名",
+    profileUsernameHint:
+      "1～{{max}}文字で入力してください。表示名として使われます。",
+    profileInvalidUsername:
+      "制御文字を含まない1～{{max}}文字のユーザー名を入力してください。",
+    profileAvatar: "自分のアバター",
+    profileChangeAvatar: "アバターを選択",
+    profileRemoveAvatar: "アバターを削除",
+    profileSave: "プロフィールを保存",
+    profileSaved: "プロフィールを保存しました",
+    profileSaveFailed:
+      "プロフィールを保存できませんでした。変更内容は保持されています。もう一度お試しください。",
     proactiveTitle: "キャラクターからの連絡",
     proactiveDescription:
       "キャラクターからの連絡を許可するか選べます。初期設定はオフです。",

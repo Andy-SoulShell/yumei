@@ -335,6 +335,18 @@ export default {
       "确定要删除选中的 {{count}} 位女友吗？她们将被移入回收站，{{days}} 天内可以恢复。",
   },
   settings: {
+    profileTitle: "个人资料",
+    profileDescription: "用户名和头像会显示在账号与聊天中，保存后生效。",
+    profileUsername: "用户名",
+    profileUsernameHint: "支持 1–{{max}} 个字符，用作你的显示名称。",
+    profileInvalidUsername:
+      "请输入 1–{{max}} 个字符的用户名，请勿包含控制字符。",
+    profileAvatar: "我的头像",
+    profileChangeAvatar: "选择头像",
+    profileRemoveAvatar: "移除头像",
+    profileSave: "保存个人资料",
+    profileSaved: "个人资料已保存",
+    profileSaveFailed: "个人资料保存失败，已保留修改，请重试。",
     proactiveTitle: "主动联系",
     proactiveDescription: "选择是否允许角色主动关心你，默认关闭。",
     proactiveEnabled: "允许主动联系",

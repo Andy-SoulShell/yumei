@@ -10,16 +10,23 @@ import {
   rateWindows,
   selfies,
   voiceTranscriptions,
+  users,
 } from "../drizzle/schema";
 import { log, providerErrorSummary } from "./_core/log";
 import { getDb, withUserTransaction, type DbTransaction } from "./database";
 import { storageDelete } from "./storage";
 
-/** 检查角色、相册和聊天消息是否仍引用媒体键。 */
+/** 检查用户头像、角色、相册和聊天消息是否仍引用媒体键。 */
 async function hasReferences(
   db: DbTransaction | NonNullable<Awaited<ReturnType<typeof getDb>>>,
   key: string
 ) {
+  const [user] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.image, `/files/${key}`))
+    .limit(1);
+  if (user) return true;
   const [role] = await db
     .select({ id: girlfriends.id })
     .from(girlfriends)

@@ -34,6 +34,9 @@ vi.mock("@/components/ui/avatar", async importOriginal => {
       renderStats.avatars++;
       return <original.Avatar {...props} />;
     },
+    AvatarImage: (props: ComponentProps<typeof original.AvatarImage>) => (
+      <img src={props.src} alt={props.alt} />
+    ),
   };
 });
 let root: Root;
@@ -87,6 +90,41 @@ afterEach(async () => {
 async function render() {
   await act(async () => root.render(<ChatMessages {...props} />));
 }
+
+it("updates user avatars in existing and pending messages when the profile changes", async () => {
+  props.user = {
+    ...props.user,
+    name: "Test",
+    image: "/files/before.png",
+  } as typeof props.user;
+  props.chatStream.pending = {
+    clientRequestId: "pending",
+    conversationId: 42,
+    content: "发送中",
+  };
+  await render();
+  expect(
+    container.querySelector('[data-message-id="1"] img')?.getAttribute("src")
+  ).toBe("/files/before.png");
+  props.user = { ...props.user!, image: "/files/after.png" };
+  await render();
+  expect(
+    container.querySelector('[data-message-id="1"] img')?.getAttribute("src")
+  ).toBe("/files/after.png");
+  expect(
+    container.querySelectorAll('img[src="/files/after.png"]')
+  ).toHaveLength(2);
+  props.user = { ...props.user!, image: null };
+  await render();
+  expect(
+    container.querySelector('[data-message-id="1"] img')?.getAttribute("src")
+  ).toBeNull();
+  expect(
+    container.querySelector(
+      '[data-message-id="1"] [data-slot="avatar-fallback"]'
+    )?.textContent
+  ).toBe("T");
+});
 
 it("uses persisted generation kind for video rows and never treats ordinary text as a video", async () => {
   props.chatMessages = [

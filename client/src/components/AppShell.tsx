@@ -242,9 +242,21 @@ export function AppShell({ children }: { children: ReactNode }) {
                     className="mobile-account-dropdown w-64 max-w-[calc(100vw-2rem)]"
                   >
                     <DropdownMenuLabel className="break-all px-3 py-2 text-sm font-medium">
-                      {user.email}
+                      <span className="block">{user.name || user.email}</span>
+                      {user.name && (
+                        <span className="block text-xs font-normal text-muted-foreground">
+                          {user.email}
+                        </span>
+                      )}
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="min-h-11 px-3"
+                      onSelect={() => navigate("/settings")}
+                    >
+                      <Settings />
+                      {t("settings:profileTitle")}
+                    </DropdownMenuItem>
                     <DropdownMenuItem
                       className="min-h-11 px-3"
                       disabled={loading}
@@ -263,7 +275,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               >
                 {accountAvatar}
                 <span className="account-email" title={user.email}>
-                  {user.email}
+                  {user.name || user.email}
                 </span>
                 <Button
                   variant="ghost"

@@ -277,13 +277,16 @@ describe("header account actions", () => {
     expect(actions.querySelector("button, [role=combobox]")).toBeNull();
   });
 
-  it("shows notifications, avatar and email with a direct sign-out action", async () => {
+  it("shows notifications, avatar and username with the email available on hover", async () => {
     mock.user = { name: "Andy Hoh", email: "andy@example.com", image: null };
     await render();
     const actions = container.querySelector(".app-header-actions")!;
     expect(actions.querySelector('[aria-label="通知"]')).not.toBeNull();
     expect(actions.querySelector(".account-avatar")?.textContent).toBe("A");
     expect(actions.querySelector(".account-email")?.textContent).toBe(
+      mock.user.name
+    );
+    expect(actions.querySelector(".account-email")?.getAttribute("title")).toBe(
       mock.user.email
     );
     expect(
@@ -331,12 +334,26 @@ describe("header account actions", () => {
     );
     const menu = document.querySelector('[role="menu"]')!;
     expect(menu.textContent).toContain(mock.user.email);
+    expect(menu.textContent).toContain(mock.user.name);
     expect(mock.logout).not.toHaveBeenCalled();
-    const signOut = menu.querySelector<HTMLElement>('[role="menuitem"]')!;
+    const items = Array.from(
+      menu.querySelectorAll<HTMLElement>('[role="menuitem"]')
+    );
+    expect(items.some(item => item.textContent === "个人资料")).toBe(true);
+    const signOut = items.find(item => item.textContent === "退出登录")!;
     expect(signOut.textContent).toBe("退出登录");
     await settle(() => signOut.click());
     expect(mock.logout).toHaveBeenCalledOnce();
     expect(mock.navigate).toHaveBeenCalledWith("/");
+  });
+
+  it("updates the account display when the shared user changes", async () => {
+    mock.user = { name: "Before", email: "andy@example.com", image: null };
+    await render();
+    mock.user = { ...mock.user, name: "小雨" };
+    await render();
+    expect(container.querySelector(".account-email")?.textContent).toBe("小雨");
+    expect(container.querySelector(".account-avatar")?.textContent).toBe("小");
   });
 });
 

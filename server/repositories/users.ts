@@ -1,7 +1,8 @@
 /** users 领域的数据访问与事务边界。 */
 import { and, eq, isNotNull, ne } from "drizzle-orm";
-import { accounts, users } from "../../drizzle/schema";
-import { getDb } from "../database";
+import { accounts, mediaDeletions, users } from "../../drizzle/schema";
+import { getDb, withUserTransaction } from "../database";
+import { publishMedia } from "../managedMedia";
 
 // 用户资料。
 
@@ -14,6 +15,41 @@ export async function getUserById(id: string) {
 
   const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
   return result.length > 0 ? result[0] : undefined;
+}
+
+/** 在用户锁内保存姓名和头像，并将旧头像与资料变更一同交给清理队列。 */
+export async function updateUserProfile(
+  userId: string,
+  name: string,
+  avatarKey?: string | null
+) {
+  return withUserTransaction(userId, async tx => {
+    const [current] = await tx.select().from(users).where(eq(users.id, userId));
+    const image =
+      avatarKey === undefined
+        ? current.image
+        : avatarKey === null
+          ? null
+          : `/files/${avatarKey}`;
+    await publishMedia(tx, userId, [avatarKey]);
+    const updatedAt = new Date();
+    await tx
+      .update(users)
+      .set({ name, image, updatedAt })
+      .where(eq(users.id, userId));
+    // 本功能只回收自己创建的存储文件，外部头像地址没有删除权限。
+    if (
+      current.image !== image &&
+      current.image?.startsWith("/files/user-avatar-")
+    ) {
+      const key = current.image.slice("/files/".length);
+      await tx
+        .insert(mediaDeletions)
+        .values({ key, userId, availableAt: new Date() })
+        .onDuplicateKeyUpdate({ set: { availableAt: new Date() } });
+    }
+    return { ...current, name, image, updatedAt };
+  });
 }
 
 /** 保存用户的出生日期；调用方负责校验日期和成年条件。 */

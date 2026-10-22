@@ -156,6 +156,7 @@ export function ChatMessages({
                   girlfriend.avatarUrl || girlfriend.referenceImageUrl
                 }
                 userInitial={user?.name?.[0] || t("chat:u")}
+                userImage={user?.image}
                 t={t}
                 ttsLabel={ttsLabel}
                 isPlaying={isSpeaking && activeMessageId === msg.id}
@@ -253,6 +254,10 @@ export function ChatMessages({
                 {chatStream.pending.content}
               </div>
               <Avatar className="size-8 shrink-0">
+                <AvatarImage
+                  src={user?.image || undefined}
+                  alt={user?.name || t("chat:u")}
+                />
                 <AvatarFallback>
                   {user?.name?.[0] || t("chat:u")}
                 </AvatarFallback>
@@ -273,6 +278,10 @@ export function ChatMessages({
                 {sendMediaMessage.variables.content}
               </div>
               <Avatar className="w-8 h-8 flex-shrink-0">
+                <AvatarImage
+                  src={user?.image || undefined}
+                  alt={user?.name || t("chat:u")}
+                />
                 <AvatarFallback>
                   {user?.name?.[0] || t("chat:u")}
                 </AvatarFallback>

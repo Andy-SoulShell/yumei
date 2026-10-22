@@ -17,6 +17,7 @@ import { TranscriptionSettings } from "@/features/settings/TranscriptionSettings
 import { useSettingsController } from "@/features/settings/useSettingsController";
 import { VoiceSettings } from "@/features/settings/VoiceSettings";
 import { PasswordSettings } from "@/features/settings/PasswordSettings";
+import { ProfileSettings } from "@/features/settings/ProfileSettings";
 import { ProactivePreferences } from "@/features/settings/ProactivePreferences";
 import { ArrowLeft, ChevronDown, Loader2, Moon, Save, Sun } from "lucide-react";
 export default function Settings() {
@@ -74,6 +75,7 @@ export default function Settings() {
           <PageError onRetry={() => void retryConfig()} />
         ) : (
           <>
+            <ProfileSettings />
             <PasswordSettings />
             {/* ========== 订阅与用量 ========== */}
             <BillingCard />

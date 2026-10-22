@@ -21,6 +21,7 @@ import {
 } from "./useChatStream";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import { formatChatQuote, parseChatQuote } from "./chatQuote";
 import { toast } from "sonner";
 import { useLocation, useParams, useSearch } from "wouter";
 
@@ -172,22 +173,28 @@ export function useChatController() {
     },
     [isCurrentScope, maxMessageLength, setMessage, t]
   );
-  /** 话题与快捷动作追加到现有草稿，交给用户编辑后发送。 */
+  /** 话题与快捷动作追加到本次回复中，保留已选引用和已有文字。 */
   const insertChatDraft = useCallback(
     (text: string) => {
       const current = draftRef.current;
-      applyChatDraft(current.trim() ? current + "\n" + text : text);
+      const quote = parseChatQuote(current);
+      const reply = quote?.reply ?? current;
+      const next = reply.trim() ? `${reply}\n${text}` : text;
+      applyChatDraft(quote ? formatChatQuote(quote, next) : next);
     },
     [applyChatDraft]
   );
   const quoteMessage = useCallback(
     (text: string, author: string) => {
-      const quoted =
-        "> " +
-        author.replace(/[\r\n]+/g, " ").trim() +
-        "\n> " +
-        text.replaceAll("\r\n", "\n").replaceAll("\n", "\n> ");
-      applyChatDraft(quoted + "\n\n" + draftRef.current);
+      const current = draftRef.current;
+      const draftQuote = parseChatQuote(current);
+      const sourceQuote = parseChatQuote(text);
+      applyChatDraft(
+        formatChatQuote(
+          { author, text: sourceQuote?.reply || text },
+          draftQuote?.reply ?? current
+        )
+      );
     },
     [applyChatDraft]
   );
@@ -654,7 +661,7 @@ export function useChatController() {
     if (
       !isCurrentScope() ||
       voicePreviewRef.current ||
-      !message.trim() ||
+      !(parseChatQuote(message)?.reply ?? message).trim() ||
       !currentConversationId ||
       isAccepting ||
       generateSelfie.isPending ||

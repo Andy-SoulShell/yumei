@@ -322,3 +322,41 @@ it("cancels a voice preview and returns to normal input", async () => {
   );
   expect(previewSent).not.toHaveBeenCalled();
 });
+
+it("shows the selected quote outside the editable reply and submits both parts", async () => {
+  initialMessage = "> 夏末\n> 原来的话\n\n已经写了一半";
+  await act(async () => root.render(<Harness key="quote-draft" />));
+  expect(input().value).toBe("已经写了一半");
+  expect(container.querySelector("blockquote cite")?.textContent).toBe("夏末");
+  expect(container.querySelector(".chat-quote-text")?.textContent).toBe(
+    "原来的话"
+  );
+  await fill("新的回复");
+  await key();
+  expect(submitted).toHaveBeenCalledWith("> 夏末\n> 原来的话\n\n新的回复");
+});
+
+it("removes the quote without removing or sending the drafted reply", async () => {
+  initialMessage = "> 夏末\n> 引用内容\n\n保留这段回复";
+  await act(async () => root.render(<Harness key="remove-quote" />));
+  await act(async () =>
+    container
+      .querySelector<HTMLButtonElement>('[aria-label="取消引用"]')!
+      .click()
+  );
+  expect(container.querySelector("blockquote")).toBeNull();
+  expect(input().value).toBe("保留这段回复");
+  expect(document.activeElement).toBe(input());
+  expect(submitted).not.toHaveBeenCalled();
+});
+
+it("requires a reply rather than sending only the selected quote", async () => {
+  initialMessage = "> 夏末\n> 等你回复\n\n";
+  await act(async () => root.render(<Harness key="quote-only" />));
+  expect(input().value).toBe("");
+  expect(
+    container.querySelector<HTMLButtonElement>('[type="submit"]')!.disabled
+  ).toBe(true);
+  await key();
+  expect(submitted).not.toHaveBeenCalled();
+});

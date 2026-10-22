@@ -259,3 +259,17 @@ it("offers three named starters only for an empty conversation and fills a draft
   await render();
   expect(container.querySelector('[aria-label="开场话题"]')).toBeNull();
 });
+
+it("renders existing quoted user messages as a card and a separate reply without raw markers", async () => {
+  props.chatMessages = [
+    { id: 1, role: "user", content: "> 夏末\n> 好，我在这儿，慢慢说。\nnihao" },
+  ] as any;
+  await render();
+  const bubble = container.querySelector(".chat-bubble-user")!;
+  expect(bubble.querySelector("blockquote cite")?.textContent).toBe("夏末");
+  expect(bubble.querySelector(".chat-quote-text")?.textContent).toBe(
+    "好，我在这儿，慢慢说。"
+  );
+  expect(bubble.querySelector(":scope > p")?.textContent).toBe("nihao");
+  expect(bubble.textContent).not.toContain("> ");
+});

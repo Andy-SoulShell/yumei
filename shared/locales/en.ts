@@ -478,6 +478,7 @@ export default {
     token: "/token",
   },
   chat: {
+    removeQuote: "Remove quote",
     starterTopics: "Conversation starters",
     starterDay: "Tell me about your day",
     starterDayDraft:

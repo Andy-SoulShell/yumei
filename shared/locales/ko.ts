@@ -476,6 +476,7 @@ export default {
     token: "/token",
   },
   chat: {
+    removeQuote: "인용 취소",
     starterTopics: "대화 시작하기",
     starterDay: "오늘 하루 이야기",
     starterDayDraft: "{{name}}, 오늘 하루 어땠어? 네 이야기를 듣고 싶어.",

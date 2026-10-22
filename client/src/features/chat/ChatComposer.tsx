@@ -21,6 +21,8 @@ import {
   Square,
 } from "lucide-react";
 import { ChatVoicePreview } from "./ChatVoicePreview";
+import { ChatQuoteCard } from "./ChatQuoteCard";
+import { formatChatQuote, parseChatQuote } from "./chatQuote";
 
 import type { ChatController } from "./useChatController";
 type Props = Pick<
@@ -91,7 +93,16 @@ export function ChatComposer({
   const toolsId = useId();
   // 已保存的语音偏好不能阻止不支持录音的环境继续使用文字聊天。
   const textInput = inputMode === "text" || !voiceSupported;
-  useAutosizeTextarea(inputRef, message, textInput && !voicePreview);
+  const quote = parseChatQuote(message);
+  const draftText = quote?.reply ?? message;
+  const textLimit =
+    maxMessageLength === undefined
+      ? undefined
+      : Math.max(
+          0,
+          maxMessageLength - (quote ? formatChatQuote(quote, "").length : 0)
+        );
+  useAutosizeTextarea(inputRef, draftText, textInput && !voicePreview);
   const busy =
     isAccepting ||
     generateSelfie.isPending ||
@@ -239,6 +250,19 @@ export function ChatComposer({
             />
           ) : (
             <>
+              {quote && textInput && (
+                <div className="chat-composer-quote">
+                  <ChatQuoteCard
+                    author={quote.author}
+                    text={quote.text}
+                    removeLabel={t("chat:removeQuote")}
+                    onRemove={() => {
+                      flushSync(() => setMessage(draftText));
+                      inputRef.current?.focus({ preventScroll: true });
+                    }}
+                  />
+                </div>
+              )}
               <CollapsibleTrigger asChild>
                 <Button
                   type="button"
@@ -263,9 +287,15 @@ export function ChatComposer({
                   <Textarea
                     ref={inputRef}
                     rows={1}
-                    maxLength={maxMessageLength}
-                    value={message}
-                    onChange={event => setMessage(event.target.value)}
+                    maxLength={textLimit}
+                    value={draftText}
+                    onChange={event =>
+                      setMessage(
+                        quote
+                          ? formatChatQuote(quote, event.target.value)
+                          : event.target.value
+                      )
+                    }
                     placeholder={t("chat:messagePlaceholder")}
                     aria-label={t("chat:saySomethingTo", {
                       name: girlfriend.name,
@@ -285,11 +315,14 @@ export function ChatComposer({
                       ).matches;
                       if (!desktop && !event.ctrlKey && !event.metaKey) return;
                       event.preventDefault();
-                      if (!busy && message.trim())
+                      if (!busy && draftText.trim())
                         event.currentTarget.form?.requestSubmit();
                     }}
                   />
-                  {voiceSupported && !message.trim() && !isAccepting ? (
+                  {voiceSupported &&
+                  !quote &&
+                  !draftText.trim() &&
+                  !isAccepting ? (
                     <Button
                       type="button"
                       variant="ghost"
@@ -306,7 +339,7 @@ export function ChatComposer({
                     <Button
                       type="submit"
                       size="icon"
-                      disabled={!message.trim() || busy}
+                      disabled={!draftText.trim() || busy}
                       aria-label={t("chat:sendMessage")}
                       title={t("chat:sendMessage")}
                       className="chat-composer-send"

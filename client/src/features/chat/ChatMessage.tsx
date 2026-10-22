@@ -3,6 +3,8 @@ import { memo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ChatMessageMenu } from "./ChatMessageMenu";
+import { ChatQuoteCard } from "./ChatQuoteCard";
+import { parseChatQuote } from "./chatQuote";
 import type { ChatController } from "./useChatController";
 
 type Props = {
@@ -69,6 +71,8 @@ export const ChatMessage = memo(function ChatMessage({
   onQuote,
   onViewPhoto,
 }: Props) {
+  const quote =
+    msg.role === "user" && !msg.imageUrl ? parseChatQuote(msg.content) : null;
   return (
     <div
       data-message-id={msg.id}
@@ -150,6 +154,15 @@ export const ChatMessage = memo(function ChatMessage({
                       <p className="text-sm">{msg.content}</p>
                     )}
                   </div>
+                ) : quote ? (
+                  <>
+                    <ChatQuoteCard author={quote.author} text={quote.text} />
+                    {quote.reply && (
+                      <p className="whitespace-pre-wrap break-words">
+                        {quote.reply}
+                      </p>
+                    )}
+                  </>
                 ) : (
                   <p className="whitespace-pre-wrap break-words">
                     {msg.content}

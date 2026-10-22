@@ -683,6 +683,26 @@ it("keeps draft suggestions usable when a microphone request finishes without re
   expect(mock.streamSubmit).not.toHaveBeenCalled();
 });
 
+it("replaces the selected quote, keeps the reply, and appends shortcuts to the reply", async () => {
+  await act(async () => controller.setMessage("本次想说的话"));
+  await act(async () => controller.quoteMessage("第一条原文", "夏末"));
+  await act(async () => controller.quoteMessage("另一条原文", "小雨"));
+  await act(async () => controller.insertChatDraft("补充一句"));
+  expect(controller.message).toBe(
+    "> 小雨\n> 另一条原文\n\n本次想说的话\n补充一句"
+  );
+  expect(mock.streamSubmit).not.toHaveBeenCalled();
+});
+
+it("does not send a selected quote until there is a reply", async () => {
+  await act(async () => controller.quoteMessage("引用原文", "夏末"));
+  await act(async () =>
+    controller.handleSendMessage({ preventDefault: vi.fn() } as any)
+  );
+  expect(mock.streamSubmit).not.toHaveBeenCalled();
+  expect(controller.message).toBe("> 夏末\n> 引用原文\n\n");
+});
+
 it("blocks draft suggestions during a voice preview and leaves oversized drafts intact", async () => {
   await act(async () => controller.setMessage("保留草稿"));
   await previewVoice();

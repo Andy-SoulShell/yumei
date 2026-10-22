@@ -484,6 +484,7 @@ export default {
     token: "/token",
   },
   chat: {
+    removeQuote: "引用を取り消す",
     starterTopics: "会話のきっかけ",
     starterDay: "今日のことを話そう",
     starterDayDraft: "{{name}}、今日はどんな一日だった？話を聞きたいな。",

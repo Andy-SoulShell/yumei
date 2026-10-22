@@ -461,6 +461,7 @@ export default {
     token: "/token",
   },
   chat: {
+    removeQuote: "取消引用",
     starterTopics: "开场话题",
     starterDay: "聊聊今天",
     starterDayDraft: "{{name}}，今天过得怎么样？想听你说说。",

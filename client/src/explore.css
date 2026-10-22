@@ -608,6 +608,73 @@
   gap: 4px;
   min-width: 0;
 }
+.chat-quote-card {
+  position: relative;
+  min-width: 0;
+  margin: 2px 0 10px;
+  padding: 9px 12px;
+  border-inline-start: 3px solid
+    color-mix(in oklch, currentColor 35%, transparent);
+  border-radius: 10px;
+  background: color-mix(in oklch, currentColor 8%, transparent);
+}
+.chat-quote-author {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-bottom: 3px;
+  opacity: 0.85;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+}
+.chat-quote-author svg {
+  flex: none;
+  width: 12px;
+  height: 12px;
+}
+.chat-quote-author cite {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: normal;
+}
+.chat-quote-text {
+  display: block;
+  opacity: 0.75;
+  font-size: 13px;
+  line-height: 20px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.chat-composer-quote {
+  flex: 0 0 100%;
+  min-width: 0;
+  padding: 4px 4px 0;
+}
+.chat-quote-card[data-preview="true"] {
+  margin: 0;
+  padding-inline-end: 52px;
+  border-inline-start-color: var(--primary);
+  background: var(--muted);
+  color: var(--foreground);
+}
+.chat-quote-card[data-preview="true"] .chat-quote-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.chat-quote-remove {
+  position: absolute;
+  top: 2px;
+  inset-inline-end: 2px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--muted-foreground);
+}
 .chat-message-actions {
   display: flex;
   align-items: center;

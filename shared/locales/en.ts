@@ -478,6 +478,33 @@ export default {
     token: "/token",
   },
   chat: {
+    starterTopics: "Conversation starters",
+    starterDay: "Tell me about your day",
+    starterDayDraft:
+      "{{name}}, how has your day been? I'd love to hear about it.",
+    starterComfort: "I could use some company",
+    starterComfortDraft:
+      "I'm a little tired today, {{name}}. Could you keep me company?",
+    starterDiscover: "Let's get to know each other",
+    starterDiscoverDraft: "{{name}}, what have you been enjoying lately?",
+    draftSuggestionHint:
+      "Text suggestions go into your draft for you to edit and send.",
+    messageActions: "Message actions",
+    you: "You",
+    copyMessage: "Copy text",
+    quoteMessage: "Quote in draft",
+    messageCopied: "Message copied",
+    messageCopyFailed: "Couldn't copy. Please select and copy the text.",
+    finishVoiceFirst: "Finish or cancel your voice message first.",
+    draftTooLong:
+      "Your draft is too long. Shorten it to {{max}} characters to continue.",
+    quickCompanionActions: "Companion shortcuts",
+    comfortAction: "Comfort me",
+    comfortDraft:
+      "{{name}}, I'd like some comfort. Could you listen and say something kind?",
+    changeTopicAction: "Change the topic",
+    changeTopicDraft:
+      "Let's talk about something else. What would you like to chat about?",
     streamGenerating: "Replying…",
     streamStopped: "Reply stopped. Text already received has been saved.",
     streamFailed: "The reply could not finish. You can retry.",

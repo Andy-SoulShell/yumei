@@ -244,3 +244,18 @@ it("does not duplicate a pending user bubble when its UUID is already accepted",
   await render();
   expect(container.textContent?.match(/你好(?!呀)/g)).toHaveLength(1);
 });
+
+it("offers three named starters only for an empty conversation and fills a draft on selection", async () => {
+  props.chatMessages = [];
+  props.insertChatDraft = vi.fn();
+  await render();
+  const topics = container.querySelector('[aria-label="开场话题"]')!;
+  expect(topics.querySelectorAll("button")).toHaveLength(3);
+  await act(async () => topics.querySelector("button")!.click());
+  expect(props.insertChatDraft).toHaveBeenCalledWith(
+    "小雨，今天过得怎么样？想听你说说。"
+  );
+  props.chatMessages = [{ id: 1, role: "user", content: "你好" }] as any;
+  await render();
+  expect(container.querySelector('[aria-label="开场话题"]')).toBeNull();
+});

@@ -20,6 +20,7 @@ import {
   type FailedStreamSubmission,
 } from "./useChatStream";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { toast } from "sonner";
 import { useLocation, useParams, useSearch } from "wouter";
 
@@ -72,6 +73,7 @@ export function useChatController() {
     token: symbol;
   } | null>(null);
   const startingRecording = useRef(false);
+  const voiceInputBusy = useRef(false);
 
   const { theme, toggleTheme } = useTheme();
 
@@ -94,6 +96,8 @@ export function useChatController() {
     productRules.raw?.runtime.chat.maxInputChars
   );
   const [failedMessages, setFailedMessages] = useState<FailedChatMessage[]>([]);
+  const draftRef = useRef(message);
+  draftRef.current = message;
 
   const [inputMode, setInputMode] = useState<"text" | "voice">(() => {
     return readDeviceValue("chat-input-mode") === "voice" ? "voice" : "text";
@@ -126,6 +130,52 @@ export function useChatController() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const maxMessageLength = productRules.raw?.runtime.chat.maxInputChars;
+
+  /** 更新草稿并在当前点击手势内聚焦，保留 iOS 的键盘唤起。 */
+  const applyChatDraft = useCallback(
+    (text: string) => {
+      if (!isCurrentScope()) return;
+      if (voiceInputBusy.current || startingRecording.current) {
+        toast.info(t("chat:finishVoiceFirst"));
+        return;
+      }
+      const next = text;
+      if (maxMessageLength !== undefined && next.length > maxMessageLength) {
+        toast.info(t("chat:draftTooLong", { max: maxMessageLength }));
+        return;
+      }
+      draftRef.current = next;
+      flushSync(() => {
+        setMessage(next);
+        setInputMode("text");
+      });
+      writeDeviceValue("chat-input-mode", "text");
+      inputRef.current?.focus({ preventScroll: true });
+      const length = inputRef.current?.value.length ?? 0;
+      inputRef.current?.setSelectionRange(length, length);
+    },
+    [isCurrentScope, maxMessageLength, setMessage, t]
+  );
+  /** 话题与快捷动作追加到现有草稿，交给用户编辑后发送。 */
+  const insertChatDraft = useCallback(
+    (text: string) => {
+      const current = draftRef.current;
+      applyChatDraft(current.trim() ? current + "\n" + text : text);
+    },
+    [applyChatDraft]
+  );
+  const quoteMessage = useCallback(
+    (text: string, author: string) => {
+      const quoted =
+        "> " +
+        author.replace(/[\r\n]+/g, " ").trim() +
+        "\n> " +
+        text.replaceAll("\r\n", "\n").replaceAll("\n", "\n> ");
+      applyChatDraft(quoted + "\n\n" + draftRef.current);
+    },
+    [applyChatDraft]
+  );
 
   const messageListRef = useRef<HTMLDivElement>(null);
 
@@ -141,6 +191,7 @@ export function useChatController() {
     cancelRecording,
     setOnMaxDuration,
   } = useVoiceRecorder();
+  voiceInputBusy.current = isRecording || isTranscribing;
   const voiceLifecycle = useRef({ cancelRecording, setIsTranscribing, stop });
   voiceLifecycle.current = { cancelRecording, setIsTranscribing, stop };
   useEffect(
@@ -886,7 +937,9 @@ export function useChatController() {
     : null;
 
   return {
-    maxMessageLength: productRules.raw?.runtime.chat.maxInputChars,
+    maxMessageLength,
+    insertChatDraft,
+    quoteMessage,
     effectiveIntimacyLevel: productRules.data
       ? getLevelByPoints(
           girlfriend?.intimacyPoints ?? 0,

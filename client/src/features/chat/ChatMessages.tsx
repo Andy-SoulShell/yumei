@@ -9,6 +9,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useChatScrollAnchor } from "@/hooks/useChatScrollAnchor";
 
 import { ChatMessage } from "./ChatMessage";
+import { ChatStarters } from "./ChatStarters";
 import type { ChatController } from "./useChatController";
 type Props = Pick<
   ChatController,
@@ -27,6 +28,10 @@ type Props = Pick<
   | "retryStreamSubmission"
   | "retryFailedGeneration"
   | "handleSpeakMessage"
+  | "insertChatDraft"
+  | "quoteMessage"
+  | "isRecording"
+  | "isTranscribing"
   | "isSpeaking"
   | "activeMessageId"
   | "user"
@@ -54,6 +59,10 @@ export function ChatMessages({
   retryFailedGeneration,
   girlfriend,
   handleSpeakMessage,
+  insertChatDraft,
+  quoteMessage,
+  isRecording,
+  isTranscribing,
   isSpeaking,
   activeMessageId,
   user,
@@ -122,6 +131,12 @@ export function ChatMessages({
                 <p className="text-muted-foreground">
                   {t("chat:empty.start", { name: girlfriend.name })}
                 </p>
+                <ChatStarters
+                  name={girlfriend.name}
+                  t={t}
+                  onSelect={insertChatDraft}
+                  disabled={isRecording || isTranscribing}
+                />
               </div>
             )
           : chatMessages.map(msg => (
@@ -148,6 +163,7 @@ export function ChatMessages({
                     : undefined
                 }
                 onSpeak={handleSpeakMessage}
+                onQuote={quoteMessage}
                 onViewPhoto={msg.imageUrl ? viewPhoto : undefined}
               />
             ))}

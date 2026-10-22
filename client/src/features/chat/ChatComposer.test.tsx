@@ -16,10 +16,12 @@ let stopping = false;
 let connection = "connected";
 let voiceSupported = true;
 let preferredInputMode: "text" | "voice" = "text";
+let initialMessage = "";
 const stopped = vi.fn();
 const submitted = vi.fn();
+const poseOpened = vi.fn();
 function Harness() {
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(initialMessage);
   const [inputMode, switchInputMode] = useState<"text" | "voice">(
     preferredInputMode
   );
@@ -39,7 +41,11 @@ function Harness() {
     handleStopGeneration: stopped,
     generateSelfie: { isPending: false },
     generateCouple: { isPending: false },
-    setShowPoseDialog: vi.fn(),
+    setShowPoseDialog: poseOpened,
+    insertChatDraft: (text: string) => {
+      setMessage(current => (current.trim() ? `${current}\n${text}` : text));
+      switchInputMode("text");
+    },
     isRecording: false,
     isTranscribing: false,
     apiConfig: { imageProvider: { configured: true } },
@@ -68,8 +74,10 @@ beforeEach(async () => {
   connection = "connected";
   voiceSupported = true;
   preferredInputMode = "text";
+  initialMessage = "";
   stopped.mockClear();
   submitted.mockClear();
+  poseOpened.mockClear();
   vi.stubGlobal(
     "matchMedia",
     vi.fn(() => ({ matches: desktop }))
@@ -224,4 +232,52 @@ it("uses text input when saved voice mode is unavailable on LAN HTTP", async () 
   await fill("局域网文字消息");
   await key();
   expect(submitted).toHaveBeenCalledWith("局域网文字消息");
+});
+
+it("does not submit a saved nonempty draft when the voice keyboard button becomes a send button", async () => {
+  initialMessage = "之前保存的文字草稿";
+  preferredInputMode = "voice";
+  await act(async () => root.render(<Harness key="saved-draft-voice" />));
+  await act(async () =>
+    container
+      .querySelector<HTMLButtonElement>('[aria-label="切换到文字输入"]')!
+      .click()
+  );
+  expect(input().value).toBe(initialMessage);
+  expect(document.activeElement).toBe(input());
+  expect(submitted).not.toHaveBeenCalled();
+});
+
+it("opens compact shortcuts and appends an editable suggestion without sending", async () => {
+  await fill("先保留这句话");
+  const trigger = container.querySelector<HTMLButtonElement>(
+    '[aria-label="陪伴快捷动作"]'
+  )!;
+  expect(trigger.getAttribute("aria-expanded")).toBe("false");
+  await act(async () => trigger.click());
+  expect(trigger.getAttribute("aria-expanded")).toBe("true");
+  const comfort = Array.from(container.querySelectorAll("button")).find(
+    button => button.textContent === "哄哄我"
+  )!;
+  await act(async () => comfort.click());
+  expect(input().value).toContain("先保留这句话\n小雨");
+  expect(submitted).not.toHaveBeenCalled();
+  expect(trigger.getAttribute("aria-expanded")).toBe("false");
+});
+
+it("opens the existing photo picker from shortcuts without sending the draft", async () => {
+  await fill("海边的夕阳");
+  await act(async () =>
+    container
+      .querySelector<HTMLButtonElement>('[aria-label="陪伴快捷动作"]')!
+      .click()
+  );
+  await act(async () =>
+    container
+      .querySelector<HTMLButtonElement>('[aria-label="拍张自拍"]')!
+      .click()
+  );
+  expect(poseOpened).toHaveBeenCalledWith(true);
+  expect(input().value).toBe("海边的夕阳");
+  expect(submitted).not.toHaveBeenCalled();
 });

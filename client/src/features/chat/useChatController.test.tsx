@@ -724,3 +724,21 @@ it("discards recording bytes resolved after changing account", async () => {
   expect(readers).toHaveLength(0);
   expect(mock.transcribe).not.toHaveBeenCalled();
 });
+
+it("appends suggestions and quoted lines without sending or overwriting an existing draft", async () => {
+  await act(async () => controller.setMessage("已经写了一半"));
+  await act(async () => controller.insertChatDraft("聊聊今天"));
+  expect(controller.message).toBe("已经写了一半\n聊聊今天");
+  await act(async () => controller.quoteMessage("第一行\n第二行", "小雨"));
+  expect(controller.message).toBe(
+    "> 小雨\n> 第一行\n> 第二行\n\n已经写了一半\n聊聊今天"
+  );
+  expect(mock.streamSubmit).not.toHaveBeenCalled();
+});
+
+it("keeps draft suggestions usable when a microphone request finishes without recording", async () => {
+  await act(async () => controller.startRecording());
+  await act(async () => controller.insertChatDraft("仍然可以聊聊今天"));
+  expect(controller.message).toBe("仍然可以聊聊今天");
+  expect(mock.streamSubmit).not.toHaveBeenCalled();
+});

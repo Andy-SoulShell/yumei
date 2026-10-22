@@ -686,10 +686,10 @@ it("keeps draft suggestions usable when a microphone request finishes without re
 it("replaces the selected quote, keeps the reply, and appends shortcuts to the reply", async () => {
   await act(async () => controller.setMessage("本次想说的话"));
   await act(async () => controller.quoteMessage("第一条原文", "夏末"));
-  await act(async () => controller.quoteMessage("另一条原文", "小雨"));
+  await act(async () => controller.quoteMessage("另一条原文", "小雨", 26));
   await act(async () => controller.insertChatDraft("补充一句"));
   expect(controller.message).toBe(
-    "> 小雨\n> 另一条原文\n\n本次想说的话\n补充一句"
+    "> [小雨](#message-26)\n> 另一条原文\n\n本次想说的话\n补充一句"
   );
   expect(mock.streamSubmit).not.toHaveBeenCalled();
 });

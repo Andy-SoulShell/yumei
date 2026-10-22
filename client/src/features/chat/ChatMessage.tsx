@@ -19,6 +19,8 @@ type Props = {
   onRetry?: (id: number) => void;
   onSpeak: ChatController["handleSpeakMessage"];
   onQuote: ChatController["quoteMessage"];
+  onNavigateQuote: ChatController["jumpToQuote"];
+  isNavigatingQuote: boolean;
   onViewPhoto?: (id: number, opener: HTMLButtonElement) => void;
 };
 
@@ -54,6 +56,8 @@ function sameProps(a: Props, b: Props) {
     a.onRetry === b.onRetry &&
     a.onSpeak === b.onSpeak &&
     a.onQuote === b.onQuote &&
+    a.onNavigateQuote === b.onNavigateQuote &&
+    a.isNavigatingQuote === b.isNavigatingQuote &&
     a.onViewPhoto === b.onViewPhoto
   );
 }
@@ -69,6 +73,8 @@ export const ChatMessage = memo(function ChatMessage({
   onRetry,
   onSpeak,
   onQuote,
+  onNavigateQuote,
+  isNavigatingQuote,
   onViewPhoto,
 }: Props) {
   const quote =
@@ -77,7 +83,8 @@ export const ChatMessage = memo(function ChatMessage({
     <div
       data-message-id={msg.id}
       data-message-role={msg.role}
-      className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "flex-row"}`}
+      tabIndex={-1}
+      className={`flex gap-3 outline-none ${msg.role === "user" ? "justify-end" : "flex-row"}`}
     >
       {msg.role === "assistant" && (
         <Avatar className="w-8 h-8 flex-shrink-0">
@@ -90,6 +97,7 @@ export const ChatMessage = memo(function ChatMessage({
         <ChatMessageMenu
           content={msg.content === "[自拍照片]" ? "" : msg.content}
           author={msg.role === "assistant" ? companionName : t("chat:you")}
+          messageId={msg.id}
           t={t}
           isPlaying={isPlaying}
           audioLabel={
@@ -146,6 +154,7 @@ export const ChatMessage = memo(function ChatMessage({
                       <img
                         src={msg.imageUrl}
                         alt={t("chat:selfie")}
+                        loading="lazy"
                         decoding="async"
                         className="rounded-lg max-w-full max-h-[65vh] w-auto h-auto object-contain"
                       />
@@ -156,7 +165,21 @@ export const ChatMessage = memo(function ChatMessage({
                   </div>
                 ) : quote ? (
                   <>
-                    <ChatQuoteCard author={quote.author} text={quote.text} />
+                    <ChatQuoteCard
+                      author={quote.author}
+                      text={quote.text}
+                      onNavigate={
+                        onNavigateQuote
+                          ? () => void onNavigateQuote(quote, msg.id)
+                          : undefined
+                      }
+                      navigateLabel={t(
+                        isNavigatingQuote
+                          ? "chat:loadingOriginal"
+                          : "chat:jumpToOriginal"
+                      )}
+                      loading={isNavigatingQuote}
+                    />
                     {quote.reply && (
                       <p className="whitespace-pre-wrap break-words">
                         {quote.reply}

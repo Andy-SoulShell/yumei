@@ -22,6 +22,7 @@ const stopped = vi.fn();
 const submitted = vi.fn();
 const previewSent = vi.fn();
 const poseOpened = vi.fn();
+const jumpToQuote = vi.fn();
 function Harness() {
   const [message, setMessage] = useState(initialMessage);
   const [preview, setPreview] = useState(initialPreview);
@@ -49,6 +50,8 @@ function Harness() {
       setMessage(current => (current.trim() ? `${current}\n${text}` : text));
       switchInputMode("text");
     },
+    jumpToQuote,
+    jumpingFromMessageId: null,
     voicePreview: preview === null ? null : { text: preview },
     updateVoicePreview: setPreview,
     discardVoicePreview: () => setPreview(null),
@@ -87,6 +90,7 @@ beforeEach(async () => {
   submitted.mockClear();
   previewSent.mockClear();
   poseOpened.mockClear();
+  jumpToQuote.mockClear();
   vi.stubGlobal(
     "matchMedia",
     vi.fn(() => ({ matches: desktop }))
@@ -348,6 +352,29 @@ it("removes the quote without removing or sending the drafted reply", async () =
   expect(input().value).toBe("保留这段回复");
   expect(document.activeElement).toBe(input());
   expect(submitted).not.toHaveBeenCalled();
+  expect(jumpToQuote).not.toHaveBeenCalled();
+});
+
+it("navigates from the preview without sending and retains the source ID while editing", async () => {
+  initialMessage = "> [夏末](#message-12)\n> 原来的话\n\n已经写了一半";
+  await act(async () => root.render(<Harness key="navigate-quote" />));
+  await act(async () =>
+    container
+      .querySelector<HTMLButtonElement>('[aria-label="查看原消息"]')!
+      .click()
+  );
+  expect(jumpToQuote).toHaveBeenCalledWith({
+    author: "夏末",
+    text: "原来的话",
+    reply: "已经写了一半",
+    sourceMessageId: 12,
+  });
+  expect(submitted).not.toHaveBeenCalled();
+  await fill("继续回复");
+  await key();
+  expect(submitted).toHaveBeenCalledWith(
+    "> [夏末](#message-12)\n> 原来的话\n\n继续回复"
+  );
 });
 
 it("requires a reply rather than sending only the selected quote", async () => {

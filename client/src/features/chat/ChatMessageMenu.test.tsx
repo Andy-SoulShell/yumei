@@ -26,6 +26,7 @@ beforeEach(async () => {
       <ChatMessageMenu
         content={"第一句。\n第二句。"}
         author="小雨"
+        messageId={12}
         t={i18n.getFixedT("zh-CN") as Translator}
         isPlaying={false}
         audioLabel="朗读"
@@ -126,7 +127,7 @@ it("quotes the whole message with its author and does not steal restored input f
   await openMenu();
   await act(async () => menuItem("引用到草稿").click());
   await act(async () => vi.runOnlyPendingTimers());
-  expect(quote).toHaveBeenCalledWith("第一句。\n第二句。", "小雨");
+  expect(quote).toHaveBeenCalledWith("第一句。\n第二句。", "小雨", 12);
   expect(document.activeElement).toBe(field);
   field.remove();
 });

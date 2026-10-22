@@ -479,6 +479,10 @@ export default {
   },
   chat: {
     removeQuote: "Remove quote",
+    jumpToOriginal: "View original message",
+    loadingOriginal: "Loading original message",
+    originalUnavailable: "The original message is unavailable",
+    originalLoadFailed: "Couldn't load the original message. Please try again.",
     starterTopics: "Conversation starters",
     starterDay: "Tell me about your day",
     starterDayDraft:

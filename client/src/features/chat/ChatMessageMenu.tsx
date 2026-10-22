@@ -16,11 +16,12 @@ type Props = {
   children: ReactNode;
   content: string;
   author: string;
+  messageId?: number;
   t: Translator;
   isPlaying: boolean;
   audioLabel: string;
   onSpeak?: () => void;
-  onQuote: (text: string, author: string) => void;
+  onQuote: (text: string, author: string, sourceMessageId?: number) => void;
 };
 
 /** 通过按钮、右键或触屏长按打开同一菜单，菜单条目满足手机触控尺寸。 */
@@ -28,6 +29,7 @@ export function ChatMessageMenu({
   children,
   content,
   author,
+  messageId,
   t,
   isPlaying,
   audioLabel,
@@ -191,7 +193,7 @@ export function ChatMessageMenu({
             // 先让浮层关闭，再在同一点击手势内聚焦手机输入框。
             quoting.current = true;
             setOpen(false);
-            onQuote(content, author);
+            onQuote(content, author, messageId);
           }}
         >
           <Quote />

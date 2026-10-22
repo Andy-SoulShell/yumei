@@ -1,6 +1,9 @@
 /** 调整窗口、软键盘或图片高度时，保留用户在最新消息或历史记录中的阅读位置。 */
 import { useLayoutEffect, type RefObject } from "react";
 
+/** 引用跳转主动解除末尾跟随，避免补取历史或流式回复把视口拉回底部。 */
+export const CHAT_NAVIGATE_EVENT = "yumei:chat-navigate";
+
 export function useChatScrollAnchor(
   viewportRef: RefObject<HTMLDivElement | null>,
   contentRef: RefObject<HTMLDivElement | null>,
@@ -20,6 +23,10 @@ export function useChatScrollAnchor(
     let scrollHeight = viewport.scrollHeight;
     let scrollingUp = false;
     let touchY: number | undefined;
+    const onNavigate = () => {
+      pinned = false;
+      scrollingUp = true;
+    };
     const onWheel = (event: WheelEvent) => {
       if (!event.deltaY || event.ctrlKey) return;
       scrollingUp = event.deltaY < 0;
@@ -71,6 +78,7 @@ export function useChatScrollAnchor(
       scrollHeight = viewport.scrollHeight;
     });
     viewport.addEventListener("scroll", onScroll, { passive: true });
+    viewport.addEventListener(CHAT_NAVIGATE_EVENT, onNavigate);
     viewport.addEventListener("wheel", onWheel, { passive: true });
     viewport.addEventListener("touchstart", onTouchStart, { passive: true });
     viewport.addEventListener("touchmove", onTouchMove, { passive: true });
@@ -81,6 +89,7 @@ export function useChatScrollAnchor(
     return () => {
       observer.disconnect();
       viewport.removeEventListener("scroll", onScroll);
+      viewport.removeEventListener(CHAT_NAVIGATE_EVENT, onNavigate);
       viewport.removeEventListener("wheel", onWheel);
       viewport.removeEventListener("touchstart", onTouchStart);
       viewport.removeEventListener("touchmove", onTouchMove);

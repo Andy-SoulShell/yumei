@@ -3,7 +3,10 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useChatScrollAnchor } from "./useChatScrollAnchor";
+import {
+  CHAT_NAVIGATE_EVENT,
+  useChatScrollAnchor,
+} from "./useChatScrollAnchor";
 
 let root: Root;
 let container: HTMLDivElement;
@@ -76,6 +79,29 @@ afterEach(async () => {
 });
 
 describe("聊天滚动位置", () => {
+  it("引用跳转先解除末尾跟随，补取历史和新回复不会拉回底部", () => {
+    viewport.dispatchEvent(new Event(CHAT_NAVIGATE_EVENT));
+    dimensions.contentHeight += 200;
+    notify();
+    expect(dimensions.top).toBe(900);
+    dimensions.top = 200;
+    viewport.dispatchEvent(new Event("scroll"));
+    dimensions.contentHeight += 100;
+    notify();
+    expect(dimensions.top).toBe(200);
+  });
+  it("分页补偿在末尾重新跟随后，实际跳转再次解除跟随", () => {
+    viewport.dispatchEvent(new Event(CHAT_NAVIGATE_EVENT));
+    dimensions.contentHeight += 200;
+    dimensions.top = dimensions.contentHeight - dimensions.height;
+    notify();
+    viewport.dispatchEvent(new Event("scroll"));
+    viewport.dispatchEvent(new Event(CHAT_NAVIGATE_EVENT));
+    dimensions.top = 200;
+    dimensions.height -= 50;
+    notify();
+    expect(dimensions.top).toBe(200);
+  });
   it("向上滑动与回复增高同帧发生时，不抢回末尾", () => {
     viewport.dispatchEvent(new WheelEvent("wheel", { deltaY: -80 }));
     dimensions.top = 820;

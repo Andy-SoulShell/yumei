@@ -273,3 +273,38 @@ it("renders existing quoted user messages as a card and a separate reply without
   expect(bubble.querySelector(":scope > p")?.textContent).toBe("nihao");
   expect(bubble.textContent).not.toContain("> ");
 });
+
+it("navigates a sent quote and only updates its row while history is loading", async () => {
+  props.jumpToQuote = vi.fn();
+  props.chatMessages = [
+    ...props.chatMessages,
+    {
+      id: 3,
+      role: "user",
+      content: "> [小雨](#message-2)\n> 你好呀。今天怎么样？\n\n回复",
+    },
+  ] as any;
+  await render();
+  const button = container.querySelector<HTMLButtonElement>(
+    '[aria-label="查看原消息"]'
+  )!;
+  await act(async () => button.click());
+  expect(props.jumpToQuote).toHaveBeenCalledWith(
+    {
+      author: "小雨",
+      text: "你好呀。今天怎么样？",
+      reply: "回复",
+      sourceMessageId: 2,
+    },
+    3
+  );
+  renderStats.avatars = 0;
+  props.jumpingFromMessageId = 3;
+  await render();
+  expect(renderStats.avatars).toBe(1);
+  expect(button.disabled).toBe(true);
+  expect(button.getAttribute("aria-label")).toBe("正在加载原消息");
+  props.jumpingFromMessageId = null;
+  await render();
+  expect(button.disabled).toBe(false);
+});

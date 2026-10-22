@@ -477,6 +477,11 @@ export default {
   },
   chat: {
     removeQuote: "인용 취소",
+    jumpToOriginal: "원본 메시지 보기",
+    loadingOriginal: "원본 메시지 불러오는 중",
+    originalUnavailable: "원본 메시지를 찾을 수 없습니다",
+    originalLoadFailed:
+      "원본 메시지를 불러오지 못했습니다. 다시 시도해 주세요.",
     starterTopics: "대화 시작하기",
     starterDay: "오늘 하루 이야기",
     starterDayDraft: "{{name}}, 오늘 하루 어땠어? 네 이야기를 듣고 싶어.",

@@ -462,6 +462,10 @@ export default {
   },
   chat: {
     removeQuote: "取消引用",
+    jumpToOriginal: "查看原消息",
+    loadingOriginal: "正在加载原消息",
+    originalUnavailable: "原消息已不可用",
+    originalLoadFailed: "加载原消息失败，请重试",
     starterTopics: "开场话题",
     starterDay: "聊聊今天",
     starterDayDraft: "{{name}}，今天过得怎么样？想听你说说。",

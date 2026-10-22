@@ -648,6 +648,38 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.chat-quote-jump {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  text-align: start;
+  color: inherit;
+  border-radius: 4px;
+}
+.chat-quote-jump:hover {
+  background: color-mix(in oklch, currentColor 5%, transparent);
+}
+.chat-quote-jump:disabled {
+  opacity: 0.8;
+}
+.chat-quote-jump-icon {
+  margin-inline-start: auto;
+}
+[data-quote-highlighted="true"] :is(.chat-bubble-user, .chat-bubble-assistant) {
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 65%, transparent);
+  background-image: linear-gradient(
+    color-mix(in oklch, var(--primary) 14%, transparent),
+    color-mix(in oklch, var(--primary) 14%, transparent)
+  );
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-quote-jump,
+  .chat-quote-jump .animate-spin {
+    transition: none;
+    animation: none;
+  }
+}
 .chat-composer-quote {
   flex: 0 0 100%;
   min-width: 0;

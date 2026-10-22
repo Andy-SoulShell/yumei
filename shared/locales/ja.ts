@@ -485,6 +485,11 @@ export default {
   },
   chat: {
     removeQuote: "引用を取り消す",
+    jumpToOriginal: "元のメッセージを表示",
+    loadingOriginal: "元のメッセージを読み込み中",
+    originalUnavailable: "元のメッセージは利用できません",
+    originalLoadFailed:
+      "元のメッセージを読み込めませんでした。もう一度お試しください。",
     starterTopics: "会話のきっかけ",
     starterDay: "今日のことを話そう",
     starterDayDraft: "{{name}}、今日はどんな一日だった？話を聞きたいな。",

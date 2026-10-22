@@ -51,6 +51,8 @@ type Props = Pick<
   | "handleRecordingComplete"
   | "cancelRecording"
   | "insertChatDraft"
+  | "jumpToQuote"
+  | "jumpingFromMessageId"
   | "voicePreview"
   | "updateVoicePreview"
   | "discardVoicePreview"
@@ -84,6 +86,8 @@ export function ChatComposer({
   handleRecordingComplete,
   cancelRecording,
   insertChatDraft,
+  jumpToQuote,
+  jumpingFromMessageId,
   voicePreview,
   updateVoicePreview,
   discardVoicePreview,
@@ -255,6 +259,15 @@ export function ChatComposer({
                   <ChatQuoteCard
                     author={quote.author}
                     text={quote.text}
+                    onNavigate={
+                      jumpToQuote ? () => void jumpToQuote(quote) : undefined
+                    }
+                    navigateLabel={t(
+                      jumpingFromMessageId === 0
+                        ? "chat:loadingOriginal"
+                        : "chat:jumpToOriginal"
+                    )}
+                    loading={jumpingFromMessageId === 0}
                     removeLabel={t("chat:removeQuote")}
                     onRemove={() => {
                       flushSync(() => setMessage(draftText));

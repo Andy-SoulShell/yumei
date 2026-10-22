@@ -22,6 +22,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { formatChatQuote, parseChatQuote } from "./chatQuote";
+import { useQuoteNavigation } from "./useQuoteNavigation";
 import { toast } from "sonner";
 import { useLocation, useParams, useSearch } from "wouter";
 
@@ -185,13 +186,13 @@ export function useChatController() {
     [applyChatDraft]
   );
   const quoteMessage = useCallback(
-    (text: string, author: string) => {
+    (text: string, author: string, sourceMessageId?: number) => {
       const current = draftRef.current;
       const draftQuote = parseChatQuote(current);
       const sourceQuote = parseChatQuote(text);
       applyChatDraft(
         formatChatQuote(
-          { author, text: sourceQuote?.reply || text },
+          { author, text: sourceQuote?.reply || text, sourceMessageId },
           draftQuote?.reply ?? current
         )
       );
@@ -525,6 +526,13 @@ export function useChatController() {
     }
     return Array.from(messages.values()).sort((a, b) => a.id - b.id);
   }, [historicalMessages, chatStream.turns]);
+  const { jumpToQuote, jumpingFromMessageId } = useQuoteNavigation({
+    messages: chatMessages,
+    query: messagesQuery,
+    viewportRef: messageListRef,
+    scope: identity,
+    t,
+  });
   const isAccepting = chatStream.isAccepting || sendMediaMessage.isPending;
   const stopChatStream = chatStream.stop;
   const submitStream = chatStream.submit;
@@ -976,6 +984,8 @@ export function useChatController() {
     maxMessageLength,
     insertChatDraft,
     quoteMessage,
+    jumpToQuote,
+    jumpingFromMessageId,
     voicePreview,
     updateVoicePreview: (text: string) => {
       const preview = voicePreviewRef.current;

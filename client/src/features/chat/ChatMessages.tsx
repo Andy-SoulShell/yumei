@@ -30,6 +30,8 @@ type Props = Pick<
   | "handleSpeakMessage"
   | "insertChatDraft"
   | "quoteMessage"
+  | "jumpToQuote"
+  | "jumpingFromMessageId"
   | "isRecording"
   | "isTranscribing"
   | "voicePreview"
@@ -62,6 +64,8 @@ export function ChatMessages({
   handleSpeakMessage,
   insertChatDraft,
   quoteMessage,
+  jumpToQuote,
+  jumpingFromMessageId,
   isRecording,
   isTranscribing,
   voicePreview,
@@ -168,6 +172,8 @@ export function ChatMessages({
                 }
                 onSpeak={handleSpeakMessage}
                 onQuote={quoteMessage}
+                onNavigateQuote={jumpToQuote}
+                isNavigatingQuote={jumpingFromMessageId === msg.id}
                 onViewPhoto={msg.imageUrl ? viewPhoto : undefined}
               />
             ))}

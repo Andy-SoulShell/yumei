@@ -33,6 +33,8 @@ it("explains exhausted quota at the user's local reset time", () => {
   );
   expect(text).toContain("今日聊天额度已用完");
   expect(text).toContain("08:00");
+  expect(text).toContain("10月24日");
+  expect(text).not.toContain("Oct");
   expect(text).not.toContain("频繁");
 });
 it("distinguishes frequency, disabled service, concurrency and follow-up limits", () => {

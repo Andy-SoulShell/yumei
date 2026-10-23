@@ -28,10 +28,11 @@ export type TranslationArgs<Key extends MessageKey> = [
 ] extends [never]
   ? [values?: Record<string, never>]
   : [values: TranslationValues<Key>];
-export type Translator = <Key extends MessageKey>(
-  key: Key,
-  ...args: TranslationArgs<Key>
-) => string;
+export type Translator = {
+  <Key extends MessageKey>(key: Key, ...args: TranslationArgs<Key>): string;
+  /** i18next 固定翻译函数绑定的界面语言，与共享实例的默认语言无关。 */
+  readonly lng?: string;
+};
 export type StaticMessageKey = {
   [Key in MessageKey]: Parameters<Template<Key>> extends never ? Key : never;
 }[MessageKey];

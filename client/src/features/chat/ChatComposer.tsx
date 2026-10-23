@@ -1,5 +1,4 @@
 import { formatResetTime } from "@/lib/formatters";
-import { i18n } from "@shared/i18n";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { VoiceRecordButton } from "@/components/VoiceRecordButton";
@@ -451,7 +450,7 @@ export function ChatComposer({
                 ),
               })}
               {billingInfo.usage.chatResetsAt
-                ? ` · ${t("billing:resetsAt", { time: formatResetTime(billingInfo.usage.chatResetsAt, i18n.resolvedLanguage) })}`
+                ? ` · ${t("billing:resetsAt", { time: formatResetTime(billingInfo.usage.chatResetsAt, t.lng) })}`
                 : ""}
             </span>
             <Button
@@ -471,7 +470,7 @@ export function ChatComposer({
           <p role="status" className="px-2 pt-1 text-xs text-muted-foreground">
             {photoLabel}
             {selfieRemaining === 0 && billingInfo?.usage.selfieResetsAt
-              ? ` · ${t("billing:resetsAt", { time: formatResetTime(billingInfo.usage.selfieResetsAt, i18n.resolvedLanguage) })}`
+              ? ` · ${t("billing:resetsAt", { time: formatResetTime(billingInfo.usage.selfieResetsAt, t.lng) })}`
               : ""}{" "}
             <Button
               type="button"

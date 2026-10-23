@@ -1,4 +1,3 @@
-import { i18n } from "@shared/i18n";
 import { formatResetTime } from "./formatters";
 import type { Translator } from "@shared/i18n";
 import type { BusinessErrorDetails } from "@shared/errors";
@@ -35,7 +34,7 @@ export function usageLimitMessage(
       business.meter === "chat"
         ? "billing:chatQuotaExhausted"
         : "billing:mediaQuotaExhausted",
-      { time: formatResetTime(business.resetAt, i18n.resolvedLanguage) }
+      { time: formatResetTime(business.resetAt, t.lng) }
     );
   if (business?.reason === "RATE_LIMITED")
     return business.retryAt

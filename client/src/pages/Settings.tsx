@@ -1,3 +1,5 @@
+import { Link } from "wouter";
+import { PrivacySettings } from "@/features/settings/PrivacySettings";
 import { SavedProviderKeys } from "@/features/settings/SavedProviderKeys";
 import { usePageBack } from "@/hooks/usePageBack";
 import { PageError } from "@/components/PageError";
@@ -67,6 +69,9 @@ export default function Settings() {
 
       {/* 设置内容 */}
       <div className="p-3 sm:p-4 max-w-2xl mx-auto space-y-4 sm:space-y-6 pb-8">
+        <Button variant="outline" asChild>
+          <Link href="/help">{t("privacy:helpLink")}</Link>
+        </Button>
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -77,6 +82,7 @@ export default function Settings() {
           <>
             <ProfileSettings />
             <PasswordSettings />
+            <PrivacySettings />
             {/* ========== 订阅与用量 ========== */}
             <BillingCard />
 

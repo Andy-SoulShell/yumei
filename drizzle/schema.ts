@@ -902,3 +902,53 @@ export const managementSessions = mysqlTable("managementSessions", {
   expiresAt: timestamp("expiresAt").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
+
+/** 站内售后工单，只对所属账号与独立管理会话开放。 */
+export const supportTickets = mysqlTable(
+  "supportTickets",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    userId: varchar("userId", { length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    category: mysqlEnum("category", [
+      "billing",
+      "account",
+      "technical",
+    ]).notNull(),
+    subject: varchar("subject", { length: 120 }).notNull(),
+    orderReference: varchar("orderReference", { length: 200 }),
+    status: mysqlEnum("status", ["open", "resolved"]).default("open").notNull(),
+    createdAt: timestamp("createdAt", { fsp: 3 }).defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt", { fsp: 3 })
+      .defaultNow()
+      .onUpdateNow()
+      .notNull(),
+  },
+  table => ({
+    byUser: index("idx_support_user_created").on(table.userId, table.createdAt),
+    byStatus: index("idx_support_status_created").on(
+      table.status,
+      table.createdAt
+    ),
+  })
+);
+export const supportMessages = mysqlTable(
+  "supportMessages",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    ticketId: varchar("ticketId", { length: 36 })
+      .notNull()
+      .references(() => supportTickets.id, { onDelete: "cascade" }),
+    userId: varchar("userId", { length: 255 }).notNull(),
+    author: mysqlEnum("author", ["user", "staff"]).notNull(),
+    content: text("content").notNull(),
+    createdAt: timestamp("createdAt", { fsp: 3 }).defaultNow().notNull(),
+  },
+  table => ({
+    byTicket: index("idx_support_message_ticket").on(
+      table.ticketId,
+      table.createdAt
+    ),
+  })
+);

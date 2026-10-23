@@ -17,6 +17,10 @@ describe("login return navigation", () => {
   });
   it("preserves a selected character, protected route and query", () => {
     expect(safeReturnTo("/?character=rin")).toBe("/?character=rin");
+    expect(safeReturnTo("/help?category=billing")).toBe(
+      "/help?category=billing"
+    );
+    expect(safeReturnTo("/privacy")).toBe("/privacy");
     expect(safeReturnTo("/setup?preset=rin")).toBe("/setup?preset=rin");
     expect(safeReturnTo("/chat/12?selfie=1")).toBe("/chat/12?selfie=1");
     expect(

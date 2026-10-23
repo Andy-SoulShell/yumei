@@ -74,13 +74,31 @@ export async function deleteConversation(userId: string, id: number) {
             inArray(s.memories.sourceMessageId, ids)
           )
         );
+    const contacts = await tx
+      .select({ id: s.proactiveContacts.id })
+      .from(s.proactiveContacts)
+      .where(
+        and(
+          eq(s.proactiveContacts.userId, userId),
+          eq(s.proactiveContacts.girlfriendId, conversation.girlfriendId)
+        )
+      );
+    if (contacts.length)
+      await tx.delete(s.notifications).where(
+        and(
+          eq(s.notifications.userId, userId),
+          inArray(
+            s.notifications.contactId,
+            contacts.map(row => row.id)
+          )
+        )
+      );
     for (const table of [
       s.memoryEmbeddings,
       s.conversationSummaries,
       s.memoryExtractionJobs,
       s.proactiveDeliveries,
       s.proactiveContacts,
-      s.notifications,
     ])
       await tx.delete(table).where(
         and(
@@ -165,6 +183,14 @@ export async function exportAccountData(userId: string) {
       contactPreferences: await rows(s.companionPreferences),
       replyPreferences: await rows(s.apiConfigs),
       voiceClones: await rows(s.omnivoiceVoices),
+      supportTickets: await tx
+        .select()
+        .from(s.supportTickets)
+        .where(eq(s.supportTickets.userId, userId)),
+      supportMessages: await tx
+        .select()
+        .from(s.supportMessages)
+        .where(eq(s.supportMessages.userId, userId)),
       subscription: await tx
         .select({
           plan: s.subscriptions.plan,
@@ -331,6 +357,8 @@ export async function deleteAccount(
         .where(inArray(s.messages.conversationId, ids));
     // 包括软删除角色、全部设备会话、私有音色、任务与已加密的用户密钥。
     for (const table of [
+      s.supportMessages,
+      s.supportTickets,
       s.proactiveDeliveries,
       s.proactiveContacts,
       s.notifications,

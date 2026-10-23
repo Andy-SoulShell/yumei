@@ -313,7 +313,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           className={`app-main ${inChat ? "app-main-chat" : ""}`}
           key={location}
         >
-          {user?.birthDate ? (
+          {user?.birthDate &&
+          !["/privacy", "/help", "/data-deletion"].includes(location) ? (
             <TimeZoneSetup key={user.id}>{children}</TimeZoneSetup>
           ) : (
             children
@@ -337,7 +338,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           )}
         </nav>
       )}
-      {user && <AgeGate />}
+      {user && !["/privacy", "/help", "/data-deletion"].includes(location) && (
+        <AgeGate />
+      )}
     </div>
   );
 }

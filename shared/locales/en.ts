@@ -42,7 +42,7 @@ export default {
     intro: "Control your conversations and account data.",
     noticeTitle: "How your data is used",
     noticeBody:
-      "Your profile, conversations, saved memories, preferences and media are stored by this site. Content required for a request is sent to the selected AI, image, transcription or voice service. Those providers process it under their own policies. Avoid sharing information you do not want them to receive.",
+      "Your profile, conversations, saved memories, preferences and media are stored by this site. Content required for a request is sent to the selected AI, image, transcription or voice service. Those providers process it under their own policies. Avoid sharing information you do not want them to receive. Personal media requires the owning account to sign in; official artwork is public.",
     retentionTitle: "Storage and deletion",
     retentionBody:
       "Data remains until you delete it. Characters in the trash remain recoverable for the configured retention period. Permanently deleted text becomes unavailable immediately; media is queued for deletion and failures are retried. Provider records and files you downloaded are outside this site’s deletion process. Payment records are managed by the payment provider.",
@@ -59,7 +59,7 @@ export default {
     conversationDeleted: "Conversation deleted.",
     deleteAccount: "Delete account",
     deleteWarning:
-      "This permanently deletes your account, all characters (including trash), conversations, memories, private voice references, keys and sign-in sessions. Any unused subscription time is lost. Export your data first. This does not request a refund.",
+      "This permanently deletes your account, all characters (including trash), conversations, memories, private voice references, keys and sign-in sessions. Any unused subscription time is lost. Export your data first. This does not request a refund. Exported JSON does not contain media files; download any images and audio you want to keep before deletion.",
     cancelFirst:
       "Automatic renewal must be cancelled before account deletion. Manage your subscription, then refresh this page.",
     sendConfirmation: "Email deletion confirmation",

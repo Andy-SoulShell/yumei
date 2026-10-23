@@ -18,6 +18,7 @@ const snapshot = () => ({
       type: "subscriptions",
       attributes: {
         customer_id: 90,
+        user_email: "",
         variant_id: 999,
         status: "cancelled",
         updated_at: new Date().toISOString(),
@@ -51,21 +52,20 @@ async function owner() {
   const id = await createTestUser();
   const db = (await getDb())!;
   const subId = String(Math.floor(Math.random() * 1e12));
-  await db
-    .insert(subscriptions)
-    .values({
-      userId: id,
-      lsSubscriptionId: subId,
-      lsCustomerId: "90",
-      plan: "plus",
-      status: "active",
-    });
+  await db.insert(subscriptions).values({
+    userId: id,
+    lsSubscriptionId: subId,
+    lsCustomerId: "90",
+    plan: "plus",
+    status: "active",
+  });
   return { id, subId };
 }
 it("retrieves fresh links only for the authenticated account's bound subscription and refreshes local state", async () => {
   const a = await owner();
   const payload = snapshot();
   payload.data.data.id = a.subId;
+  payload.data.data.attributes.user_email = `${a.id}@example.test`;
   const get = vi.spyOn(axios, "get").mockResolvedValue(payload);
   expect(await subscriptionPortal(a.id, "manage")).toEqual({
     url: "https://store.lemonsqueezy.com/billing?signature=fresh",
@@ -92,6 +92,7 @@ it.each(["id", "customer"])(
     const a = await owner(),
       payload = snapshot();
     payload.data.data.id = field === "id" ? "foreign" : a.subId;
+    payload.data.data.attributes.user_email = `${a.id}@example.test`;
     if (field === "customer") payload.data.data.attributes.customer_id = 99999;
     vi.spyOn(axios, "get").mockResolvedValue(payload);
     await expect(subscriptionPortal(a.id, "manage")).rejects.toMatchObject({
@@ -117,6 +118,7 @@ it("rejects unsafe portal URLs", async () => {
   const a = await owner(),
     payload = snapshot();
   payload.data.data.id = a.subId;
+  payload.data.data.attributes.user_email = `${a.id}@example.test`;
   payload.data.data.attributes.urls.customer_portal = "javascript:alert(1)";
   vi.spyOn(axios, "get").mockResolvedValue(payload);
   await expect(subscriptionPortal(a.id, "manage")).rejects.toMatchObject({
@@ -127,6 +129,7 @@ it("does not replace a newer subscription selected while a refresh was in flight
   const a = await owner(),
     payload = snapshot();
   payload.data.data.id = a.subId;
+  payload.data.data.attributes.user_email = `${a.id}@example.test`;
   vi.spyOn(axios, "get").mockImplementation(async () => {
     await (await getDb())!
       .update(subscriptions)
@@ -144,4 +147,16 @@ it("does not replace a newer subscription selected while a refresh was in flight
       .from(billingEvents)
       .where(eq(billingEvents.userId, a.id))
   ).toHaveLength(0);
+});
+
+it("does not give a customer portal for a payment email belonging to a different account", async () => {
+  const a = await owner(),
+    payload = snapshot();
+  payload.data.data.id = a.subId;
+  payload.data.data.attributes.user_email = "another@example.test";
+  vi.spyOn(axios, "get").mockResolvedValue(payload);
+  await expect(subscriptionPortal(a.id, "manage")).rejects.toMatchObject({
+    code: "PRECONDITION_FAILED",
+  });
+  expect((await getSubscription(a.id))?.status).toBe("active");
 });

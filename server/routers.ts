@@ -21,9 +21,11 @@ import { operationsRouter } from "./routers/operations";
 import { discoveryRouter } from "./routers/discovery";
 import { productConfigRouter } from "./routers/productConfig";
 
+import { supportRouter } from "./routers/support";
 import { privacyRouter } from "./routers/privacy";
 export const appRouter = router({
   privacy: privacyRouter,
+  support: supportRouter,
   video: videoRouter,
   management: managementRouter,
   productConfig: productConfigRouter,

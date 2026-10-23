@@ -41,7 +41,15 @@ vi.mock("@/lib/trpc", () => ({
         },
       },
     },
-    billing: { getInfo: { useQuery: () => ({ data: mock.billing }) } },
+    billing: {
+      getInfo: { useQuery: () => ({ data: mock.billing }) },
+      portal: { useMutation: () => ({ mutate: vi.fn() }) },
+      refresh: { useMutation: () => ({ mutate: vi.fn() }) },
+    },
+    useUtils: () => ({
+      billing: { getInfo: { invalidate: vi.fn() } },
+      privacy: { eligibility: { invalidate: vi.fn() } },
+    }),
   },
 }));
 let root: Root;
@@ -264,7 +272,9 @@ it("displays new plan names, annual prices and actual quotas, and binds checkout
   expect(host.textContent).toContain("/年");
   expect(host.textContent).not.toContain("每天 30 条");
   await act(async () =>
-    host.querySelector<HTMLButtonElement>("button")!.click()
+    Array.from(host.querySelectorAll<HTMLButtonElement>("button"))
+      .find(button => button.textContent?.includes("API 年卡"))!
+      .click()
   );
   const url = new URL(open.mock.calls[0][0] as string);
   expect(url.searchParams.get("checkout[custom][user_id]")).toBe("ui-user");

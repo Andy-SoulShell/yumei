@@ -1,3 +1,4 @@
+import { getUserById } from "./repositories/users";
 /** 点击管理入口时获取新的签名链接，不持久化或记录链接中的登录签名。 */
 import axios from "axios";
 import { TRPCError } from "@trpc/server";
@@ -29,6 +30,14 @@ export async function readProviderSubscription(userId: string) {
       }
     );
     const data = response.data?.data;
+    const owner = await getUserById(userId);
+    if (
+      !owner ||
+      typeof data?.attributes?.user_email !== "string" ||
+      data.attributes.user_email.trim().toLowerCase() !==
+        owner.email.trim().toLowerCase()
+    )
+      throw failure();
     if (
       data?.type !== "subscriptions" ||
       String(data.id) !== subscription.lsSubscriptionId ||

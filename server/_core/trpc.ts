@@ -51,6 +51,7 @@ const requireUser = t.middleware(async opts => {
     throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
   }
 
+  ctx.res.setHeader?.("Cache-Control", "no-store");
   return next({
     ctx: {
       ...ctx,

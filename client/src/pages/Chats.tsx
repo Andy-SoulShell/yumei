@@ -1,3 +1,4 @@
+import { DeleteConversationButton } from "@/components/DeleteConversationButton";
 import { useProductConfig } from "@/features/product/useProductConfig";
 /** 最近会话列表，直接进入原有聊天页并保留历史消息。 */
 import { useEffect, useState } from "react";
@@ -65,39 +66,43 @@ export default function Chats() {
       ) : results?.length ? (
         <div className="conversation-list">
           {results.map(chat => (
-            <Link
-              key={chat.id}
-              href={`/chat/${chat.id}`}
-              className="conversation-card"
-            >
-              {chat.girlfriendImage ? (
-                <img src={chat.girlfriendImage} alt="" />
-              ) : (
-                <span
-                  className="conversation-avatar flex items-center justify-center bg-primary/10 text-primary"
-                  aria-hidden="true"
-                >
-                  {chat.girlfriendName?.[0]}
+            <div key={chat.id} className="flex items-center gap-2">
+              <Link
+                href={`/chat/${chat.id}`}
+                className="conversation-card min-w-0 flex-1"
+              >
+                {chat.girlfriendImage ? (
+                  <img src={chat.girlfriendImage} alt="" />
+                ) : (
+                  <span
+                    className="conversation-avatar flex items-center justify-center bg-primary/10 text-primary"
+                    aria-hidden="true"
+                  >
+                    {chat.girlfriendName?.[0]}
+                  </span>
+                )}
+                <span className="conversation-preview">
+                  <span className="conversation-name">
+                    {chat.girlfriendName ||
+                      chat.title ||
+                      t("home:conversation")}
+                    <time>
+                      {formatRelativeTime(
+                        chat.lastMessageAt || chat.updatedAt,
+                        locale
+                      )}
+                    </time>
+                  </span>
+                  <span className="conversation-message">
+                    {chat.lastMessage === "[自拍照片]"
+                      ? t("home:sentAPhoto")
+                      : chat.lastMessage || t("home:noMessagesYet")}
+                  </span>
                 </span>
-              )}
-              <span className="conversation-preview">
-                <span className="conversation-name">
-                  {chat.girlfriendName || chat.title || t("home:conversation")}
-                  <time>
-                    {formatRelativeTime(
-                      chat.lastMessageAt || chat.updatedAt,
-                      locale
-                    )}
-                  </time>
-                </span>
-                <span className="conversation-message">
-                  {chat.lastMessage === "[自拍照片]"
-                    ? t("home:sentAPhoto")
-                    : chat.lastMessage || t("home:noMessagesYet")}
-                </span>
-              </span>
-              <ArrowUpRight size={18} />
-            </Link>
+                <ArrowUpRight size={18} />
+              </Link>
+              <DeleteConversationButton id={chat.id} />
+            </div>
           ))}
           {error && (
             <div role="alert" className="flex flex-wrap items-center gap-3">

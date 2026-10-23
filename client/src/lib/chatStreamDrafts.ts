@@ -50,6 +50,22 @@ export function chatStreamDraftKey(
     : null;
 }
 
+/** 删除单个会话时保留其他会话和账号的输入草稿。 */
+export function clearConversationChatDrafts(
+  accountId: string,
+  conversationId: number
+) {
+  try {
+    for (const key of [
+      chatInputDraftKey(accountId, conversationId),
+      chatStreamDraftKey(accountId, conversationId),
+    ])
+      if (key) sessionStorage.removeItem(key);
+  } catch {
+    /* 受限存储不阻止删除。 */
+  }
+}
+
 /** 退出账号时清理本标签页的待核对消息和未发送输入。 */
 export function clearChatStreamDrafts() {
   try {

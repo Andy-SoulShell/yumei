@@ -1,3 +1,4 @@
+import { UploadPrivacyNotice } from "@/components/UploadPrivacyNotice";
 /** 角色独立音色选择、参考录音上传和即时克隆绑定入口。 */
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -38,107 +39,111 @@ export function CharacterVoice({
     };
   }, []);
   return (
-    <div className="space-y-2 rounded-md border p-3">
-      <Label htmlFor="character-voice">{t("setup:roleVoiceTitle")}</Label>
-      <select
-        id="character-voice"
-        className="w-full rounded-md border bg-background p-2 text-sm"
-        value={omnivoiceVoiceId}
-        disabled={isLoading || !!error}
-        onChange={event => setOmnivoiceVoiceId(event.target.value)}
-      >
-        <option value="">{t("setup:roleVoiceDefault")}</option>
-        {omnivoiceVoiceId && !voices.some(v => v.id === omnivoiceVoiceId) && (
-          <option value={omnivoiceVoiceId}>
-            {t("setup:roleVoiceUnavailable")}
-          </option>
-        )}
-        {voices.map(voice => (
-          <option key={voice.id} value={voice.id}>
-            {voice.name}
-          </option>
-        ))}
-      </select>
-      <p className="text-xs text-muted-foreground">
-        {t("setup:roleVoiceHint")}
-      </p>
-      {error && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => void refetch()}
+    <>
+      {" "}
+      <UploadPrivacyNotice />
+      <div className="space-y-2 rounded-md border p-3">
+        <Label htmlFor="character-voice">{t("setup:roleVoiceTitle")}</Label>
+        <select
+          id="character-voice"
+          className="w-full rounded-md border bg-background p-2 text-sm"
+          value={omnivoiceVoiceId}
+          disabled={isLoading || !!error}
+          onChange={event => setOmnivoiceVoiceId(event.target.value)}
         >
-          {t("settings:omnivoiceRefresh")}
-        </Button>
-      )}
-      {!isLoading && !error && !voices.length && (
-        <p className="text-xs text-muted-foreground">
-          {t("setup:roleVoiceEmpty")}
-        </p>
-      )}
-      <details className="rounded-md border p-3">
-        <summary className="cursor-pointer text-sm font-medium">
-          {t("settings:omnivoiceCloneTitle")}
-        </summary>
-        <div className="space-y-3 pt-3">
-          {!isLoading && data?.available !== true && (
-            <p className="text-xs text-muted-foreground" role="status">
-              {data?.configured === false
-                ? t("settings:omnivoiceNotConfigured")
-                : t("settings:omnivoiceOffline")}
-            </p>
+          <option value="">{t("setup:roleVoiceDefault")}</option>
+          {omnivoiceVoiceId && !voices.some(v => v.id === omnivoiceVoiceId) && (
+            <option value={omnivoiceVoiceId}>
+              {t("setup:roleVoiceUnavailable")}
+            </option>
           )}
-          <OmniVoiceCloneForm
-            t={t}
-            idPrefix="character"
-            defaultName={name.slice(0, 80)}
-            disabled={isLoading || data?.available !== true}
-            onBusyChange={setIsCloningVoice}
-            submitLabel={
-              editId
-                ? t("setup:roleVoiceCloneAndBind")
-                : t("setup:roleVoiceCloneAndSelect")
-            }
-            successMessage={
-              editId
-                ? t("setup:roleVoiceCloneBound")
-                : t("setup:roleVoiceCloneSelected")
-            }
-            onCreated={async voice => {
-              if (editId)
-                await bindVoice.mutateAsync({
-                  id: editId,
-                  omnivoiceVoiceId: voice.id,
-                });
-              if (!mounted.current) return;
-              setOmnivoiceVoiceId(voice.id);
-              utils.tts.omnivoiceStatus.setData(undefined, current =>
-                current
-                  ? {
-                      ...current,
-                      voices: [
-                        ...current.voices.filter(v => v.id !== voice.id),
-                        { ...voice, cloned: true },
-                      ],
-                    }
-                  : current
-              );
-              // Binding succeeded even if a background catalog refresh fails.
-              void utils.tts.omnivoiceStatus
-                .invalidate()
-                .catch(() => undefined);
-              if (editId)
-                void utils.girlfriend.invalidate().catch(() => undefined);
-            }}
-          />
+          {voices.map(voice => (
+            <option key={voice.id} value={voice.id}>
+              {voice.name}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-muted-foreground">
+          {t("setup:roleVoiceHint")}
+        </p>
+        {error && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void refetch()}
+          >
+            {t("settings:omnivoiceRefresh")}
+          </Button>
+        )}
+        {!isLoading && !error && !voices.length && (
           <p className="text-xs text-muted-foreground">
-            {editId
-              ? t("setup:roleVoiceInlineHint")
-              : t("setup:roleVoiceCreateHint")}
+            {t("setup:roleVoiceEmpty")}
           </p>
-        </div>
-      </details>
-    </div>
+        )}
+        <details className="rounded-md border p-3">
+          <summary className="cursor-pointer text-sm font-medium">
+            {t("settings:omnivoiceCloneTitle")}
+          </summary>
+          <div className="space-y-3 pt-3">
+            {!isLoading && data?.available !== true && (
+              <p className="text-xs text-muted-foreground" role="status">
+                {data?.configured === false
+                  ? t("settings:omnivoiceNotConfigured")
+                  : t("settings:omnivoiceOffline")}
+              </p>
+            )}
+            <OmniVoiceCloneForm
+              t={t}
+              idPrefix="character"
+              defaultName={name.slice(0, 80)}
+              disabled={isLoading || data?.available !== true}
+              onBusyChange={setIsCloningVoice}
+              submitLabel={
+                editId
+                  ? t("setup:roleVoiceCloneAndBind")
+                  : t("setup:roleVoiceCloneAndSelect")
+              }
+              successMessage={
+                editId
+                  ? t("setup:roleVoiceCloneBound")
+                  : t("setup:roleVoiceCloneSelected")
+              }
+              onCreated={async voice => {
+                if (editId)
+                  await bindVoice.mutateAsync({
+                    id: editId,
+                    omnivoiceVoiceId: voice.id,
+                  });
+                if (!mounted.current) return;
+                setOmnivoiceVoiceId(voice.id);
+                utils.tts.omnivoiceStatus.setData(undefined, current =>
+                  current
+                    ? {
+                        ...current,
+                        voices: [
+                          ...current.voices.filter(v => v.id !== voice.id),
+                          { ...voice, cloned: true },
+                        ],
+                      }
+                    : current
+                );
+                // Binding succeeded even if a background catalog refresh fails.
+                void utils.tts.omnivoiceStatus
+                  .invalidate()
+                  .catch(() => undefined);
+                if (editId)
+                  void utils.girlfriend.invalidate().catch(() => undefined);
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              {editId
+                ? t("setup:roleVoiceInlineHint")
+                : t("setup:roleVoiceCreateHint")}
+            </p>
+          </div>
+        </details>
+      </div>
+    </>
   );
 }

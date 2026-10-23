@@ -325,7 +325,24 @@ export function AuthFlow(props: {
         </form>
       )}
       <p className="pt-4 text-xs leading-relaxed text-muted-foreground">
-        {t("auth:guide18OnlyCompanionsOnYUMEIAreAIGenerated")}
+        {t("auth:guide18OnlyCompanionsOnYUMEIAreAIGenerated")}{" "}
+        <a
+          href="/privacy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary underline"
+        >
+          {t("privacy:privacyLink")}
+        </a>
+        {" · "}
+        <a
+          href="/help"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary underline"
+        >
+          {t("privacy:helpLink")}
+        </a>
       </p>
     </div>
   );

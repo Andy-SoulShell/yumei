@@ -12,6 +12,9 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { i18n, type Translator } from "@shared/i18n";
 import Chats from "./Chats";
+vi.mock("@/components/DeleteConversationButton", () => ({
+  DeleteConversationButton: () => null,
+}));
 
 const mock = vi.hoisted(() => ({
   query: {} as any,

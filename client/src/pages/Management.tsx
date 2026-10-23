@@ -1,3 +1,4 @@
+import { SupportInbox } from "@/features/management/SupportInbox";
 /** 单密码运营后台：直接调用既有管理 API 编辑草稿、校验并发布。 */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
@@ -943,6 +944,7 @@ function CharacterWorkspace({
 }
 /** 路由保持与用户登录独立，所有状态和写入都由服务端会话判定。 */
 export default function Management() {
+  const [routeLocation] = useLocation();
   const session = trpc.management.status.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: true,
@@ -960,6 +962,7 @@ export default function Management() {
       setPassword("");
       cache.removeQueries({ queryKey: getQueryKey(trpc.productConfig.admin) });
       cache.removeQueries({ queryKey: getQueryKey(trpc.discovery.admin) });
+      cache.removeQueries({ queryKey: getQueryKey(trpc.support.admin) });
       await session.refetch();
     } catch (error) {
       setError(message(error));
@@ -970,6 +973,7 @@ export default function Management() {
       await logout.mutateAsync();
       cache.removeQueries({ queryKey: getQueryKey(trpc.productConfig.admin) });
       cache.removeQueries({ queryKey: getQueryKey(trpc.discovery.admin) });
+      cache.removeQueries({ queryKey: getQueryKey(trpc.support.admin) });
       await session.refetch();
     } catch (error) {
       toast.error(message(error));
@@ -1057,6 +1061,8 @@ export default function Management() {
         </Card>
       </div>
     );
+  if (routeLocation === "/admin/support")
+    return <SupportInbox onLogout={() => void signOut()} />;
   return (
     <ManagementConsole
       onLogout={() => void signOut()}
@@ -1261,6 +1267,20 @@ function ManagementConsole({
           <strong>{active.name}</strong>
         </div>
         <div className="admin-header-actions">
+          <Button asChild variant="ghost" size="sm">
+            <Link
+              href="/admin/support"
+              onClick={event => {
+                if (
+                  busy ||
+                  (dirty && !window.confirm("放弃未保存修改并打开客服工单？"))
+                )
+                  event.preventDefault();
+              }}
+            >
+              客服工单
+            </Link>
+          </Button>
           <Button
             variant="ghost"
             size="icon-sm"

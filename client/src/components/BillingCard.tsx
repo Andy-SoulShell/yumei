@@ -38,6 +38,7 @@ export function BillingCard() {
     onError: () => setNotice(t("billing:manageError")),
     onSuccess: async ({ synced }) => {
       await utils.billing.getInfo.invalidate();
+      await utils.privacy.eligibility.invalidate();
       setNotice(t(synced ? "billing:refreshDone" : "billing:paymentPending"));
     },
   });

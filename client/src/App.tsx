@@ -27,6 +27,9 @@ const Settings = lazy(() => import("./pages/Settings"));
 const Chats = lazy(() => import("./pages/Chats"));
 const Generate = lazy(() => import("./pages/Generate"));
 const Management = lazy(() => import("./pages/Management"));
+const Help = lazy(() => import("./pages/Help"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const DataDeletion = lazy(() => import("./pages/DataDeletion"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function PageLoading() {
@@ -89,6 +92,9 @@ function Router() {
       <Suspense fallback={<PageLoading />}>
         <Switch>
           <Route path="/" component={Landing} />
+          <Route path="/help" component={Help} />
+          <Route path="/privacy" component={Privacy} />
+          <Route path="/data-deletion" component={DataDeletion} />
           <Route path="/explore" component={Explore} />
           <Route path="/characters">
             <Authenticated>

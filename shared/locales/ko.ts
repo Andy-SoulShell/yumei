@@ -1,6 +1,260 @@
 /** 与英文基准包保持相同 key 和插值参数。 */
 import type { MessageCatalog } from "./types";
 export default {
+  memoryFlow: {
+    relearn:
+      "기억이 켜져 있으면 새 메시지에서 다시 언급한 정보는 다시 기억할 수 있습니다.",
+    latest:
+      "다른 곳에서 이 기억을 변경했어요. 최신 내용을 확인해 주세요. 수정 입력은 유지됩니다.",
+    useLatest: "최신 기억과 다시 확인",
+    gone: "다른 곳에서 이 기억을 삭제했어요. 수정 입력은 아래에 남아 있어 복사하거나 취소할 수 있습니다.",
+
+    intro:
+      "이 캐릭터가 기억하는 내용을 확인하고 앞으로 대화에 쓸 정보를 관리하세요.",
+    impactTitle: "수정하거나 삭제하면 대화는 어떻게 되나요?",
+    impactShort:
+      "채팅 기록은 계속 볼 수 있고 이후 답변은 새로운 맥락에서 이어집니다.",
+    impactScope:
+      "{{name}}와의 모든 대화에만 적용되며 다른 캐릭터에는 영향을 주지 않습니다.",
+    impactHistory: "기존 메시지는 수정되거나 삭제되지 않습니다.",
+    impactContext:
+      "이전 채팅 맥락과 요약은 이후 답변이나 재학습에 쓰이지 않습니다. 이어서 대화할 때 직전 주제를 간단히 설명해야 할 수 있습니다.",
+    impactOther:
+      "다른 저장된 기억은 유지됩니다. ‘모두 잊기’는 그것들도 삭제합니다.",
+    impactPending:
+      "대기 중이거나 생성 중인 답변이 중단될 수 있습니다. 보내지 않은 채팅 초안은 유지됩니다.",
+    listTitle: "저장된 기억",
+    search: "기억 검색",
+    searchPlaceholder: "내용 또는 키워드 검색",
+    filter: "분류로 필터",
+    all: "모든 분류",
+    noMatches: "일치하는 기억이 없어요",
+    reset: "필터 지우기",
+    controls: "기억 설정과 시간대",
+    recapHelp: "대화 요약은 이후 답변을 도우며 기억 변경 후 새로 쌓입니다.",
+    dangerTitle: "기억 잊기 및 비우기",
+    dangerHelp: "모든 기억을 삭제할 때만 사용하세요. 채팅 기록은 유지됩니다.",
+    edit: "수정",
+    pin: "고정",
+    unpin: "고정 해제",
+    remove: "삭제",
+    editReview: "수정 내용 확인",
+    editLimit:
+      "최대 {{max}}자. 캐릭터가 기억했으면 하는 사실을 명확히 적어 주세요.",
+    original: "기존 기억",
+    corrected: "수정 후",
+    editConfirm: "이 기억을 수정할까요?",
+    deleteConfirm: "이 기억을 삭제할까요?",
+    clearConfirm: "모든 저장된 기억을 잊을까요?",
+    clearScope:
+      "고정 항목을 포함한 {{name}}의 모든 기억이 삭제됩니다. 되돌릴 수 없습니다.",
+    deleteScope:
+      "이 기억만 삭제하며 되돌릴 수 없습니다. 다른 기억은 유지됩니다.",
+    editScope: "이 기억을 새 내용으로 바꿉니다. 다른 기억은 유지됩니다.",
+    confirmEdit: "확인 후 수정 저장",
+    confirmDelete: "삭제 확인",
+    confirmClear: "모두 잊기 확인",
+    working: "처리 중…",
+    failed:
+      "작업의 성공 여부를 확인하지 못했어요. 입력은 유지됩니다. 다시 시도해 주세요.",
+    conflict:
+      "이 기억은 변경되거나 삭제되었어요. 수정 입력은 유지됩니다. 목록에서 최신 내용을 확인한 후 다시 편집해 주세요.",
+    retry: "이 작업 다시 시도",
+    refreshFailed:
+      "작업은 성공했지만 목록을 새로 불러오지 못했어요. 다시 제출하지 말고 상태를 확인해 주세요.",
+    refresh: "상태 새로 확인",
+    stale:
+      "기억을 새로 불러오지 못했어요. 이전 기록과 저장하지 않은 수정은 유지됩니다.",
+    edited:
+      "수정을 저장했어요. 이후 답변은 새 기억을 사용하며 과거 메시지는 바뀌지 않습니다.",
+    deleted:
+      "기억을 삭제했어요. 과거 메시지는 유지되고 이전 맥락에서 다시 학습하지 않습니다.",
+    cleared:
+      "모든 기억을 잊었어요. 과거 메시지는 유지되며 새 주제로 이어갈 수 있습니다.",
+    paused:
+      "기억이 일시 정지되어 있어요. 저장한 수정은 기억을 재개한 후 답변에 쓰입니다.",
+    pinSaved: "고정 상태를 변경했어요.",
+    pinHelp:
+      "고정하면 자동으로 잊지 않습니다. 기억 내용이나 대화 맥락은 바뀌지 않습니다.",
+    continue: "대화 이어가기",
+    returnCurrent: "현재 대화로 돌아가기",
+    returnLatest: "최근 대화 열기",
+    returnUnavailable:
+      "원래 대화를 사용할 수 없거나 다른 캐릭터의 대화입니다. 이 캐릭터의 최근 대화를 열 수 있어요.",
+    returnFailed:
+      "대화를 열지 못했어요. 기억 변경 결과는 유지됩니다. 다시 시도해 주세요.",
+    opening: "대화 여는 중…",
+    discardTitle: "저장하지 않은 수정을 두고 나갈까요?",
+    discardHelp:
+      "수정은 아직 저장되지 않았어요. 나가면 이 페이지의 입력이 사라지고 기존 기억은 그대로 유지됩니다.",
+    leave: "수정 버리고 나가기",
+    stay: "계속 수정",
+    controlImpact:
+      "일시 정지, 재개, 시간대 변경도 이전 맥락을 초기화합니다. 재개 후 새 메시지부터 학습합니다. 시간대는 계정 전체에 적용됩니다.",
+    handoff:
+      "기억을 변경했어요. 채팅 기록은 유지되며 이후 답변은 새 맥락을 사용합니다. 직전 주제를 간단히 알려 주고 이어가세요.",
+    dismiss: "기억 안내 닫기",
+  },
+  settingsFlow: {
+    intro:
+      "목적에 따라 동반자 경험을 설정하세요. 각 구역을 따로 저장하며 즉시 적용되는 항목은 저장이 필요 없어요.",
+    shortcuts: "설정 바로가기",
+    frequent: "자주 쓰는 설정",
+    accountAndServices: "알림, 계정 및 서비스",
+    chatTitle: "채팅 방식",
+    chatDescription: "답변 언어, 길이와 대화 취향",
+    chatScope:
+      "이 계정의 모든 캐릭터에 적용할 답변 언어, 길이 및 맞춤 채팅 취향만 저장해요.",
+    customPrompt: "맞춤 채팅 취향과 템플릿",
+    promptScope:
+      "선택 사항이에요. 원하는 대화 방식을 적으세요. 템플릿을 선택하면 내용을 바꾸며 저장 후 적용돼요.",
+    voiceTitle: "목소리와 읽어주기",
+    voiceDescription: "자동 읽기, 목소리 선택 및 미리 듣기",
+    voiceChoices: "목소리 선택 및 미리 듣기",
+    voiceScope:
+      "이 계정의 읽기 목소리와 여기 입력한 음성 서비스 키만 저장해요.",
+    autoPlayScope: "자동 읽기는 이 기기에 즉시 적용되며 저장할 필요 없어요.",
+    appearanceTitle: "화면과 모양",
+    appearanceDescription: "화면 언어, 밝기 및 테마",
+    appearanceScope:
+      "언어, 표시 모드와 테마는 계정에 자동 동기화해요. 실험 소재는 이 기기에만 적용돼요.",
+    appearanceAdvanced: "테마 및 실험 소재",
+    appearanceSaved: "화면 설정을 계정에 동기화했어요.",
+    notificationsTitle: "알림과 시간대",
+    notificationsDescription: "먼저 연락하기, 방해 금지 및 기기 알림",
+    notificationsScope:
+      "먼저 연락하기와 시간대는 여기서 계정에 저장해요. 기기 푸시는 별도로 켜고 끄며 즉시 적용돼요.",
+    billingTitle: "요금제와 사용량",
+    billingDescription: "남은 횟수, 구독 및 결제 상태",
+    billingScope:
+      "사용량을 확인하고 구독을 관리하며 설정 저장은 필요 없어요. 결제 및 구독 변경은 서비스 확인 후 적용돼요.",
+    accountTitle: "계정과 개인정보",
+    accountDescription: "프로필, 비밀번호 및 데이터 관리",
+    accountScope:
+      "프로필과 비밀번호는 각각 저장해요. 데이터 내보내기와 계정 삭제는 별도로 실행해요.",
+    advancedTitle: "고급 서비스 설정",
+    advancedDescription: "필요할 때 모델, 개인 키 및 서비스 설정",
+    advancedScope:
+      "사이트 서비스를 사용하면 보통 변경할 필요 없어요. 각 항목을 따로 저장하며 키는 브라우저 초안에 보관하지 않아요.",
+    modelTitle: "채팅 모델",
+    modelDescription: "모델 선택 또는 개인 서비스 사용",
+    modelScope:
+      "이 계정의 채팅 모델과 여기 입력한 OpenRouter 키만 저장하며 채팅 취향이나 음성 설정은 포함하지 않아요.",
+    imageTitle: "이미지 서비스",
+    imageDescription: "서비스 상태 및 선택 사항인 개인 키",
+    imageScope:
+      "이 계정의 사진 생성을 위해 여기 입력한 이미지 서비스 키만 저장해요.",
+    transcriptionTitle: "음성을 텍스트로",
+    transcriptionDescription: "음성 입력 받아쓰기 서비스",
+    transcriptionScope:
+      "여기 입력한 받아쓰기 키만 저장하며 읽기 목소리는 바꾸지 않아요.",
+    keysTitle: "저장된 개인 키",
+    keysDescription: "설정된 서비스 확인 또는 키 제거",
+    keysScope:
+      "제거는 즉시 적용돼요. 입력란에 있는 새 키는 해당 구역에서 저장해야 해요.",
+    keysEmpty:
+      "저장된 개인 키가 없어요. 사이트 서비스를 계속 사용할 수 있어요.",
+    keyRemoved: "키를 삭제했습니다.",
+    saveSection: "이 구역 저장",
+    retrySection: "이 구역 저장 재시도",
+    savingSection: "이 구역을 저장하는 중…",
+    savedSection: "이 구역을 저장했어요.",
+    savedWithNewEdits:
+      "제출한 내용을 저장했어요. 이후 수정한 내용은 아직 저장되지 않았어요.",
+    saveFailed: "저장하지 못했어요. 입력을 유지했으니 다시 시도해 주세요.",
+    partiallySaved:
+      "일부 설정을 저장했어요. 실패한 입력은 유지했으며 재시도 시 아직 저장되지 않은 항목을 처리해요.",
+    unsaved: "저장하지 않은 변경 사항",
+    noChanges: "변경한 뒤 이 구역에서 저장하세요.",
+    refreshFailed:
+      "쓰기 결과는 유지했지만 저장 상태를 새로 확인하지 못했어요. 다시 불러와 주세요.",
+    refreshSaved: "저장 상태 다시 불러오기",
+    needsAttention: "저장 미완료, 펼쳐서 확인",
+    staleConfig: "설정 상태를 업데이트하지 못해 이전에 불러온 값을 표시해요.",
+    pushScope: "이 브라우저의 푸시만 관리하며 먼저 연락하기를 켜지는 않아요.",
+    pushChecking: "기기 알림 확인 중…",
+    pushUnsupported:
+      "이 브라우저는 기기 푸시를 지원하지 않아요. 앱 안에서 알림을 확인할 수 있어요.",
+    pushUnavailable:
+      "이 사이트는 기기 푸시가 켜져 있지 않아요. 앱 안에서 알림을 확인할 수 있어요.",
+    pushLoadFailed: "기기 푸시 상태를 불러오지 못했어요. 다시 시도해 주세요.",
+  },
+  works: {
+    expandScene: "전체 장면 설명",
+    collapseScene: "설명 접기",
+    checkingRemote:
+      "이미지 서비스가 원래 작업을 받았는지 확인 중이에요. 확인하는 동안 다시 제출하지 않아요.",
+    contextFailure:
+      "캐릭터 정보가 바뀌어 이 작업을 종료했어요. 최신 정보로 새 이미지를 생성해 주세요.",
+    title: "이미지와 작품",
+    subtitle:
+      "생성 진행 상황과 사진을 한곳에서 확인하세요. 새로고침하거나 나가도 다시 찾을 수 있어요.",
+    sections: "작품 메뉴",
+    tasks: "작업 기록",
+    gallery: "앨범",
+    create: "이미지 생성",
+    filterAll: "전체",
+    filterActive: "진행 중",
+    filterCompleted: "완료",
+    filterFailed: "실패",
+    refresh: "작업 새로고침",
+    refreshFailed:
+      "상태를 업데이트하지 못했어요. 이전 기록을 유지하고 있으니 다시 확인해 주세요.",
+    noTasks: "해당 작업이 없어요",
+    noTasksHint:
+      "새 이미지는 진행 상황과 함께 여기에 표시돼요. 이전 사진은 앨범에서 볼 수 있어요.",
+    chooseCharacter: "사진을 찍을 캐릭터 선택",
+    beforeGenerate:
+      "채팅에서 장면을 설명하고 포즈를 선택하세요. 제출 후 나가도 되며 완성된 사진은 채팅과 앨범에 저장돼요.",
+    remaining: "남은 이미지 횟수: {{count}}회",
+    quotaLoadFailed: "남은 횟수를 불러오지 못했어요. 다시 시도해 주세요.",
+    queued: "대기 중",
+    generating: "생성 중",
+    completed: "완료",
+    failed: "생성 실패",
+    selfie: "캐릭터 사진",
+    couple: "커플 사진",
+    progress: "생성 진행 상황",
+    backgroundHint:
+      "이 페이지를 나가도 작업은 계속돼요. 이미지와 작품에서 다시 확인할 수 있어요.",
+    quotaReserved:
+      "이미지 1회를 예약했어요. 실패하면 원래 사용 기간에 자동 반환돼요.",
+    quotaCharged: "이 작업에 이미지 1회를 사용했어요.",
+    quotaRefunded:
+      "예약했던 이미지 1회를 원래 사용 기간에 반환했어요. 기간이 초기화되어도 새 기간의 횟수에 더해지지는 않아요.",
+    quotaUnmetered: "이 작업은 제품 이미지 횟수를 사용하지 않아요.",
+    quotaByok:
+      "제품 이미지 횟수는 사용하지 않아요. 개인 키의 서비스 요금은 제공업체가 정산하며 제품에서 환불할 수 없어요.",
+    timeoutFailure: "대기 시간이 초과되어 이미지가 저장되지 않았어요.",
+    providerFailure:
+      "사용할 수 있는 이미지가 생성되지 않았어요. 다시 시도할 수 있어요.",
+    unconfirmedFailure:
+      "이미지 서비스가 요청을 받았는지 확인할 수 없어요. 중복 생성을 막기 위해 이 작업은 다시 제출하지 않아요. 서비스에서 계속 처리 중일 수 있어요.",
+    retry: "생성 재시도",
+    retryQuota:
+      "재시도는 새 작업으로 횟수를 예약해요. 여러 번 눌러도 같은 재시도 작업을 반환해요.",
+    retryAccepted: "재시도 작업을 저장했어요. 작업 기록에서 확인하세요.",
+    viewRetry: "재시도 작업 보기",
+    backToChat: "채팅으로 돌아가기",
+    viewImage: "전체 이미지 보기",
+    generatedImage: "생성된 이미지",
+    accepted: "작업을 저장했어요. 나가도 작품에서 확인할 수 있어요.",
+    loadFailed: "작업을 불러오지 못했어요. 다시 확인해 주세요.",
+    coupleRetention:
+      "재시도용 참조 사진은 {{time}}까지 임시 보관돼요. 이후에는 다시 업로드해 주세요.",
+    pendingSubmissions: "확인이 필요한 이미지 제출",
+    submissionUnknown:
+      "제출 결과를 아직 확인하지 못했어요. 중복 생성을 막으려면 원래 작업을 확인하세요.",
+    submissionAbsent:
+      "이 제출을 찾지 못했어요. 계속할 때 원래 작업을 먼저 확인하여 중복 생성을 막아요.",
+    checkSubmission: "원래 작업 확인",
+    resend: "제출 계속",
+    dismissSubmission: "제출 취소",
+    reselectCouple:
+      "이 커플 사진 작업은 저장되지 않았어요. 원본 사진을 브라우저에 보관하지 않으므로 다시 선택해 주세요.",
+    quotaBefore:
+      "제출하면 1회가 예약되며 실패하면 자동 반환돼요. 자세한 내용은 작업 기록을 확인하세요.",
+  },
   help: {
     faq: "자주 묻는 질문",
     title: "도움말 및 고객 지원",
@@ -152,6 +406,9 @@ export default {
     actualDuration: "완성 길이: 약 {{seconds}}초",
   },
   landing: {
+    selectionHint:
+      "성격과 가까워지는 속도를 보고, 이야기하고 싶은 상대를 찾아보세요.",
+    moreCharacters: "다른 캐릭터도 만나 보기",
     continueWithCharacter: "{{name}}와 대화 이어가기",
     bannerLabel: "YUMEI 만나기",
     carousel: "슬라이드",
@@ -195,6 +452,23 @@ export default {
     welcomeBackTitle: "이야기를 이어가세요",
   },
   explore: {
+    interestsLabel: "취미와 대화 주제",
+    chatStyle: "우리의 대화 스타일",
+    aboutCharacter: "{{name}} 소개",
+    conversationPreview: "대화 분위기 미리 보기",
+    conversationPreviewHint: "말투를 알아볼 수 있는 대화 예시예요.",
+    alreadyAdded: "이미 추가한 캐릭터예요. 이전 대화를 이어가세요.",
+    guestCharacterHint:
+      "로그인 후 추가 가능한 수를 확인해요. 선택한 캐릭터는 유지돼요.",
+    capacityError:
+      "캐릭터 추가 가능 수를 확인하지 못했어요. 다시 시도해 주세요.",
+    checkingCapacity: "캐릭터 추가 가능 수를 확인하고 있어요…",
+    characterCapacityFull:
+      "캐릭터 {{count}}명 한도를 모두 사용 중이에요. 기존 캐릭터를 관리해 주세요.",
+    characterCapacityUnlimited:
+      "캐릭터 수 제한이 없어요. 추가하고 대화를 시작하세요.",
+    characterCapacityRemaining:
+      "{{count}}명 더 추가할 수 있어요. 이번 추가로 한 자리를 사용해요.",
     loadMore: "더 보기",
     collapseSidebar: "메뉴 접기",
     expandSidebar: "메뉴 펼치기",
@@ -202,7 +476,7 @@ export default {
     navExplore: "탐색",
     navChats: "채팅",
     navCreate: "만들기",
-    navGenerate: "이미지",
+    navGenerate: "작품",
     navCharacters: "내 캐릭터",
     mainNavigation: "주 메뉴",
     skipToContent: "본문으로 이동",
@@ -941,6 +1215,29 @@ export default {
     "categories.relationship": "우리 사이",
   },
   setup: {
+    quickCreateTitle: "캐릭터 빠르게 만들기",
+    quickCreateDescription:
+      "모습을 고르고 이름과 성격을 정하면 바로 대화할 수 있어요. 세부 설정은 나중에도 바꿀 수 있어요.",
+    chooseAppearance: "먼저 모습을 골라 주세요",
+    morePresets: "더 보기 ({{count}}명 남음)",
+    appearanceFromReference: "외모는 참고 이미지에 맞춰 주세요",
+    appearanceOptional: "외모 설명 추가 (선택)",
+    referenceAppearanceHint:
+      "이 이미지를 기준으로 모습을 정해요. ‘모습과 관심사’에서 설명을 추가할 수 있어요.",
+    furtherCustomization: "더 자세히 꾸미기 (선택)",
+    appearanceSection: "모습과 관심사",
+    appearanceSectionHint: "참고 이미지, 외모 세부 사항, 대화 주제",
+    behaviorSection: "함께하는 방식",
+    behaviorSectionHint: "말투, 관계의 속도, 호칭, 대화 예시",
+    voiceSection: "캐릭터 목소리",
+    voiceSectionHint: "기본 목소리를 쓰거나 전용 음성을 선택해요",
+    createAndChat: "만들고 대화 시작",
+    createdTitle: "{{name}} 캐릭터를 만들었어요",
+    createdChatHint: "캐릭터가 저장됐어요. 이제 대화를 열게요.",
+    chatOpenError:
+      "아직 대화를 열지 못했어요. 캐릭터는 저장됐으니 다시 시도해 주세요.",
+    enterChat: "대화 열기",
+    openingChat: "대화를 열고 있어요…",
     draftRestored:
       "저장하지 않은 캐릭터 설정을 복원했습니다. 계속 편집할 수 있습니다.",
     draftFilesNeedReselect:

@@ -1,6 +1,259 @@
 /** 与英文基准包保持相同 key 和插值参数。 */
 import type { MessageCatalog } from "./types";
 export default {
+  memoryFlow: {
+    relearn:
+      "記憶が有効な場合、新しいメッセージで再び話した情報は学習されることがあります。",
+    latest:
+      "この記憶は別の場所で更新されました。最新の内容を確認してください。訂正入力は保持されています。",
+    useLatest: "最新の記憶と再確認",
+    gone: "この記憶は別の場所で削除されました。訂正入力は下に残っているため、コピーまたはキャンセルできます。",
+
+    intro:
+      "このキャラクターが覚えていることを確認し、今後の会話に使う情報を管理できます。",
+    impactTitle: "訂正・削除すると会話はどうなる？",
+    impactShort:
+      "履歴は引き続き閲覧できます。以後の返信は新しい文脈から続きます。",
+    impactScope:
+      "{{name}}とのすべての会話に適用され、他のキャラクターには影響しません。",
+    impactHistory: "過去のメッセージは変更・削除されません。",
+    impactContext:
+      "以前の会話の文脈と古い要約は以後の返信や再学習に使われなくなります。再開時に直前の話題を短く補足する必要があります。",
+    impactOther:
+      "他の保存済み記憶は残ります。「すべて忘れる」ではそれらも削除されます。",
+    impactPending:
+      "待機中・生成中の返信が停止する場合があります。未送信の下書きは保持されます。",
+    listTitle: "保存済みの記憶",
+    search: "記憶を検索",
+    searchPlaceholder: "内容・キーワードで検索",
+    filter: "カテゴリで絞り込み",
+    all: "すべてのカテゴリ",
+    noMatches: "一致する記憶がありません",
+    reset: "絞り込みを解除",
+    controls: "記憶の切り替えとタイムゾーン",
+    recapHelp:
+      "振り返りは今後の返信を補助し、記憶の変更後は新たに蓄積されます。",
+    dangerTitle: "記憶を忘れる・消去",
+    dangerHelp: "すべての記憶を削除するときに使います。会話履歴は残ります。",
+    edit: "訂正",
+    pin: "固定",
+    unpin: "固定を解除",
+    remove: "削除",
+    editReview: "訂正内容を確認",
+    editLimit: "最大{{max}}文字。覚えてほしい事実を明確に入力してください。",
+    original: "元の記憶",
+    corrected: "訂正後",
+    editConfirm: "この記憶を訂正しますか？",
+    deleteConfirm: "この記憶を削除しますか？",
+    clearConfirm: "すべての記憶を忘れますか？",
+    clearScope:
+      "固定した項目を含む{{name}}のすべての記憶を削除します。元に戻せません。",
+    deleteScope:
+      "この記憶のみを削除します。元に戻せません。他の記憶は残ります。",
+    editScope: "この記憶を新しい内容に置き換えます。他の記憶は残ります。",
+    confirmEdit: "確認して訂正を保存",
+    confirmDelete: "削除を確定",
+    confirmClear: "すべて忘れるを確定",
+    working: "処理しています…",
+    failed:
+      "操作の成功を確認できませんでした。入力は保持されています。再試行してください。",
+    conflict:
+      "この記憶は変更または削除されています。訂正入力は保持されています。一覧に戻り最新の内容を確認してから再編集してください。",
+    retry: "この操作を再試行",
+    refreshFailed:
+      "操作は成功しましたが一覧を更新できませんでした。再送信せず、状態を再取得してください。",
+    refresh: "状態を再取得",
+    stale:
+      "記憶を更新できません。前回の記録と未保存の訂正入力を保持しています。",
+    edited:
+      "訂正を保存しました。以後の返信は更新後の記憶を使い、過去のメッセージは変わりません。",
+    deleted: "記憶を削除しました。履歴は残り、古い文脈から再学習されません。",
+    cleared:
+      "すべての記憶を忘れました。履歴は残り、新しい話題から続けられます。",
+    paused:
+      "記憶は一時停止中です。保存した訂正は記憶を再開すると返信に使われます。",
+    pinSaved: "固定状態を更新しました。",
+    pinHelp:
+      "固定すると自動的に忘れなくなります。記憶の内容や会話の文脈は変わりません。",
+    continue: "会話を続ける",
+    returnCurrent: "元の会話に戻る",
+    returnLatest: "最近の会話を開く",
+    returnUnavailable:
+      "元の会話が利用できないか、別のキャラクターの会話です。このキャラクターの最近の会話を開けます。",
+    returnFailed:
+      "会話を開けません。記憶の変更は保持されています。再試行してください。",
+    opening: "会話を開いています…",
+    discardTitle: "未保存の訂正から離れますか？",
+    discardHelp:
+      "訂正は未保存です。離れるとこのページの入力は破棄され、元の記憶は変わりません。",
+    leave: "訂正を破棄して離れる",
+    stay: "訂正を続ける",
+    controlImpact:
+      "停止・再開・タイムゾーンの変更でも以前の文脈はリセットされます。再開後は新しいメッセージから学習します。タイムゾーンはアカウント全体に適用されます。",
+    handoff:
+      "記憶を更新しました。履歴は残り、以後は新しい文脈で返信します。直前の話題を短く補足して続けてください。",
+    dismiss: "記憶の案内を閉じる",
+  },
+  settingsFlow: {
+    intro:
+      "目的に合わせて設定できます。各セクションは個別に保存します。「すぐに反映」の項目は保存不要です。",
+    shortcuts: "設定のショートカット",
+    frequent: "よく使う設定",
+    accountAndServices: "通知・アカウント・サービス",
+    chatTitle: "チャットの好み",
+    chatDescription: "返信の言語・長さ・接し方",
+    chatScope:
+      "返信の言語・長さ・カスタム設定のみ保存し、このアカウントのすべてのキャラクターに適用します。",
+    customPrompt: "接し方のカスタム設定とテンプレート",
+    promptScope:
+      "任意。希望の接し方を記入できます。テンプレートを選ぶと本文を置き換え、保存後に反映します。",
+    voiceTitle: "音声と読み上げ",
+    voiceDescription: "自動読み上げ・声の選択・試聴",
+    voiceChoices: "声の選択と試聴",
+    voiceScope:
+      "このアカウントの読み上げ音声と、ここに入力した音声サービスキーのみ保存します。",
+    autoPlayScope: "自動読み上げはこの端末ですぐに反映します。保存は不要です。",
+    appearanceTitle: "画面と外観",
+    appearanceDescription: "画面の言語・明暗・テーマ",
+    appearanceScope:
+      "言語・表示モード・テーマはアカウントに自動同期します。実験的な素材はこの端末だけに適用します。",
+    appearanceAdvanced: "テーマと実験的な素材",
+    appearanceSaved: "画面設定をアカウントに同期しました。",
+    notificationsTitle: "通知とタイムゾーン",
+    notificationsDescription: "自発的な連絡・通知しない時間・端末通知",
+    notificationsScope:
+      "自発的な連絡とタイムゾーンはここでアカウントに保存します。端末プッシュは個別に切り替え、すぐに反映します。",
+    billingTitle: "プランと使用量",
+    billingDescription: "残り回数・購読・支払い状況",
+    billingScope:
+      "使用量の確認と購読の管理です。設定の保存は不要です。支払いや購読の変更はサービスの確認後に反映します。",
+    accountTitle: "アカウントとプライバシー",
+    accountDescription: "プロフィール・パスワード・データ",
+    accountScope:
+      "プロフィールとパスワードはそれぞれ保存します。データの書き出しとアカウント削除は個別に実行します。",
+    advancedTitle: "高度なサービス設定",
+    advancedDescription: "必要に応じてモデル・個人キー・サービスを設定",
+    advancedScope:
+      "サイトのサービスを使う場合は通常変更不要です。各項目を個別に保存します。キーはブラウザの下書きに保存しません。",
+    modelTitle: "チャットモデル",
+    modelDescription: "モデルの選択と個人サービス",
+    modelScope:
+      "アカウントのモデルと、ここに入力した OpenRouter キーのみ保存します。チャットの好みや音声は含みません。",
+    imageTitle: "画像サービス",
+    imageDescription: "サービス状況と任意の個人キー",
+    imageScope:
+      "このアカウントの写真生成用に、ここに入力した画像サービスキーのみ保存します。",
+    transcriptionTitle: "音声の文字起こし",
+    transcriptionDescription: "音声入力の文字起こしサービス",
+    transcriptionScope:
+      "ここに入力した文字起こしキーのみ保存し、読み上げの声は変えません。",
+    keysTitle: "保存済みの個人キー",
+    keysDescription: "設定したサービスの確認とキーの削除",
+    keysScope:
+      "削除はすぐに反映します。入力欄にある新しいキーは該当する項目で保存してください。",
+    keysEmpty: "個人キーは保存されていません。サイトのサービスを利用できます。",
+    keyRemoved: "キーを削除しました。",
+    saveSection: "このセクションを保存",
+    retrySection: "保存を再試行",
+    savingSection: "このセクションを保存中…",
+    savedSection: "このセクションを保存しました。",
+    savedWithNewEdits:
+      "送信した内容を保存しました。新しい変更はまだ未保存です。",
+    saveFailed:
+      "保存できませんでした。入力は残っています。再試行してください。",
+    partiallySaved:
+      "一部を保存しました。失敗した入力は残っています。再試行では未保存の項目を処理します。",
+    unsaved: "未保存の変更があります",
+    noChanges: "変更後にこのセクションで保存してください。",
+    refreshFailed:
+      "書き込み結果は保持していますが、保存状況を更新できません。再度取得してください。",
+    refreshSaved: "保存状況を再取得",
+    needsAttention: "保存が未完了です。開いて確認",
+    staleConfig: "設定状況を更新できません。前回取得した内容を表示しています。",
+    pushScope:
+      "このブラウザのプッシュだけを管理します。自発的な連絡は有効になりません。",
+    pushChecking: "端末通知を確認中…",
+    pushUnsupported:
+      "このブラウザはプッシュ通知に対応していません。アプリ内の通知は確認できます。",
+    pushUnavailable:
+      "このサイトでは端末プッシュが有効ではありません。アプリ内の通知は確認できます。",
+    pushLoadFailed: "端末プッシュの状況を取得できません。再試行してください。",
+  },
+  works: {
+    expandScene: "場面の説明をすべて表示",
+    collapseScene: "説明を閉じる",
+    checkingRemote:
+      "画像サービスが元のタスクを受信したか確認中です。確認中に再送することはありません。",
+    contextFailure:
+      "キャラクター情報が変更されたため、このタスクは終了しました。最新の情報で新しく生成してください。",
+    title: "画像と作品",
+    subtitle:
+      "生成状況と写真をまとめて確認。ページを離れたり更新しても見つかります。",
+    sections: "作品メニュー",
+    tasks: "タスク",
+    gallery: "アルバム",
+    create: "画像を生成",
+    filterAll: "すべて",
+    filterActive: "進行中",
+    filterCompleted: "完了",
+    filterFailed: "失敗",
+    refresh: "タスクを更新",
+    refreshFailed:
+      "状況を更新できませんでした。前回の記録を表示しています。再度更新してください。",
+    noTasks: "該当するタスクはありません",
+    noTasksHint:
+      "新しい画像の進捗はここに表示されます。以前の写真はアルバムで確認できます。",
+    chooseCharacter: "撮影するキャラクターを選択",
+    beforeGenerate:
+      "チャットで場面を説明し、ポーズを選びます。送信後はページを離れても大丈夫です。完成した写真はチャットとアルバムに保存されます。",
+    remaining: "画像の残り回数：{{count}} 回",
+    quotaLoadFailed: "残り回数を取得できません。再試行してください。",
+    queued: "待機中",
+    generating: "生成中",
+    completed: "完了",
+    failed: "生成失敗",
+    selfie: "キャラクター写真",
+    couple: "ツーショット",
+    progress: "生成の進捗",
+    backgroundHint:
+      "ページを離れてもタスクは続きます。「画像と作品」で確認できます。",
+    quotaReserved:
+      "画像 1 回分を仮確保しました。失敗時は元の利用期間に自動返還されます。",
+    quotaCharged: "このタスクで画像 1 回分を使用しました。",
+    quotaRefunded:
+      "仮確保した画像 1 回分を元の利用期間に返還しました。期間更新後の新しい枠には加算されません。",
+    quotaUnmetered: "このタスクは製品の画像回数を消費しません。",
+    quotaByok:
+      "製品の画像回数は消費しません。持ち込みキーのサービス料金は提供元が精算し、本製品では返金できません。",
+    timeoutFailure: "待機がタイムアウトし、画像は保存されませんでした。",
+    providerFailure: "利用可能な画像が生成されませんでした。再試行できます。",
+    unconfirmedFailure:
+      "画像サービスがリクエストを受信したか確認できません。重複生成を避けるため、このタスクは再送しません。サービス側では処理が続いている可能性があります。",
+    retry: "生成を再試行",
+    retryQuota:
+      "再試行は新しいタスクとして回数を仮確保します。連続クリックしても同じ再試行タスクを返します。",
+    retryAccepted: "再試行タスクを保存しました。タスク一覧で確認できます。",
+    viewRetry: "再試行タスクを見る",
+    backToChat: "チャットに戻る",
+    viewImage: "画像を拡大",
+    generatedImage: "生成された画像",
+    accepted: "タスクを保存しました。ページを離れても作品で確認できます。",
+    loadFailed: "タスクを取得できません。再度確認してください。",
+    coupleRetention:
+      "再試行用の参照写真は {{time}} まで一時保存されます。期限後は再アップロードしてください。",
+    pendingSubmissions: "確認待ちの画像リクエスト",
+    submissionUnknown:
+      "送信結果を確認できません。重複生成を避けるため元のタスクを確認してください。",
+    submissionAbsent:
+      "この送信は見つかりません。続行時に元のタスクを確認して重複生成を防ぎます。",
+    checkSubmission: "元のタスクを確認",
+    resend: "送信を続ける",
+    dismissSubmission: "送信を破棄",
+    reselectCouple:
+      "このツーショットは保存されていません。写真はブラウザに保存していないため、再度選択してください。",
+    quotaBefore:
+      "送信時に 1 回分を仮確保し、失敗時は自動返還します。詳しくはタスク記録をご覧ください。",
+  },
   help: {
     faq: "よくある質問",
     title: "ヘルプとサポート",
@@ -151,6 +404,8 @@ export default {
     actualDuration: "完成動画の長さ：約{{seconds}}秒",
   },
   landing: {
+    selectionHint: "性格や距離感から、話してみたい相手を見つけよう。",
+    moreCharacters: "ほかのキャラクターも見る",
     continueWithCharacter: "{{name}}とチャットを続ける",
     bannerLabel: "YUMEI との出会い",
     carousel: "カルーセル",
@@ -193,6 +448,23 @@ export default {
     welcomeBackTitle: "物語の続きを",
   },
   explore: {
+    interestsLabel: "趣味・話題",
+    chatStyle: "ふたりの距離感",
+    aboutCharacter: "{{name}}について",
+    conversationPreview: "会話の雰囲気を知る",
+    conversationPreviewHint: "話し方を知るための会話サンプルです。",
+    alreadyAdded: "追加済みのキャラクターです。会話の続きをどうぞ。",
+    guestCharacterHint:
+      "ログイン後に追加可能な人数を確認できます。選んだ相手は引き継がれます。",
+    capacityError:
+      "追加可能な人数を確認できませんでした。もう一度お試しください。",
+    checkingCapacity: "追加可能な人数を確認しています…",
+    characterCapacityFull:
+      "{{count}} 人分の枠がすべて使用中です。キャラクターを管理して空きを作れます。",
+    characterCapacityUnlimited:
+      "人数制限はありません。追加して会話を始めましょう。",
+    characterCapacityRemaining:
+      "あと {{count}} 人追加できます。このキャラクターの追加で 1 枠を使います。",
     loadMore: "もっと見る",
     collapseSidebar: "ナビゲーションを折りたたむ",
     expandSidebar: "ナビゲーションを展開",
@@ -200,7 +472,7 @@ export default {
     navExplore: "見つける",
     navChats: "チャット",
     navCreate: "作成",
-    navGenerate: "画像生成",
+    navGenerate: "作品",
     navCharacters: "マイキャラ",
     mainNavigation: "メインナビゲーション",
     skipToContent: "本文へ移動",
@@ -956,6 +1228,29 @@ export default {
     "categories.relationship": "ふたりの関係",
   },
   setup: {
+    quickCreateTitle: "キャラクターを簡単作成",
+    quickCreateDescription:
+      "見た目を選び、名前と性格を決めたら会話を始められます。細かな設定は後から変更できます。",
+    chooseAppearance: "まずは見た目を選ぶ",
+    morePresets: "ほかも見る（残り {{count}} 人）",
+    appearanceFromReference: "外見は参考画像に合わせる",
+    appearanceOptional: "外見の補足（任意）",
+    referenceAppearanceHint:
+      "外見はこの画像に合わせます。「見た目・趣味」で補足もできます。",
+    furtherCustomization: "もっと自分好みに（任意）",
+    appearanceSection: "見た目・趣味",
+    appearanceSectionHint: "参考画像、外見の細部、会話の話題",
+    behaviorSection: "ふたりの距離感",
+    behaviorSectionHint: "口調、関係のペース、呼び名、会話サンプル",
+    voiceSection: "キャラクターの声",
+    voiceSectionHint: "標準の声を使うか、専用の声を選べます",
+    createAndChat: "作成して会話を始める",
+    createdTitle: "{{name}}を作成しました",
+    createdChatHint: "キャラクターは保存済みです。会話を開きます。",
+    chatOpenError:
+      "会話を開けませんでした。キャラクターは保存済みなので、再試行で続けられます。",
+    enterChat: "会話を開く",
+    openingChat: "会話を開いています…",
     draftRestored:
       "未保存のキャラクター設定を復元しました。編集を続けられます。",
     draftFilesNeedReselect:

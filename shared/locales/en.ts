@@ -1,5 +1,263 @@
 /** 英文基准语言包；key 与插值参数构成类型契约。 */
 export default {
+  memoryFlow: {
+    relearn:
+      "When memory is enabled, information you mention again in new messages may be learned again.",
+    latest:
+      "This memory was updated elsewhere. Review the latest content; your correction input is kept.",
+    useLatest: "Review against latest memory",
+    gone: "This memory was deleted elsewhere. Your correction stays below to copy or cancel.",
+
+    intro:
+      "Review what this character remembers and choose what informs future chats.",
+    impactTitle: "What changes after a correction or deletion?",
+    impactShort:
+      "Chat history stays viewable. Future replies continue with fresh context.",
+    impactScope:
+      "Applies to all chats with {{name}} only, not other characters.",
+    impactHistory: "Existing messages are not edited or deleted.",
+    impactContext:
+      "Earlier chat context and old summaries will no longer inform replies or be learned again. You may need to briefly restate the current topic when continuing.",
+    impactOther:
+      "Other saved memories stay. “Forget everything” removes those too.",
+    impactPending:
+      "Queued or generating replies may stop. Unsent chat drafts are kept.",
+    listTitle: "Saved memories",
+    search: "Search memories",
+    searchPlaceholder: "Search content or keywords",
+    filter: "Filter by category",
+    all: "All categories",
+    noMatches: "No matching memories",
+    reset: "Clear filters",
+    controls: "Memory switch & time zone",
+    recapHelp:
+      "Recaps support future replies and build up again after memory changes.",
+    dangerTitle: "Forget & clear",
+    dangerHelp: "Use only to remove all memories. Chat history stays.",
+    edit: "Correct",
+    pin: "Pin",
+    unpin: "Unpin",
+    remove: "Delete",
+    editReview: "Review correction",
+    editLimit:
+      "Up to {{max}} characters. State the facts you want this character to remember.",
+    original: "Original memory",
+    corrected: "After correction",
+    editConfirm: "Confirm this correction?",
+    deleteConfirm: "Delete this memory?",
+    clearConfirm: "Forget all saved memories?",
+    clearScope:
+      "Removes all saved memories for {{name}}, including pinned items. This cannot be undone.",
+    deleteScope:
+      "Deletes only this saved memory and cannot be undone. Other memories stay.",
+    editScope:
+      "Replaces this memory with your new text. Other saved memories stay.",
+    confirmEdit: "Confirm & save correction",
+    confirmDelete: "Confirm deletion",
+    confirmClear: "Confirm forget everything",
+    working: "Applying your change…",
+    failed:
+      "The operation could not be confirmed. Your input is kept; please retry.",
+    conflict:
+      "This memory has changed or been deleted. Your correction is kept. Return to the list and review the latest record before editing again.",
+    retry: "Retry this operation",
+    refreshFailed:
+      "The operation succeeded, but the list could not be refreshed. Do not submit again; reload its status.",
+    refresh: "Refresh status",
+    stale:
+      "Could not refresh memories. Previously loaded records and your unsaved correction are kept.",
+    edited:
+      "Correction saved. Future replies use the updated memory; historical messages stay as they are.",
+    deleted:
+      "Memory deleted. Historical messages stay, and earlier context will not be learned again.",
+    cleared:
+      "All memories forgotten. Historical messages stay; continue with a fresh topic.",
+    paused:
+      "Memory is paused. The saved correction will inform replies after memory is resumed.",
+    pinSaved: "Pin updated.",
+    pinHelp:
+      "Pinning prevents automatic forgetting; it does not change memory content or chat context.",
+    continue: "Continue chatting",
+    returnCurrent: "Return to current chat",
+    returnLatest: "Open latest chat",
+    returnUnavailable:
+      "The original chat is unavailable or belongs to another character. You can open this character’s latest chat.",
+    returnFailed:
+      "Could not open chat. Your memory changes are kept; please retry.",
+    opening: "Opening chat…",
+    discardTitle: "Leave an unsaved correction?",
+    discardHelp:
+      "This correction is not saved. Leaving discards this page’s input; the original memory stays.",
+    leave: "Discard correction & leave",
+    stay: "Keep editing",
+    controlImpact:
+      "Pausing, resuming or changing time zone also resets earlier context. Learning resumes from new messages. Time zone applies to the whole account.",
+    handoff:
+      "Memory updated. Chat history stays, while future replies use fresh context. Briefly restate the topic to continue.",
+    dismiss: "Dismiss memory notice",
+  },
+  settingsFlow: {
+    intro:
+      "Adjust your companion experience by task. Each section saves separately; options marked as immediate do not need a save.",
+    shortcuts: "Settings shortcuts",
+    frequent: "Everyday settings",
+    accountAndServices: "Notifications, account & services",
+    chatTitle: "Chat preferences",
+    chatDescription: "Reply language, length and interaction style",
+    chatScope:
+      "Saves only reply language, length and custom chat preferences for all characters on this account.",
+    customPrompt: "Custom chat preferences & templates",
+    promptScope:
+      "Optional. Describe how you like to interact. Choosing a template replaces this text; save to apply it.",
+    voiceTitle: "Voice & read aloud",
+    voiceDescription: "Automatic reading, voices and previews",
+    voiceChoices: "Choose a voice & preview",
+    voiceScope:
+      "Saves only this account’s reading voice and the voice service keys entered here.",
+    autoPlayScope:
+      "Automatic reading applies immediately on this device. No save is needed.",
+    appearanceTitle: "Interface & appearance",
+    appearanceDescription: "Interface language, light mode and themes",
+    appearanceScope:
+      "Language, display mode and theme sync to your account automatically. Experimental materials apply only on this device.",
+    appearanceAdvanced: "Themes & experimental materials",
+    appearanceSaved: "Interface preferences synced to your account.",
+    notificationsTitle: "Notifications & time zone",
+    notificationsDescription:
+      "Proactive contact, quiet hours and device notifications",
+    notificationsScope:
+      "Save proactive contact and time zone to your account here. Device push is enabled or disabled separately and applies immediately.",
+    billingTitle: "Plan & usage",
+    billingDescription: "Remaining credits, subscriptions and payment status",
+    billingScope:
+      "View usage and manage subscriptions here; there are no settings to save. Payment and subscription changes depend on service confirmation.",
+    accountTitle: "Account & privacy",
+    accountDescription: "Profile, password and personal data",
+    accountScope:
+      "Profile and password save separately. Data export and account deletion are independent actions.",
+    advancedTitle: "Advanced services",
+    advancedDescription: "Optional models, personal keys and services",
+    advancedScope:
+      "Usually unnecessary when using site services. Save each subsection separately. Keys are not stored in browser drafts.",
+    modelTitle: "Chat model",
+    modelDescription: "Choose a model or use your own service",
+    modelScope:
+      "Saves only this account’s chat model and the OpenRouter key entered here, excluding chat preferences and voice settings.",
+    imageTitle: "Image service",
+    imageDescription: "Service status and optional personal key",
+    imageScope:
+      "Saves only the image service key entered here for this account’s photos.",
+    transcriptionTitle: "Speech to text",
+    transcriptionDescription: "Transcription for voice input",
+    transcriptionScope:
+      "Saves only the transcription key entered here. It does not change your reading voice.",
+    keysTitle: "Saved personal keys",
+    keysDescription: "Review configured services or remove keys",
+    keysScope:
+      "Removal applies immediately. New keys still in input fields must be saved in their own section.",
+    keysEmpty: "No personal keys saved. Continue using the site’s services.",
+    keyRemoved: "Key removed.",
+    saveSection: "Save this section",
+    retrySection: "Retry saving this section",
+    savingSection: "Saving this section…",
+    savedSection: "This section is saved.",
+    savedWithNewEdits:
+      "Your submission was saved. Newer edits still need saving.",
+    saveFailed: "Could not save. Your input is kept; please retry.",
+    partiallySaved:
+      "Some settings were saved. Unsuccessful inputs are kept; retry handles the remaining unsaved values.",
+    unsaved: "Unsaved changes",
+    noChanges: "Make changes, then save this section.",
+    refreshFailed:
+      "The write result is kept, but saved status could not be refreshed. Check it again.",
+    refreshSaved: "Refresh saved status",
+    needsAttention: "Save incomplete; expand to review",
+    staleConfig:
+      "Could not update settings status. Previously loaded values are shown.",
+    pushScope:
+      "Manages push on this browser only. It does not enable proactive contact.",
+    pushChecking: "Checking device notifications…",
+    pushUnsupported:
+      "This browser does not support device push. In-app notifications remain available.",
+    pushUnavailable:
+      "Device push is not enabled on this site. In-app notifications remain available.",
+    pushLoadFailed: "Could not load device push status. Please retry.",
+  },
+  works: {
+    expandScene: "Full scene description",
+    collapseScene: "Collapse description",
+    checkingRemote:
+      "Checking whether the image service accepted the original task. It will not be submitted again while we check.",
+    contextFailure:
+      "The character context changed, so this task ended. Create a new image using the updated character.",
+    title: "Images & creations",
+    subtitle:
+      "Track image tasks and find your photos, even after leaving or refreshing.",
+    sections: "Creations",
+    tasks: "Tasks",
+    gallery: "Gallery",
+    create: "New image",
+    filterAll: "All",
+    filterActive: "In progress",
+    filterCompleted: "Completed",
+    filterFailed: "Failed",
+    refresh: "Refresh tasks",
+    refreshFailed:
+      "Could not update status. Your previous records are still shown. Refresh to check again.",
+    noTasks: "No tasks in this category",
+    noTasksHint:
+      "New images will appear here with their progress. Earlier photos are in Gallery.",
+    chooseCharacter: "Choose a character",
+    beforeGenerate:
+      "Describe your scene and choose a pose in chat. You can leave after submitting; completed photos are saved in chat and Gallery.",
+    remaining: "{{count}} image credits remaining",
+    quotaLoadFailed: "Could not load your credits. Please try again.",
+    queued: "Queued",
+    generating: "Generating",
+    completed: "Completed",
+    failed: "Failed",
+    selfie: "Character photo",
+    couple: "Couple photo",
+    progress: "Image progress",
+    backgroundHint:
+      "You can leave this page. The task will continue and can be found in Images & creations.",
+    quotaReserved:
+      "1 image credit reserved. Failure automatically returns it to its original usage period.",
+    quotaCharged: "1 image credit used for this task.",
+    quotaRefunded:
+      "The reserved image credit was returned to its original usage period. If that period has reset, it does not add a credit to the new period.",
+    quotaUnmetered: "This task does not use product image credits.",
+    quotaByok:
+      "This task does not use product image credits. Your key provider handles service charges; this product cannot refund those charges.",
+    timeoutFailure: "The wait timed out. No image was saved.",
+    providerFailure: "No usable image was generated. You can retry.",
+    unconfirmedFailure:
+      "We could not confirm whether the image service accepted this request. This task will not be submitted again to avoid duplicates; the service may still be processing it.",
+    retry: "Retry generation",
+    retryQuota:
+      "Retry reserves a credit for a new task. Repeated clicks return the same retry task.",
+    retryAccepted: "Retry task saved. Find it in Tasks.",
+    viewRetry: "View retry task",
+    backToChat: "Back to chat",
+    viewImage: "View full image",
+    generatedImage: "Generated image",
+    accepted: "Task saved. You can leave and find it in Creations.",
+    loadFailed: "Could not load this task. Please check again.",
+    coupleRetention:
+      "The couple reference photo is kept until {{time}} for retries. Upload it again after that time.",
+    pendingSubmissions: "Image submissions to check",
+    submissionUnknown:
+      "Submission is not yet confirmed. Check the original task to avoid generating twice.",
+    submissionAbsent:
+      "This submission has not been found. Continuing will check the original task first to avoid duplicates.",
+    checkSubmission: "Check original task",
+    resend: "Continue submission",
+    dismissSubmission: "Discard submission",
+    reselectCouple:
+      "This couple task was not saved. The original photo was not stored in your browser; choose it again.",
+    quotaBefore:
+      "Submitting reserves 1 credit; failure returns it automatically. See the task record for details.",
+  },
   help: {
     faq: "Common questions",
     title: "Help & support",
@@ -154,6 +412,8 @@ export default {
     actualDuration: "Output duration: about {{seconds}} seconds",
   },
   landing: {
+    selectionHint: "Find a personality and pace that feel right for you.",
+    moreCharacters: "Meet someone else",
     continueWithCharacter: "Continue chatting with {{name}}",
     bannerLabel: "Meet YUMEI",
     carousel: "carousel",
@@ -197,6 +457,22 @@ export default {
     welcomeBackTitle: "Continue your story",
   },
   explore: {
+    interestsLabel: "Interests & conversation topics",
+    chatStyle: "How you’ll get along",
+    aboutCharacter: "About {{name}}",
+    conversationPreview: "A glimpse of your conversation",
+    conversationPreviewHint: "A sample to help you get a feel for their voice.",
+    alreadyAdded: "Already in your characters. Pick up your conversation.",
+    guestCharacterHint:
+      "Sign in to check your available slots. Your choice will be kept.",
+    capacityError: "Couldn’t check your character slots. Please try again.",
+    checkingCapacity: "Checking your available character slots…",
+    characterCapacityFull:
+      "All {{count}} character slots are in use. Manage your characters to make room.",
+    characterCapacityUnlimited:
+      "Unlimited character slots. Add this character to start chatting.",
+    characterCapacityRemaining:
+      "Room for {{count}} more characters. Adding this one uses a slot.",
     loadMore: "Load more",
     collapseSidebar: "Collapse navigation",
     expandSidebar: "Expand navigation",
@@ -204,7 +480,7 @@ export default {
     navExplore: "Explore",
     navChats: "Chats",
     navCreate: "Create",
-    navGenerate: "Generate",
+    navGenerate: "Creations",
     navCharacters: "My characters",
     mainNavigation: "Main navigation",
     skipToContent: "Skip to content",
@@ -957,6 +1233,31 @@ export default {
     "categories.relationship": "Our relationship",
   },
   setup: {
+    quickCreateTitle: "Create a character",
+    quickCreateDescription:
+      "Choose a look, name and personality to start chatting. You can refine the details later.",
+    chooseAppearance: "Choose a look first",
+    morePresets: "See more ({{count}} remaining)",
+    appearanceFromReference: "Use the reference image for appearance",
+    appearanceOptional: "Appearance details (optional)",
+    referenceAppearanceHint:
+      "Their look will follow this image. You can add details under Appearance & interests.",
+    furtherCustomization: "Make it yours (optional)",
+    appearanceSection: "Appearance & interests",
+    appearanceSectionHint:
+      "Reference image, appearance details and conversation topics",
+    behaviorSection: "How you connect",
+    behaviorSectionHint:
+      "Tone, relationship pace, nicknames and example dialogue",
+    voiceSection: "Character voice",
+    voiceSectionHint: "Keep the default voice or choose a personal one",
+    createAndChat: "Create & start chatting",
+    createdTitle: "{{name}} is ready",
+    createdChatHint: "Your character is saved. Let’s open your conversation.",
+    chatOpenError:
+      "Couldn’t open the conversation yet. Your character is saved; try again to continue.",
+    enterChat: "Open conversation",
+    openingChat: "Opening your conversation…",
     draftRestored:
       "Your unsaved character details have been restored. You can continue editing.",
     draftFilesNeedReselect:

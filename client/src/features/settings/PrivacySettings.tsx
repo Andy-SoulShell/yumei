@@ -3,9 +3,6 @@ import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { clearFormDrafts } from "@/lib/formDrafts";
-import { clearChatStreamDrafts } from "@/lib/chatStreamDrafts";
-import { clearPrivateMediaCaches } from "@/lib/privateMediaCache";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 export function PrivacySettings() {
   const { t, locale } = useI18n(),
-    { user } = useAuth();
+    { user, clearLocalSession } = useAuth();
   const [token, setToken] = useState(
     () =>
       new URLSearchParams(window.location.hash.slice(1)).get("deleteToken") ??
@@ -210,10 +207,8 @@ export function PrivacySettings() {
                     {
                       onError: () => setError(t("privacy:deleteFailed")),
                       onSuccess: async ({ receipt }) => {
-                        clearFormDrafts();
-                        clearChatStreamDrafts();
-                        await clearPrivateMediaCaches().catch(() => {});
-                        window.location.assign(
+                        await clearLocalSession();
+                        window.location.replace(
                           `/data-deletion#receipt=${receipt}`
                         );
                       },

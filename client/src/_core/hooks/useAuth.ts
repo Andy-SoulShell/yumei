@@ -32,14 +32,16 @@ export function useAuth(options?: UseAuthOptions) {
     refetchOnWindowFocus: false,
   });
 
+  /** 注销账号和退出登录共用，清理后不再保留上一账号的查询或草稿。 */
+  const clearLocalSession = useCallback(async () => {
+    queryClient.clear();
+    utils.auth.me.setData(undefined, null);
+    clearChatStreamDrafts();
+    clearFormDrafts();
+    await clearPrivateMediaCaches().catch(() => {});
+  }, [queryClient, utils]);
   const logoutMutation = trpc.auth.logout.useMutation({
-    onSuccess: async () => {
-      queryClient.clear();
-      utils.auth.me.setData(undefined, null);
-      clearChatStreamDrafts();
-      clearFormDrafts();
-      await clearPrivateMediaCaches().catch(() => {});
-    },
+    onSuccess: clearLocalSession,
   });
 
   const logout = useCallback(async () => {
@@ -50,16 +52,12 @@ export function useAuth(options?: UseAuthOptions) {
         error instanceof TRPCClientError &&
         error.data?.code === "UNAUTHORIZED"
       ) {
-        queryClient.clear();
-        utils.auth.me.setData(undefined, null);
-        clearChatStreamDrafts();
-        clearFormDrafts();
-        await clearPrivateMediaCaches().catch(() => {});
+        await clearLocalSession();
         return;
       }
       throw error;
     }
-  }, [logoutMutation, utils, queryClient]);
+  }, [logoutMutation, clearLocalSession]);
 
   const state = useMemo(() => {
     return {
@@ -94,6 +92,7 @@ export function useAuth(options?: UseAuthOptions) {
 
   return {
     ...state,
+    clearLocalSession,
     refresh: () => meQuery.refetch(),
     logout,
   };

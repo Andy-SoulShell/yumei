@@ -1,3 +1,4 @@
+import { economyRouter } from "./routers/economy";
 import { managementRouter } from "./routers/management";
 import { videoRouter } from "./routers/video";
 /** 业务路由组合入口；每个领域拥有独立的校验和处理过程。 */
@@ -24,6 +25,7 @@ import { productConfigRouter } from "./routers/productConfig";
 import { supportRouter } from "./routers/support";
 import { privacyRouter } from "./routers/privacy";
 export const appRouter = router({
+  economy: economyRouter,
   privacy: privacyRouter,
   support: supportRouter,
   video: videoRouter,

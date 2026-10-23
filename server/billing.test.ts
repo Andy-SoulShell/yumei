@@ -238,7 +238,10 @@ describe("webhook state machine (DB)", () => {
 
   it("ignores unrelated events", async () => {
     const result = await handleLemonEvent({
-      meta: { event_name: "order_created", custom_data: { user_id: "u" } },
+      meta: {
+        event_name: "license_key_created",
+        custom_data: { user_id: "u" },
+      },
       data: { id: "x", attributes: {} },
     });
     expect(result.ok).toBe(true);

@@ -4,6 +4,7 @@ import { getPublishedProductConfig } from "./repositories/productConfig";
 import { and, eq, isNull, lte, or, sql } from "drizzle-orm";
 import {
   girlfriends,
+  communityCharacters,
   generationRequests,
   mediaDeletions,
   messages,
@@ -22,6 +23,17 @@ async function hasReferences(
   db: DbTransaction | NonNullable<Awaited<ReturnType<typeof getDb>>>,
   key: string
 ) {
+  const [publication] = await db
+    .select({ id: communityCharacters.id })
+    .from(communityCharacters)
+    .where(
+      or(
+        sql`JSON_UNQUOTE(JSON_EXTRACT(${communityCharacters.snapshot}, '$.imageKey'))=${key}`,
+        sql`JSON_UNQUOTE(JSON_EXTRACT(${communityCharacters.pendingSnapshot}, '$.imageKey'))=${key}`
+      )
+    )
+    .limit(1);
+  if (publication) return true;
   const [user] = await db
     .select({ id: users.id })
     .from(users)

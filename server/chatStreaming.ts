@@ -276,6 +276,7 @@ export async function submitChatTurn(
       userId: user.id,
       conversationId: input.conversationId,
       kind: "chat",
+      chargeCoins: !provider.isByok,
       contextEpoch: role.memoryEpoch,
       transcriptionId: input.transcriptionId,
       timeoutMs: policy.runtime.chat.queueTimeoutMs,

@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { reserveCoins } from "../economy";
 import { characterFieldsError } from "../../shared/experienceConfig";
 /** companions 领域的数据访问与事务边界。 */
 import { getPublishedProductConfig } from "./productConfig";
@@ -16,6 +18,7 @@ import {
 } from "drizzle-orm";
 import {
   conversations,
+  communityCharacters,
   conversationSummaries,
   girlfriendMoods,
   girlfriends,
@@ -116,9 +119,72 @@ async function validateCompanionVoice(
 export async function createGirlfriend(
   data: InsertGirlfriend,
   maximum: number | null = null,
-  reuseOfficial = false
+  reuseOfficial = false,
+  chargeCreation = false
 ): Promise<Girlfriend> {
+  const fingerprint = createHash("sha256")
+    .update(
+      JSON.stringify([
+        data.name,
+        data.personality,
+        data.appearance,
+        data.interests ?? null,
+        data.customPrompt ?? null,
+        data.openingScenario ?? null,
+        data.behavior ?? null,
+        data.officialPresetId ?? null,
+        data.omnivoiceVoiceId ?? null,
+        data.creationFingerprint ?? null,
+      ])
+    )
+    .digest("hex");
   return withUserTransaction(data.userId, async tx => {
+    if (data.creationRequestId) {
+      const [existing] = await tx
+        .select()
+        .from(girlfriends)
+        .where(
+          and(
+            eq(girlfriends.userId, data.userId),
+            eq(girlfriends.creationRequestId, data.creationRequestId)
+          )
+        );
+      if (existing) {
+        if (existing.creationFingerprint !== fingerprint)
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "CREATION_REQUEST_CHANGED",
+          });
+        return existing;
+      }
+    }
+    if (data.communitySourceId) {
+      const [publication] = await tx
+        .select()
+        .from(communityCharacters)
+        .where(
+          and(
+            eq(communityCharacters.id, data.communitySourceId),
+            eq(communityCharacters.status, "published")
+          )
+        );
+      if (!publication)
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "COMMUNITY_CHARACTER_UNAVAILABLE",
+        });
+      const [existing] = await tx
+        .select()
+        .from(girlfriends)
+        .where(
+          and(
+            eq(girlfriends.userId, data.userId),
+            eq(girlfriends.communitySourceId, data.communitySourceId),
+            isNull(girlfriends.deletedAt)
+          )
+        );
+      if (existing) return existing;
+    }
     if (reuseOfficial && data.officialPresetId) {
       const [existing] = await tx
         .select()
@@ -135,7 +201,19 @@ export async function createGirlfriend(
       if (existing) return existing;
     }
     await checkCompanionLimit(tx, data.userId, maximum);
-    return insertGirlfriend(tx, data);
+    const created = await insertGirlfriend(tx, {
+      ...data,
+      creationFingerprint: data.creationRequestId ? fingerprint : null,
+    });
+    const policy = await getPublishedProductConfig(tx);
+    if (chargeCreation && policy.billing.mode !== "none")
+      await reserveCoins(
+        tx,
+        data.userId,
+        `character:${data.creationRequestId ?? created.id}`,
+        "character"
+      );
+    return created;
   });
 }
 

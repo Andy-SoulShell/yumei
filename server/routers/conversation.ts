@@ -1,3 +1,4 @@
+import { branchChat } from "../chatBranches";
 import { getPublishedProductConfig } from "../repositories/productConfig";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -16,6 +17,18 @@ import {
 
 import { deleteConversation } from "../privacy";
 export const conversationRouter = router({
+  branch: protectedProcedure
+    .input(
+      z
+        .object({
+          conversationId: z.number().int().positive(),
+          messageId: z.number().int().positive(),
+          clientRequestId: z.string().uuid(),
+          content: z.string().trim().min(1).max(10000).optional(),
+        })
+        .strict()
+    )
+    .mutation(({ ctx, input }) => branchChat(ctx.user, input)),
   delete: protectedProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(({ ctx, input }) => deleteConversation(ctx.user.id, input.id)),

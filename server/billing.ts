@@ -1,5 +1,7 @@
 /** 套餐判定、权益读取与 Lemon Squeezy 订阅事件处理。 */
 
+import { handleCoinOrder } from "./coinPayments";
+import { recordCoinInvoice, applyCoinInvoices } from "./coinSubscriptions";
 import { eq, or } from "drizzle-orm";
 import type { Express, Request, Response } from "express";
 import express from "express";
@@ -148,6 +150,7 @@ const SUBSCRIPTION_EVENTS = new Set([
   "subscription_payment_success",
   "subscription_payment_failed",
   "subscription_payment_recovered",
+  "subscription_payment_refunded",
 ]);
 
 /** 订阅 webhook 处理所读取的事件、用户归属与订阅字段。 */
@@ -170,6 +173,7 @@ type LemonPayload = {
       subscription_id?: number | string;
       updated_at?: string;
       created_at?: string;
+      test_mode?: boolean;
     };
   };
 };
@@ -215,11 +219,18 @@ export async function handleLemonEvent(
   expectedSubscriptionId?: string
 ): Promise<{ ok: true; ignored?: string } | { ok: false; error: string }> {
   const eventName = payload.meta?.event_name ?? "";
+  if (eventName === "order_created" || eventName === "order_refunded")
+    return handleCoinOrder(payload);
   if (!SUBSCRIPTION_EVENTS.has(eventName))
     return { ok: true, ignored: `event ${eventName || "(missing)"}` };
   const userId = payload.meta?.custom_data?.user_id;
   if (!userId) return { ok: false, error: "missing meta.custom_data.user_id" };
   const attributes = payload.data?.attributes ?? {};
+  if (
+    attributes.test_mode !== undefined &&
+    attributes.test_mode !== (process.env.LEMONSQUEEZY_TEST_MODE === "1")
+  )
+    return { ok: false, error: "payment environment mismatch" };
   const payment = eventName.startsWith("subscription_payment");
   const subscriptionId = String(
     payment ? (attributes.subscription_id ?? "") : (payload.data?.id ?? "")
@@ -289,6 +300,29 @@ export async function handleLemonEvent(
     await tx
       .insert(billingEvents)
       .values({ id, userId, subscriptionId, eventName, occurredAt });
+    if (
+      payment &&
+      [
+        "subscription_payment_success",
+        "subscription_payment_recovered",
+        "subscription_payment_refunded",
+      ].includes(eventName)
+    ) {
+      if (
+        payload.data?.id &&
+        (await getPublishedProductConfig(tx)).billing.economy.enabled
+      ) {
+        await recordCoinInvoice(
+          tx,
+          userId,
+          subscriptionId,
+          String(payload.data.id),
+          eventName === "subscription_payment_refunded"
+        );
+        if (current?.lsSubscriptionId === subscriptionId)
+          await applyCoinInvoices(tx, userId, subscriptionId, current.plan);
+      }
+    }
     if (payment)
       return {
         ok: true,
@@ -328,6 +362,7 @@ export async function handleLemonEvent(
         .set(snapshot)
         .where(eq(subscriptions.id, current.id));
     else await tx.insert(subscriptions).values({ userId, ...snapshot });
+    await applyCoinInvoices(tx, userId, subscriptionId, plan!);
     return { ok: true };
   });
 }
@@ -343,13 +378,11 @@ export function registerBillingRoutes(app: Express) {
     express.raw({ type: "*/*", limit: "1mb" }),
     async (req: Request, res: Response) => {
       try {
-        if (
-          getBillingMode(await getPublishedProductConfig()) !== "lemonsqueezy"
-        ) {
-          res.status(404).json({ error: "billing disabled" });
+        const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET ?? "";
+        if (!secret.trim()) {
+          res.status(503).json({ error: "payment callback not configured" });
           return;
         }
-        const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET ?? "";
         const signature = (req.headers["x-signature"] as string) ?? "";
         const rawBody = req.body as Buffer;
 

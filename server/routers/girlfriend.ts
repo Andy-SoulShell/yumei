@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { getPublishedProductConfig } from "../repositories/productConfig";
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
@@ -90,6 +91,7 @@ export const girlfriendRouter = router({
     .input(
       z
         .object({
+          clientRequestId: z.string().uuid().optional(),
           name: z.string().min(1).max(100),
           personality: z.string().min(1).max(20000),
           appearance: z.string().min(1).max(20000),
@@ -121,7 +123,7 @@ export const girlfriendRouter = router({
       const maximum = isBillingEnforced(gfTier.configuration)
         ? gfTier.limits.maxGirlfriends
         : null;
-      if (isBillingEnforced(gfTier.configuration)) {
+      if (!input.clientRequestId && isBillingEnforced(gfTier.configuration)) {
         if (gfTier.limits.maxGirlfriends !== null) {
           const existing = await getUserGirlfriends(ctx.user.id);
           if (existing.length >= gfTier.limits.maxGirlfriends) {
@@ -165,6 +167,10 @@ export const girlfriendRouter = router({
           {
             userId: ctx.user.id,
             officialPresetId: preset?.id ?? null,
+            creationRequestId: input.clientRequestId,
+            creationFingerprint: createHash("sha256")
+              .update(imageBuffer)
+              .digest("hex"),
             name: input.name,
             personality: input.personality,
             appearance: input.appearance,
@@ -176,7 +182,9 @@ export const girlfriendRouter = router({
             referenceImageKey: fileKey,
             isActive: true,
           },
-          maximum
+          maximum,
+          false,
+          true
         );
       } catch (error) {
         await queueMediaDeletion(ctx.user.id, [fileKey]).catch(cleanupError =>
@@ -188,6 +196,8 @@ export const girlfriendRouter = router({
         throw error;
       }
 
+      if (girlfriend.referenceImageKey !== fileKey)
+        await queueMediaDeletion(ctx.user.id, [fileKey]);
       return girlfriend;
     }),
 

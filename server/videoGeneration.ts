@@ -1,4 +1,5 @@
 /** 持久视频任务：原子接收与计量、租约执行、远端任务恢复及消息结算。 */
+import { settleCreatorEarnings } from "./economy";
 import { TRPCError } from "@trpc/server";
 import axios from "axios";
 import { and, eq, inArray, isNull, lte, or } from "drizzle-orm";
@@ -76,6 +77,7 @@ function snapshot(row: Request) {
         ? `/files/${row.outputKey}`
         : null,
     createdAt: row.createdAt,
+    coinCost: row.coinAmount,
   };
 }
 
@@ -289,6 +291,7 @@ async function settle(
     if (status === "succeeded") {
       await requireGenerationConversation(tx, row.userId, row.conversationId);
       if (current.expiresAt.getTime() <= Date.now()) return false;
+      await settleCreatorEarnings(tx, current);
     } else {
       await refundGenerationInTransaction(tx, current);
       await cleanupGenerationMedia(tx, current, true);

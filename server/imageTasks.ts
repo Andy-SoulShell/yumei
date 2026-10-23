@@ -87,13 +87,15 @@ function view(row: Request): ImageTaskView {
         : null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
-    quota: !row.meterName
-      ? "unmetered"
-      : row.status === "succeeded"
-        ? "charged"
-        : failed
-          ? "refunded"
-          : "reserved",
+    coinCost: row.coinAmount,
+    quota:
+      !row.meterName && !row.coinAmount
+        ? "unmetered"
+        : row.status === "succeeded"
+          ? "charged"
+          : failed
+            ? "refunded"
+            : "reserved",
     isByok: task.isByok,
     failure: task.failure ?? null,
     retryTaskId: task.retryTaskId ?? null,
@@ -181,6 +183,7 @@ async function persist(
       userId: user.id,
       conversationId: task.input.conversationId,
       kind,
+      chargeCoins: !task.isByok,
       contextEpoch,
       transcriptionId: chat?.transcriptionId,
       outputKey: `image-${user.id}-${id}.png`,

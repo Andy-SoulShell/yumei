@@ -56,6 +56,7 @@ export type ImageTaskView = {
   imageUrl: string | null;
   createdAt: Date;
   updatedAt: Date;
+  coinCost?: number;
   quota: "reserved" | "charged" | "refunded" | "unmetered";
   isByok: boolean;
   failure: ImageTask["failure"] | null;

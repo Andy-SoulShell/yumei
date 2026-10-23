@@ -1,3 +1,4 @@
+import { reserveCoins, refundCoins, settleCreatorEarnings } from "./economy";
 import { quotaResetAt } from "../shared/quotas";
 import { usageError } from "./_core/usageErrors";
 import { getPublishedProductConfig } from "./repositories/productConfig";
@@ -86,6 +87,7 @@ export type ReserveGenerationInput = {
   conversationId: number;
   kind: "chat" | "selfie" | "couple" | "video";
   meter?: GenerationMeter;
+  chargeCoins?: boolean;
   timeoutMs?: number;
   outputKey?: string;
   temporaryKey?: string;
@@ -109,30 +111,36 @@ export async function reserveGenerationInTransaction(
     input.contextEpoch !== role.memoryEpoch
   )
     throw new Error("Generation context changed before acceptance");
-  const period = input.meter
-    ? input.meter.period === "day"
+  const economy = (await getPublishedProductConfig(tx)).billing.economy;
+  const useCoins =
+    input.chargeCoins !== false &&
+    economy.enabled &&
+    (await getPublishedProductConfig(tx)).billing.mode !== "none";
+  if (useCoins)
+    await reserveCoins(tx, input.userId, `generation:${id}`, input.kind);
+  const meter = useCoins ? undefined : input.meter;
+  const period = meter
+    ? meter.period === "day"
       ? todayUTC()
       : monthUTC()
     : null;
-  if (input.meter) {
+  if (meter) {
     const result = await tryConsumeMeterInTransaction(
       tx,
       input.userId,
-      input.meter.name,
-      input.meter.limit,
+      meter.name,
+      meter.limit,
       period!
     );
     if (!result.allowed)
       throw usageError({
         reason: "QUOTA_EXCEEDED",
-        meter: input.meter.name,
-        period: input.meter.period,
-        limit: input.meter.limit,
+        meter: meter.name,
+        period: meter.period,
+        limit: meter.limit,
         resetAt: quotaResetAt(
-          input.meter.period,
-          new Date(
-            `${period}${input.meter.period === "day" ? "" : "-01"}T00:00:00Z`
-          )
+          meter.period,
+          new Date(`${period}${meter.period === "day" ? "" : "-01"}T00:00:00Z`)
         ),
       });
   }
@@ -142,8 +150,9 @@ export async function reserveGenerationInTransaction(
     conversationId: input.conversationId,
     kind: input.kind,
     contextEpoch: input.contextEpoch,
+    coinAmount: useCoins ? economy.costs[input.kind] : 0,
     meterPeriod: period,
-    meterName: input.meter?.name ?? null,
+    meterName: meter?.name ?? null,
     outputKey: input.outputKey,
     temporaryKey: input.temporaryKey,
     transcriptionId: input.transcriptionId,
@@ -192,6 +201,7 @@ export async function refundGenerationInTransaction(
   tx: DbTransaction,
   request: typeof generationRequests.$inferSelect
 ) {
+  await refundCoins(tx, request.userId, request.id);
   if (!request.meterName || !request.meterPeriod) return;
   await tx
     .update(usageMeters)
@@ -347,6 +357,7 @@ export async function settleChatTurnInTransaction(
   );
   const hasOutput = !!assistantMessage?.content.trim();
   if (!hasOutput) await refundGenerationInTransaction(tx, request);
+  else await settleCreatorEarnings(tx, request);
   let relationship = request.turnRelationship;
   if (hasOutput && userMessage && reward) {
     const [role] = await tx
@@ -605,6 +616,7 @@ export async function completeImageGeneration(
       role.girlfriendId,
       role.intimacyLevel
     );
+    await settleCreatorEarnings(tx, request);
     await cleanupGenerationMedia(tx, request, false);
     await tx
       .update(generationRequests)

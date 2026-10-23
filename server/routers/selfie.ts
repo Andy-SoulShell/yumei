@@ -14,6 +14,7 @@ import {
 import { keyProvider } from "../_core/keyProvider";
 import { log, providerErrorSummary } from "../_core/log";
 import { checkRateLimit, getDailyMeter, getMonthlyMeter } from "../_core/quota";
+import { walletInfo } from "../economy";
 import { getPublishedProductConfig } from "../repositories/productConfig";
 import { protectedProcedure, router } from "../_core/trpc";
 import { decodeBase64Upload, enforceUpload } from "../_core/uploads";
@@ -194,6 +195,7 @@ export const selfieRouter = router({
         userId: ctx.user.id,
         conversationId: input.conversationId,
         kind: "couple",
+        chargeCoins: !byokFal,
         contextEpoch: girlfriend.memoryEpoch,
         meter,
         outputKey: fileKey,
@@ -299,6 +301,27 @@ export const selfieRouter = router({
   quota: protectedProcedure.query(async ({ ctx }) => {
     const policy = await getPublishedProductConfig();
     const keys = await keyProvider.describeUserKeys(ctx.user.id);
+    if (policy.billing.economy.enabled && isBillingEnforced(policy)) {
+      const wallet = await walletInfo(ctx.user.id),
+        cost = keys.fal?.isSet ? 0 : wallet.policy.costs.selfie;
+      return {
+        unlimited: cost === 0,
+        used: 0,
+        limit: 0,
+        remaining:
+          cost === 0 ? null : Math.max(0, Math.floor(wallet.balance / cost)),
+        period: null,
+        coins: {
+          balance: wallet.balance,
+          costs: {
+            ...wallet.policy.costs,
+            selfie: cost,
+            couple: keys.fal?.isSet ? 0 : wallet.policy.costs.couple,
+          },
+        },
+      };
+    }
+
     if (!isBillingEnforced(policy) || keys.fal?.isSet === true) {
       return {
         unlimited: true as const,

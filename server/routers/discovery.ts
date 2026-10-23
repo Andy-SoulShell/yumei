@@ -8,7 +8,16 @@ import {
   homepageSchema,
   officialIdSchema,
 } from "../../shared/discovery";
-import { adminProcedure, publicProcedure, router } from "../_core/trpc";
+import {
+  adminProcedure,
+  protectedProcedure,
+  publicProcedure,
+  router,
+} from "../_core/trpc";
+import {
+  listCharacterFavorites,
+  setCharacterFavorite,
+} from "../repositories/characterFavorites";
 import { decodeBase64Upload, enforceUpload } from "../_core/uploads";
 import { officialImageMime } from "../characterPresets";
 import { putStagedMedia, publishMedia } from "../managedMedia";
@@ -26,6 +35,14 @@ const expectedRevision = z.number().int().positive();
 
 export const discoveryRouter = router({
   get: publicProcedure.query(() => getPublishedDiscovery()),
+  favorites: protectedProcedure.query(({ ctx }) =>
+    listCharacterFavorites(ctx.user.id)
+  ),
+  setFavorite: protectedProcedure
+    .input(z.object({ id: officialIdSchema, active: z.boolean() }).strict())
+    .mutation(({ ctx, input }) =>
+      setCharacterFavorite(ctx.user.id, input.id, input.active)
+    ),
   admin: router({
     getDraft: adminProcedure.query(() => getDiscoveryDraft()),
     saveCharacter: adminProcedure

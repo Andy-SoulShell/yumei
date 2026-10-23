@@ -168,6 +168,42 @@ export async function exportAccountData(userId: string) {
       exportedAt: new Date().toISOString(),
       profile,
       characters: await rows(s.girlfriends),
+      coinWallet: await tx
+        .select()
+        .from(s.coinWallets)
+        .where(eq(s.coinWallets.userId, userId)),
+      coinHistory: await tx
+        .select()
+        .from(s.coinLedger)
+        .where(eq(s.coinLedger.userId, userId)),
+      coinOrders: await tx
+        .select()
+        .from(s.coinOrders)
+        .where(eq(s.coinOrders.userId, userId)),
+      coinCheckouts: await tx
+        .select()
+        .from(s.coinCheckouts)
+        .where(eq(s.coinCheckouts.userId, userId)),
+      creatorProfile: await tx
+        .select()
+        .from(s.creatorProfiles)
+        .where(eq(s.creatorProfiles.userId, userId)),
+      publications: await tx
+        .select()
+        .from(s.communityCharacters)
+        .where(eq(s.communityCharacters.userId, userId)),
+      earnings: await tx
+        .select()
+        .from(s.creatorEarnings)
+        .where(eq(s.creatorEarnings.userId, userId)),
+      payouts: await tx
+        .select()
+        .from(s.creatorPayouts)
+        .where(eq(s.creatorPayouts.userId, userId)),
+      characterFavorites: await tx
+        .select()
+        .from(s.characterFavorites)
+        .where(eq(s.characterFavorites.userId, userId)),
       conversations: await rows(s.conversations),
       messages: await tx
         .select(getTableColumns(s.messages))
@@ -333,6 +369,13 @@ export async function deleteAccount(
       .select()
       .from(s.girlfriends)
       .where(eq(s.girlfriends.userId, userId));
+    const publications = await tx
+      .select()
+      .from(s.communityCharacters)
+      .where(eq(s.communityCharacters.userId, userId));
+    await tx
+      .delete(s.communityCharacters)
+      .where(eq(s.communityCharacters.userId, userId));
     const photos = await tx
       .select()
       .from(s.selfies)
@@ -378,6 +421,7 @@ export async function deleteAccount(
       s.apiConfigs,
       s.companionPreferences,
       s.userPreferences,
+      s.characterFavorites,
       s.usageMeters,
       s.rateWindows,
       s.aiTaskRuns,
@@ -396,6 +440,10 @@ export async function deleteAccount(
       user.image?.startsWith("/files/") ? user.image.slice(7) : null,
       ...roles.flatMap(row => [row.referenceImageKey, row.avatarKey]),
       ...photos.map(row => row.imageKey),
+      ...publications.flatMap(row => [
+        row.snapshot.imageKey,
+        row.pendingSnapshot?.imageKey,
+      ]),
       ...media.map(row => row.key),
     ]);
     await tx.insert(s.verifications).values({

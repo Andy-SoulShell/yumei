@@ -1,3 +1,4 @@
+import { readAdministrator } from "../managementAuth";
 import { getSessionUser } from "./auth";
 import { canReadMedia } from "../mediaAuthorization";
 /** 通过存储键提供媒体访问，本地流式返回，S3 签名有效期读取发布配置。 */
@@ -65,7 +66,11 @@ export function registerFileRoutes(app: Express) {
         ? null
         : await getSessionUser(req);
       if (
-        !(await canReadMedia(key, user?.id)) ||
+        !(await canReadMedia(
+          key,
+          user?.id,
+          key.startsWith("community-") && Boolean(await readAdministrator(req))
+        )) ||
         (await isMediaPendingDeletion(key))
       ) {
         res.status(404).json({ error: "File not found" });

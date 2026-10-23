@@ -1,3 +1,4 @@
+import { walletInfo } from "../economy";
 import { z } from "zod";
 import {
   canManageSubscription,
@@ -44,7 +45,18 @@ export const billingRouter = router({
         ? await getDailyMeter(ctx.user.id, METERS.selfie)
         : await getMonthlyMeter(ctx.user.id, METERS.selfie);
 
+    const wallet =
+      configuration.billing.economy.enabled && mode !== "none"
+        ? await walletInfo(ctx.user.id)
+        : null;
     return {
+      economy: wallet
+        ? {
+            balance: wallet.balance,
+            costs: wallet.policy.costs,
+            planCoins: wallet.policy.planCoins,
+          }
+        : null,
       mode,
       management: {
         available: Boolean(subscription) && canManageSubscription(),

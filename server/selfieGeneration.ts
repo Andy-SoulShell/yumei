@@ -163,6 +163,7 @@ export async function generateConversationSelfie(
     userId: user.id,
     conversationId: input.conversationId,
     kind: "selfie",
+    chargeCoins: !imageProvider.isByok,
     contextEpoch: girlfriend.memoryEpoch,
     transcriptionId: input.transcriptionId,
     meter,

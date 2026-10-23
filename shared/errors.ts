@@ -1,8 +1,24 @@
 /** 可展示的业务拒绝原因；通过结构化字段传输，独立于诊断文本。 */
+export type CommerceRejection =
+  | "verifyEmail"
+  | "checkoutUnavailable"
+  | "referralInvalid"
+  | "referralIneligible"
+  | "referralLinked"
+  | "handleTaken"
+  | "profileRequired"
+  | "sourceChanged"
+  | "payoutMinimum"
+  | "payoutPending"
+  | "payoutUnavailable"
+  | "reviewChanged"
+  | "publicationUnavailable";
 export type BusinessErrorDetails =
+  | { reason: "COMMERCE_REJECTED"; code: CommerceRejection }
   | { reason: "VIDEO_REJECTED"; code: VideoRejection }
   | { reason: "LEVEL_LOCKED"; requiredLevel: number; currentLevel: number }
   | { reason: "UPGRADE_REQUIRED" }
+  | { reason: "INSUFFICIENT_COINS"; required: number; balance: number }
   | {
       reason: "QUOTA_EXCEEDED";
       meter: string;

@@ -493,12 +493,23 @@ export function useChatController() {
             void utils.billing?.getInfo.invalidate();
             toast.error(
               usage,
-              reason?.reason === "QUOTA_EXCEEDED"
+              ["QUOTA_EXCEEDED", "INSUFFICIENT_COINS"].includes(
+                reason?.reason ?? ""
+              )
                 ? {
                     duration: 10000,
                     action: {
-                      label: t("billing:viewUsage"),
-                      onClick: () => setLocation("/settings"),
+                      label: t(
+                        reason?.reason === "INSUFFICIENT_COINS"
+                          ? "economy:wallet"
+                          : "billing:viewUsage"
+                      ),
+                      onClick: () =>
+                        setLocation(
+                          reason?.reason === "INSUFFICIENT_COINS"
+                            ? "/wallet"
+                            : "/settings"
+                        ),
                     },
                   }
                 : undefined

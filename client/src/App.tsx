@@ -110,11 +110,7 @@ function Router() {
               <Chats />
             </Authenticated>
           </Route>
-          <Route path="/generate">
-            <Authenticated>
-              <Generate />
-            </Authenticated>
-          </Route>
+          <Route path="/generate" component={Generate} />
           <Route path="/setup">
             <Authenticated>
               <Setup />

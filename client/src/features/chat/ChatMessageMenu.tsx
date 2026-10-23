@@ -9,7 +9,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { copyText } from "@/lib/copyText";
 import type { Translator } from "@shared/i18n";
-import { Copy, MoreHorizontal, Quote, Square, Volume2 } from "lucide-react";
+import {
+  Pencil,
+  Copy,
+  MoreHorizontal,
+  Quote,
+  Square,
+  Volume2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 type Props = {
@@ -20,6 +27,8 @@ type Props = {
   t: Translator;
   isPlaying: boolean;
   audioLabel: string;
+  onBranch?: () => void;
+  branchLabel?: string;
   onSpeak?: () => void;
   onQuote: (text: string, author: string, sourceMessageId?: number) => void;
 };
@@ -33,6 +42,8 @@ export function ChatMessageMenu({
   t,
   isPlaying,
   audioLabel,
+  onBranch,
+  branchLabel,
   onSpeak,
   onQuote,
 }: Props) {
@@ -199,6 +210,12 @@ export function ChatMessageMenu({
           <Quote />
           {t("chat:quoteMessage")}
         </DropdownMenuItem>
+        {onBranch && (
+          <DropdownMenuItem onSelect={onBranch}>
+            <Pencil />
+            {branchLabel}
+          </DropdownMenuItem>
+        )}
         {onSpeak && (
           <DropdownMenuItem onSelect={onSpeak}>
             {isPlaying ? <Square /> : <Volume2 />}

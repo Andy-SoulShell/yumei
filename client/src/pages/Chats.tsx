@@ -11,7 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 /** 展示会话预览，支持按角色、标题和完整聊天记录筛选。 */
-export default function Chats() {
+export default function Chats({
+  embedded = false,
+  currentConversationId,
+}: { embedded?: boolean; currentConversationId?: number } = {}) {
   const product = useProductConfig();
   const { t, locale } = useI18n();
   const [search, setSearch] = useState("");
@@ -39,7 +42,7 @@ export default function Chats() {
   const { isLoading, error, refetch } = query;
   const results = query.data?.pages.flat();
   return (
-    <div className="hub-page">
+    <div className={embedded ? "studio-chat-list" : "hub-page"}>
       <div className="hub-heading">
         <h1>{t("explore:chatsTitle")}</h1>
       </div>
@@ -70,6 +73,9 @@ export default function Chats() {
               <Link
                 href={`/chat/${chat.id}`}
                 className="conversation-card min-w-0 flex-1"
+                aria-current={
+                  chat.id === currentConversationId ? "page" : undefined
+                }
               >
                 {chat.girlfriendImage ? (
                   <img src={chat.girlfriendImage} alt="" />

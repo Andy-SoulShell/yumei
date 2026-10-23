@@ -50,7 +50,7 @@ afterEach(async () => {
 
 describe("dismiss route-based authentication", () => {
   it.each([
-    ["/generate", "/"],
+    ["/generate", "/generate"],
     ["/setup?preset=rin", "/"],
     [
       "/explore?q=coffee&style=realistic&character=shiyu",

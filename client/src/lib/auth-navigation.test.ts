@@ -3,13 +3,7 @@ import { describe, expect, it } from "vitest";
 import { authDismissUrl, authModeForPath, authUrl } from "./auth-navigation";
 
 describe("authentication navigation", () => {
-  it.each([
-    "/generate",
-    "/setup?preset=rin",
-    "/characters",
-    "/chat/42",
-    "/settings",
-  ])(
+  it.each(["/setup?preset=rin", "/characters", "/chat/42", "/settings"])(
     "dismisses authentication for protected target %s to a public page",
     target => {
       expect(authDismissUrl(target)).toBe("/");
@@ -23,6 +17,7 @@ describe("authentication navigation", () => {
   );
   it.each([
     "/",
+    "/generate",
     "/create?resume=1",
     "/?character=rin",
     "/explore?q=coffee&style=realistic&character=shiyu",

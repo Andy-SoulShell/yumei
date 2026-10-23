@@ -30,9 +30,15 @@ export function authUrl(mode: AuthMode, returnTo: string) {
 export function authDismissUrl(returnTo: string) {
   const target = safeReturnTo(returnTo);
   const path = target.split(/[?#]/)[0];
-  return ["/", "/explore", "/create", "/feed", "/help", "/privacy"].includes(
-    path
-  )
+  return [
+    "/",
+    "/explore",
+    "/create",
+    "/feed",
+    "/generate",
+    "/help",
+    "/privacy",
+  ].includes(path)
     ? target
     : "/";
 }

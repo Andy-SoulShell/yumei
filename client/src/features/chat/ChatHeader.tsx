@@ -27,6 +27,8 @@ import {
   Sun,
   Volume2,
   VolumeX,
+  ContactRound,
+  Coins,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getLevelByPoints } from "../../../../shared/intimacy";
@@ -34,6 +36,7 @@ import { getLevelByPoints } from "../../../../shared/intimacy";
 import type { ChatController } from "./useChatController";
 type Props = Pick<
   ChatController,
+  | "billingInfo"
   | "ttsLabel"
   | "currentMoodInfo"
   | "t"
@@ -55,10 +58,14 @@ type Props = Pick<
   | "updateSpeed"
   | "toggleTheme"
   | "theme"
-> & { girlfriend: NonNullable<ChatController["girlfriend"]> };
+> & {
+  girlfriend: NonNullable<ChatController["girlfriend"]>;
+  onProfileOpen?: () => void;
+};
 
 /** 展示当前角色和心情，提供会话、记忆、语速与主题操作。 */
 export function ChatHeader({
+  billingInfo,
   ttsLabel,
   currentMoodInfo,
   t,
@@ -81,6 +88,7 @@ export function ChatHeader({
   updateSpeed,
   toggleTheme,
   theme,
+  onProfileOpen,
 }: Props) {
   const policy = useProductConfig();
   const { locale } = useI18n();
@@ -182,6 +190,33 @@ export function ChatHeader({
         </p>
       </div>
 
+      {billingInfo?.economy && (
+        <Button
+          variant="ghost"
+          className="min-h-11 shrink-0 gap-1 px-2 tabular-nums"
+          onClick={() => setLocation("/wallet")}
+          aria-label={`${t("economy:wallet")}: ${billingInfo.economy.balance}`}
+          title={t("economy:cost", {
+            count: billingInfo.byok.chat ? 0 : billingInfo.economy.costs.chat,
+          })}
+        >
+          <Coins className="size-4" />
+          <span className="max-w-16 truncate text-xs">
+            {billingInfo.economy.balance}
+          </span>
+        </Button>
+      )}
+      {onProfileOpen && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="studio-chat-profile-trigger"
+          aria-label={t("studio:profile")}
+          onClick={onProfileOpen}
+        >
+          <ContactRound />
+        </Button>
+      )}
       <div className="chat-desktop-actions">
         <Button
           variant="ghost"

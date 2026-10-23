@@ -18,6 +18,8 @@ let voiceSupported = true;
 let preferredInputMode: "text" | "voice" = "text";
 let initialPreview: string | null = null;
 let initialMessage = "";
+let billingInfo: any;
+const navigateWallet = vi.fn();
 const stopped = vi.fn();
 const submitted = vi.fn();
 const previewSent = vi.fn();
@@ -31,6 +33,8 @@ function Harness() {
   );
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const props = {
+    billingInfo,
+    setLocation: navigateWallet,
     handleSendMessage: (event: React.FormEvent) => {
       event.preventDefault();
       submitted(message);
@@ -77,6 +81,8 @@ function Harness() {
 }
 beforeEach(async () => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+  billingInfo = undefined;
+  navigateWallet.mockReset();
   desktop = true;
   busy = false;
   generating = false;
@@ -386,4 +392,22 @@ it("requires a reply rather than sending only the selected quote", async () => {
   ).toBe(true);
   await key();
   expect(submitted).not.toHaveBeenCalled();
+});
+
+it("shows the coin balance and cost without an obsolete daily message limit", async () => {
+  billingInfo = {
+    mode: "free",
+    byok: { chat: false },
+    economy: { balance: 55, costs: { chat: 1 } },
+    usage: { chatLimit: 30, chatToday: 0 },
+  };
+  await act(async () => root.render(<Harness />));
+  expect(container.textContent).toContain("可用金币: 55");
+  expect(container.textContent).toContain("本次 1 金币");
+  expect(container.textContent).not.toContain("剩余 30 条");
+  const action = Array.from(container.querySelectorAll("button")).find(
+    button => button.textContent === "金币钱包"
+  )!;
+  await act(async () => action.click());
+  expect(navigateWallet).toHaveBeenCalledWith("/wallet");
 });

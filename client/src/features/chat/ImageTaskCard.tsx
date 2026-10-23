@@ -252,6 +252,18 @@ export function ImageTaskCard({
           {t(expandedScene ? "works:collapseScene" : "works:expandScene")}
         </Button>
       )}
+      {!!task.coinCost && (
+        <p className="mt-3 text-xs text-muted-foreground">
+          {t(
+            task.quota === "refunded"
+              ? "economy:coinsReturned"
+              : task.quota === "charged"
+                ? "economy:coinsCharged"
+                : "economy:coinsReserved",
+            { count: task.coinCost }
+          )}
+        </p>
+      )}
       <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
         {t(
           task.quota === "reserved"

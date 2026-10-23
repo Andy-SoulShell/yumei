@@ -434,7 +434,30 @@ export function ChatComposer({
           )}
         </div>
       </Collapsible>
+      {billingInfo?.economy && (
+        <div
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-2 px-2 pt-1 text-xs text-muted-foreground"
+        >
+          <span>
+            {t("economy:balance")}: {billingInfo.economy.balance} ·{" "}
+            {t("economy:cost", {
+              count: billingInfo.byok.chat ? 0 : billingInfo.economy.costs.chat,
+            })}
+          </span>
+          <Button
+            type="button"
+            variant="link"
+            size="sm"
+            className="h-auto shrink-0 p-0 text-xs"
+            onClick={() => setLocation("/wallet")}
+          >
+            {t("economy:wallet")}
+          </Button>
+        </div>
+      )}
       {billingInfo &&
+        !billingInfo.economy &&
         billingInfo.mode !== "none" &&
         !billingInfo.byok.chat &&
         billingInfo.usage.chatLimit != null && (
@@ -469,7 +492,9 @@ export function ChatComposer({
           selfieRemaining === 0) && (
           <p role="status" className="px-2 pt-1 text-xs text-muted-foreground">
             {photoLabel}
-            {selfieRemaining === 0 && billingInfo?.usage.selfieResetsAt
+            {selfieRemaining === 0 &&
+            !billingInfo?.economy &&
+            billingInfo?.usage.selfieResetsAt
               ? ` · ${t("billing:resetsAt", { time: formatResetTime(billingInfo.usage.selfieResetsAt, t.lng) })}`
               : ""}{" "}
             <Button
@@ -477,9 +502,11 @@ export function ChatComposer({
               variant="link"
               size="sm"
               className="h-auto p-0 text-xs"
-              onClick={() => setLocation("/settings")}
+              onClick={() =>
+                setLocation(billingInfo?.economy ? "/wallet" : "/settings")
+              }
             >
-              {t("billing:viewUsage")}
+              {t(billingInfo?.economy ? "economy:wallet" : "billing:viewUsage")}
             </Button>
           </p>
         )}

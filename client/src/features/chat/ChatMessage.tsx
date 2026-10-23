@@ -20,6 +20,7 @@ type Props = {
   isPlaying: boolean;
   retryDisabled: boolean;
   onRetry?: (id: number) => void;
+  onBranch?: (id: number) => void;
   onSpeak: ChatController["handleSpeakMessage"];
   onQuote: ChatController["quoteMessage"];
   onNavigateQuote: ChatController["jumpToQuote"];
@@ -60,6 +61,7 @@ function sameProps(a: Props, b: Props) {
     a.isPlaying === b.isPlaying &&
     a.retryDisabled === b.retryDisabled &&
     a.onRetry === b.onRetry &&
+    a.onBranch === b.onBranch &&
     a.onSpeak === b.onSpeak &&
     a.onQuote === b.onQuote &&
     a.onNavigateQuote === b.onNavigateQuote &&
@@ -79,6 +81,7 @@ export const ChatMessage = memo(function ChatMessage({
   retryDisabled,
   onRetry,
   onSpeak,
+  onBranch,
   onQuote,
   onNavigateQuote,
   isNavigatingQuote,
@@ -159,6 +162,12 @@ export const ChatMessage = memo(function ChatMessage({
               ? () => onSpeak(msg.content, msg.id)
               : undefined
           }
+          onBranch={onBranch ? () => onBranch(msg.id) : undefined}
+          branchLabel={t(
+            msg.role === "user"
+              ? "studio:editMessage"
+              : "studio:regenerateReply"
+          )}
           onQuote={onQuote}
         >
           {msg.role === "assistant" &&

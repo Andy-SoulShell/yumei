@@ -9,11 +9,13 @@ import { Heart, Loader2 } from "lucide-react";
 import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { useChatScrollAnchor } from "@/hooks/useChatScrollAnchor";
 
+import { ChatBranchDialog } from "./ChatBranchDialog";
 import { ChatMessage } from "./ChatMessage";
 import { ChatStarters } from "./ChatStarters";
 import type { ChatController } from "./useChatController";
 type Props = Pick<
   ChatController,
+  | "billingInfo"
   | "ttsLabel"
   | "messageListRef"
   | "messagesQuery"
@@ -50,6 +52,7 @@ type Props = Pick<
 
 /** 展示分页消息、图片和生成状态，并保留历史消息加载入口。 */
 export function ChatMessages({
+  billingInfo,
   ttsLabel,
   messageListRef,
   messagesQuery,
@@ -82,6 +85,18 @@ export function ChatMessages({
   messagesEndRef,
   footer,
 }: Props) {
+  const [branchMessage, setBranchMessage] = useState<
+    ChatController["chatMessages"][number] | null
+  >(null);
+  const branchMessages = useRef(chatMessages);
+  branchMessages.current = chatMessages;
+  const openBranch = useCallback(
+    (id: number) =>
+      setBranchMessage(
+        branchMessages.current.find(message => message.id === id) ?? null
+      ),
+    []
+  );
   const [viewing, setViewing] = useState<number | null>(null);
   const opener = useRef<HTMLButtonElement>(null);
   const photos = useMemo(
@@ -177,6 +192,15 @@ export function ChatMessages({
                     : undefined
                 }
                 onSpeak={handleSpeakMessage}
+                onBranch={
+                  !retryBusy &&
+                  msg.id > 0 &&
+                  !msg.imageUrl &&
+                  msg.generationKind !== "video" &&
+                  msg.generationStatus !== "pending"
+                    ? openBranch
+                    : undefined
+                }
                 onQuote={quoteMessage}
                 onNavigateQuote={jumpToQuote}
                 isNavigatingQuote={jumpingFromMessageId === msg.id}
@@ -337,6 +361,20 @@ export function ChatMessages({
         {footer}
         <div ref={messagesEndRef} />
       </div>
+      {branchMessage && currentConversationId && (
+        <ChatBranchDialog
+          conversationId={currentConversationId}
+          coinCost={
+            billingInfo?.economy
+              ? billingInfo.byok.chat
+                ? 0
+                : billingInfo.economy.costs.chat
+              : undefined
+          }
+          message={branchMessage}
+          onClose={() => setBranchMessage(null)}
+        />
+      )}
       <PhotoViewer
         photos={photos}
         index={

@@ -4,25 +4,63 @@ import { ImagePlus, Loader2, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
-import { useCompanionChat } from "@/hooks/useCompanionChat";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { loginUrl } from "@/lib/navigation";
+import { MediaStudio } from "@/features/chat/MediaStudio";
 import { Button } from "@/components/ui/button";
-import { CharacterCard } from "@/components/CharacterCard";
 import { PageError } from "@/components/PageError";
 import { ImageTaskCard } from "@/features/chat/ImageTaskCard";
 import { ImageSubmissionRecovery } from "@/features/chat/ImageSubmissionRecovery";
 import Gallery from "./Gallery";
 
 export default function Generate() {
+  const { isAuthenticated, loading } = useAuth();
+  if (loading)
+    return (
+      <div role="status" className="p-8">
+        <Loader2 className="animate-spin" />
+      </div>
+    );
+  return isAuthenticated ? <AuthenticatedGenerate /> : <GuestGenerate />;
+}
+function GuestGenerate() {
+  const { t } = useI18n();
+  return (
+    <div className="hub-page works-page">
+      <div className="hub-heading !mb-5">
+        <h1>{t("studio:imageStudio")}</h1>
+        <p>{t("works:subtitle")}</p>
+      </div>
+      <div className="mb-6 flex flex-wrap gap-2">
+        <Button variant="secondary" className="min-h-11">
+          {t("works:create")}
+        </Button>
+        <Button asChild variant="ghost" className="min-h-11">
+          <Link href={loginUrl("/generate?view=tasks")}>
+            {t("works:tasks")}
+          </Link>
+        </Button>
+        <Button asChild variant="ghost" className="min-h-11">
+          <Link href={loginUrl("/generate?view=gallery")}>
+            {t("works:gallery")}
+          </Link>
+        </Button>
+      </div>
+      <MediaStudio />
+    </div>
+  );
+}
+function AuthenticatedGenerate() {
   const { t } = useI18n();
   const search = useSearch();
   const [, navigate] = useLocation();
   const params = new URLSearchParams(search);
   const view =
-    params.get("view") === "create"
-      ? "create"
+    params.get("view") === "tasks"
+      ? "tasks"
       : params.get("view") === "gallery"
         ? "gallery"
-        : "tasks";
+        : "create";
   const selectedTask = params.get("task");
   const taskId =
     selectedTask && /^[0-9a-f-]{36}$/i.test(selectedTask) ? selectedTask : null;
@@ -31,8 +69,6 @@ export default function Generate() {
   const [filter, setFilter] = useState<
     "all" | "active" | "completed" | "failed"
   >("all");
-  const { companions, isLoading, error, refetch, pending, open } =
-    useCompanionChat();
   const tasks = trpc.selfie.tasks.useInfiniteQuery(
     { filter, limit: 20 },
     {
@@ -49,10 +85,6 @@ export default function Generate() {
       refetchOnWindowFocus: true,
     }
   );
-  const quota = trpc.selfie.quota.useQuery(undefined, {
-    enabled: view === "create",
-    refetchOnWindowFocus: true,
-  });
   const items = tasks.data?.pages.flatMap(page => page.items) ?? [];
   return (
     <div className="hub-page works-page">
@@ -202,63 +234,7 @@ export default function Generate() {
         ) : view === "gallery" ? (
           <Gallery embedded onGenerate={() => setView("create")} />
         ) : (
-          <>
-            <div className="mb-5 rounded-2xl border bg-muted/30 p-4 text-sm">
-              <p className="font-medium">{t("works:chooseCharacter")}</p>
-              <p className="mt-2 text-muted-foreground">
-                {t("works:beforeGenerate")}
-              </p>
-              <p className="mt-2" role="status">
-                {quota.isLoading
-                  ? t("auth:working")
-                  : quota.error
-                    ? t("works:quotaLoadFailed")
-                    : quota.data?.unlimited
-                      ? t("works:quotaUnmetered")
-                      : t("works:remaining", {
-                          count: quota.data?.remaining ?? 0,
-                        })}
-              </p>
-              {quota.error && (
-                <Button
-                  variant="outline"
-                  className="mt-2 min-h-11"
-                  onClick={() => void quota.refetch()}
-                >
-                  {t("explore:retry")}
-                </Button>
-              )}
-            </div>
-            {isLoading ? (
-              <Loader2 className="mx-auto my-16 animate-spin" />
-            ) : error ? (
-              <PageError onRetry={() => void refetch()} />
-            ) : companions?.length ? (
-              <div
-                className={`character-grid ${pending !== null ? "is-pending" : ""}`}
-                aria-busy={pending !== null}
-              >
-                {companions.map(role => (
-                  <CharacterCard
-                    key={role.id}
-                    name={role.name}
-                    image={role.referenceImageUrl}
-                    label={t("explore:generateAction")}
-                    description={role.interests || role.personality}
-                    onClick={() => void open(role.id, true)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="explore-empty">
-                <ImagePlus size={34} />
-                <h2>{t("chat:noCompanionYet")}</h2>
-                <Button asChild>
-                  <Link href="/explore">{t("explore:heroAction")}</Link>
-                </Button>
-              </div>
-            )}
-          </>
+          <MediaStudio />
         )}
       </section>
     </div>

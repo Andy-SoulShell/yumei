@@ -8,6 +8,7 @@ import { useCompanionChat } from "./useCompanionChat";
 
 const mock = vi.hoisted(() => ({
   authenticated: true,
+  locale: "zh-CN",
   location: "/",
   query: "",
   roles: [] as Array<{
@@ -31,7 +32,9 @@ vi.mock("wouter", () => ({
 vi.mock("@/_core/hooks/useAuth", () => ({
   useAuth: () => ({ isAuthenticated: mock.authenticated }),
 }));
-vi.mock("@/lib/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
+vi.mock("@/lib/i18n", () => ({
+  useI18n: () => ({ t: (key: string) => key, locale: mock.locale }),
+}));
 vi.mock("sonner", () => ({ toast: { error: mock.toast } }));
 vi.mock("@/lib/trpc", () => ({
   trpc: {
@@ -61,6 +64,7 @@ beforeEach(async () => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   vi.clearAllMocks();
   mock.authenticated = true;
+  mock.locale = "zh-CN";
   mock.location = "/";
   mock.query = "";
   mock.roles = [];
@@ -101,7 +105,10 @@ describe("companion chat entry", () => {
     });
     expect(opened).toBe(true);
     expect(mock.create).not.toHaveBeenCalled();
-    expect(mock.resume).toHaveBeenCalledWith({ girlfriendId: 7 });
+    expect(mock.resume).toHaveBeenCalledWith({
+      girlfriendId: 7,
+      locale: "zh-CN",
+    });
     expect(mock.navigate).toHaveBeenCalledWith("/chat/42");
   });
   it("preserves the explore search, style and loaded page through login", async () => {
@@ -122,7 +129,10 @@ describe("companion chat entry", () => {
         presetId: preset.id,
       })
     );
-    expect(mock.resume).toHaveBeenCalledWith({ girlfriendId: 9 });
+    expect(mock.resume).toHaveBeenCalledWith({
+      girlfriendId: 9,
+      locale: "zh-CN",
+    });
     expect(mock.navigate).toHaveBeenCalledWith("/chat/42");
   });
   it("blocks rapid duplicate clicks while the first request is pending", async () => {
@@ -164,7 +174,10 @@ describe("companion chat entry", () => {
   });
   it("opens existing photo generation through the selected character's conversation", async () => {
     await act(async () => chat.open(7, true));
-    expect(mock.resume).toHaveBeenCalledWith({ girlfriendId: 7 });
+    expect(mock.resume).toHaveBeenCalledWith({
+      girlfriendId: 7,
+      locale: "zh-CN",
+    });
     expect(mock.navigate).toHaveBeenCalledWith("/chat/42?selfie=1");
   });
 });
@@ -184,5 +197,19 @@ it("continues by source ID after either the user or official profile changes", a
   expect(chat.findPreset({ ...preset, name: "官方新名称" })?.id).toBe(70);
   await act(async () => chat.open({ ...preset, personality: "官方新设定" }));
   expect(mock.create).not.toHaveBeenCalled();
-  expect(mock.resume).toHaveBeenCalledWith({ girlfriendId: 70 });
+  expect(mock.resume).toHaveBeenCalledWith({
+    girlfriendId: 70,
+    locale: "zh-CN",
+  });
 });
+
+// First-time conversations inherit the display language; existing titles remain intact.
+it.each(["zh-CN", "en", "ja", "ko"])(
+  "passes %s when opening a character",
+  async locale => {
+    mock.locale = locale;
+    await act(async () => root.render(<Harness />));
+    await act(async () => chat.open(7));
+    expect(mock.resume).toHaveBeenCalledWith({ girlfriendId: 7, locale });
+  }
+);

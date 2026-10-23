@@ -55,6 +55,9 @@ vi.mock("@/hooks/useCompanionChat", () => ({
     open: mock.open,
   }),
 }));
+vi.mock("@/_core/hooks/useAuth", () => ({
+  useAuth: () => ({ isAuthenticated: false, loading: false }),
+}));
 
 let root: Root;
 let container: HTMLDivElement;
@@ -193,6 +196,17 @@ describe("exploration", () => {
     await settle(() => root.render(<Explore />));
     const dialog = document.querySelector('[role="dialog"]')!;
     expect(dialog.textContent).toContain("凛");
+    expect(dialog.textContent).toContain("你们会怎样相处");
+    expect(dialog.textContent).toContain(
+      discoveryFixture.characters.find(role => role.id === "rin")!.personality
+    );
+    expect(dialog.textContent).toContain("先感受一下对话");
+    expect(
+      dialog.querySelector(".detail-example-assistant")?.textContent
+    ).toContain(
+      discoveryFixture.characters.find(role => role.id === "rin")!.behavior
+        .examples[0].assistant
+    );
     expect(dialog.querySelector("img")?.getAttribute("src")).toBe(
       "/characters/char_mature.jpg"
     );

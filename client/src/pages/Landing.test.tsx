@@ -56,7 +56,11 @@ vi.mock("@/lib/i18n", () => ({
   }),
 }));
 vi.mock("@/_core/hooks/useAuth", () => ({
-  useAuth: () => ({ user: mock.user, loading: false }),
+  useAuth: () => ({
+    user: mock.user,
+    isAuthenticated: Boolean(mock.user),
+    loading: false,
+  }),
 }));
 vi.mock("@/hooks/useCompanionChat", () => ({
   useCompanionChat: () => ({
@@ -138,9 +142,19 @@ afterEach(async () => {
 });
 
 describe("public landing page", () => {
-  it("shows curated companions, twenty catalog characters and an explore link without search", async () => {
+  it("shows four informative featured cards without repeating them in the catalogue", async () => {
     await settle(() => root.render(<Landing />));
-    expect(container.querySelectorAll(".featured-character")).toHaveLength(10);
+    expect(
+      container.querySelectorAll(".featured-section .character-card")
+    ).toHaveLength(4);
+    const names = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(".character-card"),
+      card => card.getAttribute("aria-label")
+    );
+    expect(new Set(names).size).toBe(names.length);
+    expect(container.querySelector(".character-traits")?.textContent).toContain(
+      "幽默俏皮"
+    );
     expect(mock.recent).not.toHaveBeenCalled();
     expect(container.querySelector(".home-companions-add")).toBeNull();
     expect(container.querySelectorAll(".character-card")).toHaveLength(20);
@@ -241,21 +255,21 @@ describe("public landing page", () => {
     expect(document.querySelector('[role="dialog"]')).toBeNull();
     await vi.waitFor(() => expect(document.activeElement).toBe(card));
   });
-  it.each([".character-card", ".featured-character"])(
-    "returns focus to an unfocused clicked trigger: %s",
-    async selector => {
-      await settle(() => root.render(<Landing />));
-      const card = container.querySelector<HTMLButtonElement>(selector)!;
-      expect(document.activeElement).not.toBe(card);
-      await settle(() => card.click());
-      await settle(() =>
-        document
-          .querySelector<HTMLButtonElement>('[data-slot="dialog-close"]')!
-          .click()
-      );
-      await vi.waitFor(() => expect(document.activeElement).toBe(card));
-    }
-  );
+  it.each([
+    ".featured-section .character-card",
+    ".landing-catalogue .character-card",
+  ])("returns focus to an unfocused clicked trigger: %s", async selector => {
+    await settle(() => root.render(<Landing />));
+    const card = container.querySelector<HTMLButtonElement>(selector)!;
+    expect(document.activeElement).not.toBe(card);
+    await settle(() => card.click());
+    await settle(() =>
+      document
+        .querySelector<HTMLButtonElement>('[data-slot="dialog-close"]')!
+        .click()
+    );
+    await vi.waitFor(() => expect(document.activeElement).toBe(card));
+  });
   it("opens one FAQ at a time and changes the registration prompt for members", async () => {
     await settle(() => root.render(<Landing />));
     const questions =
@@ -361,7 +375,9 @@ it("renders arbitrary API role IDs, banners and FAQ text without static translat
   expect(container.textContent).toContain("API 动态回答");
   await settle(() =>
     (
-      container.querySelector(".featured-character") as HTMLButtonElement
+      container.querySelector(
+        ".featured-section .character-card"
+      ) as HTMLButtonElement
     ).click()
   );
   expect(mock.query).toContain("character=new-api-character");

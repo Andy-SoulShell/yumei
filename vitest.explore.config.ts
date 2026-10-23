@@ -15,6 +15,7 @@ export default defineConfig({
       "client/src/pages/Explore.test.tsx",
       "client/src/pages/Landing.test.tsx",
       "client/src/features/discovery/catalogue.test.ts",
+      "client/src/features/discovery/CharacterChatActions.test.tsx",
     ],
   },
 });

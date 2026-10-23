@@ -12,7 +12,7 @@ import type { CharacterPreset } from "@shared/discovery";
 /** 添加预设后恢复会话；接口失败时保留已创建角色以便重试。 */
 export function useCompanionChat() {
   const { isAuthenticated } = useAuth();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [location, navigate] = useLocation();
   const search = useSearch();
   const utils = trpc.useUtils();
@@ -64,7 +64,10 @@ export function useCompanionChat() {
           await utils.girlfriend.invalidate();
         }
       }
-      const conversation = await resume.mutateAsync({ girlfriendId: id });
+      const conversation = await resume.mutateAsync({
+        girlfriendId: id,
+        locale,
+      });
       await utils.conversation.invalidate();
       navigate(`/chat/${conversation.id}${selfie ? "?selfie=1" : ""}`);
       return true;

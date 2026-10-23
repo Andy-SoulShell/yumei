@@ -37,10 +37,16 @@ export default function Landing() {
     return <PageError onRetry={() => void discovery.refetch()} />;
   const { characters, home } = discovery.data;
   const listed = characters.filter(item => item.listed);
-  const featured = home.featuredIds.flatMap(id => {
-    const item = characters.find(role => role.id === id);
-    return item ? [item] : [];
-  });
+  const featured = home.featuredIds
+    .flatMap(id => {
+      const item = characters.find(role => role.id === id);
+      return item ? [item] : [];
+    })
+    .slice(0, 4);
+  const featuredIds = new Set(featured.map(item => item.id));
+  const catalogue = listed
+    .filter(item => !featuredIds.has(item.id))
+    .slice(0, home.homeCharacterLimit);
   return (
     <div className="explore-page landing-page">
       <LandingCarousel
@@ -62,43 +68,29 @@ export default function Landing() {
               </Link>
             </Button>
           </div>
-          <div className="featured-grid">
-            {featured.map(preset => (
-              <Button
-                key={preset.id}
-                variant="plain"
-                size="none"
-                className="featured-character"
-                onClick={event =>
-                  preview.showCharacter(preset.id, event.currentTarget)
-                }
-                aria-label={t("explore:viewCharacter", { name: preset.name })}
-              >
-                <span className="featured-avatar">
-                  <img src={preset.imageUrl} alt="" loading="lazy" />
-                </span>
-                <span className="featured-name">{preset.name}</span>
-                <span className="featured-label">{preset.label}</span>
-              </Button>
-            ))}
-          </div>
+          <p className="landing-selection-hint">{t("landing:selectionHint")}</p>
+          <CharacterCatalogueGrid
+            characters={featured}
+            onSelect={preview.showCharacter}
+            priorityCount={2}
+          />
         </section>
       )}
-      {home.homeCharacterLimit > 0 && (
+      {catalogue.length > 0 && (
         <section
           className="landing-catalogue"
           aria-labelledby="home-catalogue-heading"
         >
           <div className="section-heading">
             <div>
-              <h2 id="home-catalogue-heading">{t("landing:allCharacters")}</h2>
+              <h2 id="home-catalogue-heading">{t("landing:moreCharacters")}</h2>
             </div>
             <span className="landing-count">
-              {t("explore:results", { count: listed.length })}
+              {t("explore:results", { count: catalogue.length })}
             </span>
           </div>
           <CharacterCatalogueGrid
-            characters={listed.slice(0, home.homeCharacterLimit)}
+            characters={catalogue}
             onSelect={preview.showCharacter}
           />
           <div className="catalogue-more">

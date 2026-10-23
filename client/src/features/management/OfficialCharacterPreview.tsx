@@ -12,6 +12,8 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { officialFieldNames } from "./officialEditor";
+import { characterTraitKeys } from "@/features/discovery/characterTraits";
+import { translate } from "@shared/i18n";
 
 export function OfficialCharacterPreview({
   value,
@@ -56,6 +58,9 @@ export function OfficialCharacterPreview({
               image={selected.imageUrl}
               label={selected.label}
               description={selected.tagline}
+              traits={characterTraitKeys(selected.behavior)
+                .slice(0, 2)
+                .map(key => translate(key, locale))}
               age={selected.age}
               styleLabel={selected.style === "anime" ? "动漫" : "写实"}
               onClick={() => setOpen(true)}

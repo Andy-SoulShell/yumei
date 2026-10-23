@@ -2,6 +2,7 @@
 import type { CharacterPreset } from "@shared/discovery";
 import { useI18n } from "@/lib/i18n";
 import { CharacterCard } from "./CharacterCard";
+import { characterTraitKeys } from "@/features/discovery/characterTraits";
 
 /** 展示指定顺序的角色，并将选择交给所在页面处理。 */
 export function CharacterCatalogueGrid({
@@ -24,6 +25,9 @@ export function CharacterCatalogueGrid({
           image={preset.imageUrl}
           label={preset.label}
           description={preset.tagline}
+          traits={characterTraitKeys(preset.behavior)
+            .slice(0, 2)
+            .map(key => t(key))}
           styleLabel={t(
             preset.style === "anime" ? "explore:anime" : "explore:realistic"
           )}

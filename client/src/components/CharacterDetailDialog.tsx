@@ -1,11 +1,11 @@
 /** 首页和探索页共用的角色详情、定制与聊天入口。 */
 import type { ReactNode, RefObject } from "react";
-import { Link } from "wouter";
-import { ArrowRight, Check, Heart, Loader2, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import type { CharacterPreset } from "@shared/discovery";
 import { useI18n } from "@/lib/i18n";
 import { useCompanionChat } from "@/hooks/useCompanionChat";
-import { Button } from "./ui/button";
+import { characterTraitKeys } from "@/features/discovery/characterTraits";
+import { CharacterChatActions } from "@/features/discovery/CharacterChatActions";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,7 @@ export function CharacterDetailContent({
   children: ReactNode;
 }) {
   const { t } = useI18n();
+  const example = selected.behavior.examples[0];
   return (
     <>
       <div className="detail-portrait">
@@ -35,7 +36,12 @@ export function CharacterDetailContent({
           · AI
         </span>
       </div>
-      <div className="detail-content">
+      <div
+        className="detail-content"
+        tabIndex={0}
+        role="region"
+        aria-label={selected.name}
+      >
         <span className="section-eyebrow">{selected.label}</span>
         <DialogHeader>
           <DialogTitle>
@@ -46,8 +52,42 @@ export function CharacterDetailContent({
           </DialogTitle>
           <DialogDescription>{selected.tagline}</DialogDescription>
         </DialogHeader>
-        {children}
+        <section className="detail-section" aria-label={t("explore:chatStyle")}>
+          <h3>{t("explore:chatStyle")}</h3>
+          <div className="detail-traits">
+            {characterTraitKeys(selected.behavior).map(key => (
+              <span key={key}>{t(key)}</span>
+            ))}
+          </div>
+        </section>
+        <section className="detail-section">
+          <h3>{t("explore:aboutCharacter", { name: selected.name })}</h3>
+          <p className="detail-personality">{selected.personality}</p>
+          {selected.interests.trim() && (
+            <p className="detail-interests">
+              <span>{t("explore:interestsLabel")}</span>
+              {selected.interests}
+            </p>
+          )}
+        </section>
+        {example && (
+          <section className="detail-section detail-example">
+            <h3>{t("explore:conversationPreview")}</h3>
+            <p className="detail-example-hint">
+              {t("explore:conversationPreviewHint")}
+            </p>
+            <div className="detail-example-user">
+              <span>{t("setup:behaviorExampleUser")}</span>
+              <p>{example.user}</p>
+            </div>
+            <div className="detail-example-assistant">
+              <span>{selected.name}</span>
+              <p>{example.assistant}</p>
+            </div>
+          </section>
+        )}
       </div>
+      <div className="detail-actions">{children}</div>
     </>
   );
 }
@@ -62,13 +102,12 @@ export function CharacterDetailDialog({
   onClose: () => void;
   returnFocus: RefObject<HTMLElement | null>;
 }) {
-  const { t } = useI18n();
-  const { pending, findPreset, open } = useCompanionChat();
+  const chat = useCompanionChat();
   return (
     <Dialog
       open={!!selected}
       onOpenChange={isOpen => {
-        if (!isOpen && pending === null) onClose();
+        if (!isOpen && chat.pending === null) onClose();
       }}
     >
       <DialogContent
@@ -82,35 +121,7 @@ export function CharacterDetailDialog({
       >
         {selected && (
           <CharacterDetailContent selected={selected}>
-            {!findPreset(selected) && (
-              <p className="detail-disclosure">
-                {t("explore:detailDisclosure")}
-              </p>
-            )}
-            <Button
-              className="detail-start"
-              disabled={pending !== null}
-              onClick={() => void open(selected)}
-            >
-              {pending !== null ? (
-                <Loader2 className="animate-spin" />
-              ) : findPreset(selected) ? (
-                <Check />
-              ) : (
-                <Heart />
-              )}
-              {pending !== null
-                ? t("explore:opening")
-                : findPreset(selected)
-                  ? t("explore:continueChat")
-                  : t("explore:addChat")}
-              <ArrowRight />
-            </Button>
-            <Button variant="ghost" asChild>
-              <Link href={"/setup?preset=" + selected.id}>
-                {t("explore:customizeCharacter")}
-              </Link>
-            </Button>
+            <CharacterChatActions selected={selected} chat={chat} />
           </CharacterDetailContent>
         )}
       </DialogContent>

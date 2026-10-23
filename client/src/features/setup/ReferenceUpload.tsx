@@ -31,7 +31,8 @@ export function ReferenceUpload({
   presetId,
   setImageFile,
   setImagePreview,
-}: Props) {
+  compact = false,
+}: Props & { compact?: boolean }) {
   return (
     <>
       {" "}
@@ -44,11 +45,13 @@ export function ReferenceUpload({
         <div className="flex flex-col items-center gap-3 sm:gap-4">
           {displayImage ? (
             <>
-              <div className="w-36 max-w-full overflow-hidden rounded-lg border-2 border-border bg-muted/30 sm:w-48">
+              <div
+                className={`${compact ? "w-24" : "w-36 sm:w-48"} max-w-full overflow-hidden rounded-lg border-2 border-border bg-muted/30`}
+              >
                 <img
                   src={displayImage}
                   alt={t("setup:preview")}
-                  className="block h-auto max-h-64 w-full object-contain sm:max-h-80"
+                  className={`block h-auto w-full object-contain ${compact ? "max-h-32" : "max-h-64 sm:max-h-80"}`}
                 />
               </div>
               {!isEditing && (
@@ -56,6 +59,7 @@ export function ReferenceUpload({
                   type="button"
                   variant="secondary"
                   size="sm"
+                  className="min-h-11"
                   onClick={() => {
                     imageInputRef.current?.click();
                   }}
@@ -71,7 +75,7 @@ export function ReferenceUpload({
               size="none"
               onClick={() => imageInputRef.current?.click()}
               aria-label={t("setup:uploadAReferencePhoto")}
-              className="w-48 h-48 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary transition-colors"
+              className={`${compact ? "w-full min-h-28 p-4" : "w-48 h-48"} flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary transition-colors`}
             >
               <Upload className="w-12 h-12 text-muted-foreground mb-2" />
               <span className="text-sm text-muted-foreground">

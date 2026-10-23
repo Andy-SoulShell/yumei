@@ -22,6 +22,7 @@
     "test:chat": "vitest run --config vitest.chat.config.ts",
     "test:auth": "vitest run --config vitest.auth.config.ts",
     "test:explore": "vitest run --config vitest.explore.config.ts",
+    "test:setup": "vitest run --config vitest.setup-flow.config.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "ui:add": "pnpm dlx shadcn@4.22.1 add",

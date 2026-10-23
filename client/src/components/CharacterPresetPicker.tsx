@@ -27,8 +27,19 @@ export function CharacterPresetPicker({
   const { t } = useI18n();
   const [style, setStyle] = useState<"all" | CharacterPreset["style"]>("all");
   const [expanded, setExpanded] = useState(!selectedId);
+  const [visibleCount, setVisibleCount] = useState(4);
   const trigger = useRef<HTMLButtonElement>(null);
   const selected = characters.find(preset => preset.id === selectedId);
+  const closePicker = () => {
+    setExpanded(false);
+    requestAnimationFrame(() => {
+      trigger.current?.focus({ preventScroll: true });
+      trigger.current?.scrollIntoView({ block: "nearest" });
+    });
+  };
+  const filtered = characters.filter(
+    preset => style === "all" || preset.style === style
+  );
   return (
     <section
       className="space-y-4"
@@ -36,11 +47,33 @@ export function CharacterPresetPicker({
     >
       <Collapsible open={expanded} onOpenChange={setExpanded}>
         <div className="flex items-center justify-between gap-3">
-          <h2 className="min-w-0 truncate text-sm font-medium">
-            {selected?.name || t("characters:characterPresets")}
-          </h2>
+          <div className="flex min-w-0 items-center gap-3">
+            {selected && (
+              <img
+                src={selected.imageUrl}
+                alt=""
+                className="h-20 w-16 shrink-0 rounded-xl object-cover object-[50%_20%]"
+              />
+            )}
+            <div className="min-w-0">
+              <h2 className="text-sm font-medium break-words">
+                {selected?.name || t("setup:chooseAppearance")}
+              </h2>
+              {selected && (
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {selected.label}
+                </p>
+              )}
+            </div>
+          </div>
           <CollapsibleTrigger asChild>
-            <Button ref={trigger} type="button" variant="outline" size="sm">
+            <Button
+              ref={trigger}
+              type="button"
+              variant="outline"
+              size="sm"
+              className="min-h-11 shrink-0"
+            >
               {expanded ? t("common:close2") : t("setup:change")}
               {expanded ? <ChevronUp /> : <ChevronDown />}
             </Button>
@@ -49,7 +82,10 @@ export function CharacterPresetPicker({
         <CollapsibleContent className="space-y-4 pt-3">
           <RadioGroup
             value={style}
-            onValueChange={value => setStyle(value as typeof style)}
+            onValueChange={value => {
+              setStyle(value as typeof style);
+              setVisibleCount(4);
+            }}
             className="flex flex-wrap gap-2"
             aria-label={t("characters:characterStyle")}
           >
@@ -64,7 +100,7 @@ export function CharacterPresetPicker({
                 variant="segment"
                 key={value}
                 value={value}
-                className="h-8 px-3 text-sm"
+                className="min-h-11 px-3 text-sm"
               >
                 {label}
               </RadioGroupChoice>
@@ -75,53 +111,63 @@ export function CharacterPresetPicker({
             value={selectedId ?? "custom"}
             onValueChange={id => {
               onSelect(characters.find(preset => preset.id === id) ?? null);
-              setExpanded(false);
-              requestAnimationFrame(() => {
-                trigger.current?.focus({ preventScroll: true });
-                trigger.current?.scrollIntoView({ block: "nearest" });
-              });
+              closePicker();
             }}
           >
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {characters
-                .filter(preset => style === "all" || preset.style === style)
-                .map(preset => (
-                  <RadioGroupChoice
-                    key={preset.id}
-                    value={preset.id}
-                    aria-label={t("characters:select", { name: preset.name })}
-                    className={`relative overflow-hidden rounded-2xl text-left transition-colors focus-visible:outline-2 focus-visible:outline-primary ${selectedId === preset.id ? "ring-2 ring-primary" : "bg-muted/30 hover:bg-muted/60"}`}
-                  >
-                    <img
-                      src={preset.imageUrl}
-                      alt={preset.name}
-                      loading="lazy"
-                      className="w-full aspect-[3/4] object-cover object-top"
-                    />
-                    {selectedId === preset.id && (
-                      <span className="absolute right-2 top-2 rounded-full bg-primary p-1 text-primary-foreground">
-                        <Check className="h-4 w-4" />
+              {filtered.slice(0, visibleCount).map(preset => (
+                <RadioGroupChoice
+                  key={preset.id}
+                  value={preset.id}
+                  aria-label={t("characters:select", { name: preset.name })}
+                  className={`relative overflow-hidden rounded-2xl text-left transition-colors focus-visible:outline-2 focus-visible:outline-primary ${selectedId === preset.id ? "ring-2 ring-primary" : "bg-muted/30 hover:bg-muted/60"}`}
+                >
+                  <img
+                    src={preset.imageUrl}
+                    alt={preset.name}
+                    loading="lazy"
+                    className="w-full aspect-[4/3] object-cover object-[50%_20%]"
+                  />
+                  {selectedId === preset.id && (
+                    <span className="absolute right-2 top-2 rounded-full bg-primary p-1 text-primary-foreground">
+                      <Check className="h-4 w-4" />
+                    </span>
+                  )}
+                  <div className="p-2.5 space-y-1">
+                    <p className="font-medium">
+                      {preset.name}
+                      <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                        {t("characters:age", { age: preset.age })}
                       </span>
-                    )}
-                    <div className="p-2.5 space-y-1">
-                      <p className="font-medium">
-                        {preset.name}
-                        <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                          {t("characters:age", { age: preset.age })}
-                        </span>
-                      </p>
-                      <p className="text-xs text-primary">{preset.label}</p>
-                      <p className="text-xs leading-relaxed text-muted-foreground">
-                        {preset.tagline}
-                      </p>
-                    </div>
-                  </RadioGroupChoice>
-                ))}
+                    </p>
+                    <p className="text-xs text-primary">{preset.label}</p>
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      {preset.tagline}
+                    </p>
+                  </div>
+                </RadioGroupChoice>
+              ))}
             </div>
+            {filtered.length > visibleCount && (
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 w-full"
+                onClick={() => setVisibleCount(count => count + 8)}
+              >
+                {t("setup:morePresets", {
+                  count: filtered.length - visibleCount,
+                })}
+                <ChevronDown />
+              </Button>
+            )}
             <RadioGroupChoice
               variant="segment"
               value="custom"
-              className="w-full border-dashed"
+              className="min-h-11 w-full border-dashed"
+              onClick={() => {
+                if (!selectedId) closePicker();
+              }}
             >
               <Pencil className="mr-2 h-4 w-4" />
               {t("characters:createFromScratch")}

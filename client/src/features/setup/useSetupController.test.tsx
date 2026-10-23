@@ -1,6 +1,6 @@
-import { clearFormDrafts } from "@/lib/formDrafts";
-import { DEFAULT_COMPANION_BEHAVIOR } from "../../../../server/testProductConfig";
 // @vitest-environment jsdom
+import { clearFormDrafts, formDraftKey, readFormDraft } from "@/lib/formDrafts";
+import { DEFAULT_COMPANION_BEHAVIOR } from "../../../../server/testProductConfig";
 /** 编辑中刷新、头像操作和清空字段均不得破坏用户草稿。 */
 import { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -39,6 +39,18 @@ const mock = vi.hoisted(() => ({
   roles: [] as any[],
   update: vi.fn(),
   create: vi.fn(),
+  createOptions: null as any,
+  resume: vi.fn(),
+  locale: "zh-CN",
+  billing: { mode: "free", limits: { maxGirlfriends: 3 as number | null } },
+  billingReady: true,
+  billingError: null as Error | null,
+  rolesReady: true,
+  rolesError: null as Error | null,
+  billingRefetch: vi.fn(),
+  listRefetch: vi.fn(),
+  invalidateBilling: vi.fn(),
+  invalidateConversation: vi.fn(),
   remove: vi.fn(),
   navigate: vi.fn(),
   invalidate: vi.fn(),
@@ -56,20 +68,26 @@ vi.mock("wouter", () => ({
 vi.mock("@/_core/hooks/useAuth", () => ({
   useAuth: () => ({ user: { id: mock.userId } }),
 }));
-vi.mock("@/lib/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
+vi.mock("@/lib/i18n", () => ({
+  useI18n: () => ({ t: (key: string) => key, locale: mock.locale }),
+}));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: mock.error } }));
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     girlfriend: {
       list: {
         useQuery: () => ({
-          data: mock.roles,
-          isLoading: false,
-          refetch: vi.fn(),
+          data: mock.rolesReady ? mock.roles : undefined,
+          isLoading: !mock.rolesReady && !mock.rolesError,
+          error: mock.rolesError,
+          refetch: mock.listRefetch,
         }),
       },
       create: {
-        useMutation: () => ({ mutate: mock.create, isPending: false }),
+        useMutation: (options: any) => {
+          mock.createOptions = options;
+          return { mutate: mock.create, isPending: false };
+        },
       },
       update: {
         useMutation: (options: any) => {
@@ -85,7 +103,23 @@ vi.mock("@/lib/trpc", () => ({
       delete: { useMutation: () => ({ mutate: vi.fn() }) },
     },
     apiConfig: { get: { useQuery: () => ({ data: {} }) } },
-    useUtils: () => ({ girlfriend: { invalidate: mock.invalidate } }),
+    billing: {
+      getInfo: {
+        useQuery: () => ({
+          data: mock.billingReady ? mock.billing : undefined,
+          error: mock.billingError,
+          refetch: mock.billingRefetch,
+        }),
+      },
+    },
+    conversation: {
+      resume: { useMutation: () => ({ mutateAsync: mock.resume }) },
+    },
+    useUtils: () => ({
+      girlfriend: { invalidate: mock.invalidate },
+      billing: { getInfo: { invalidate: mock.invalidateBilling } },
+      conversation: { invalidate: mock.invalidateConversation },
+    }),
   },
 }));
 let controller: ReturnType<typeof useSetupController>;
@@ -101,6 +135,15 @@ beforeEach(async () => {
   mock.discoveryLoading = false;
   mock.discoveryError = null;
   mock.calls = 0;
+  mock.billing = { mode: "free", limits: { maxGirlfriends: 3 } };
+  mock.billingReady = true;
+  mock.billingError = null;
+  mock.rolesReady = true;
+  mock.rolesError = null;
+  mock.locale = "zh-CN";
+  mock.resume.mockReset().mockResolvedValue({ id: 88 });
+  mock.invalidateBilling.mockResolvedValue(undefined);
+  mock.invalidateConversation.mockResolvedValue(undefined);
   mock.editId = "1";
   mock.search = "";
   mock.roles = [
@@ -502,3 +545,224 @@ it("does not erase a newer draft when an earlier save finishes", async () => {
   await remount();
   expect(controller.name).toBe("保存期间继续编辑的名字");
 });
+
+async function startNewPreset() {
+  mock.editId = undefined;
+  mock.search = "preset=xiaotao";
+  await remount();
+}
+const submit = () => controller.handleSubmit({ preventDefault() {} } as any);
+
+it("shows actual remaining capacity and blocks submission at capacity", async () => {
+  await startNewPreset();
+  expect(controller.capacity).toMatchObject({
+    ready: true,
+    full: false,
+    remaining: 2,
+  });
+  mock.billing.limits.maxGirlfriends = 1;
+  await render();
+  expect(controller.capacity.full).toBe(true);
+  await act(async () => submit());
+  expect(mock.create).not.toHaveBeenCalled();
+});
+
+it("waits for role data and offers a retry instead of guessing an empty list", async () => {
+  await startNewPreset();
+  mock.rolesReady = false;
+  await render();
+  expect(controller.capacity.ready).toBe(false);
+  await act(async () => submit());
+  expect(mock.create).not.toHaveBeenCalled();
+  mock.rolesError = new Error("offline");
+  await render();
+  expect(controller.capacity.error).toBe(true);
+  await act(async () => controller.capacity.retry());
+  expect(mock.listRefetch).toHaveBeenCalledOnce();
+  expect(mock.billingRefetch).toHaveBeenCalledOnce();
+});
+
+it("does not enforce plan counts when billing enforcement is disabled", async () => {
+  mock.billing = { mode: "none", limits: { maxGirlfriends: 0 } };
+  await startNewPreset();
+  expect(controller.capacity).toMatchObject({
+    ready: true,
+    full: false,
+    remaining: null,
+  });
+  await act(async () => submit());
+  expect(mock.create).toHaveBeenCalledOnce();
+});
+
+it("keeps editing available when capacity is unavailable", async () => {
+  mock.billingReady = false;
+  mock.billingError = new Error("offline");
+  await render();
+  await act(async () => submit());
+  expect(mock.update).toHaveBeenCalledOnce();
+});
+
+it("uses the uploaded reference without requiring an extra appearance description", async () => {
+  mock.editId = undefined;
+  await remount();
+  await act(async () => {
+    controller.setName("小雨");
+    controller.setPersonality("安静温柔");
+    controller.setImageFile(
+      new File(["image"], "portrait.png", { type: "image/png" })
+    );
+  });
+  await act(async () => {
+    await submit();
+    await new Promise(resolve => setTimeout(resolve, 20));
+  });
+  expect(mock.create).toHaveBeenCalledWith(
+    expect.objectContaining({
+      appearance: "setup:appearanceFromReference",
+      referenceImageBase64: "aW1hZ2U=",
+    })
+  );
+});
+
+it("reveals collapsed settings when an example or advanced field is invalid", async () => {
+  await startNewPreset();
+  expect(controller.advancedSections.behavior).toBe(false);
+  await act(async () =>
+    controller.setBehavior(value => ({
+      ...value,
+      examples: [{ user: "你好", assistant: "" }],
+    }))
+  );
+  await act(async () => submit());
+  expect(controller.advancedSections.behavior).toBe(true);
+  expect(controller.behaviorError).toBe(true);
+  await act(async () => controller.setInterests("x".repeat(10001)));
+  await act(async () => submit());
+  expect(controller.advancedSections.appearance).toBe(true);
+  expect(mock.create).not.toHaveBeenCalled();
+});
+
+it("opens the new character's conversation directly and clears completed drafts", async () => {
+  await startNewPreset();
+  await act(async () => submit());
+  await act(async () => mock.createOptions.onSuccess({ id: 77, name: "小桃" }));
+  expect(mock.resume).toHaveBeenCalledWith({
+    girlfriendId: 77,
+    locale: "zh-CN",
+  });
+  expect(mock.navigate).toHaveBeenCalledWith("/chat/88", { replace: true });
+  const key = formDraftKey(mock.userId, "character-new:xiaotao")!;
+  expect(readFormDraft(key)).toBeNull();
+  expect(readFormDraft(`${key}:created`)).toBeNull();
+});
+
+it("retries opening a saved character without repeating creation", async () => {
+  mock.resume.mockRejectedValueOnce(new Error("offline"));
+  await startNewPreset();
+  await act(async () => submit());
+  await act(async () => mock.createOptions.onSuccess({ id: 77, name: "小桃" }));
+  expect(controller.createdCharacter).toEqual({ id: 77, name: "小桃" });
+  expect(controller.chatOpenError).toBe(true);
+  expect(mock.navigate).not.toHaveBeenCalled();
+  await act(async () => submit());
+  expect(mock.create).toHaveBeenCalledOnce();
+  expect(mock.resume).toHaveBeenCalledTimes(2);
+  expect(mock.navigate).toHaveBeenCalledWith("/chat/88", { replace: true });
+});
+
+it("restores a saved character handoff after leaving and returning", async () => {
+  mock.resume.mockRejectedValueOnce(new Error("offline"));
+  await startNewPreset();
+  await act(async () => submit());
+  await act(async () => mock.createOptions.onSuccess({ id: 77, name: "小桃" }));
+  await remount();
+  expect(controller.createdCharacter?.id).toBe(77);
+  await act(async () => controller.openCreatedChat());
+  expect(mock.create).toHaveBeenCalledOnce();
+  expect(mock.navigate).toHaveBeenCalledWith("/chat/88", { replace: true });
+});
+
+it("does not navigate after logout while opening the new conversation", async () => {
+  let resolveChat!: (value: { id: number }) => void;
+  mock.resume.mockImplementationOnce(
+    () =>
+      new Promise<{ id: number }>(resolve => {
+        resolveChat = resolve;
+      })
+  );
+  await startNewPreset();
+  await act(async () => submit());
+  let completion: Promise<void>;
+  await act(async () => {
+    completion = mock.createOptions.onSuccess({ id: 77, name: "小桃" });
+    await Promise.resolve();
+  });
+  clearFormDrafts();
+  mock.userId = "other-account";
+  await remount();
+  await act(async () => {
+    resolveChat({ id: 88 });
+    await completion!;
+  });
+  expect(mock.navigate).not.toHaveBeenCalled();
+  expect(controller.createdCharacter).toBeNull();
+});
+
+it("blocks a duplicate creation while a submission is in flight", async () => {
+  await startNewPreset();
+  await act(async () => {
+    await submit();
+    await submit();
+  });
+  expect(mock.create).toHaveBeenCalledOnce();
+});
+
+it("keeps a new login's identical draft when an older creation finishes", async () => {
+  await startNewPreset();
+  await act(async () => controller.setName("重新登录后继续的资料"));
+  await act(async () => submit());
+  const completeOldCreation = mock.createOptions.onSuccess;
+  clearFormDrafts();
+  await remount();
+  await act(async () => controller.setName("重新登录后继续的资料"));
+  await act(async () =>
+    completeOldCreation({ id: 77, name: "重新登录后继续的资料" })
+  );
+  expect(mock.resume).not.toHaveBeenCalled();
+  expect(mock.navigate).not.toHaveBeenCalled();
+  await remount();
+  expect(controller.draftRestored).toBe(true);
+  expect(controller.name).toBe("重新登录后继续的资料");
+  expect(controller.createdCharacter).toBeNull();
+});
+
+it("does not warn about an unsaved image after creation succeeds but opening chat fails", async () => {
+  mock.resume.mockRejectedValueOnce(new Error("offline"));
+  await startNewPreset();
+  await act(async () =>
+    controller.setImageFile(
+      new File(["image"], "saved.png", { type: "image/png" })
+    )
+  );
+  await act(async () => {
+    await submit();
+    await new Promise(resolve => setTimeout(resolve, 20));
+  });
+  await act(async () => mock.createOptions.onSuccess({ id: 77, name: "小桃" }));
+  expect(controller.chatOpenError).toBe(true);
+  expect(controller.imageFile).toBeNull();
+  const unload = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(unload);
+  expect(unload.defaultPrevented).toBe(false);
+});
+
+it.each(["zh-CN", "en", "ja", "ko"])(
+  "opens a newly created conversation in %s",
+  async locale => {
+    mock.locale = locale;
+    await startNewPreset();
+    await act(async () => submit());
+    await act(async () => mock.createOptions.onSuccess({ id: 77, name: "QA" }));
+    expect(mock.resume).toHaveBeenCalledWith({ girlfriendId: 77, locale });
+  }
+);

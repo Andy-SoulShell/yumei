@@ -32,9 +32,24 @@ import {
 import { toast } from "sonner";
 import { useLocation, useParams, useSearch } from "wouter";
 
+export type SetupSection = "appearance" | "behavior" | "voice";
+type CreatedCharacter = { id: number; name: string };
+const creationKey = (key: string | null) => (key ? `${key}:created` : null);
+function readCreatedCharacter(key: string | null): CreatedCharacter | null {
+  const value = readFormDraft(creationKey(key));
+  return value &&
+    typeof value.id === "number" &&
+    Number.isSafeInteger(value.id) &&
+    value.id > 0 &&
+    typeof value.name === "string" &&
+    value.name.length <= 100
+    ? { id: value.id, name: value.name }
+    : null;
+}
+
 /** 页面查询、草稿与操作流程；展示组件只消费此状态。 */
 export function useSetupController() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const product = useProductConfig();
   const { user } = useAuth();
   const trashDays = product.raw
@@ -45,6 +60,15 @@ export function useSetupController() {
   const [, setLocation] = useLocation();
 
   const params = useParams<{ id?: string }>();
+  const isEditing = params.id !== undefined;
+  const [advancedSections, setAdvancedSections] = useState<
+    Record<SetupSection, boolean>
+  >({ appearance: isEditing, behavior: isEditing, voice: false });
+  const [createdCharacter, setCreatedCharacter] =
+    useState<CreatedCharacter | null>(null);
+  const [isOpeningChat, setIsOpeningChat] = useState(false);
+  const [chatOpenError, setChatOpenError] = useState(false);
+  const openingChat = useRef(false);
 
   const editId = params.id ? Number(params.id) : null;
 
@@ -65,6 +89,7 @@ export function useSetupController() {
     text: string;
     reference: File | null;
     avatar: File | null;
+    epoch: number;
   } | null>(null);
   const [hydratedDraftKey, setHydratedDraftKey] = useState<string | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
@@ -170,15 +195,30 @@ export function useSetupController() {
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
-  // 获取女友列表用于编辑
+  // 编辑读取角色资料；创建同时用实际角色数量显示剩余名额。
   const {
     data: girlfriends,
     isLoading: editLoading,
     error: editError,
     refetch: retryEdit,
   } = trpc.girlfriend.list.useQuery(undefined, {
-    enabled: validEditId,
+    enabled: Boolean(user) && (!isEditing || validEditId),
   });
+  const billing = trpc.billing.getInfo.useQuery(undefined, {
+    enabled: Boolean(user) && !isEditing,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  });
+  const capacityLimit =
+    billing.data?.mode === "none" ? null : billing.data?.limits.maxGirlfriends;
+  const capacityReady = Boolean(billing.data && girlfriends);
+  const capacityRemaining =
+    capacityLimit == null
+      ? null
+      : Math.max(0, capacityLimit - (girlfriends?.length ?? 0));
+  const capacityFull = capacityReady && capacityRemaining === 0;
+  const capacityError =
+    (!billing.data && billing.error) || (!girlfriends && editError);
 
   // 获取全局提示词配置
   const { data: apiConfig } = trpc.apiConfig.get.useQuery();
@@ -224,6 +264,16 @@ export function useSetupController() {
     setShowCustomPrompt(Boolean(value.customPrompt));
     setPendingPreset(undefined);
     setDraftRestored(Boolean(restored));
+    const created = !isEditing ? readCreatedCharacter(draftKey) : null;
+    setCreatedCharacter(created);
+    setIsOpeningChat(false);
+    if (created) draftCleared.current = true;
+    setChatOpenError(false);
+    setAdvancedSections({
+      appearance: isEditing,
+      behavior: isEditing,
+      voice: false,
+    });
     setExistingImageUrl(role?.referenceImageUrl ?? null);
     setExistingAvatarUrl(role?.avatarUrl ?? null);
     const reference = readDraftFile(draftKey, "reference"),
@@ -257,6 +307,7 @@ export function useSetupController() {
     params.id,
     requestedPresetId,
     initialPreset,
+    isEditing,
   ]);
 
   const draft: CharacterDraft | undefined = behavior
@@ -306,7 +357,9 @@ export function useSetupController() {
       text: draftText,
       reference: imageFile,
       avatar: avatarFile,
+      epoch: draftEpoch.current,
     };
+    if (saved.epoch !== formDraftEpoch()) return false;
     const stored = readFormDraft(saved.key);
     const unchanged = !stored || JSON.stringify(stored) === saved.text;
     if (unchanged) removeFormDraft(saved.key);
@@ -314,25 +367,75 @@ export function useSetupController() {
       if (readDraftFile(saved.key, kind) === saved[kind])
         writeDraftFile(saved.key, kind, null);
     const canLeave =
-      mounted.current && currentDraftKey.current === saved.key && unchanged;
+      mounted.current &&
+      currentDraftKey.current === saved.key &&
+      unchanged &&
+      saved.epoch === formDraftEpoch();
     if (canLeave) draftCleared.current = true;
     return canLeave;
   };
 
   const utils = trpc.useUtils();
+  const resumeConversation = trpc.conversation.resume.useMutation();
+  const openCreatedConversation = async (
+    created: CreatedCharacter,
+    key = draftKey,
+    epoch = formDraftEpoch()
+  ) => {
+    if (openingChat.current) return;
+    const isCurrent = () =>
+      mounted.current &&
+      currentDraftKey.current === key &&
+      epoch === formDraftEpoch();
+    if (!isCurrent()) return;
+    openingChat.current = true;
+    setIsOpeningChat(true);
+    setChatOpenError(false);
+    try {
+      const conversation = await resumeConversation.mutateAsync({
+        girlfriendId: created.id,
+        locale,
+      });
+      if (!isCurrent()) return;
+      removeFormDraft(creationKey(key));
+      void utils.conversation.invalidate().catch(() => undefined);
+      setLocation(`/chat/${conversation.id}`, { replace: true });
+    } catch {
+      if (isCurrent()) setChatOpenError(true);
+    } finally {
+      openingChat.current = false;
+      if (isCurrent()) setIsOpeningChat(false);
+    }
+  };
 
   const createGirlfriend = trpc.girlfriend.create.useMutation({
     onSettled: () => {
       submissionBusy.current = false;
     },
-    onSuccess: async () => {
+    onSuccess: async data => {
+      const submitted = submittedDraft.current;
       const canLeave = clearDraft();
-      await utils.girlfriend.invalidate();
+      const created = { id: data.id, name: data.name };
+      if (submitted && submitted.epoch === formDraftEpoch())
+        writeFormDraft(creationKey(submitted.key), created);
+      void Promise.allSettled([
+        utils.girlfriend.invalidate(),
+        utils.billing.getInfo.invalidate(),
+      ]);
       if (!canLeave) return;
+      setCreatedCharacter(created);
+      setImageFileState(null);
+      setAvatarFileState(null);
+      setImagePreview(null);
+      setAvatarPreview(null);
       toast.success(t("setup:companionCreated"));
-      setLocation("/characters");
+      await openCreatedConversation(created, submitted?.key, submitted?.epoch);
     },
     onError: error => {
+      void Promise.allSettled([
+        utils.girlfriend.invalidate(),
+        utils.billing.getInfo.invalidate(),
+      ]);
       toast.error(
         t("setup:couldNotCreateCompanion", { error: apiErrorMessage(error, t) })
       );
@@ -530,6 +633,10 @@ export function useSetupController() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (createdCharacter) {
+      await openCreatedConversation(createdCharacter);
+      return;
+    }
 
     if (
       submissionBusy.current ||
@@ -539,6 +646,12 @@ export function useSetupController() {
       !product.raw
     )
       return;
+    if (!isEditing && (!capacityReady || capacityFull)) {
+      toast.error(
+        t(capacityFull ? "explore:manageRoles" : "explore:checkingCapacity")
+      );
+      return;
+    }
     if (draftFileWarning) {
       toast.error(t("setup:draftFilesNeedReselect"));
       return;
@@ -547,20 +660,58 @@ export function useSetupController() {
       toast.error(t("setup:confirmAvatarFirst"));
       return;
     }
-    const fields = { name, personality, appearance };
+    const resolvedAppearance =
+      appearance.trim() ||
+      (!isEditing ? t("setup:appearanceFromReference") : "");
+    const focusField = (id: string, section?: SetupSection) => {
+      if (section)
+        setAdvancedSections(current => ({ ...current, [section]: true }));
+      if (id === "customPrompt") setShowCustomPrompt(true);
+      const key = draftKey;
+      window.setTimeout(() => {
+        if (mounted.current && currentDraftKey.current === key)
+          document.getElementById(id)?.focus();
+      }, 0);
+    };
+    const fields = { name, personality, appearance: resolvedAppearance };
     const invalid = Object.entries(fields).find(([, value]) => !value.trim());
     if (invalid) {
       toast.error(t("setup:fillInAllRequiredFields"));
-      document.getElementById(invalid[0])?.focus();
+      focusField(
+        invalid[0],
+        invalid[0] === "appearance" ? "appearance" : undefined
+      );
       return;
     }
 
     const fieldError = characterFieldsError(
-      { name, personality, appearance, interests, customPrompt, behavior },
+      {
+        name,
+        personality,
+        appearance: resolvedAppearance,
+        interests,
+        customPrompt,
+        behavior,
+      },
       product.raw.characters
     );
     if (fieldError) {
       toast.error(fieldError);
+      const values = { ...fields, interests, customPrompt };
+      const invalidField = (
+        Object.keys(values) as (keyof typeof values)[]
+      ).find(key => values[key].length > product.raw!.characters.limits[key]);
+      if (invalidField)
+        focusField(
+          invalidField,
+          invalidField === "appearance" || invalidField === "interests"
+            ? "appearance"
+            : undefined
+        );
+      else {
+        setBehaviorError(true);
+        focusField("behavior-user-nickname", "behavior");
+      }
       return;
     }
     const parsedBehavior = companionBehaviorSchema.safeParse(behavior);
@@ -569,17 +720,16 @@ export function useSetupController() {
       const firstInvalidExample = behavior.examples.findIndex(
         example => !example.user.trim() || !example.assistant.trim()
       );
-      document
-        .getElementById(
-          firstInvalidExample >= 0
-            ? `behavior-example-${firstInvalidExample}-${
-                behavior.examples[firstInvalidExample].user.trim()
-                  ? "assistant"
-                  : "user"
-              }`
-            : "behavior-user-nickname"
-        )
-        ?.focus();
+      focusField(
+        firstInvalidExample >= 0
+          ? `behavior-example-${firstInvalidExample}-${
+              behavior.examples[firstInvalidExample].user.trim()
+                ? "assistant"
+                : "user"
+            }`
+          : "behavior-user-nickname",
+        "behavior"
+      );
       return;
     }
     setBehaviorError(false);
@@ -590,6 +740,7 @@ export function useSetupController() {
       text: draftText,
       reference: imageFile,
       avatar: avatarFile,
+      epoch: formDraftEpoch(),
     };
     if (editId) {
       submissionBusy.current = true;
@@ -616,7 +767,7 @@ export function useSetupController() {
         createGirlfriend.mutate({
           name: name.trim(),
           personality: personality.trim(),
-          appearance: appearance.trim(),
+          appearance: resolvedAppearance,
           interests: interests || undefined,
           customPrompt: customPrompt || undefined,
           presetId: presetId!,
@@ -635,12 +786,22 @@ export function useSetupController() {
         toast.error(t("setup:couldNotReadImage"));
       };
       reader.onload = () => {
+        const submitted = submittedDraft.current;
+        if (
+          !mounted.current ||
+          currentDraftKey.current !== submitted?.key ||
+          submitted.epoch !== formDraftEpoch()
+        ) {
+          submissionBusy.current = false;
+          if (mounted.current) setIsReadingImage(false);
+          return;
+        }
         const base64 = (reader.result as string).split(",")[1];
         setIsReadingImage(false);
         createGirlfriend.mutate({
           name: name.trim(),
           personality: personality.trim(),
-          appearance: appearance.trim(),
+          appearance: resolvedAppearance,
           interests: interests || undefined,
           customPrompt: customPrompt || undefined,
           presetId: presetId || undefined,
@@ -655,7 +816,6 @@ export function useSetupController() {
     }
   };
 
-  const isEditing = params.id !== undefined;
   const editNotFound =
     isEditing &&
     (!validEditId ||
@@ -668,7 +828,8 @@ export function useSetupController() {
     createGirlfriend.isPending ||
     updateGirlfriend.isPending ||
     isReadingImage ||
-    isCloningVoice;
+    isCloningVoice ||
+    isOpeningChat;
 
   const displayImage =
     imagePreview ||
@@ -679,12 +840,33 @@ export function useSetupController() {
   return {
     draftLoading:
       !editError &&
+      !product.error &&
       !discovery.error &&
       Boolean(draftKey) &&
       hydratedDraftKey !== draftKey &&
       !(params.id && girlfriends && !girlfriends.some(g => g.id === editId)) &&
       !(requestedPresetId && discovery.data && !initialPreset),
     draftRestored,
+    advancedSections,
+    setAdvancedSection: (section: SetupSection, open: boolean) =>
+      setAdvancedSections(current => ({ ...current, [section]: open })),
+    productError: product.error,
+    retryProduct: product.refetch,
+    createdCharacter,
+    isOpeningChat,
+    chatOpenError,
+    openCreatedChat: () =>
+      createdCharacter
+        ? openCreatedConversation(createdCharacter)
+        : Promise.resolve(),
+    capacity: {
+      ready: capacityReady,
+      full: capacityFull,
+      remaining: capacityRemaining,
+      limit: capacityLimit,
+      error: Boolean(capacityError),
+      retry: () => Promise.all([billing.refetch(), retryEdit()]),
+    },
     draftFileWarning,
     discardMissingDraftFiles: () => setDraftFileWarning(false),
     hasUnsavedChanges,

@@ -1,0 +1,6 @@
+/* 操作栏独立于长表单；滚动容器已为底栏和键盘预留空间。 */
+.setup-submit-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+}

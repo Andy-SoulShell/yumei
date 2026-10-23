@@ -58,7 +58,7 @@ export function CharacterPrompt({
           variant="plain"
           size="none"
           type="button"
-          className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full"
+          className="flex min-h-11 items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full"
         >
           {showCustomPrompt ? (
             <ChevronUp className="w-4 h-4" />

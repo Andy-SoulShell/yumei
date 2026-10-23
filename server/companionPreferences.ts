@@ -9,6 +9,7 @@ import {
 } from "../drizzle/schema";
 import {
   proactivePreferencesSchema,
+  validCompanionTimeZone,
   type ProactivePreferences,
 } from "../shared/proactiveContact";
 import { withUserTransaction } from "./database";
@@ -51,11 +52,12 @@ export async function saveCompanionPreferences(
           "Preferences changed on another device. Refresh and try again.",
       });
     if (
+      stored &&
       Object.entries(parsed.data).every(
         ([key, value]) => current[key as keyof ProactivePreferences] === value
       )
     )
-      return current;
+      return { ...current, timeZoneInitialized: true };
     const saved = { userId, ...parsed.data, revision: current.revision + 1 };
     await tx
       .insert(companionPreferences)
@@ -99,6 +101,45 @@ export async function saveCompanionPreferences(
           )
         )
       );
-    return saved;
+    return { ...saved, timeZoneInitialized: true };
+  });
+}
+
+/** 首次确认只初始化缺失记录；其他设备保存的时区和联系授权永不被设备检测覆写。 */
+export async function initializeCompanionTimeZone(
+  userId: string,
+  timeZone: string
+) {
+  if (!validCompanionTimeZone(timeZone))
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Invalid IANA time zone",
+    });
+  return withUserTransaction(userId, async tx => {
+    const [stored] = await tx
+      .select()
+      .from(companionPreferences)
+      .where(eq(companionPreferences.userId, userId))
+      .for("update");
+    if (stored) return { ...stored, timeZoneInitialized: true };
+    const defaults = (await getPublishedProductConfig(tx)).proactive.defaults;
+    const saved = {
+      userId,
+      ...defaults,
+      timeZone,
+      proactiveEnabled: false,
+      revision: 1,
+    };
+    await tx.insert(companionPreferences).values(saved);
+    if (defaults.timeZone !== timeZone) {
+      const roles = await tx
+        .select({ id: girlfriends.id })
+        .from(girlfriends)
+        .where(eq(girlfriends.userId, userId))
+        .for("update");
+      for (const role of roles)
+        await invalidateMemoryDerived(tx, userId, role.id);
+    }
+    return { ...saved, timeZoneInitialized: true };
   });
 }

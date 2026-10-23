@@ -436,3 +436,23 @@ it("keeps saved memories and recap when forgetting everything fails", async () =
   expect(mock.success).not.toHaveBeenCalled();
   expect(mock.error).toHaveBeenCalledOnce();
 });
+
+vi.mock("@/components/TimeZonePicker", () => ({
+  TimeZonePicker: ({
+    id,
+    value,
+    onChange,
+    disabled,
+    invalid,
+    describedBy,
+  }: any) => (
+    <input
+      id={id}
+      value={value}
+      onChange={event => onChange(event.target.value)}
+      disabled={disabled}
+      aria-invalid={invalid}
+      aria-describedby={describedBy}
+    />
+  ),
+}));

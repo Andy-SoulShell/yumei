@@ -1,7 +1,10 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getCompanionPreferences } from "../aiTaskRuntime";
-import { saveCompanionPreferences } from "../companionPreferences";
+import {
+  initializeCompanionTimeZone,
+  saveCompanionPreferences,
+} from "../companionPreferences";
 import { proactivePreferencesSchema } from "../../shared/proactiveContact";
 import {
   checkAndCreateProactiveNotification,
@@ -15,6 +18,11 @@ export const notificationRouter = router({
   preferences: protectedProcedure.query(({ ctx }) =>
     getCompanionPreferences(ctx.user.id)
   ),
+  initializeTimeZone: protectedProcedure
+    .input(z.object({ timeZone: z.string().min(1).max(64) }).strict())
+    .mutation(({ ctx, input }) =>
+      initializeCompanionTimeZone(ctx.user.id, input.timeZone)
+    ),
   updatePreferences: protectedProcedure
     .input(
       z.object({

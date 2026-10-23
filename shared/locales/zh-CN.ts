@@ -335,6 +335,13 @@ export default {
       "确定要删除选中的 {{count}} 位女友吗？她们将被移入回收站，{{days}} 天内可以恢复。",
   },
   settings: {
+    timeZoneSetupTitle: "确认你的时区",
+    timeZoneSetupDescription:
+      "已检测设备时区，请确认。用于理解“明天”等日期和安排免打扰，不会开启主动联系。",
+    timeZoneConfirm: "确认并继续",
+    timeZoneSearch: "搜索城市或时区",
+    timeZoneEmpty: "未找到匹配的时区",
+
     voiceUsingSiteService: "使用站点提供的语音服务，无需填写 API Key。",
     voiceUsingOwnService: "正在使用你自己的语音服务账号。",
     voicePlanRequired: "此语音服务需要套餐支持，也可在下方使用自己的 API Key。",

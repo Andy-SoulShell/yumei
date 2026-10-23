@@ -355,6 +355,13 @@ export default {
       "選択した{{count}}人を削除しますか？ゴミ箱から{{days}}日以内なら復元できます。",
   },
   settings: {
+    timeZoneSetupTitle: "タイムゾーンを確認",
+    timeZoneSetupDescription:
+      "端末のタイムゾーンを検出しました。日付や通知しない時間を正しく扱うため確認してください。自発的な連絡は有効になりません。",
+    timeZoneConfirm: "確認して続ける",
+    timeZoneSearch: "都市やタイムゾーンを検索",
+    timeZoneEmpty: "該当するタイムゾーンはありません",
+
     voiceUsingSiteService:
       "サイトの音声サービスを利用します。APIキーは不要です。",
     voiceUsingOwnService: "ご自身の音声サービスアカウントを利用しています。",

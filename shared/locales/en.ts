@@ -352,6 +352,13 @@ export default {
       "Delete the {{count}} selected companions? You can restore them from trash within {{days}} days.",
   },
   settings: {
+    timeZoneSetupTitle: "Confirm your time zone",
+    timeZoneSetupDescription:
+      "We detected your device time zone. Confirm it to interpret dates and schedule quiet hours correctly. This does not enable proactive contact.",
+    timeZoneConfirm: "Confirm and continue",
+    timeZoneSearch: "Search a city or time zone",
+    timeZoneEmpty: "No matching time zone",
+
     voiceUsingSiteService:
       "Using the voice service provided by this site. No API key needed.",
     voiceUsingOwnService: "Using your own voice service account.",

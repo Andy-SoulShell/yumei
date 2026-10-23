@@ -10,7 +10,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { TimeZonePicker } from "@/components/TimeZonePicker";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 /** 读取角色记忆，并提供置顶、取消置顶和删除操作。 */
 export default function Memories() {
@@ -44,20 +44,6 @@ export default function Memories() {
   const [editInvalid, setEditInvalid] = useState(false);
   const [timeZoneDraft, setTimeZoneDraft] = useState<string | null>(null);
   const [timeZoneInvalid, setTimeZoneInvalid] = useState(false);
-  const timeZones = useMemo(() => {
-    try {
-      return ["UTC", ...Intl.supportedValuesOf("timeZone")];
-    } catch {
-      return [
-        "UTC",
-        "Asia/Shanghai",
-        "Asia/Tokyo",
-        "Asia/Seoul",
-        "Europe/London",
-        "America/New_York",
-      ];
-    }
-  }, []);
 
   const { isAuthenticated, loading: authLoading } = useAuth({
     redirectOnUnauthenticated: true,
@@ -306,29 +292,23 @@ export default function Memories() {
           <form onSubmit={saveTimeZone} className="space-y-2">
             <Label htmlFor="memory-timezone">{t("memories:timeZone")}</Label>
             <div className="flex flex-wrap gap-2">
-              <Input
-                id="memory-timezone"
-                list="memory-timezones"
-                value={timeZoneValue}
-                maxLength={64}
-                className="min-w-0 flex-1 basis-48"
-                disabled={busy}
-                aria-invalid={timeZoneInvalid}
-                aria-describedby={
-                  timeZoneInvalid
-                    ? "memory-timezone-help memory-timezone-error"
-                    : "memory-timezone-help"
-                }
-                onChange={event => {
-                  setTimeZoneDraft(event.target.value);
-                  setTimeZoneInvalid(false);
-                }}
-              />
-              <datalist id="memory-timezones">
-                {timeZones.map(zone => (
-                  <option key={zone} value={zone} />
-                ))}
-              </datalist>
+              <div className="min-w-0 flex-1 basis-48">
+                <TimeZonePicker
+                  id="memory-timezone"
+                  value={timeZoneValue}
+                  disabled={busy}
+                  invalid={timeZoneInvalid}
+                  describedBy={
+                    timeZoneInvalid
+                      ? "memory-timezone-help memory-timezone-error"
+                      : "memory-timezone-help"
+                  }
+                  onChange={zone => {
+                    setTimeZoneDraft(zone);
+                    setTimeZoneInvalid(false);
+                  }}
+                />
+              </div>
               <Button
                 type="submit"
                 variant="outline"

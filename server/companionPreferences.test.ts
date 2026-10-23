@@ -60,3 +60,63 @@ it("shares the memory timezone and invalidates prepared role contexts", async ()
     })
   ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 });
+
+it("confirms a new account's detected timezone without authorizing contact", async () => {
+  const { initializeCompanionTimeZone } =
+    await import("./companionPreferences");
+  const id = await createTestUser();
+  expect((await getCompanionPreferences(id)).timeZoneInitialized).toBe(false);
+  const saved = await initializeCompanionTimeZone(id, "Asia/Shanghai");
+  expect(saved).toMatchObject({
+    timeZone: "Asia/Shanghai",
+    timeZoneInitialized: true,
+    proactiveEnabled: false,
+    revision: 1,
+  });
+  expect(await getCompanionPreferences(id)).toMatchObject(saved);
+  expect(await initializeCompanionTimeZone(id, "Asia/Tokyo")).toMatchObject(
+    saved
+  );
+});
+
+it("records an explicit UTC choice and preserves saved preferences across devices", async () => {
+  const { initializeCompanionTimeZone } =
+    await import("./companionPreferences");
+  const id = await createTestUser();
+  await initializeCompanionTimeZone(id, "UTC");
+  expect((await getCompanionPreferences(id)).timeZoneInitialized).toBe(true);
+  expect((await initializeCompanionTimeZone(id, "Asia/Tokyo")).timeZone).toBe(
+    "UTC"
+  );
+  const other = await createTestUser();
+  await saveCompanionPreferences(other, 0, {
+    ...DEFAULT_PROACTIVE_PREFERENCES,
+    timeZone: "Europe/London",
+    proactiveEnabled: true,
+    frequencyDays: 7,
+  });
+  expect(
+    await initializeCompanionTimeZone(other, "Asia/Shanghai")
+  ).toMatchObject({
+    timeZone: "Europe/London",
+    proactiveEnabled: true,
+    frequencyDays: 7,
+    revision: 1,
+  });
+});
+
+it("initializes once under concurrent devices and rejects invalid zones without a write", async () => {
+  const { initializeCompanionTimeZone } =
+    await import("./companionPreferences");
+  const id = await createTestUser();
+  await expect(
+    initializeCompanionTimeZone(id, "Invalid/Zone")
+  ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  expect((await getCompanionPreferences(id)).timeZoneInitialized).toBe(false);
+  const saved = await Promise.all([
+    initializeCompanionTimeZone(id, "Asia/Shanghai"),
+    initializeCompanionTimeZone(id, "Asia/Tokyo"),
+  ]);
+  expect(saved[0].timeZone).toBe(saved[1].timeZone);
+  expect(saved.map(v => v.revision)).toEqual([1, 1]);
+});

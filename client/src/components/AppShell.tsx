@@ -36,6 +36,7 @@ import {
 import { NotificationBell } from "./NotificationBell";
 import { SidebarPreferences } from "./AppearanceSettings";
 import { AgeGate } from "./AgeGate";
+import { TimeZoneSetup } from "./TimeZoneSetup";
 import { SignInButton } from "./SignInButton";
 import { toast } from "sonner";
 
@@ -312,7 +313,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           className={`app-main ${inChat ? "app-main-chat" : ""}`}
           key={location}
         >
-          {children}
+          {user?.birthDate ? (
+            <TimeZoneSetup key={user.id}>{children}</TimeZoneSetup>
+          ) : (
+            children
+          )}
         </main>
       </div>
       {!inChat && (

@@ -348,6 +348,13 @@ export default {
       "선택한 동반자 {{count}}명을 삭제할까요? {{days}}일 안에 휴지통에서 복원할 수 있어요.",
   },
   settings: {
+    timeZoneSetupTitle: "시간대 확인",
+    timeZoneSetupDescription:
+      "기기의 시간대를 감지했습니다. 날짜와 방해 금지 시간을 올바르게 처리하도록 확인해 주세요. 먼저 연락하기는 켜지지 않습니다.",
+    timeZoneConfirm: "확인하고 계속",
+    timeZoneSearch: "도시 또는 시간대 검색",
+    timeZoneEmpty: "일치하는 시간대가 없습니다",
+
     voiceUsingSiteService:
       "사이트에서 제공하는 음성 서비스를 사용합니다. API 키가 필요하지 않습니다.",
     voiceUsingOwnService: "본인의 음성 서비스 계정을 사용 중입니다.",

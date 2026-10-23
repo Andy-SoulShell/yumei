@@ -21,13 +21,14 @@ export async function getCompanionPreferences(userId: string) {
     .select()
     .from(companionPreferences)
     .where(eq(companionPreferences.userId, userId));
-  return (
-    row ?? {
-      userId,
-      ...(await getPublishedProductConfig()).proactive.defaults,
-      revision: 0,
-    }
-  );
+  return row
+    ? { ...row, timeZoneInitialized: true }
+    : {
+        userId,
+        ...(await getPublishedProductConfig()).proactive.defaults,
+        revision: 0,
+        timeZoneInitialized: false,
+      };
 }
 
 export type AiTaskContext = {

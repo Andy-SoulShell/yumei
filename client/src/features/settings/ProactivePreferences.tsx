@@ -1,3 +1,4 @@
+import { TimeZonePicker } from "@/components/TimeZonePicker";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Bell, Loader2 } from "lucide-react";
@@ -371,33 +372,18 @@ export function ProactivePreferences() {
               <Label htmlFor="proactive-timezone">
                 {t("settings:proactiveTimeZone")}
               </Label>
-              <Input
+              <TimeZonePicker
                 id="proactive-timezone"
-                list="proactive-timezones"
-                maxLength={64}
                 value={values.timeZone}
                 disabled={busy}
-                aria-invalid={validation === "timeZone"}
-                aria-describedby={
+                invalid={validation === "timeZone"}
+                describedBy={
                   validation === "timeZone"
                     ? "proactive-timezone-help proactive-validation-error"
                     : "proactive-timezone-help"
                 }
-                onChange={event => change({ timeZone: event.target.value })}
+                onChange={timeZone => change({ timeZone })}
               />
-              <datalist id="proactive-timezones">
-                {[
-                  "UTC",
-                  "Asia/Shanghai",
-                  "Asia/Tokyo",
-                  "Asia/Seoul",
-                  "Europe/London",
-                  "America/New_York",
-                  "America/Los_Angeles",
-                ].map(zone => (
-                  <option key={zone} value={zone} />
-                ))}
-              </datalist>
               <p
                 id="proactive-timezone-help"
                 className="text-xs text-muted-foreground"

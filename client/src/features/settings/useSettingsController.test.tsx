@@ -15,12 +15,13 @@ import { useSettingsController } from "./useSettingsController";
 
 const state = vi.hoisted(() => ({
   config: {} as any,
+  accountId: "settings-qa",
   saveKey: vi.fn(),
   savePreferences: vi.fn(),
   invalidate: vi.fn(),
 }));
 vi.mock("@/_core/hooks/useAuth", () => ({
-  useAuth: () => ({ user: { id: "settings-qa" } }),
+  useAuth: () => ({ user: { id: state.accountId } }),
 }));
 vi.mock("@/lib/i18n", () => ({
   useI18n: () => ({ t: (key: string) => key, locale: "zh" }),
@@ -64,6 +65,7 @@ beforeEach(() => {
   sessionStorage.clear();
   clearFormDrafts();
   vi.clearAllMocks();
+  state.accountId = "settings-qa";
   state.config = {
     chatProvider: { name: "openrouter", configured: false },
     preferences: {
@@ -224,6 +226,151 @@ it("never includes API keys in persisted ordinary settings drafts", async () => 
     );
     expect(record).toEqual({ globalPrompt: "保留普通设置" });
     expect(JSON.stringify(record)).not.toContain("private-do-not-persist-key");
+  } finally {
+    await probe.unmount();
+  }
+});
+
+it("shows its own saving state, blocks duplicate writes, and keeps failure input for retry", async () => {
+  const probe = await mount();
+  let reject!: (error: Error) => void;
+  state.savePreferences.mockImplementationOnce(
+    () =>
+      new Promise((_, no) => {
+        reject = no;
+      })
+  );
+  try {
+    await act(async () => probe.current.setReplyLanguage("中文"));
+    let saving!: ReturnType<typeof probe.current.handleSaveAiConfig>;
+    await act(async () => {
+      saving = probe.current.handleSaveAiConfig();
+    });
+    expect(probe.current.feedback.behavior?.status).toBe("saving");
+    expect(probe.current.feedback.voice).toBeUndefined();
+    expect(probe.current.isSavingSection).toBe(true);
+    await act(async () => {
+      await probe.current.handleSaveAiConfig();
+      await probe.current.handleSaveVoiceConfig();
+    });
+    expect(state.savePreferences).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      reject(new Error("offline"));
+      await saving;
+    });
+    expect(probe.current.feedback.behavior?.status).toBe("error");
+    expect(probe.current.replyLanguage).toBe("中文");
+    expect(probe.current.hasUnsavedAiChanges).toBe(true);
+    await act(async () => {
+      await probe.current.handleSaveAiConfig();
+    });
+    expect(probe.current.feedback.behavior?.status).toBe("saved");
+    expect(probe.current.hasUnsavedAiChanges).toBe(false);
+  } finally {
+    await probe.unmount();
+  }
+});
+
+it("snapshots keys at click, preserves later edits, and retries failed keys without rewriting saved preferences", async () => {
+  const probe = await mount();
+  let finish!: () => void;
+  state.savePreferences.mockImplementationOnce(
+    () =>
+      new Promise<void>(yes => {
+        finish = yes;
+      })
+  );
+  state.saveKey.mockRejectedValueOnce(new Error("key rejected"));
+  try {
+    await act(async () => {
+      probe.current.setTtsProvider("elevenlabs");
+      probe.current.setElevenlabsApiKey("submitted-key");
+    });
+    let saving!: ReturnType<typeof probe.current.handleSaveVoiceConfig>;
+    await act(async () => {
+      saving = probe.current.handleSaveVoiceConfig();
+    });
+    await act(async () =>
+      probe.current.setElevenlabsApiKey("edited-after-click")
+    );
+    await act(async () => {
+      finish();
+      await saving;
+    });
+    expect(state.saveKey).toHaveBeenCalledExactlyOnceWith({
+      name: "elevenlabs",
+      value: "submitted-key",
+    });
+    expect(probe.current.elevenlabsApiKey).toBe("edited-after-click");
+    expect(probe.current.feedback.voice?.status).toBe("partial");
+    await act(async () => {
+      await probe.current.handleSaveVoiceConfig();
+    });
+    expect(state.savePreferences).toHaveBeenCalledTimes(1);
+    expect(state.saveKey).toHaveBeenLastCalledWith({
+      name: "elevenlabs",
+      value: "edited-after-click",
+    });
+    expect(probe.current.feedback.voice?.status).toBe("saved");
+    expect(probe.current.hasUnsavedVoiceChanges).toBe(false);
+  } finally {
+    await probe.unmount();
+  }
+});
+
+it("reports successful writes separately from a failed refresh", async () => {
+  const probe = await mount();
+  state.invalidate.mockRejectedValueOnce(new Error("refresh offline"));
+  try {
+    await act(async () =>
+      probe.current.setGlobalPrompt("save despite stale cache")
+    );
+    await act(async () => {
+      await probe.current.handleSaveAiConfig();
+    });
+    expect(probe.current.feedback.behavior).toEqual({
+      status: "saved",
+      refreshFailed: true,
+    });
+    expect(probe.current.hasUnsavedAiChanges).toBe(false);
+    await act(async () => {
+      await probe.current.refreshSavedSettings();
+    });
+    expect(probe.current.feedback.behavior?.refreshFailed).toBe(false);
+    expect(state.savePreferences).toHaveBeenCalledTimes(1);
+  } finally {
+    await probe.unmount();
+  }
+});
+
+it("does not continue an old account's key batch or publish its result into a new account", async () => {
+  const probe = await mount();
+  let finish!: () => void;
+  state.savePreferences.mockImplementationOnce(
+    () =>
+      new Promise<void>(yes => {
+        finish = yes;
+      })
+  );
+  try {
+    await act(async () => {
+      probe.current.setTtsProvider("elevenlabs");
+      probe.current.setElevenlabsApiKey("account-a-private");
+    });
+    let saving!: ReturnType<typeof probe.current.handleSaveVoiceConfig>;
+    await act(async () => {
+      saving = probe.current.handleSaveVoiceConfig();
+    });
+    state.accountId = "settings-account-b";
+    await probe.render();
+    expect(probe.current.elevenlabsApiKey).toBe("");
+    await act(async () => {
+      finish();
+      await saving;
+    });
+    expect(state.saveKey).not.toHaveBeenCalled();
+    expect(probe.current.feedback).toEqual({});
+    expect(probe.current.isSavingSection).toBe(false);
   } finally {
     await probe.unmount();
   }

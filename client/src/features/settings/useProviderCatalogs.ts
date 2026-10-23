@@ -8,7 +8,8 @@ import type { ApiConfig, ElevenLabsVoice, ModelInfo } from "./types";
 /** 按已配置的服务查询模型与音色，并管理搜索和本机收藏。 */
 export function useProviderCatalogs(
   apiConfig: ApiConfig,
-  selectedModel: string
+  selectedModel: string,
+  expanded = { models: true, elevenlabs: true, fishaudio: true }
 ) {
   const { t } = useI18n();
 
@@ -46,7 +47,7 @@ export function useProviderCatalogs(
     error: modelsError,
     refetch: retryModels,
   } = trpc.apiConfig.listModels.useQuery(undefined, {
-    enabled: openRouterReady && !usesDeepSeek,
+    enabled: expanded.models && openRouterReady && !usesDeepSeek,
     retry: false,
   });
 
@@ -60,7 +61,7 @@ export function useProviderCatalogs(
     error: elevenLabsError,
     refetch: retryElevenLabs,
   } = trpc.apiConfig.listElevenLabsVoices.useQuery(undefined, {
-    enabled: elevenLabsReady,
+    enabled: expanded.elevenlabs && elevenLabsReady,
     retry: false,
   });
 
@@ -76,7 +77,7 @@ export function useProviderCatalogs(
   } = trpc.apiConfig.listFishAudioModels.useQuery(
     { search: fishAudioSearch || undefined },
     {
-      enabled: fishAudioReady,
+      enabled: expanded.fishaudio && fishAudioReady,
       retry: false,
       placeholderData: previous => previous,
     }

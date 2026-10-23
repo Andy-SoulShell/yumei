@@ -65,6 +65,7 @@ export function ProactivePreferences() {
   const [validation, setValidation] = useState<
     "timeZone" | "frequencyDays" | "quiet" | null
   >(null);
+  const [didSave, setDidSave] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [conflict, setConflict] = useState(false);
   const [reloading, setReloading] = useState(false);
@@ -89,6 +90,7 @@ export function ProactivePreferences() {
       setValidation(null);
       setConflict(false);
       setSaveError(false);
+      setDidSave(true);
       toast.success(t("settings:proactiveSaved"));
     },
     onError: error => {
@@ -101,6 +103,7 @@ export function ProactivePreferences() {
   const busy = mutation.isPending || reloading;
   const change = (update: Partial<Preferences>) => {
     if (!saved || busy || submitting.current) return;
+    setDidSave(false);
     setBaseRevision(current => current ?? saved.revision);
     setDraft(current => ({ ...editable(current ?? saved), ...update }));
     setValidation(null);
@@ -453,7 +456,20 @@ export function ProactivePreferences() {
                 </Button>
               </div>
             )}
-            <Button type="submit" disabled={!draft || busy || conflict}>
+            <p className="text-xs text-muted-foreground" role="status">
+              {busy
+                ? t("settingsFlow:savingSection")
+                : didSave
+                  ? t("settings:proactiveSaved")
+                  : draft
+                    ? t("settingsFlow:unsaved")
+                    : t("settingsFlow:noChanges")}
+            </p>
+            <Button
+              className="w-full min-h-11"
+              type="submit"
+              disabled={!draft || busy || conflict}
+            >
               {busy && <Loader2 className="mr-2 size-4 animate-spin" />}
               {t("settings:proactiveSave")}
             </Button>

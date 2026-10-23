@@ -1,25 +1,13 @@
+/** 常用回复偏好优先，自定义提示与模板按需展开。 */
 import { useProductConfig } from "@/features/product/useProductConfig";
 import { PageError } from "@/components/PageError";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Brain,
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Loader2,
-  Save,
-  Sparkles,
-} from "lucide-react";
-import { toast } from "sonner";
+import { Brain, ChevronDown, Sparkles } from "lucide-react";
+import { SettingsSaveControl } from "./SettingsSaveControl";
 import type { SettingsController } from "./useSettingsController";
 type Props = Pick<
   SettingsController,
@@ -33,12 +21,11 @@ type Props = Pick<
   | "replyLengthLimit"
   | "setReplyLengthLimit"
   | "handleSaveAiConfig"
-  | "updatePreferences"
-  | "isSavingKeys"
   | "hasUnsavedAiChanges"
+  | "feedback"
+  | "isSavingSection"
+  | "refreshSavedSettings"
 >;
-
-/** 编辑全局提示词、回复语言与长度，支持模板及分区保存。 */
 export function BehaviorSettings({
   t,
   globalPrompt,
@@ -50,170 +37,108 @@ export function BehaviorSettings({
   replyLengthLimit,
   setReplyLengthLimit,
   handleSaveAiConfig,
-  updatePreferences,
-  isSavingKeys,
   hasUnsavedAiChanges,
+  feedback,
+  isSavingSection,
+  refreshSavedSettings,
 }: Props) {
   const policy = useProductConfig();
-  const promptTemplates = policy.data?.prompts.quickTemplates ?? [];
-
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Brain className="w-5 h-5 text-primary" />
-          {t("settings:aiBehavior")}
+          <Brain className="size-5 text-primary" />
+          {t("settingsFlow:chatTitle")}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
-        {/* 全局默认提示词 */}
         <div className="space-y-2">
-          <Label htmlFor="globalPrompt">
-            {t("settings:sharedSystemPrompt")}
-          </Label>
-          <Textarea
-            id="globalPrompt"
-            placeholder={t("settings:forExampleKeepRepliesShortAndPlayfulUse")}
-            value={globalPrompt}
-            onChange={e => {
-              setGlobalPrompt(e.target.value);
-            }}
-            rows={4}
-            maxLength={policy.raw?.characters.limits.globalPrompt}
-            className="resize-none"
-          />
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">
-              {t("settings:thisPromptAppliesToConversationsWithAllYour")}
-            </p>
-            <span className="text-xs text-muted-foreground">
-              {globalPrompt.length}/{policy.raw?.characters.limits.globalPrompt}
-            </span>
-          </div>
-        </div>
-
-        {/* 快捷模板 */}
-        <div className="space-y-2">
-          <Label className="flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" />
-            {t("settings:quickTemplates")}
-          </Label>
-          {!policy.data &&
-            (policy.error ? (
-              <PageError onRetry={() => void policy.refetch()} />
-            ) : (
-              <p role="status">{t("auth:working")}</p>
-            ))}
-          <div className="grid grid-cols-2 gap-2">
-            {promptTemplates.map(tpl => (
-              <Button
-                variant="plain"
-                size="none"
-                type="button"
-                key={tpl.id}
-                aria-pressed={globalPrompt === tpl.text}
-                onClick={() => {
-                  setGlobalPrompt(tpl.text);
-                  toast.success(
-                    t("settings:templateApplied", { name: tpl.label })
-                  );
-                }}
-                className={`text-left p-2.5 rounded-xl text-sm transition-colors hover:bg-primary/5 ${
-                  globalPrompt === tpl.text ? "bg-primary/10" : "bg-muted/40"
-                }`}
-              >
-                <span className="font-medium">{tpl.label}</span>
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        {/* 高级选项 */}
-        <Collapsible
-          open={showAdvancedPrompt}
-          onOpenChange={setShowAdvancedPrompt}
-          className="pt-4"
-        >
-          <CollapsibleTrigger asChild>
-            <Button
-              variant="plain"
-              size="none"
-              type="button"
-              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full"
-            >
-              {showAdvancedPrompt ? (
-                <ChevronUp className="w-4 h-4" />
-              ) : (
-                <ChevronDown className="w-4 h-4" />
-              )}
-              {t("settings:advancedOptions")}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-3 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="replyLanguage">
-                {t("settings:aiReplyLanguage")}
-              </Label>
-              <Input
-                id="replyLanguage"
-                placeholder={t(
-                  "settings:defaultChineseYouCanChooseEnglishJapaneseOr"
-                )}
-                value={replyLanguage}
-                onChange={e => {
-                  setReplyLanguage(e.target.value);
-                }}
-                maxLength={policy.raw?.characters.limits.replyLanguage}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="replyLengthLimit">
-                {t("settings:replyLength")}
-              </Label>
-              <Input
-                id="replyLengthLimit"
-                placeholder={t("settings:forExampleUnder50Words23Sentences")}
-                value={replyLengthLimit}
-                onChange={e => {
-                  setReplyLengthLimit(e.target.value);
-                }}
-                maxLength={policy.raw?.characters.limits.replyLength}
-              />
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-
-        {/* AI 行为设定保存生效按钮 */}
-        <div className="pt-3">
-          <Button
-            className="w-full"
-            onClick={handleSaveAiConfig}
-            disabled={updatePreferences.isPending || isSavingKeys}
-            variant={hasUnsavedAiChanges ? "default" : "outline"}
-          >
-            {updatePreferences.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                {t("common:saving")}
-              </>
-            ) : hasUnsavedAiChanges ? (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                {t("settings:saveChanges")}
-              </>
-            ) : (
-              <>
-                <Check className="w-4 h-4 mr-2" />
-                {t("settings:settingsSaved")}
-              </>
+          <Label htmlFor="replyLanguage">{t("settings:aiReplyLanguage")}</Label>
+          <Input
+            id="replyLanguage"
+            value={replyLanguage}
+            onChange={event => setReplyLanguage(event.target.value)}
+            maxLength={policy.raw?.characters.limits.replyLanguage}
+            placeholder={t(
+              "settings:defaultChineseYouCanChooseEnglishJapaneseOr"
             )}
-          </Button>
-          {hasUnsavedAiChanges && (
-            <p className="text-xs text-amber-500 mt-2 text-center">
-              {t("settings:youHaveUnsavedAIBehaviorSettingsSaveChanges")}
-            </p>
-          )}
+          />
         </div>
+        <div className="space-y-2">
+          <Label htmlFor="replyLengthLimit">{t("settings:replyLength")}</Label>
+          <Input
+            id="replyLengthLimit"
+            value={replyLengthLimit}
+            onChange={event => setReplyLengthLimit(event.target.value)}
+            maxLength={policy.raw?.characters.limits.replyLength}
+            placeholder={t("settings:forExampleUnder50Words23Sentences")}
+          />
+        </div>
+        <details
+          open={showAdvancedPrompt}
+          onToggle={event => setShowAdvancedPrompt(event.currentTarget.open)}
+          className="settings-details"
+        >
+          <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-2 text-sm font-medium">
+            {t("settingsFlow:customPrompt")}
+            <ChevronDown className="size-4" />
+          </summary>
+          <div className="space-y-4 pt-3">
+            <p className="text-xs text-muted-foreground">
+              {t("settingsFlow:promptScope")}
+            </p>
+            <Label htmlFor="globalPrompt">
+              {t("settings:sharedSystemPrompt")}
+            </Label>
+            <Textarea
+              id="globalPrompt"
+              value={globalPrompt}
+              onChange={event => setGlobalPrompt(event.target.value)}
+              rows={4}
+              maxLength={policy.raw?.characters.limits.globalPrompt}
+              placeholder={t(
+                "settings:forExampleKeepRepliesShortAndPlayfulUse"
+              )}
+              className="resize-y"
+            />
+            <p className="text-right text-xs text-muted-foreground">
+              {globalPrompt.length}/{policy.raw?.characters.limits.globalPrompt}
+            </p>
+            <p className="flex items-center gap-1.5 text-sm">
+              <Sparkles className="size-4" />
+              {t("settings:quickTemplates")}
+            </p>
+            {!policy.data &&
+              (policy.error ? (
+                <PageError onRetry={() => void policy.refetch()} />
+              ) : (
+                <p role="status">{t("auth:working")}</p>
+              ))}
+            <div className="grid grid-cols-2 gap-2">
+              {policy.data?.prompts.quickTemplates.map(template => (
+                <Button
+                  key={template.id}
+                  variant="plain"
+                  size="none"
+                  type="button"
+                  aria-pressed={globalPrompt === template.text}
+                  className={`min-h-11 rounded-xl p-3 text-left text-sm ${globalPrompt === template.text ? "bg-primary/10" : "bg-muted/40"}`}
+                  onClick={() => setGlobalPrompt(template.text)}
+                >
+                  {template.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </details>
+        <SettingsSaveControl
+          state={feedback?.behavior}
+          dirty={hasUnsavedAiChanges}
+          busy={isSavingSection}
+          scope={t("settingsFlow:chatScope")}
+          onSave={handleSaveAiConfig}
+          onRefresh={refreshSavedSettings}
+        />
       </CardContent>
     </Card>
   );

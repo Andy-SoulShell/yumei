@@ -70,3 +70,43 @@ it("loads each available operator catalogue and skips restricted or unconfigured
     await act(async () => root.unmount());
   }
 });
+
+it("defers even available catalogues until their task is expanded", async () => {
+  const config: any = {
+    chatProvider: { name: "deepseek" },
+    keys: { openrouter: { isSet: false } },
+    voiceProviders: {
+      elevenlabs: { available: true },
+      fishaudio: { available: true },
+    },
+  };
+  let expanded = { models: false, elevenlabs: false, fishaudio: false };
+  function Probe() {
+    useProviderCatalogs(config, "", expanded);
+    return null;
+  }
+  const root = createRoot(document.createElement("div"));
+  try {
+    await act(async () => root.render(<Probe />));
+    expect(queries.eleven).toHaveBeenLastCalledWith(
+      undefined,
+      expect.objectContaining({ enabled: false })
+    );
+    expect(queries.fish).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ enabled: false })
+    );
+    expanded = { ...expanded, elevenlabs: true };
+    await act(async () => root.render(<Probe />));
+    expect(queries.eleven).toHaveBeenLastCalledWith(
+      undefined,
+      expect.objectContaining({ enabled: true })
+    );
+    expect(queries.fish).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ enabled: false })
+    );
+  } finally {
+    await act(async () => root.unmount());
+  }
+});

@@ -12,8 +12,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchSelect } from "@/components/ui/search-select";
-import { Check, ExternalLink, Loader2, Save, Star, Zap } from "lucide-react";
+import { Check, ExternalLink, Loader2, Star, Zap } from "lucide-react";
 import type { ModelInfo } from "./types";
+import { SettingsSaveControl } from "./SettingsSaveControl";
 import type { SettingsController } from "./useSettingsController";
 type Props = Pick<
   SettingsController,
@@ -35,8 +36,9 @@ type Props = Pick<
   | "handleSelectModel"
   | "toggleFavoriteModel"
   | "handleSaveLlmConfig"
-  | "updatePreferences"
-  | "isSavingKeys"
+  | "feedback"
+  | "isSavingSection"
+  | "refreshSavedSettings"
   | "hasUnsavedLlmChanges"
 >;
 
@@ -60,8 +62,9 @@ export function ChatModelSettings({
   handleSelectModel,
   toggleFavoriteModel,
   handleSaveLlmConfig,
-  updatePreferences,
-  isSavingKeys,
+  feedback,
+  isSavingSection,
+  refreshSavedSettings,
   hasUnsavedLlmChanges,
 }: Props) {
   const sitePolicy = useProductConfig();
@@ -85,7 +88,7 @@ export function ChatModelSettings({
           {usesDeepSeek ? (
             <>
               {t("settings:usingTheOfficialDeepSeekAPIDefaultModel")}{" "}
-              {apiConfig?.chatProvider.model}。
+              {apiConfig?.chatProvider.model}
             </>
           ) : (
             <>
@@ -235,39 +238,14 @@ export function ChatModelSettings({
             )}
           />
         )}
-        {/* LLM 配置保存生效按钮 */}
-        {(openRouterKey.length > 0 || selectedModel) && (
-          <div className="pt-3">
-            <Button
-              className="w-full"
-              onClick={handleSaveLlmConfig}
-              disabled={updatePreferences.isPending || isSavingKeys}
-              variant={hasUnsavedLlmChanges ? "default" : "outline"}
-            >
-              {updatePreferences.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {t("common:saving")}
-                </>
-              ) : hasUnsavedLlmChanges ? (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  {t("settings:saveChanges")}
-                </>
-              ) : (
-                <>
-                  <Check className="w-4 h-4 mr-2" />
-                  {t("settings:settingsSaved")}
-                </>
-              )}
-            </Button>
-            {hasUnsavedLlmChanges && (
-              <p className="text-xs text-amber-500 mt-2 text-center">
-                {t("settings:youHaveUnsavedChangesSaveChangesToApply")}
-              </p>
-            )}
-          </div>
-        )}
+        <SettingsSaveControl
+          state={feedback?.model}
+          dirty={hasUnsavedLlmChanges}
+          busy={isSavingSection}
+          scope={t("settingsFlow:modelScope")}
+          onSave={handleSaveLlmConfig}
+          onRefresh={refreshSavedSettings}
+        />
       </CardContent>
     </Card>
   );

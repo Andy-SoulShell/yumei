@@ -1,6 +1,5 @@
 import { useProductConfig } from "@/features/product/useProductConfig";
 import { KeyStatusIndicator } from "@/components/KeyStatusIndicator";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, Loader2, Save } from "lucide-react";
+import { SettingsSaveControl } from "./SettingsSaveControl";
 import type { SettingsController } from "./useSettingsController";
 type Props = Pick<
   SettingsController,
@@ -18,10 +17,10 @@ type Props = Pick<
   | "t"
   | "falApiKey"
   | "setFalApiKey"
-  | "setHasUnsavedFalChanges"
   | "handleSaveFalConfig"
-  | "updatePreferences"
-  | "isSavingKeys"
+  | "feedback"
+  | "isSavingSection"
+  | "refreshSavedSettings"
   | "hasUnsavedFalChanges"
 >;
 
@@ -31,10 +30,10 @@ export function ImageSettings({
   t,
   falApiKey,
   setFalApiKey,
-  setHasUnsavedFalChanges,
   handleSaveFalConfig,
-  updatePreferences,
-  isSavingKeys,
+  feedback,
+  isSavingSection,
+  refreshSavedSettings,
   hasUnsavedFalChanges,
 }: Props) {
   const sitePolicy = useProductConfig();
@@ -83,7 +82,6 @@ export function ImageSettings({
             value={falApiKey}
             onChange={e => {
               setFalApiKey(e.target.value);
-              setHasUnsavedFalChanges(true);
             }}
           />
           <p className="text-xs text-muted-foreground">
@@ -92,38 +90,14 @@ export function ImageSettings({
         </div>
 
         {/* fal.ai 配置保存生效按钮 */}
-        {falApiKey.length > 0 && (
-          <div className="pt-3">
-            <Button
-              className="w-full"
-              onClick={handleSaveFalConfig}
-              disabled={updatePreferences.isPending || isSavingKeys}
-              variant={hasUnsavedFalChanges ? "default" : "outline"}
-            >
-              {updatePreferences.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {t("common:saving")}
-                </>
-              ) : hasUnsavedFalChanges ? (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  {t("settings:saveChanges")}
-                </>
-              ) : (
-                <>
-                  <Check className="w-4 h-4 mr-2" />
-                  {t("settings:settingsSaved")}
-                </>
-              )}
-            </Button>
-            {hasUnsavedFalChanges && (
-              <p className="text-xs text-amber-500 mt-2 text-center">
-                {t("settings:youHaveUnsavedFalAiSettingsSaveChanges")}
-              </p>
-            )}
-          </div>
-        )}
+        <SettingsSaveControl
+          state={feedback?.image}
+          dirty={hasUnsavedFalChanges}
+          busy={isSavingSection}
+          scope={t("settingsFlow:imageScope")}
+          onSave={handleSaveFalConfig}
+          onRefresh={refreshSavedSettings}
+        />
       </CardContent>
     </Card>
   );

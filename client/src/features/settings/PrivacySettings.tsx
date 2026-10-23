@@ -84,7 +84,10 @@ export function PrivacySettings() {
         <CardDescription>{t("privacy:intro")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Link href="/privacy" className="text-sm text-primary underline">
+        <Link
+          href="/privacy"
+          className="inline-flex min-h-11 items-center text-sm text-primary underline"
+        >
           {t("privacy:noticeTitle")}
         </Link>
         <p className="text-sm text-muted-foreground">

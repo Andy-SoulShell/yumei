@@ -1,5 +1,4 @@
 import { useProductConfig } from "@/features/product/useProductConfig";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,17 +8,18 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, ExternalLink, Loader2, Mic, Save } from "lucide-react";
+import { ExternalLink, Mic } from "lucide-react";
+import { SettingsSaveControl } from "./SettingsSaveControl";
 import type { SettingsController } from "./useSettingsController";
 type Props = Pick<
   SettingsController,
   | "t"
   | "whisperApiKey"
   | "setWhisperApiKey"
-  | "setHasUnsavedWhisperChanges"
   | "handleSaveWhisperConfig"
-  | "updatePreferences"
-  | "isSavingKeys"
+  | "feedback"
+  | "isSavingSection"
+  | "refreshSavedSettings"
   | "hasUnsavedWhisperChanges"
 >;
 
@@ -28,10 +28,10 @@ export function TranscriptionSettings({
   t,
   whisperApiKey,
   setWhisperApiKey,
-  setHasUnsavedWhisperChanges,
   handleSaveWhisperConfig,
-  updatePreferences,
-  isSavingKeys,
+  feedback,
+  isSavingSection,
+  refreshSavedSettings,
   hasUnsavedWhisperChanges,
 }: Props) {
   const sitePolicy = useProductConfig();
@@ -59,7 +59,6 @@ export function TranscriptionSettings({
             value={whisperApiKey}
             onChange={e => {
               setWhisperApiKey(e.target.value);
-              setHasUnsavedWhisperChanges(true);
             }}
           />
           <p className="text-xs text-muted-foreground">
@@ -77,39 +76,14 @@ export function TranscriptionSettings({
         </div>
 
         {/* 保存按钮 */}
-        <div className="pt-2">
-          <Button
-            onClick={handleSaveWhisperConfig}
-            disabled={updatePreferences.isPending || isSavingKeys}
-            className={`w-full ${
-              hasUnsavedWhisperChanges
-                ? "bg-primary hover:bg-primary/90"
-                : "bg-muted text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            {updatePreferences.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                {t("common:saving")}
-              </>
-            ) : hasUnsavedWhisperChanges ? (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                {t("settings:saveChanges")}
-              </>
-            ) : (
-              <>
-                <Check className="w-4 h-4 mr-2" />
-                {t("settings:settingsSaved")}
-              </>
-            )}
-          </Button>
-          {hasUnsavedWhisperChanges && (
-            <p className="text-xs text-amber-500 mt-2 text-center">
-              {t("settings:youHaveUnsavedTranscriptionSettingsSaveChangesTo")}
-            </p>
-          )}
-        </div>
+        <SettingsSaveControl
+          state={feedback?.transcription}
+          dirty={hasUnsavedWhisperChanges}
+          busy={isSavingSection}
+          scope={t("settingsFlow:transcriptionScope")}
+          onSave={handleSaveWhisperConfig}
+          onRefresh={refreshSavedSettings}
+        />
       </CardContent>
     </Card>
   );

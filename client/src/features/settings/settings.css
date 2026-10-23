@@ -1,0 +1,126 @@
+/* 滚动留白由应用框架预留；各分区按钮不另设覆盖内容的全页保存栏。 */
+.settings-page .settings-section {
+  scroll-margin-top: 76px;
+  overflow: clip;
+}
+.settings-page .settings-section-trigger {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 76px;
+}
+.settings-page .settings-section-trigger > svg {
+  margin-top: 5px;
+}
+.settings-page .settings-section-body[hidden] {
+  display: none !important;
+}
+.settings-page .settings-section-body > [data-slot="card"] {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  padding-top: 4px;
+}
+.settings-page
+  .settings-section-body
+  > [data-slot="card"]
+  + [data-slot="card"] {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+.settings-page
+  .settings-section-body
+  > [data-slot="card"]
+  > [data-slot="card-header"] {
+  display: none;
+}
+.settings-page
+  #account-content
+  > [data-slot="card"]
+  > [data-slot="card-header"],
+.settings-page
+  #notifications-content
+  > [data-slot="card"]
+  > [data-slot="card-header"] {
+  display: grid;
+}
+.settings-page .settings-section-body [data-slot="card-content"],
+.settings-page .settings-section-body [data-slot="card-header"] {
+  padding-inline: 16px;
+}
+.settings-page .settings-scope {
+  padding: 0 16px 16px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted-foreground);
+}
+.settings-page .settings-details {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0 12px;
+}
+.settings-page .settings-details > summary {
+  list-style: none;
+  padding-block: 8px;
+}
+.settings-page .settings-details > summary::-webkit-details-marker {
+  display: none;
+}
+.settings-page .settings-details[open] {
+  padding-bottom: 12px;
+}
+.settings-page .settings-details[open] > summary > svg {
+  transform: rotate(180deg);
+}
+.settings-page
+  :is(input:not([type="checkbox"]):not([type="file"]), select, summary) {
+  min-height: 44px;
+}
+.settings-page [data-slot="button"] {
+  min-height: 44px;
+  max-width: 100%;
+}
+.settings-page [data-slot="button"]:not(.settings-section-trigger) {
+  white-space: normal;
+  height: auto;
+}
+.settings-page [data-slot="card-content"] > :is(button, a) {
+  overflow-wrap: anywhere;
+}
+.settings-page :is([data-slot="card-title"], [data-slot="card-description"]) {
+  line-height: 1.5;
+}
+.settings-page #advanced-content .settings-section {
+  background: var(--background);
+  box-shadow: none;
+}
+.settings-page .settings-save-control {
+  padding-top: 12px;
+}
+@media (max-width: 380px) {
+  .settings-page .settings-section-icon {
+    padding: 8px;
+  }
+  .settings-page .settings-section-trigger {
+    gap: 10px;
+    padding-inline: 12px;
+  }
+  .settings-page .settings-section-body [data-slot="card-content"],
+  .settings-page .settings-section-body [data-slot="card-header"] {
+    padding-inline: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .settings-page :is(input, textarea, [data-slot="select-trigger"]) {
+    font-size: 16px;
+  }
+}
+
+/* 保持开关视觉尺寸，扩大手机上可点击的区域。 */
+.settings-page [data-slot="switch"]::after {
+  content: "";
+  position: absolute;
+  inset: -10px 0;
+}

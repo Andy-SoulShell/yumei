@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { LANGUAGES, LOCALES } from "@shared/locales";
 /** 参考主题色卡的八套配色选择，以及独立的界面语言和显示模式。 */
 import {
   Check,
+  ChevronDown,
   Globe,
   Monitor,
   Moon,
@@ -163,7 +165,7 @@ export function SidebarPreferences({
 }
 
 /** 登录前后均可使用的语言选择器，修改后立即生效。 */
-export function LanguagePicker() {
+export function LanguagePicker({ onChanged }: { onChanged?: () => void } = {}) {
   const { preferences, update } = usePreferences();
   const { t } = useI18n();
   return (
@@ -171,7 +173,10 @@ export function LanguagePicker() {
       <Globe className="h-4 w-4 text-primary" aria-hidden="true" />
       <Select
         value={preferences.language}
-        onValueChange={language => update({ language: language as UiLanguage })}
+        onValueChange={language => {
+          onChanged?.();
+          update({ language: language as UiLanguage });
+        }}
       >
         <SelectTrigger
           aria-label={t("appearance:interfaceLanguage")}
@@ -197,6 +202,7 @@ export function AppearanceSettings() {
   const { preferences, themes, update, saving, saveError, retry } =
     usePreferences();
   const { t } = useI18n();
+  const [changed, setChanged] = useState(false);
   return (
     <Card>
       <CardHeader>
@@ -209,6 +215,9 @@ export function AppearanceSettings() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {t("settingsFlow:appearanceScope")}
+        </p>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-medium">
@@ -218,9 +227,8 @@ export function AppearanceSettings() {
               {t("appearance:onlyChangesTheInterfaceAIReplyLanguageAnd")}
             </p>
           </div>
-          <LanguagePicker />
+          <LanguagePicker onChanged={() => setChanged(true)} />
         </div>
-        <ExperimentalGlassToggle />
         <fieldset>
           <legend className="mb-3 text-sm font-medium">
             {t("appearance:displayMode")}
@@ -229,9 +237,10 @@ export function AppearanceSettings() {
             aria-label={t("appearance:displayMode")}
             className="grid grid-cols-3 gap-2"
             value={preferences.colorMode}
-            onValueChange={colorMode =>
-              update({ colorMode: colorMode as ColorMode })
-            }
+            onValueChange={colorMode => {
+              setChanged(true);
+              update({ colorMode: colorMode as ColorMode });
+            }}
           >
             {DISPLAY_MODES.map(({ value, label, icon: Icon }) => (
               <RadioGroupChoice
@@ -246,36 +255,50 @@ export function AppearanceSettings() {
             ))}
           </RadioGroup>
         </fieldset>
-        <fieldset>
-          <legend className="mb-3 text-sm font-medium">
-            {t("appearance:theme")}
-          </legend>
-          <RadioGroup
-            aria-label={t("appearance:theme")}
-            className="grid grid-cols-1 gap-2.5 sm:grid-cols-2"
-            value={preferences.theme}
-            onValueChange={theme => update({ theme: theme as ThemeId })}
-          >
-            {themes.map(({ id }) => {
-              const selected = preferences.theme === id;
-              return (
-                <RadioGroupChoice
-                  key={id}
-                  value={id}
-                  className={`flex min-h-24 items-center gap-3 rounded-2xl px-4 py-4 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${selected ? "bg-primary/10" : "bg-muted/40 hover:bg-muted/70"}`}
-                >
-                  <ThemeOption theme={id} />
-                  {selected && (
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                      <Check className="h-4 w-4" />
-                    </span>
-                  )}
-                </RadioGroupChoice>
-              );
-            })}
-          </RadioGroup>
-        </fieldset>
-        <div aria-live="polite" className="text-xs text-muted-foreground">
+        <details className="settings-details">
+          <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-3 text-sm font-medium">
+            {t("settingsFlow:appearanceAdvanced")}
+            <ChevronDown className="size-4 shrink-0" />
+          </summary>
+          <ExperimentalGlassToggle />
+          <fieldset>
+            <legend className="mb-3 text-sm font-medium">
+              {t("appearance:theme")}
+            </legend>
+            <RadioGroup
+              aria-label={t("appearance:theme")}
+              className="grid grid-cols-1 gap-2.5 sm:grid-cols-2"
+              value={preferences.theme}
+              onValueChange={theme => {
+                setChanged(true);
+                update({ theme: theme as ThemeId });
+              }}
+            >
+              {themes.map(({ id }) => {
+                const selected = preferences.theme === id;
+                return (
+                  <RadioGroupChoice
+                    key={id}
+                    value={id}
+                    className={`flex min-h-24 items-center gap-3 rounded-2xl px-4 py-4 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${selected ? "bg-primary/10" : "bg-muted/40 hover:bg-muted/70"}`}
+                  >
+                    <ThemeOption theme={id} />
+                    {selected && (
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                        <Check className="h-4 w-4" />
+                      </span>
+                    )}
+                  </RadioGroupChoice>
+                );
+              })}
+            </RadioGroup>
+          </fieldset>
+        </details>
+        <div
+          role={saveError ? "alert" : "status"}
+          aria-live="polite"
+          className="text-xs text-muted-foreground"
+        >
           {saveError ? (
             <div className="flex items-center justify-between gap-2 text-destructive">
               <span>{t("appearance:notSyncedToYourAccountYetYourChoice")}</span>
@@ -291,6 +314,8 @@ export function AppearanceSettings() {
             </div>
           ) : saving ? (
             t("appearance:syncingPreferences")
+          ) : changed ? (
+            t("settingsFlow:appearanceSaved")
           ) : (
             t("appearance:changesApplyImmediately")
           )}

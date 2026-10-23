@@ -24,6 +24,20 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
   return bytes;
 }
 
+/** 未安装服务工作线程时不让设置页永久停留在读取中。 */
+function readyServiceWorker() {
+  let timer: ReturnType<typeof setTimeout>;
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () => reject(new Error("Service worker unavailable")),
+        5000
+      );
+    }),
+  ]).finally(() => clearTimeout(timer));
+}
+
 /** 在浏览器支持且配置公钥时显示推送开关，保存或移除本设备订阅。 */
 export function PushCard() {
   const { t } = useI18n();
@@ -32,14 +46,20 @@ export function PushCard() {
     endpoint: string | null;
     loaded: boolean;
   }>({ endpoint: null, loaded: false });
-  const { data: status } = trpc.push.status.useQuery(
+  const statusQuery = trpc.push.status.useQuery(
     { endpoint: device.endpoint },
     { enabled: device.loaded }
   );
-  const { data: keyData } = trpc.push.publicKey.useQuery();
+  const keyQuery = trpc.push.publicKey.useQuery();
+  const status = statusQuery.data;
+  const keyData = keyQuery.data;
   const subscribeMutation = trpc.push.subscribe.useMutation();
   const unsubscribeMutation = trpc.push.unsubscribe.useMutation();
   const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [deviceError, setDeviceError] = useState(false);
+  const [checking, setChecking] = useState(0);
 
   const supported =
     typeof window !== "undefined" &&
@@ -50,35 +70,39 @@ export function PushCard() {
   useEffect(() => {
     if (!supported) return;
     let active = true;
-    void navigator.serviceWorker.ready
+    setDeviceError(false);
+    void readyServiceWorker()
       .then(registration => registration.pushManager.getSubscription())
       .then(subscription => {
         if (active)
           setDevice({ endpoint: subscription?.endpoint ?? null, loaded: true });
       })
       .catch(() => {
-        if (active) setDevice({ endpoint: null, loaded: true });
+        if (active) setDeviceError(true);
       });
     return () => {
       active = false;
     };
-  }, [supported]);
-
-  if (!keyData?.key || !supported) return null;
+  }, [supported, checking]);
 
   const enable = async () => {
+    if (busy) return;
     setBusy(true);
+    setFailed(false);
+    setMessage(null);
     try {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
+        setFailed(true);
+        setMessage(t("notifications:notificationPermissionWasDenied"));
         toast.error(t("notifications:notificationPermissionWasDenied"));
         return;
       }
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await readyServiceWorker();
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(
-          keyData.key!
+          keyData!.key!
         ) as BufferSource,
       });
       const json = subscription.toJSON();
@@ -87,9 +111,17 @@ export function PushCard() {
         keys: { p256dh: json.keys!.p256dh, auth: json.keys!.auth },
       });
       setDevice({ endpoint: subscription.endpoint, loaded: true });
-      await utils.push.status.invalidate();
+      setMessage(t("notifications:pushNotificationsEnabled"));
       toast.success(t("notifications:pushNotificationsEnabled"));
+      await utils.push.status
+        .invalidate(undefined, undefined, { throwOnError: true })
+        .catch(() => {
+          setFailed(true);
+          setMessage(t("settingsFlow:refreshFailed"));
+        });
     } catch (e: any) {
+      setFailed(true);
+      setMessage(t("settingsFlow:saveFailed"));
       toast.error(
         t("notifications:couldNotEnableNotifications", {
           error: e?.message ?? e,
@@ -101,9 +133,12 @@ export function PushCard() {
   };
 
   const disable = async () => {
+    if (busy) return;
     setBusy(true);
+    setFailed(false);
+    setMessage(null);
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await readyServiceWorker();
       const subscription = await registration.pushManager.getSubscription();
       if (subscription) {
         await unsubscribeMutation.mutateAsync({
@@ -112,9 +147,17 @@ export function PushCard() {
         await subscription.unsubscribe();
       }
       setDevice({ endpoint: null, loaded: true });
-      await utils.push.status.invalidate();
+      setMessage(t("notifications:pushNotificationsDisabled"));
       toast.success(t("notifications:pushNotificationsDisabled"));
+      await utils.push.status
+        .invalidate(undefined, undefined, { throwOnError: true })
+        .catch(() => {
+          setFailed(true);
+          setMessage(t("settingsFlow:refreshFailed"));
+        });
     } catch (e: any) {
+      setFailed(true);
+      setMessage(t("settingsFlow:saveFailed"));
       toast.error(
         t("notifications:couldNotDisableNotifications", {
           error: e?.message ?? e,
@@ -136,30 +179,77 @@ export function PushCard() {
           {t("notifications:receiveProactiveMessagesOnThisDeviceSuchAs")}
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        {status?.subscribed ? (
-          <Button
-            variant="outline"
-            onClick={disable}
-            disabled={busy || !device.loaded}
-          >
-            {busy ? (
-              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-            ) : (
-              <BellOff className="w-4 h-4 mr-1.5" />
-            )}
-            {t("notifications:disablePushOnThisDevice")}
-          </Button>
+      <CardContent className="space-y-3">
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {t("settingsFlow:pushScope")}
+        </p>
+        {!supported ? (
+          <p role="status" className="text-sm text-muted-foreground">
+            {t("settingsFlow:pushUnsupported")}
+          </p>
+        ) : keyQuery.error || statusQuery.error || deviceError ? (
+          <div role="alert" className="space-y-2 text-sm text-destructive">
+            <p>{t("settingsFlow:pushLoadFailed")}</p>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setChecking(n => n + 1);
+                void keyQuery.refetch();
+                void statusQuery.refetch();
+              }}
+            >
+              {t("explore:retry")}
+            </Button>
+          </div>
+        ) : keyQuery.isLoading ? (
+          <p role="status">{t("settingsFlow:pushChecking")}</p>
+        ) : !keyData?.key ? (
+          <p role="status" className="text-sm text-muted-foreground">
+            {t("settingsFlow:pushUnavailable")}
+          </p>
         ) : (
-          <Button onClick={enable} disabled={busy || !device.loaded}>
-            {busy ? (
-              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+          <>
+            {!device.loaded || statusQuery.isLoading ? (
+              <p role="status" className="text-xs text-muted-foreground">
+                {t("settingsFlow:pushChecking")}
+              </p>
+            ) : null}
+            {status?.subscribed ? (
+              <Button
+                variant="outline"
+                onClick={disable}
+                disabled={busy || !device.loaded || statusQuery.isLoading}
+              >
+                {busy ? (
+                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                ) : (
+                  <BellOff className="w-4 h-4 mr-1.5" />
+                )}
+                {t("notifications:disablePushOnThisDevice")}
+              </Button>
             ) : (
-              <Bell className="w-4 h-4 mr-1.5" />
+              <Button
+                onClick={enable}
+                disabled={busy || !device.loaded || statusQuery.isLoading}
+              >
+                {busy ? (
+                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                ) : (
+                  <Bell className="w-4 h-4 mr-1.5" />
+                )}
+                {t("notifications:enablePush")}
+              </Button>
             )}
-            {t("notifications:enablePush")}
-          </Button>
+          </>
         )}
+        {busy || message ? (
+          <p
+            role={failed ? "alert" : "status"}
+            className={`text-xs ${failed ? "text-destructive" : "text-muted-foreground"}`}
+          >
+            {busy ? t("settingsFlow:savingSection") : message}
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   );

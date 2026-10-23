@@ -1,4 +1,5 @@
 /** 已保存的个人凭据提供明确的移除入口，移除后重新读取服务可用状态。 */
+import { useState } from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -24,14 +25,25 @@ export function SavedProviderKeys({
 }) {
   const { t } = useI18n();
   const utils = trpc.useUtils();
+  const [feedback, setFeedback] = useState<
+    "removed" | "error" | "refresh" | null
+  >(null);
   const remove = trpc.apiConfig.clearKey.useMutation({
     onSuccess: async () => {
-      await utils.invalidate();
+      setFeedback("removed");
+      toast.success(t("settingsFlow:keyRemoved"));
+      try {
+        await utils.invalidate(undefined, undefined, { throwOnError: true });
+      } catch {
+        setFeedback("refresh");
+      }
     },
-    onError: () => toast.error(t("auth:requestFailed")),
+    onError: () => {
+      setFeedback("error");
+      toast.error(t("auth:requestFailed"));
+    },
   });
   const saved = KEY_NAMES.filter(name => keys?.[name]?.isSet);
-  if (!saved.length) return null;
   return (
     <Card>
       <CardHeader>
@@ -39,7 +51,48 @@ export function SavedProviderKeys({
           {t("settings:savedApiKeys")}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-3">
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {t("settingsFlow:keysScope")}
+        </p>
+        {!saved.length && (
+          <p className="text-sm text-muted-foreground">
+            {t("settingsFlow:keysEmpty")}
+          </p>
+        )}
+        {(remove.isPending || feedback) && (
+          <p
+            role={
+              feedback === "error" || feedback === "refresh"
+                ? "alert"
+                : "status"
+            }
+            className={`text-xs ${feedback === "error" || feedback === "refresh" ? "text-destructive" : "text-muted-foreground"}`}
+          >
+            {remove.isPending
+              ? t("auth:working")
+              : t(
+                  feedback === "error"
+                    ? "auth:requestFailed"
+                    : feedback === "refresh"
+                      ? "settingsFlow:refreshFailed"
+                      : "settingsFlow:keyRemoved"
+                )}
+          </p>
+        )}
+        {feedback === "refresh" && (
+          <Button
+            variant="outline"
+            onClick={() => {
+              void utils
+                .invalidate()
+                .then(() => setFeedback("removed"))
+                .catch(() => {});
+            }}
+          >
+            {t("settingsFlow:refreshSaved")}
+          </Button>
+        )}
         {saved.map(name => (
           <div key={name} className="flex items-center justify-between gap-2">
             <span className="min-w-0 text-sm">
@@ -51,7 +104,10 @@ export function SavedProviderKeys({
             <DeleteConfirmation
               subject={labels[name]}
               disabled={disabled || remove.isPending}
-              onConfirm={() => remove.mutate({ name })}
+              onConfirm={() => {
+                setFeedback(null);
+                remove.mutate({ name });
+              }}
             >
               <Button
                 variant="ghost"

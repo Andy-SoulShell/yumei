@@ -126,3 +126,34 @@ it("disables this device while leaving other devices enabled", async () => {
   expect(mock.endpoints.size).toBe(1);
   expect(container.textContent).toContain("notifications:enablePush");
 });
+it("keeps a denied permission visible after the toast disappears", async () => {
+  mock.requestPermission.mockResolvedValue("denied");
+  await render();
+  await click();
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+    "notifications:notificationPermissionWasDenied"
+  );
+  expect(mock.save).not.toHaveBeenCalled();
+});
+it("keeps a successful subscription distinct from a failed status refresh", async () => {
+  mock.invalidate.mockRejectedValueOnce(new Error("offline refresh"));
+  mock.subscribe.mockResolvedValue({
+    endpoint: "https://push.example.test/new-device",
+    toJSON: () => ({ keys: { p256dh: "public", auth: "auth" } }),
+  });
+  await render();
+  await click();
+  expect(mock.save).toHaveBeenCalledOnce();
+  expect(container.querySelector('[role="alert"]')?.textContent).toBe(
+    "settingsFlow:refreshFailed"
+  );
+  expect(container.textContent).toContain(
+    "notifications:disablePushOnThisDevice"
+  );
+});
+it("explains unsupported push instead of silently removing the device setting", async () => {
+  Reflect.deleteProperty(window, "PushManager");
+  await render();
+  expect(container.textContent).toContain("settingsFlow:pushUnsupported");
+  expect(container.querySelector("button")).toBeNull();
+});

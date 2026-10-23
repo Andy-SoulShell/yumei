@@ -2,6 +2,7 @@
 
 import {
   date,
+  bigint,
   json,
   int,
   mysqlEnum,
@@ -77,6 +78,24 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 /** 从 users 表结构推导的新增记录输入，允许省略由数据库填充的字段。 */
 export type InsertUser = typeof users.$inferInsert;
+
+/** 私有的官方角色收藏，注销账号时由外键一并删除。 */
+export const characterFavorites = mysqlTable(
+  "characterFavorites",
+  {
+    userId: varchar("userId", { length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    presetId: varchar("presetId", { length: 100 }).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    uniqueFavorite: uniqueIndex("idx_character_favorite_user_preset").on(
+      table.userId,
+      table.presetId
+    ),
+  })
+);
 
 /** 用户私有的音色参考录音与原文，不通过公开媒体路由发布。 */
 export const omnivoiceVoices = mysqlTable(
@@ -173,11 +192,15 @@ export const girlfriends = mysqlTable(
     userId: varchar("userId", { length: 255 }).notNull(),
     name: varchar("name", { length: 100 }).notNull(),
     officialPresetId: varchar("officialPresetId", { length: 100 }),
+    communitySourceId: varchar("communitySourceId", { length: 36 }),
+    creationRequestId: varchar("creationRequestId", { length: 36 }),
+    creationFingerprint: varchar("creationFingerprint", { length: 64 }),
     personality: text("personality").notNull(), // 性格描述，用于 LLM 系统提示词
     appearance: text("appearance").notNull(), // 外貌描述，用于图片生成
     interests: text("interests"), // 兴趣爱好
     referenceImageUrl: text("referenceImageUrl").notNull(), // 通过文件路由访问的参考图 URL
     referenceImageKey: varchar("referenceImageKey", { length: 500 }).notNull(), // 存储文件 key
+    openingScenario: text("openingScenario"),
     customPrompt: text("customPrompt"), // 个体定制提示词，追加在全局提示词之后
     behavior: json("behavior").$type<CompanionBehavior>(),
     omnivoiceVoiceId: varchar("omnivoiceVoiceId", { length: 64 }).references(
@@ -201,6 +224,10 @@ export const girlfriends = mysqlTable(
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
   table => ({
+    uniqueCreation: uniqueIndex("idx_role_user_creation").on(
+      table.userId,
+      table.creationRequestId
+    ),
     byOfficialPreset: index("idx_girlfriends_official_preset").on(
       table.userId,
       table.officialPresetId
@@ -224,11 +251,19 @@ export const conversations = mysqlTable(
     id: int("id").autoincrement().primaryKey(),
     userId: varchar("userId", { length: 255 }).notNull(),
     girlfriendId: int("girlfriendId").notNull(),
+    branchRequestId: varchar("branchRequestId", { length: 36 }),
+    branchSourceId: int("branchSourceId"),
+    branchMessageId: int("branchMessageId"),
+    branchInput: text("branchInput"),
     title: varchar("title", { length: 200 }), // 对话标题（可选）
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
   table => ({
+    uniqueBranch: uniqueIndex("idx_conversation_branch_request").on(
+      table.userId,
+      table.branchRequestId
+    ),
     byUserAndRole: index("idx_conversations_user_role").on(
       table.userId,
       table.girlfriendId
@@ -767,6 +802,7 @@ export const generationRequests = mysqlTable(
     status: mysqlEnum("status", ["pending", "succeeded", "failed", "cancelled"])
       .default("pending")
       .notNull(),
+    coinAmount: int("coinAmount").default(0).notNull(),
     meterPeriod: varchar("meterPeriod", { length: 10 }),
     meterName: varchar("meterName", { length: 64 }),
     /** 客户端请求键唯一绑定当前用户及请求负载，不随重连改变。 */
@@ -951,6 +987,184 @@ export const supportMessages = mysqlTable(
   table => ({
     byTicket: index("idx_support_message_ticket").on(
       table.ticketId,
+      table.createdAt
+    ),
+  })
+);
+
+/** 可用赠币和实付金币分账。负实付余额表示退款追偿，不能继续消费。 */
+export const coinWallets = mysqlTable("coinWallets", {
+  userId: varchar("userId", { length: 255 })
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  sequence: int("sequence").default(0).notNull(),
+  paid: int("paid").default(0).notNull(),
+  bonus: int("bonus").default(0).notNull(),
+  referralCode: varchar("referralCode", { length: 32 }).notNull().unique(),
+});
+export const coinLedger = mysqlTable(
+  "coinLedger",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    userId: varchar("userId", { length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sequence: int("sequence").default(0).notNull(),
+    eventKey: varchar("eventKey", { length: 160 }).notNull(),
+    reason: varchar("reason", { length: 32 }).notNull(),
+    paidDelta: int("paidDelta").notNull(),
+    bonusDelta: int("bonusDelta").notNull(),
+    balanceAfter: int("balanceAfter").notNull(),
+    allocations:
+      json("allocations").$type<import("../shared/economy").CoinAllocation[]>(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    uniqueEvent: uniqueIndex("idx_coin_user_event").on(
+      table.userId,
+      table.eventKey
+    ),
+  })
+);
+export const coinOrders = mysqlTable("coinOrders", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  userId: varchar("userId", { length: 255 })
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  coins: int("coins").notNull(),
+  consumed: int("consumed").default(0).notNull(),
+  revoked: int("revoked").default(0).notNull(),
+  netCents: int("netCents"),
+  checkoutId: varchar("checkoutId", { length: 36 }),
+  totalCents: int("totalCents").notNull(),
+  refundedCents: int("refundedCents").default(0).notNull(),
+  variantId: varchar("variantId", { length: 100 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export const referrals = mysqlTable("referrals", {
+  inviteeId: varchar("inviteeId", { length: 255 })
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  inviterId: varchar("inviterId", { length: 255 })
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  status: mysqlEnum("status", ["pending", "rewarded", "revoked"])
+    .default("pending")
+    .notNull(),
+  orderId: varchar("orderId", { length: 64 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export const creatorProfiles = mysqlTable("creatorProfiles", {
+  userId: varchar("userId", { length: 255 })
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  handle: varchar("handle", { length: 32 }).notNull().unique(),
+  displayName: varchar("displayName", { length: 80 }).notNull(),
+  bio: varchar("bio", { length: 500 }).default("").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export const communityCharacters = mysqlTable(
+  "communityCharacters",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    userId: varchar("userId", { length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sourceId: int("sourceId").notNull(),
+    status: mysqlEnum("status", [
+      "pending",
+      "published",
+      "rejected",
+      "unlisted",
+    ])
+      .default("pending")
+      .notNull(),
+    snapshot: json("snapshot")
+      .$type<import("../shared/economy").CommunitySnapshot>()
+      .notNull(),
+    pendingSnapshot:
+      json("pendingSnapshot").$type<
+        import("../shared/economy").CommunitySnapshot
+      >(),
+    reviewVersion: int("reviewVersion").default(1).notNull(),
+    submissionId: varchar("submissionId", { length: 36 }),
+    submissionFingerprint: varchar("submissionFingerprint", { length: 64 }),
+    reviewState: mysqlEnum("reviewState", ["pending", "approved", "rejected"])
+      .default("approved")
+      .notNull(),
+    moderationNote: varchar("moderationNote", { length: 500 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    uniqueSource: uniqueIndex("idx_community_owner_source").on(
+      table.userId,
+      table.sourceId
+    ),
+  })
+);
+export const creatorEarnings = mysqlTable("creatorEarnings", {
+  id: varchar("id", { length: 128 }).primaryKey(),
+  userId: varchar("userId", { length: 255 })
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  requestId: varchar("requestId", { length: 36 }).notNull(),
+  orderId: varchar("orderId", { length: 64 }).notNull(),
+  /** 固定货币精度：10000 单位 = 1 美分。 */
+  units: bigint("units", { mode: "number" }).notNull(),
+  reversedUnits: bigint("reversedUnits", { mode: "number" })
+    .default(0)
+    .notNull(),
+  availableAt: timestamp("availableAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export const creatorPayouts = mysqlTable("creatorPayouts", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  userId: varchar("userId", { length: 255 })
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  units: bigint("units", { mode: "number" }).notNull(),
+  amountCents: int("amountCents").notNull(),
+  status: mysqlEnum("status", ["requested", "paid", "rejected"])
+    .default("requested")
+    .notNull(),
+  reference: varchar("reference", { length: 200 }),
+  note: varchar("note", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+/** 已验证支付的订阅发票队列，订阅快照晚到时仍能按发票恰好授币一次。 */
+export const coinInvoices = mysqlTable("coinInvoices", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  userId: varchar("userId", { length: 255 })
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  subscriptionId: varchar("subscriptionId", { length: 64 }).notNull(),
+  applied: boolean("applied").default(false).notNull(),
+  reversed: boolean("reversed").default(false).notNull(),
+});
+
+/** 充值意图保留确认时的金币包条款，刷新和运营调价不会改变已发起订单的归属。 */
+export const coinCheckouts = mysqlTable(
+  "coinCheckouts",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    userId: varchar("userId", { length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    packId: varchar("packId", { length: 64 }).notNull(),
+    coins: int("coins").notNull(),
+    priceCents: int("priceCents").notNull(),
+    variantId: varchar("variantId", { length: 100 }).notNull(),
+    checkoutUrl: text("checkoutUrl").notNull(),
+    status: mysqlEnum("status", ["waiting", "confirmed", "refunded"])
+      .default("waiting")
+      .notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    expiresAt: timestamp("expiresAt").notNull(),
+  },
+  table => ({
+    byUser: index("idx_checkout_user_created").on(
+      table.userId,
       table.createdAt
     ),
   })

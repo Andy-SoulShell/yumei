@@ -1,0 +1,1 @@
+ALTER TABLE `generationRequests` ADD `coinAmount` int DEFAULT 0 NOT NULL;

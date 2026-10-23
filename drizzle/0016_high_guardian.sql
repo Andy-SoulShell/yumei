@@ -1,0 +1,1 @@
+ALTER TABLE `girlfriends` ADD `openingScenario` text;

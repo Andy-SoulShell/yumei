@@ -16,6 +16,7 @@ import {
 } from "./operationalConfig";
 import { memoryConfigSchema, promptsConfigSchema } from "./aiConfig";
 import { videosConfigSchema } from "./video";
+import { economySchema, DEFAULT_ECONOMY } from "./economy";
 
 export const REWARD_ACTIONS = [
   "text_message",
@@ -67,6 +68,7 @@ export type Tier = string;
 /** 套餐数组顺序同时决定展示和升级顺序，ID 用于订阅关联。 */
 export const billingConfigSchema = z
   .object({
+    economy: economySchema.default(DEFAULT_ECONOMY),
     mode: z.enum(["free", "none", "lemonsqueezy"]),
     pastDueGraceMs: z
       .number()
@@ -319,6 +321,20 @@ export const productConfigSchema = z
       ),
       "支付变体不能重复映射"
     );
+    unique(
+      [
+        ...config.billing.plans.flatMap(plan =>
+          plan.lemonVariantId ? [plan.lemonVariantId] : []
+        ),
+        ...config.billing.economy.packs.flatMap(pack =>
+          pack.variantId ? [pack.variantId] : []
+        ),
+      ],
+      "充值包与订阅支付变体不能重复映射"
+    );
+    for (const id of Object.keys(config.billing.economy.planCoins))
+      if (!config.billing.plans.some(plan => plan.id === id))
+        issue("订阅赠币必须关联已有套餐");
     for (const id of [
       config.billing.defaultTierId,
       config.billing.selfHostedTierId,

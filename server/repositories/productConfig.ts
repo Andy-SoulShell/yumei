@@ -7,6 +7,7 @@ import {
   type ProductConfig,
 } from "../../shared/productConfig";
 import { getDb, type DbTransaction } from "../database";
+import { DEFAULT_ECONOMY } from "../../shared/economy";
 import { initialProductConfig } from "../seeds/product";
 import { validateOfficialCharacterFields } from "./officialCompatibility";
 
@@ -56,6 +57,11 @@ export async function getPublishedProductConfig(
     const state = await read(tx ?? (await database()));
     return {
       ...state.published,
+      billing: {
+        ...state.published.billing,
+        economy:
+          state.published.billing.economy ?? structuredClone(DEFAULT_ECONOMY),
+      },
       revision: state.publishedRevision,
       publishedAt: state.publishedAt,
     };
@@ -73,8 +79,21 @@ export async function getPublishedProductConfig(
 export async function getProductConfigDraft() {
   const row = await read(await database());
   return {
-    config: row.draft,
-    published: row.published,
+    config: {
+      ...row.draft,
+      billing: {
+        ...row.draft.billing,
+        economy: row.draft.billing.economy ?? structuredClone(DEFAULT_ECONOMY),
+      },
+    },
+    published: {
+      ...row.published,
+      billing: {
+        ...row.published.billing,
+        economy:
+          row.published.billing.economy ?? structuredClone(DEFAULT_ECONOMY),
+      },
+    },
     revision: row.revision,
     publishedRevision: row.publishedRevision,
     publishedAt: row.publishedAt,

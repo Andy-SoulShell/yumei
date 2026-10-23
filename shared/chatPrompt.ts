@@ -11,6 +11,7 @@ export type ChatCharacter = {
   appearance: string;
   interests?: string | null;
   customPrompt?: string | null;
+  openingScenario?: string | null;
   behavior?: unknown;
   intimacyLevel?: number;
   intimacyPoints?: number;
@@ -80,6 +81,9 @@ export function buildChatSystemPrompt(
       characterData: dataBlock(
         {
           name: girlfriend.name?.slice(0, config.characters.limits.name) ?? "",
+          ...(girlfriend.openingScenario
+            ? { openingScenario: girlfriend.openingScenario.slice(0, 2000) }
+            : {}),
           personality:
             girlfriend.personality?.slice(
               0,

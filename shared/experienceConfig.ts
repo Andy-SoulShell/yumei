@@ -204,6 +204,11 @@ export function characterFieldsError(
   value: Record<string, unknown>,
   rules: z.infer<typeof charactersConfigSchema>
 ): string | null {
+  if (
+    typeof value.openingScenario === "string" &&
+    value.openingScenario.length > 2000
+  )
+    return "openingScenario 最多 2000 字符";
   for (const field of [
     "name",
     "personality",

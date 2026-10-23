@@ -222,7 +222,13 @@ describe("public landing page", () => {
     card.focus();
     await settle(() => card.click());
     expect(mock.navigate).toHaveBeenCalledWith("/?character=xiaotao", {
-      replace: true,
+      replace: false,
+      state: {
+        "yumei:character-preview": {
+          baseUrl: "/",
+          detailUrl: "/?character=xiaotao",
+        },
+      },
     });
     expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
       "小桃"

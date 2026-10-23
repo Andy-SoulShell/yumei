@@ -3,6 +3,8 @@ import { useRef } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useDiscovery } from "@/features/discovery/useDiscovery";
 
+const PREVIEW_ENTRY = "yumei:character-preview";
+
 /** 首页和探索页共用的角色预览及焦点恢复状态。 */
 export function useCharacterPreview() {
   const [location, navigate] = useLocation();
@@ -13,19 +15,35 @@ export function useCharacterPreview() {
     item => item.id === params.get("character")
   );
   const returnFocus = useRef<HTMLElement | null>(null);
+  const urlFor = (query: URLSearchParams) =>
+    location + (query.size ? "?" + query.toString() : "");
+  const baseParams = new URLSearchParams(search);
+  baseParams.delete("character");
+  const baseUrl = urlFor(baseParams);
+  const currentUrl = urlFor(params);
+  const entry = window.history.state?.[PREVIEW_ENTRY];
+  const hasPreviewEntry =
+    entry?.baseUrl === baseUrl && entry?.detailUrl === currentUrl;
+
   const showCharacter = (id: string, trigger?: HTMLElement) => {
-    // 触摸或部分浏览器的鼠标点击不会先聚焦按钮，直接记录真实触发入口。
-    returnFocus.current = trigger ?? (document.activeElement as HTMLElement);
+    const alreadyOpen = params.has("character");
+    // 切换详情不增加层级，也不把焦点恢复位置改成即将卸载的弹窗按钮。
+    if (!alreadyOpen)
+      returnFocus.current = trigger ?? (document.activeElement as HTMLElement);
     const next = new URLSearchParams(search);
     next.set("character", id);
-    navigate(location + "?" + next.toString(), { replace: true });
+    const detailUrl = urlFor(next);
+    navigate(detailUrl, {
+      replace: alreadyOpen,
+      ...(!alreadyOpen || hasPreviewEntry
+        ? { state: { [PREVIEW_ENTRY]: { baseUrl, detailUrl } } }
+        : {}),
+    });
   };
   const closeCharacter = () => {
-    const next = new URLSearchParams(search);
-    next.delete("character");
-    navigate(location + (next.size ? "?" + next.toString() : ""), {
-      replace: true,
-    });
+    if (hasPreviewEntry && window.history.length > 1) window.history.back();
+    // 直接访问的分享链接没有目录历史，关闭时保留筛选并留在站内。
+    else navigate(baseUrl, { replace: true });
   };
   return { selected, showCharacter, closeCharacter, returnFocus };
 }

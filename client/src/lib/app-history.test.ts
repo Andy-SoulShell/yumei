@@ -18,7 +18,7 @@ it("counts internal pushes and preserves unrelated state", () => {
   expect(history.state.selection).toBe(7);
   expect(history.state["yumei:history-index"]).toBe(1);
 });
-it("does not add history for replacement routes or modal query changes", () => {
+it("does not add history for replacement routes", () => {
   history.replaceState(null, "", "/explore?character=xiaotao");
   expect(hasAppBackEntry()).toBe(false);
   history.pushState(null, "", "/setup");

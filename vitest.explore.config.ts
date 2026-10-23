@@ -11,6 +11,7 @@ export default defineConfig({
       "client/src/lib/navigation.test.ts",
       "client/src/lib/serviceWorker.test.ts",
       "client/src/hooks/useCompanionChat.test.tsx",
+      "client/src/hooks/useCharacterPreview.test.tsx",
       "client/src/pages/Explore.test.tsx",
       "client/src/pages/Landing.test.tsx",
       "client/src/features/discovery/catalogue.test.ts",

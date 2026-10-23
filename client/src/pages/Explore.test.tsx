@@ -145,7 +145,13 @@ describe("exploration", () => {
     expect(mock.navigate).toHaveBeenCalledWith(
       "/explore?style=anime&character=momoka",
       {
-        replace: true,
+        replace: false,
+        state: {
+          "yumei:character-preview": {
+            baseUrl: "/explore?style=anime",
+            detailUrl: "/explore?style=anime&character=momoka",
+          },
+        },
       }
     );
   });

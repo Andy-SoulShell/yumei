@@ -23,6 +23,7 @@ describe("authentication navigation", () => {
   );
   it.each([
     "/",
+    "/create?resume=1",
     "/?character=rin",
     "/explore?q=coffee&style=realistic&character=shiyu",
   ])("returns to the original public preview when dismissing %s", target =>

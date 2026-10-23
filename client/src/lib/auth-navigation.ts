@@ -30,7 +30,11 @@ export function authUrl(mode: AuthMode, returnTo: string) {
 export function authDismissUrl(returnTo: string) {
   const target = safeReturnTo(returnTo);
   const path = target.split(/[?#]/)[0];
-  return path === "/" || path === "/explore" ? target : "/";
+  return ["/", "/explore", "/create", "/feed", "/help", "/privacy"].includes(
+    path
+  )
+    ? target
+    : "/";
 }
 
 /** 邮件返回当前访问来源；服务端仍会检查来源是否受信任。 */

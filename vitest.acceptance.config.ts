@@ -10,7 +10,7 @@ export default defineConfig({
       "client/src/lib/i18n.test.ts",
       "client/src/lib/{speech,imageSubmissions}.test.ts",
       "client/src/contexts/PreferencesContext.test.tsx",
-      "client/src/pages/{Landing,Explore,Setup,Settings,Memories}.test.tsx",
+      "client/src/pages/{Landing,Explore,CreateCharacter,Setup,Settings,Memories}.test.tsx",
       "client/src/features/{discovery,setup,chat,settings,memory}/*.test.tsx",
       "client/src/hooks/{useCompanionChat,useProviderKeyDrafts,useSettingsDraft,useChatInputDraft,useChatScrollAnchor,useKeyboardViewport}.test.tsx",
       "server/selfieRequest.test.ts",

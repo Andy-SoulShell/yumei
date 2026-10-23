@@ -10,12 +10,22 @@ describe("login return navigation", () => {
     "/login?next=/login",
     "/\nexample.com",
     "/unknown",
+    "/u/../../settings",
+    "/u/https://example.com",
     "",
     null,
   ])("rejects unsafe destination %s", destination => {
     expect(safeReturnTo(destination)).toBe("/");
   });
   it("preserves a selected character, protected route and query", () => {
+    expect(safeReturnTo("/u/my_creator")).toBe("/u/my_creator");
+    expect(safeReturnTo("/create?resume=1")).toBe("/create?resume=1");
+    expect(safeReturnTo("/generate?view=create&resume=1")).toBe(
+      "/generate?view=create&resume=1"
+    );
+    expect(safeReturnTo("/community?character=rin")).toBe(
+      "/community?character=rin"
+    );
     expect(safeReturnTo("/?character=rin")).toBe("/?character=rin");
     expect(safeReturnTo("/help?category=billing")).toBe(
       "/help?category=billing"

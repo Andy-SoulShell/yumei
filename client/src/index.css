@@ -3,6 +3,7 @@
 @import "./explore.css";
 @import "./landing.css";
 @import "./materials.css";
+@import "./studio.css";
 
 @custom-variant dark (&:is(.dark *));
 

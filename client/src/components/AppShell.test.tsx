@@ -109,7 +109,7 @@ async function settle(action: () => void) {
 }
 
 describe("grouped navigation and preferences", () => {
-  it("groups create/chat and explore/generate/characters, with preferences together", async () => {
+  it("groups creation and discovery tools, with preferences together", async () => {
     await render();
     const groups = Array.from(
       container.querySelectorAll(".app-sidebar .sidebar-nav-group")
@@ -121,8 +121,8 @@ describe("grouped navigation and preferences", () => {
         )
       )
     ).toEqual([
-      ["/setup", "/chats"],
-      ["/explore", "/generate", "/characters"],
+      ["/create"],
+      ["/explore", "/chats", "/generate", "/characters", "/feed"],
     ]);
     expect(
       Array.from(
@@ -132,15 +132,17 @@ describe("grouped navigation and preferences", () => {
       ).map(control => control.getAttribute("aria-label"))
     ).toEqual(["界面语言", "显示模式", "主题"]);
   });
-  it("returns home through the logo and activates explore only on its own route", async () => {
+  it("returns home through the logo and activates discovery on both public catalogue routes", async () => {
     await render();
     expect(container.querySelector(".app-brand")?.getAttribute("href")).toBe(
       "/"
     );
     expect(container.querySelector(".app-sidebar a[href='/']")).toBeNull();
     expect(
-      container.querySelector(".app-sidebar a[aria-current='page']")
-    ).toBeNull();
+      container
+        .querySelector(".app-sidebar a[aria-current='page']")
+        ?.getAttribute("href")
+    ).toBe("/explore");
     mock.location = "/explore";
     await render();
     expect(
@@ -152,7 +154,7 @@ describe("grouped navigation and preferences", () => {
 
   it.each([
     ["界面语言", "English", { language: "en" }],
-    ["显示模式", "深色", { colorMode: "dark" }],
+    ["显示模式", "浅色", { colorMode: "light" }],
     ["主题", "午夜紫", { theme: "midnight" }],
   ])(
     "changes %s through the shared account preferences",
@@ -259,21 +261,24 @@ describe("grouped navigation and preferences", () => {
     );
     const menu = document.querySelector('[role="dialog"].mobile-sidebar')!;
     expect(menu.querySelectorAll('[role="combobox"]')).toHaveLength(3);
-    const link = menu.querySelector<HTMLAnchorElement>('a[href="/setup"]')!;
+    const link = menu.querySelector<HTMLAnchorElement>('a[href="/create"]')!;
     await settle(() => link.click());
     expect(document.querySelector(".mobile-sidebar")).toBeNull();
   });
 });
 
 describe("header account actions", () => {
-  it("only shows sign-in on the right for visitors", async () => {
+  it("offers sign-in and registration while preserving the visitor return path", async () => {
     await render();
     const actions = container.querySelector(".app-header-actions")!;
-    expect(actions.querySelectorAll("a")).toHaveLength(1);
+    expect(actions.querySelectorAll("a")).toHaveLength(2);
     expect(actions.querySelector("a")?.getAttribute("href")).toBe(
       "/login?next=%2F"
     );
-    expect(actions.textContent).toBe("登录");
+    expect(actions.textContent).toContain("登录");
+    expect(
+      actions.querySelector("a[href='/register?next=%2F']")
+    ).not.toBeNull();
     expect(actions.querySelector("button, [role=combobox]")).toBeNull();
   });
 

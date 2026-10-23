@@ -18,6 +18,8 @@ import Landing from "./pages/Landing";
 
 const MyCharacters = lazy(() => import("./pages/Home"));
 const Explore = lazy(() => import("./pages/Explore"));
+const CreateCharacter = lazy(() => import("./pages/CreateCharacter"));
+const Feed = lazy(() => import("./pages/Feed"));
 const Login = lazy(() => import("./pages/Login"));
 const Setup = lazy(() => import("./pages/Setup"));
 const Chat = lazy(() => import("./pages/Chat"));
@@ -96,6 +98,8 @@ function Router() {
           <Route path="/privacy" component={Privacy} />
           <Route path="/data-deletion" component={DataDeletion} />
           <Route path="/explore" component={Explore} />
+          <Route path="/create" component={CreateCharacter} />
+          <Route path="/feed" component={Feed} />
           <Route path="/characters">
             <Authenticated>
               <MyCharacters />

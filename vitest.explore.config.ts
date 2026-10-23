@@ -16,6 +16,8 @@ export default defineConfig({
       "client/src/pages/Landing.test.tsx",
       "client/src/features/discovery/catalogue.test.ts",
       "client/src/features/discovery/CharacterChatActions.test.tsx",
+      "client/src/features/discovery/CharacterCollection.test.tsx",
+      "client/src/pages/CreateCharacter.test.tsx",
     ],
   },
 });

@@ -9,7 +9,7 @@ export function safeReturnTo(value: string | null | undefined) {
     return "/";
   if (value.startsWith("//")) return "/";
   const path = value.split(/[?#]/)[0];
-  return /^\/(?:explore|privacy|help|characters|chats|generate|gallery|settings|setup(?:\/\d+)?|chat(?:\/\d+)?|memories\/\d+)?$/.test(
+  return /^\/(?:explore|create|feed|u\/[a-z0-9_]{3,32}|community|creator|wallet|upgrade|custom|profile|privacy|help|characters|chats|generate|gallery|settings|setup(?:\/\d+)?|chat(?:\/\d+)?|memories\/\d+)?$/.test(
     path
   )
     ? value

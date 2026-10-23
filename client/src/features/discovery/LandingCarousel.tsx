@@ -105,10 +105,10 @@ export function LandingCarousel({
           aria-live={focused || paused ? "polite" : "off"}
           aria-atomic="true"
         >
-          <h1>
+          <h2>
             {slide.title}
             <span>{slide.highlight}</span>
-          </h1>
+          </h2>
         </div>
         <div className="hero-actions">
           {preview ? (

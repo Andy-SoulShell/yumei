@@ -1,6 +1,7 @@
 /** 分组侧边导航与手机底部导航，顶部仅承载登录和账号操作。 */
 import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
+import { CharacterCollectionProvider } from "@/features/discovery/CharacterCollection";
 import {
   Compass,
   Heart,
@@ -12,6 +13,9 @@ import {
   PanelLeftOpen,
   Plus,
   Settings,
+  Film,
+  Headphones,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -90,7 +94,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       href: "/explore",
       label: t("explore:navExplore"),
       icon: Compass,
-      active: location === "/explore",
+      active: location === "/explore" || location === "/",
     },
     chats: {
       href: "/chats",
@@ -99,10 +103,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       active: location === "/chats" || inChat,
     },
     create: {
-      href: "/setup",
+      href: "/create",
       label: t("explore:navCreate"),
       icon: Plus,
-      active: location.startsWith("/setup"),
+      active: location.startsWith("/setup") || location === "/create",
     },
     generate: {
       href: "/generate",
@@ -117,8 +121,19 @@ export function AppShell({ children }: { children: ReactNode }) {
       active: location === "/characters" || location.startsWith("/memories/"),
     },
   };
-  const actionLinks = [links.create, links.chats];
-  const discoveryLinks = [links.explore, links.generate, links.characters];
+  const actionLinks = [links.create];
+  const discoveryLinks = [
+    links.explore,
+    links.chats,
+    links.generate,
+    links.characters,
+    {
+      href: "/feed",
+      label: t("studio:feed"),
+      icon: Film,
+      active: location === "/feed",
+    },
+  ];
   const navigation = (
     items: NavigationLink[],
     mobile = false,
@@ -128,7 +143,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Link
         key={href}
         href={href}
-        className={`app-nav-link ${active ? "is-active" : ""} ${mobile && href === "/setup" ? "is-create" : ""}`}
+        className={`app-nav-link ${active ? "is-active" : ""} ${href === "/create" ? "is-create" : ""}`}
         aria-current={active ? "page" : undefined}
         title={!mobile && collapsed ? label : undefined}
         onClick={() => setMobileMenuOpen(false)}
@@ -153,6 +168,26 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         ))}
       </nav>
+      <div className="sidebar-support-links">
+        <Link
+          href="/help"
+          className="app-nav-link"
+          title={collapsed ? t("studio:help") : undefined}
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <Headphones size={18} />
+          <span className="app-nav-label">{t("studio:help")}</span>
+        </Link>
+        <Link
+          href="/privacy"
+          className="app-nav-link"
+          title={collapsed ? t("studio:safety") : undefined}
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <ShieldCheck size={18} />
+          <span className="app-nav-label">{t("studio:safety")}</span>
+        </Link>
+      </div>
       <SidebarPreferences collapsed={collapsed} />
       <div className="sidebar-bottom">
         <Link
@@ -172,175 +207,187 @@ export function AppShell({ children }: { children: ReactNode }) {
     </div>
   );
   return (
-    <div
-      className={`app-shell ${inChat ? "is-chat" : ""} ${sidebarCollapsed ? "is-sidebar-collapsed" : ""}`}
-    >
-      <a className="skip-link" href="#main-content">
-        {t("explore:skipToContent")}
-      </a>
-      <header className="app-header">
-        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-          <SheetTrigger asChild>
-            <Button
-              className="mobile-menu-toggle"
-              variant="ghost"
-              size="icon"
-              aria-label={t("explore:mainNavigation")}
-            >
-              <Menu />
-            </Button>
-          </SheetTrigger>
-          <SheetContent
-            side="left"
-            className="mobile-sidebar"
-            aria-describedby={undefined}
-          >
-            <SheetHeader>
-              <SheetTitle>{t("explore:mainNavigation")}</SheetTitle>
-            </SheetHeader>
-            {sidebar(false)}
-          </SheetContent>
-        </Sheet>
-        <Link href="/" className="app-brand" aria-label="YUMEI">
-          YUMEI<span className="brand-period">.</span>
-        </Link>
-        <Button
-          className="sidebar-toggle"
-          variant="ghost"
-          size="icon"
-          aria-label={t(
-            sidebarCollapsed
-              ? "explore:expandSidebar"
-              : "explore:collapseSidebar"
-          )}
-          aria-expanded={!sidebarCollapsed}
-          aria-controls="desktop-navigation"
-          onClick={toggleSidebar}
-        >
-          {sidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
-        </Button>
-        <div className="app-header-actions">
-          {user ? (
-            <>
-              <div className="header-notifications">
-                <NotificationBell />
-              </div>
-              <div className="mobile-account-menu">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="mobile-account-trigger"
-                      aria-label={t("explore:account")}
-                    >
-                      {accountAvatar}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    sideOffset={8}
-                    className="mobile-account-dropdown w-64 max-w-[calc(100vw-2rem)]"
-                  >
-                    <DropdownMenuLabel className="break-all px-3 py-2 text-sm font-medium">
-                      <span className="block">{user.name || user.email}</span>
-                      {user.name && (
-                        <span className="block text-xs font-normal text-muted-foreground">
-                          {user.email}
-                        </span>
-                      )}
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="min-h-11 px-3"
-                      onSelect={() => navigate("/settings")}
-                    >
-                      <Settings />
-                      {t("settings:profileTitle")}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="min-h-11 px-3"
-                      disabled={loading}
-                      onSelect={signOut}
-                    >
-                      <LogOut />
-                      {t("auth:signOut")}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              <div
-                className="account-controls"
-                role="group"
-                aria-label={t("explore:account")}
+    <CharacterCollectionProvider>
+      <div
+        className={`app-shell ${inChat ? "is-chat" : ""} ${sidebarCollapsed ? "is-sidebar-collapsed" : ""}`}
+      >
+        <a className="skip-link" href="#main-content">
+          {t("explore:skipToContent")}
+        </a>
+        <header className="app-header">
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button
+                className="mobile-menu-toggle"
+                variant="ghost"
+                size="icon"
+                aria-label={t("explore:mainNavigation")}
               >
-                {accountAvatar}
-                <span className="account-email" title={user.email}>
-                  {user.name || user.email}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="account-signout"
-                  aria-label={t("auth:signOut")}
-                  title={t("auth:signOut")}
-                  disabled={loading}
-                  onClick={signOut}
+                <Menu />
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side="left"
+              className="mobile-sidebar"
+              aria-describedby={undefined}
+            >
+              <SheetHeader>
+                <SheetTitle>{t("explore:mainNavigation")}</SheetTitle>
+              </SheetHeader>
+              {sidebar(false)}
+            </SheetContent>
+          </Sheet>
+          <Link href="/" className="app-brand" aria-label="YUMEI">
+            YUMEI<span className="brand-period">.</span>
+          </Link>
+          <Button
+            className="sidebar-toggle"
+            variant="ghost"
+            size="icon"
+            aria-label={t(
+              sidebarCollapsed
+                ? "explore:expandSidebar"
+                : "explore:collapseSidebar"
+            )}
+            aria-expanded={!sidebarCollapsed}
+            aria-controls="desktop-navigation"
+            onClick={toggleSidebar}
+          >
+            {sidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+          </Button>
+          <div className="app-header-actions">
+            {user ? (
+              <>
+                <div className="header-notifications">
+                  <NotificationBell />
+                </div>
+                <div className="mobile-account-menu">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="mobile-account-trigger"
+                        aria-label={t("explore:account")}
+                      >
+                        {accountAvatar}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      sideOffset={8}
+                      className="mobile-account-dropdown w-64 max-w-[calc(100vw-2rem)]"
+                    >
+                      <DropdownMenuLabel className="break-all px-3 py-2 text-sm font-medium">
+                        <span className="block">{user.name || user.email}</span>
+                        {user.name && (
+                          <span className="block text-xs font-normal text-muted-foreground">
+                            {user.email}
+                          </span>
+                        )}
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="min-h-11 px-3"
+                        onSelect={() => navigate("/settings")}
+                      >
+                        <Settings />
+                        {t("settings:profileTitle")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="min-h-11 px-3"
+                        disabled={loading}
+                        onSelect={signOut}
+                      >
+                        <LogOut />
+                        {t("auth:signOut")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <div
+                  className="account-controls"
+                  role="group"
+                  aria-label={t("explore:account")}
                 >
-                  <LogOut />
-                </Button>
-              </div>
-            </>
-          ) : (
-            <SignInButton
-              returnTo={location + window.location.search}
-              disabled={loading}
-            />
-          )}
+                  {accountAvatar}
+                  <span className="account-email" title={user.email}>
+                    {user.name || user.email}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="account-signout"
+                    aria-label={t("auth:signOut")}
+                    title={t("auth:signOut")}
+                    disabled={loading}
+                    onClick={signOut}
+                  >
+                    <LogOut />
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <SignInButton
+                  returnTo={location + window.location.search}
+                  disabled={loading}
+                />
+                <SignInButton
+                  returnTo={location + window.location.search}
+                  initialMode="register"
+                  label={t("landing:signupAction")}
+                  className="studio-join"
+                  disabled={loading}
+                />
+              </>
+            )}
+          </div>
+        </header>
+        <div className="app-workspace">
+          <aside
+            id="desktop-navigation"
+            className="app-sidebar"
+            data-state={sidebarCollapsed ? "collapsed" : "expanded"}
+          >
+            {sidebar(sidebarCollapsed)}
+          </aside>
+          <main
+            id="main-content"
+            tabIndex={-1}
+            className={`app-main ${inChat ? "app-main-chat" : ""}`}
+            key={location}
+          >
+            {user?.birthDate &&
+            !["/privacy", "/help", "/data-deletion"].includes(location) ? (
+              <TimeZoneSetup key={user.id}>{children}</TimeZoneSetup>
+            ) : (
+              children
+            )}
+          </main>
         </div>
-      </header>
-      <div className="app-workspace">
-        <aside
-          id="desktop-navigation"
-          className="app-sidebar"
-          data-state={sidebarCollapsed ? "collapsed" : "expanded"}
-        >
-          {sidebar(sidebarCollapsed)}
-        </aside>
-        <main
-          id="main-content"
-          tabIndex={-1}
-          className={`app-main ${inChat ? "app-main-chat" : ""}`}
-          key={location}
-        >
-          {user?.birthDate &&
-          !["/privacy", "/help", "/data-deletion"].includes(location) ? (
-            <TimeZoneSetup key={user.id}>{children}</TimeZoneSetup>
-          ) : (
-            children
+        {!inChat && (
+          <nav
+            className="app-bottom-nav"
+            aria-label={t("explore:mainNavigation")}
+          >
+            {navigation(
+              [
+                links.explore,
+                links.chats,
+                links.create,
+                links.generate,
+                links.characters,
+              ],
+              true
+            )}
+          </nav>
+        )}
+        {user &&
+          !["/privacy", "/help", "/data-deletion"].includes(location) && (
+            <AgeGate />
           )}
-        </main>
       </div>
-      {!inChat && (
-        <nav
-          className="app-bottom-nav"
-          aria-label={t("explore:mainNavigation")}
-        >
-          {navigation(
-            [
-              links.explore,
-              links.chats,
-              links.create,
-              links.generate,
-              links.characters,
-            ],
-            true
-          )}
-        </nav>
-      )}
-      {user && !["/privacy", "/help", "/data-deletion"].includes(location) && (
-        <AgeGate />
-      )}
-    </div>
+    </CharacterCollectionProvider>
   );
 }

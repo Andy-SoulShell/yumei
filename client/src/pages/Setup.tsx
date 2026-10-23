@@ -226,6 +226,15 @@ export default function Setup() {
                 )}
               </div>
             )}
+            {!isEditing && state.coinInfo && (
+              <p role="status" className="mb-4 rounded-lg border p-3 text-sm">
+                {t("economy:cost", { count: state.coinInfo.costs.character })} ·{" "}
+                {t("economy:balance")}: {state.coinInfo.balance}{" "}
+                <Link href="/wallet" className="underline">
+                  {t("economy:wallet")}
+                </Link>
+              </p>
+            )}
             {state.draftRestored && (
               <p
                 role="status"

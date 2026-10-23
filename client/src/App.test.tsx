@@ -127,7 +127,7 @@ async function choose(label: string, option: string) {
   );
 }
 
-it.each(["/setup", "/settings"])(
+it.each(["/characters", "/settings"])(
   "returns from the %s sign-in guard without trapping mobile navigation",
   async destination => {
     await settle(() => root.render(<App />));
@@ -149,11 +149,11 @@ it.each(["/setup", "/settings"])(
 
     await openMenu();
     await choose("主题", "午夜紫");
-    await choose("显示模式", "深色");
+    await choose("显示模式", "浅色");
     await choose("界面语言", "English");
     expect(mock.update.mock.calls).toEqual([
       [{ theme: "midnight" }],
-      [{ colorMode: "dark" }],
+      [{ colorMode: "light" }],
       [{ language: "en" }],
     ]);
     expect(window.location.pathname).toBe("/explore");

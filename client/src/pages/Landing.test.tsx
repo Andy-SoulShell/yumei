@@ -142,11 +142,11 @@ afterEach(async () => {
 });
 
 describe("public landing page", () => {
-  it("shows four informative featured cards without repeating them in the catalogue", async () => {
+  it("starts with a searchable catalogue and keeps recommendations unique", async () => {
     await settle(() => root.render(<Landing />));
     expect(
-      container.querySelectorAll(".featured-section .character-card")
-    ).toHaveLength(4);
+      container.querySelectorAll(".studio-directory .character-card")
+    ).toHaveLength(20);
     const names = Array.from(
       container.querySelectorAll<HTMLButtonElement>(".character-card"),
       card => card.getAttribute("aria-label")
@@ -160,10 +160,7 @@ describe("public landing page", () => {
     expect(container.querySelectorAll(".character-card")).toHaveLength(20);
     expect(
       container.querySelector('input[type="search"], .explore-filter-bar')
-    ).toBeNull();
-    expect(
-      container.querySelector(".catalogue-more a")?.getAttribute("href")
-    ).toBe("/explore");
+    ).not.toBeNull();
     expect(container.querySelectorAll(".faq-question")).toHaveLength(5);
     expect(
       container.querySelector(".landing-signup a")?.getAttribute("href")
@@ -189,7 +186,7 @@ describe("public landing page", () => {
       )
     ).toEqual(mock.roles.slice(0, 12).map(role => role.name));
     expect(section.nextElementSibling?.getAttribute("aria-labelledby")).toBe(
-      "featured-heading"
+      "catalogue-heading"
     );
     expect(section.querySelector("a")?.getAttribute("href")).toBe(
       "/characters"
@@ -256,8 +253,8 @@ describe("public landing page", () => {
     await vi.waitFor(() => expect(document.activeElement).toBe(card));
   });
   it.each([
-    ".featured-section .character-card",
-    ".landing-catalogue .character-card",
+    ".studio-character-tile:first-child .character-card",
+    ".studio-character-tile:last-child .character-card",
   ])("returns focus to an unfocused clicked trigger: %s", async selector => {
     await settle(() => root.render(<Landing />));
     const card = container.querySelector<HTMLButtonElement>(selector)!;
@@ -367,7 +364,9 @@ it("renders arbitrary API role IDs, banners and FAQ text without static translat
   await settle(() => root.render(<Landing />));
   expect(container.textContent).toContain("动态角色");
   expect(container.textContent).toContain("动态标签");
-  expect(container.querySelector("h1")?.textContent).toContain("API 轮播标题");
+  expect(container.querySelector(".hero-content h2")?.textContent).toContain(
+    "API 轮播标题"
+  );
   expect(container.querySelectorAll(".character-card")).toHaveLength(1);
   await settle(() =>
     (container.querySelector(".faq-question") as HTMLButtonElement).click()
@@ -376,7 +375,7 @@ it("renders arbitrary API role IDs, banners and FAQ text without static translat
   await settle(() =>
     (
       container.querySelector(
-        ".featured-section .character-card"
+        ".studio-character-tile:first-child .character-card"
       ) as HTMLButtonElement
     ).click()
   );

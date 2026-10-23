@@ -919,14 +919,14 @@
   width: 62%;
   padding: 32px 40px 42px;
 }
-.hero-content h1 {
+.hero-content :is(h1, h2) {
   margin: 0 0 14px;
   font-size: clamp(29px, 3vw, 47px);
   line-height: 1.23;
   letter-spacing: -0.025em;
   font-weight: 750;
 }
-.hero-content h1 span {
+.hero-content :is(h1, h2) span {
   display: block;
   color: #d5a8f1;
 }
@@ -1929,7 +1929,7 @@
     width: 87%;
     padding: 22px 20px 30px;
   }
-  .hero-content h1 {
+  .hero-content :is(h1, h2) {
     font-size: 29px;
     margin: 13px 0 10px;
   }

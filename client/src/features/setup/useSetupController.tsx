@@ -221,7 +221,9 @@ export function useSetupController() {
     (!billing.data && billing.error) || (!girlfriends && editError);
 
   // 获取全局提示词配置
-  const { data: apiConfig } = trpc.apiConfig.get.useQuery();
+  const { data: apiConfig } = trpc.apiConfig.get.useQuery(undefined, {
+    enabled: Boolean(user),
+  });
 
   // 仅在当前账号和表单首次就绪时合并草稿；后台刷新不覆盖编辑。
   useEffect(() => {
@@ -398,6 +400,7 @@ export function useSetupController() {
       });
       if (!isCurrent()) return;
       removeFormDraft(creationKey(key));
+      removeFormDraft(key ? `${key}:request` : null);
       void utils.conversation.invalidate().catch(() => undefined);
       setLocation(`/chat/${conversation.id}`, { replace: true });
     } catch {
@@ -408,6 +411,23 @@ export function useSetupController() {
     }
   };
 
+  const creationRequest = useRef<{ signature: string; id: string } | null>(
+    null
+  );
+  const creationId = (signature: string) => {
+    const key = draftKey ? `${draftKey}:request` : null;
+    const saved = readFormDraft(key) as {
+      signature?: string;
+      id?: string;
+    } | null;
+    if (saved?.signature === signature && saved.id) return saved.id;
+    if (creationRequest.current?.signature === signature)
+      return creationRequest.current.id;
+    const value = { signature, id: crypto.randomUUID() };
+    creationRequest.current = value;
+    writeFormDraft(key, value);
+    return value.id;
+  };
   const createGirlfriend = trpc.girlfriend.create.useMutation({
     onSettled: () => {
       submissionBusy.current = false;
@@ -765,6 +785,21 @@ export function useSetupController() {
       if (!imageFile) {
         submissionBusy.current = true;
         createGirlfriend.mutate({
+          clientRequestId: creationId(
+            JSON.stringify([
+              name,
+              personality,
+              appearance,
+              interests,
+              customPrompt,
+              presetId,
+              behavior,
+              omnivoiceVoiceId,
+              null,
+              null,
+              null,
+            ])
+          ),
           name: name.trim(),
           personality: personality.trim(),
           appearance: resolvedAppearance,
@@ -799,6 +834,21 @@ export function useSetupController() {
         const base64 = (reader.result as string).split(",")[1];
         setIsReadingImage(false);
         createGirlfriend.mutate({
+          clientRequestId: creationId(
+            JSON.stringify([
+              name,
+              personality,
+              appearance,
+              interests,
+              customPrompt,
+              presetId,
+              behavior,
+              omnivoiceVoiceId,
+              imageFile?.name,
+              imageFile?.size,
+              imageFile?.lastModified,
+            ])
+          ),
           name: name.trim(),
           personality: personality.trim(),
           appearance: resolvedAppearance,
@@ -859,6 +909,7 @@ export function useSetupController() {
       createdCharacter
         ? openCreatedConversation(createdCharacter)
         : Promise.resolve(),
+    coinInfo: billing.data?.economy,
     capacity: {
       ready: capacityReady,
       full: capacityFull,

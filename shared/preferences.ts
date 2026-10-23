@@ -16,7 +16,7 @@ export interface InterfacePreferences {
 export const DEFAULT_PREFERENCES: InterfacePreferences = {
   language: "system",
   theme: "",
-  colorMode: "system",
+  colorMode: "dark",
 };
 
 /** 校验本地偏好；主题存在性由当前发布配置决定。 */

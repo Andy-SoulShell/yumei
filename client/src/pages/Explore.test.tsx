@@ -134,14 +134,15 @@ describe("exploration", () => {
   });
   it("uses one style selection and preserves a selected preset in the URL", async () => {
     await settle(() => root.render(<Explore />));
-    const anime = container.querySelector<HTMLButtonElement>(
-      '[role="radio"][value="anime"]'
+    const style = container.querySelector<HTMLSelectElement>(
+      ".studio-compact-filters select"
     )!;
-    await settle(() => anime.click());
+    await settle(() => {
+      style.value = "anime";
+      style.dispatchEvent(new Event("change", { bubbles: true }));
+    });
     expect(container.querySelectorAll(".character-card")).toHaveLength(10);
-    expect(
-      container.querySelectorAll('[role="radio"][aria-checked="true"]')
-    ).toHaveLength(1);
+    expect(style.value).toBe("anime");
     await settle(() =>
       container.querySelector<HTMLButtonElement>(".character-card")!.click()
     );
@@ -186,10 +187,10 @@ describe("exploration", () => {
     await settle(() => root.render(<Explore />));
     expect(container.querySelectorAll(".character-card")).toHaveLength(20);
     expect(
-      container
-        .querySelector('[role="radio"][value="all"]')
-        ?.getAttribute("aria-checked")
-    ).toBe("true");
+      container.querySelector<HTMLSelectElement>(
+        ".studio-compact-filters select"
+      )?.value
+    ).toBe("all");
   });
   it("opens the selected character's existing chat flow from the detail dialog", async () => {
     mock.query = "character=rin";
@@ -199,6 +200,11 @@ describe("exploration", () => {
     expect(dialog.textContent).toContain("你们会怎样相处");
     expect(dialog.textContent).toContain(
       discoveryFixture.characters.find(role => role.id === "rin")!.personality
+    );
+    await settle(() =>
+      dialog
+        .querySelector<HTMLButtonElement>('[role="tab"][id$="-scenario-tab"]')!
+        .click()
     );
     expect(dialog.textContent).toContain("先感受一下对话");
     expect(
@@ -229,7 +235,11 @@ it("uses API page size and accepts newly published role IDs", async () => {
   mock.discoveryData = {
     ...discoveryFixture,
     characters: [character, ...discoveryFixture.characters],
-    home: { ...discoveryFixture.home, pageSize: 1 },
+    home: {
+      ...discoveryFixture.home,
+      pageSize: 1,
+      featuredIds: [character.id],
+    },
   };
   await settle(() => root.render(<Explore />));
   expect(container.querySelectorAll(".character-card")).toHaveLength(1);

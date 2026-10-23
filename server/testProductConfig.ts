@@ -24,7 +24,7 @@ export const THEMES = Object.fromEntries(
 );
 export const DEFAULT_PREFERENCES = {
   language: "system",
-  colorMode: "system",
+  colorMode: "dark",
   theme: productFixture.themes.defaultThemeId,
 } as const;
 

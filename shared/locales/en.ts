@@ -1,5 +1,42 @@
 /** 英文基准语言包；key 与插值参数构成类型契约。 */
 export default {
+  help: {
+    title: "Help & support",
+    intro:
+      "For account, payment and technical questions. This is not an emergency support service.",
+    paymentTitle: "Payments and subscriptions",
+    paymentBody:
+      "Manage renewal, payment details and invoices in Settings → Plan & usage. If a payment has not appeared, check access before purchasing again. For a refund request, provide the order reference; opening a ticket does not guarantee or automatically issue a refund.",
+    dataTitle: "Your data",
+    dataBody:
+      "Delete an individual conversation from Chats. Export data or delete your account in Privacy & data. Cancel automatic renewal before account deletion.",
+    ticketsTitle: "My support requests",
+    ticketNotice:
+      "Your message goes to this site’s support team. Check this page for replies. Do not send passwords, API keys, full card details or private chat content. Up to 5 new requests and 20 replies per account per day. The latest 100 messages are shown.",
+    signIn: "Sign in to contact support",
+    category: "Topic",
+    billing: "Payment / refund",
+    account: "Account / data",
+    technical: "Technical issue",
+    subject: "Subject",
+    orderReference: "Order reference (optional)",
+    message: "Describe the issue",
+    submit: "Submit request",
+    open: "Awaiting follow-up",
+    resolved: "Resolved",
+    reply: "Send reply",
+    staff: "Support team",
+    you: "You",
+    ticketId: "Request reference",
+    empty: "No support requests yet.",
+    failed:
+      "Could not complete the request. Keep your message and try again; daily submission limits may apply.",
+    back: "Back to requests",
+    newTicket: "New request",
+    replyPlaceholder: "Add details or follow up…",
+    sent: "Request received. Return here to check replies.",
+    privacy: "Data explanation",
+  },
   privacy: {
     title: "Privacy & data",
     intro: "Control your conversations and account data.",
@@ -1059,6 +1096,33 @@ export default {
       "Delete “{{name}}”? You can restore this companion from trash within {{days}} days.",
   },
   billing: {
+    manageSubscription: "Manage subscription / cancel renewal",
+    updatePayment: "Update payment method",
+    manageHint:
+      "Change your plan, cancel renewal and view invoices in the payment portal. Existing subscriptions are changed there to avoid a second purchase.",
+    portalUnavailable:
+      "Online subscription management is not configured. Use the billing link in your payment receipt or contact support below.",
+    refreshSubscription: "Paid already? Check access",
+    refreshDone: "Subscription status refreshed.",
+    paymentPending:
+      "Payment access is awaiting verification. Please check again shortly; contact support with the order reference if it remains missing.",
+    manageError:
+      "Could not open subscription management. Try again or contact support.",
+    statusLabel: "Subscription status",
+    status_active: "Active",
+    status_on_trial: "Trial",
+    status_cancelled: "Renewal cancelled",
+    status_expired: "Expired",
+    status_past_due: "Payment overdue",
+    status_unpaid: "Unpaid",
+    status_paused: "Paused",
+    nextRenewal: "Next billing date: {{time}}",
+    planPrice:
+      "Plan list price: {{price}}. Actual tax, discounts and renewal charges are shown in the payment portal.",
+    paymentHelp: "Payment help / request a refund",
+    paymentProblem:
+      "A payment needs attention. Update your payment method or contact support; avoid buying the subscription again.",
+
     chatQuotaExhausted:
       "Your daily message allowance is used up. It resets at {{time}}.",
     mediaQuotaExhausted:

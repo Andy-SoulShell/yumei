@@ -1,6 +1,41 @@
 /** 与英文基准包保持相同 key 和插值参数。 */
 import type { MessageCatalog } from "./types";
 export default {
+  help: {
+    title: "帮助与售后",
+    intro: "处理账号、付款和技术问题；此处不提供紧急救助。",
+    paymentTitle: "付款与订阅",
+    paymentBody:
+      "在“设置 → 订阅与用量”管理续费、付款方式和账单。付款未到账时先核对权益，避免重复购买。申请退款时请提供订单编号；提交工单不代表自动退款，也不保证退款结果。",
+    dataTitle: "个人数据",
+    dataBody:
+      "可在“聊天”单独删除会话，在“隐私与数据”导出资料或注销账号。注销前请先取消自动续费。",
+    ticketsTitle: "我的售后工单",
+    ticketNotice:
+      "内容将交给本站客服，请回到此页查看回复。请勿提交密码、API Key、完整银行卡信息或私密聊天内容。每账号每天最多新建 5 单、追问 20 次；展示最近 100 条消息。",
+    signIn: "登录后联系售后",
+    category: "问题类型",
+    billing: "付款／退款",
+    account: "账号／数据",
+    technical: "技术问题",
+    subject: "主题",
+    orderReference: "订单编号（可选）",
+    message: "问题描述",
+    submit: "提交工单",
+    open: "待跟进",
+    resolved: "已解决",
+    reply: "发送追问",
+    staff: "客服",
+    you: "你",
+    ticketId: "工单编号",
+    empty: "暂无售后工单。",
+    failed: "操作未完成，内容已保留，请重试；可能已达到当日提交次数。",
+    back: "返回工单列表",
+    newTicket: "新建工单",
+    replyPlaceholder: "补充说明或继续追问…",
+    sent: "工单已收到，请在此页查看后续回复。",
+    privacy: "查看数据说明",
+  },
   privacy: {
     title: "隐私与数据",
     intro: "管理你的会话、个人数据和账号。",
@@ -990,6 +1025,32 @@ export default {
       "确定要删除「{{name}}」吗？她将被移入回收站，{{days}} 天内可以恢复。",
   },
   billing: {
+    manageSubscription: "管理订阅／取消续费",
+    updatePayment: "更新付款方式",
+    manageHint:
+      "在支付平台变更套餐、取消续费、查看账单。已有订阅请在该入口变更，避免重复购买。",
+    portalUnavailable:
+      "本站尚未配置在线订阅管理。请使用付款收据中的管理链接，或通过下方售后入口联系处理。",
+    refreshSubscription: "已付款？核对权益",
+    refreshDone: "订阅状态已刷新。",
+    paymentPending:
+      "付款权益仍待核验，请稍后再次检查；持续未到账时请携带订单编号联系售后。",
+    manageError: "暂时无法打开订阅管理，请重试或联系售后。",
+    statusLabel: "订阅状态",
+    status_active: "生效中",
+    status_on_trial: "试用中",
+    status_cancelled: "已取消续费",
+    status_expired: "已到期",
+    status_past_due: "付款逾期",
+    status_unpaid: "付款未完成",
+    status_paused: "已暂停",
+    nextRenewal: "下次扣费日期：{{time}}",
+    planPrice:
+      "套餐标价：{{price}}。实际税费、折扣和续费金额请在支付平台核对。",
+    paymentHelp: "付款帮助／退款申请",
+    paymentProblem:
+      "付款状态需要处理，请更新付款方式或联系售后，避免重复购买。",
+
     chatQuotaExhausted: "今日聊天额度已用完，将于 {{time}} 恢复。",
     mediaQuotaExhausted: "图片额度已用完，将于 {{time}} 恢复。",
     retryAfterSeconds: "请求过于频繁，请在 {{seconds}} 秒后重试。",

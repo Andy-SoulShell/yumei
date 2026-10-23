@@ -1,3 +1,9 @@
+import { z } from "zod";
+import {
+  canManageSubscription,
+  readProviderSubscription,
+  subscriptionPortal,
+} from "../subscriptionManagement";
 import { quotaResetAt } from "../../shared/quotas";
 import { METERS } from "../../shared/quotas";
 import { keyProvider } from "../_core/keyProvider";
@@ -11,6 +17,16 @@ import {
 } from "../billing";
 
 export const billingRouter = router({
+  portal: protectedProcedure
+    .input(z.object({ action: z.enum(["manage", "payment"]) }))
+    .mutation(async ({ ctx, input }) => {
+      ctx.res.setHeader?.("Cache-Control", "no-store");
+      return subscriptionPortal(ctx.user.id, input.action);
+    }),
+  refresh: protectedProcedure.mutation(async ({ ctx }) => {
+    ctx.res.setHeader?.("Cache-Control", "no-store");
+    return { synced: Boolean(await readProviderSubscription(ctx.user.id)) };
+  }),
   /** 读取当前用户档位、订阅快照、BYOK 标识和用量，按模式提供结账地址。 */
   getInfo: protectedProcedure.query(async ({ ctx }) => {
     const { tier, limits, configuration } = await getTierLimits(ctx.user.id);
@@ -30,6 +46,12 @@ export const billingRouter = router({
 
     return {
       mode,
+      management: {
+        available: Boolean(subscription) && canManageSubscription(),
+        checkoutBlocked: Boolean(
+          subscription && subscription.status !== "expired"
+        ),
+      },
       plans: configuration.billing.plans,
       defaultTierId: configuration.billing.defaultTierId,
       tier,

@@ -1,6 +1,42 @@
 /** 与英文基准包保持相同 key 和插值参数。 */
 import type { MessageCatalog } from "./types";
 export default {
+  help: {
+    title: "도움말 및 고객 지원",
+    intro: "계정, 결제 및 기술 문제를 문의하세요. 긴급 지원 서비스는 아닙니다.",
+    paymentTitle: "결제와 구독",
+    paymentBody:
+      "설정의 요금제 및 사용량에서 갱신, 결제 수단과 청구서를 관리하세요. 결제가 반영되지 않으면 다시 구매하기 전에 이용 권한을 확인하세요. 환불 문의 시 주문 번호를 알려주세요. 문의 제출만으로 환불이 실행되거나 보장되지는 않습니다.",
+    dataTitle: "개인 데이터",
+    dataBody:
+      "채팅 목록에서 대화를 개별 삭제할 수 있습니다. 개인정보 및 데이터에서 내보내기나 계정 삭제를 할 수 있습니다. 계정 삭제 전에 자동 갱신을 취소하세요.",
+    ticketsTitle: "내 고객 지원 문의",
+    ticketNotice:
+      "내용은 이 사이트의 지원 담당자에게 전달됩니다. 이 페이지에서 답변을 확인하세요. 비밀번호, API 키, 전체 카드 번호나 사적인 대화 내용은 제출하지 마세요. 하루에 새 문의 5건, 추가 답변 20건까지 가능합니다. 최근 메시지 100개를 표시합니다.",
+    signIn: "로그인하여 문의하기",
+    category: "문의 유형",
+    billing: "결제 / 환불",
+    account: "계정 / 데이터",
+    technical: "기술 문제",
+    subject: "제목",
+    orderReference: "주문 번호 (선택)",
+    message: "문제 설명",
+    submit: "문의 제출",
+    open: "처리 대기",
+    resolved: "해결됨",
+    reply: "추가 답변 보내기",
+    staff: "지원 담당자",
+    you: "나",
+    ticketId: "문의 번호",
+    empty: "고객 지원 문의가 없습니다.",
+    failed:
+      "처리하지 못했습니다. 내용은 보관되니 다시 시도하세요. 하루 제출 한도에 도달했을 수 있습니다.",
+    back: "문의 목록으로",
+    newTicket: "새 문의",
+    replyPlaceholder: "추가 설명이나 질문…",
+    sent: "문의가 접수되었습니다. 이 페이지에서 답변을 확인하세요.",
+    privacy: "데이터 설명",
+  },
   privacy: {
     title: "개인정보 및 데이터",
     intro: "대화, 개인 데이터와 계정을 관리하세요.",
@@ -1044,6 +1080,33 @@ export default {
       "“{{name}}” 님을 삭제할까요? {{days}}일 안에 휴지통에서 복원할 수 있어요.",
   },
   billing: {
+    manageSubscription: "구독 관리 / 자동 갱신 취소",
+    updatePayment: "결제 수단 업데이트",
+    manageHint:
+      "결제 포털에서 요금제 변경, 갱신 취소, 청구서 확인을 할 수 있습니다. 기존 구독은 이곳에서 변경하여 중복 구매를 피하세요.",
+    portalUnavailable:
+      "온라인 구독 관리가 설정되지 않았습니다. 결제 영수증의 링크나 고객 지원을 이용하세요.",
+    refreshSubscription: "결제했나요? 이용 권한 확인",
+    refreshDone: "구독 상태를 새로고침했습니다.",
+    paymentPending:
+      "결제를 확인하고 있습니다. 잠시 후 다시 확인하고 계속 반영되지 않으면 주문 번호와 함께 문의하세요.",
+    manageError:
+      "구독 관리를 열지 못했습니다. 다시 시도하거나 고객 지원에 문의하세요.",
+    statusLabel: "구독 상태",
+    status_active: "사용 중",
+    status_on_trial: "체험 중",
+    status_cancelled: "갱신 취소됨",
+    status_expired: "만료됨",
+    status_past_due: "결제 기한 초과",
+    status_unpaid: "미결제",
+    status_paused: "일시 중지",
+    nextRenewal: "다음 청구일: {{time}}",
+    planPrice:
+      "요금제 표시 가격: {{price}}. 세금, 할인 및 실제 갱신 금액은 결제 포털에서 확인하세요.",
+    paymentHelp: "결제 도움말 / 환불 신청",
+    paymentProblem:
+      "결제 확인이 필요합니다. 결제 수단을 업데이트하거나 고객 지원에 문의하세요. 중복 구매하지 마세요.",
+
     chatQuotaExhausted:
       "오늘의 메시지 한도를 모두 사용했습니다. {{time}}에 초기화됩니다.",
     mediaQuotaExhausted:

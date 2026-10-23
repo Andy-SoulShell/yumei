@@ -211,7 +211,8 @@ const LS_STATUSES = new Set([
  * 事件约定参考 https://docs.lemonsqueezy.com/help/webhooks/event-types 。
  */
 export async function handleLemonEvent(
-  payload: LemonPayload
+  payload: LemonPayload,
+  expectedSubscriptionId?: string
 ): Promise<{ ok: true; ignored?: string } | { ok: false; error: string }> {
   const eventName = payload.meta?.event_name ?? "";
   if (!SUBSCRIPTION_EVENTS.has(eventName))
@@ -279,6 +280,12 @@ export async function handleLemonEvent(
       )
     )
       return { ok: false, error: "subscription owner mismatch" };
+    const current = rows.find(row => row.userId === userId);
+    if (
+      expectedSubscriptionId &&
+      current?.lsSubscriptionId !== expectedSubscriptionId
+    )
+      return { ok: false, error: "subscription changed while refreshing" };
     await tx
       .insert(billingEvents)
       .values({ id, userId, subscriptionId, eventName, occurredAt });
@@ -287,7 +294,6 @@ export async function handleLemonEvent(
         ok: true,
         ignored: "invoice recorded; awaiting subscription snapshot",
       };
-    const current = rows.find(row => row.userId === userId);
     if (
       current?.status === "expired" &&
       current.lsSubscriptionId === subscriptionId &&

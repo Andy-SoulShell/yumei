@@ -1,6 +1,43 @@
 /** 与英文基准包保持相同 key 和插值参数。 */
 import type { MessageCatalog } from "./types";
 export default {
+  help: {
+    title: "ヘルプとサポート",
+    intro:
+      "アカウント、支払い、技術的な問題のお問い合わせ。緊急相談窓口ではありません。",
+    paymentTitle: "支払いと購読",
+    paymentBody:
+      "設定の「プランと利用量」で更新、支払方法、請求書を管理できます。支払いが反映されない場合は、再購入する前に利用権を確認してください。返金申請には注文番号を添えてください。問い合わせの送信だけでは返金は実行・保証されません。",
+    dataTitle: "個人データ",
+    dataBody:
+      "チャット一覧から会話を個別に削除できます。「プライバシーとデータ」でエクスポートやアカウント削除ができます。削除前に自動更新を解約してください。",
+    ticketsTitle: "自分の問い合わせ",
+    ticketNotice:
+      "内容は本サイトのサポート担当に送信されます。このページで返信を確認してください。パスワード、API キー、カード番号全体や私的な会話内容は送信しないでください。1 日に新規 5 件、追記 20 件まで。最新 100 件のメッセージを表示します。",
+    signIn: "ログインして問い合わせる",
+    category: "種類",
+    billing: "支払い／返金",
+    account: "アカウント／データ",
+    technical: "技術的な問題",
+    subject: "件名",
+    orderReference: "注文番号（任意）",
+    message: "問題の説明",
+    submit: "問い合わせを送信",
+    open: "対応待ち",
+    resolved: "解決済み",
+    reply: "追記を送信",
+    staff: "サポート",
+    you: "あなた",
+    ticketId: "問い合わせ番号",
+    empty: "問い合わせはありません。",
+    failed:
+      "処理できませんでした。内容を保ったまま再試行してください。1 日の上限に達している場合があります。",
+    back: "一覧に戻る",
+    newTicket: "新しい問い合わせ",
+    replyPlaceholder: "詳細の追記や質問…",
+    sent: "受け付けました。このページで返信を確認してください。",
+    privacy: "データの説明",
+  },
   privacy: {
     title: "プライバシーとデータ",
     intro: "会話、個人データ、アカウントを管理します。",
@@ -1059,6 +1096,33 @@ export default {
       "「{{name}}」を削除しますか？ゴミ箱から{{days}}日以内なら復元できます。",
   },
   billing: {
+    manageSubscription: "購読管理／自動更新の解約",
+    updatePayment: "支払方法を更新",
+    manageHint:
+      "決済ポータルでプラン変更、更新の解約、請求書の確認ができます。既存の購読はここで変更し、重複購入を避けてください。",
+    portalUnavailable:
+      "オンライン購読管理が設定されていません。支払領収書のリンクまたはサポートをご利用ください。",
+    refreshSubscription: "支払済み？ 利用権を確認",
+    refreshDone: "購読状態を更新しました。",
+    paymentPending:
+      "支払いを確認中です。しばらくして再確認し、反映されない場合は注文番号を添えてお問い合わせください。",
+    manageError:
+      "購読管理を開けませんでした。再試行するかお問い合わせください。",
+    statusLabel: "購読状態",
+    status_active: "有効",
+    status_on_trial: "試用中",
+    status_cancelled: "自動更新を解約済み",
+    status_expired: "期限切れ",
+    status_past_due: "支払期限超過",
+    status_unpaid: "未払い",
+    status_paused: "一時停止",
+    nextRenewal: "次回請求日：{{time}}",
+    planPrice:
+      "プラン表示価格：{{price}}。税金、割引、更新時の請求額は決済ポータルで確認してください。",
+    paymentHelp: "支払いのヘルプ／返金申請",
+    paymentProblem:
+      "支払いの確認が必要です。支払方法を更新するかお問い合わせください。重複購入しないでください。",
+
     chatQuotaExhausted:
       "本日のメッセージ上限に達しました。{{time}} に回復します。",
     mediaQuotaExhausted: "画像の利用上限に達しました。{{time}} に回復します。",

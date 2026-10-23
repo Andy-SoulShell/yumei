@@ -1,3 +1,6 @@
+import { Link } from "wouter";
+import { useState } from "react";
+import { PageError } from "./PageError";
 import { formatPrice, formatResetTime } from "@/lib/formatters";
 /** 展示当前登录用户的套餐、实际用量与可用升级入口。 */
 
@@ -25,14 +28,34 @@ import { Crown, Sparkles } from "lucide-react";
 export function BillingCard() {
   const { t, locale } = useI18n();
   const { user } = useAuth();
-  const { data: info } = trpc.billing.getInfo.useQuery(undefined, {
+  const [notice, setNotice] = useState("");
+  const utils = trpc.useUtils();
+  const portal = trpc.billing.portal.useMutation({
+    onError: () => setNotice(t("billing:manageError")),
+    onSuccess: ({ url }) => window.location.assign(url),
+  });
+  const refresh = trpc.billing.refresh.useMutation({
+    onError: () => setNotice(t("billing:manageError")),
+    onSuccess: async ({ synced }) => {
+      await utils.billing.getInfo.invalidate();
+      setNotice(t(synced ? "billing:refreshDone" : "billing:paymentPending"));
+    },
+  });
+  const {
+    data: info,
+    error,
+    refetch,
+  } = trpc.billing.getInfo.useQuery(undefined, {
     refetchInterval: 60000,
     refetchOnWindowFocus: true,
   });
 
-  if (!info) return null;
+  if (!info) return error ? <PageError onRetry={() => void refetch()} /> : null;
   const currentPlan = info.plans.find(plan => plan.id === info.tier)!;
   const currentIndex = info.plans.indexOf(currentPlan);
+  const subscriptionPlan = info.plans.find(
+    plan => plan.id === info.subscription?.plan
+  );
   const upgrades = info.plans.filter(
     (plan, index) => plan.enabled && index > currentIndex && plan.checkoutUrl
   );
@@ -85,8 +108,91 @@ export function BillingCard() {
                 : t("billing:thankYouForSubscribing")}
         </CardDescription>
       </CardHeader>
-      {info.mode !== "none" && (
+      {(info.mode !== "none" || info.subscription) && (
         <CardContent className="space-y-4">
+          {info.subscription && (
+            <section
+              className="space-y-3"
+              aria-label={t("billing:statusLabel")}
+            >
+              <p>
+                {t("billing:statusLabel")}：
+                {t(`billing:status_${info.subscription.status}`)}
+              </p>
+              {info.subscription.status !== "cancelled" &&
+                info.subscription.status !== "expired" &&
+                info.subscription.renewsAt && (
+                  <p className="text-sm">
+                    {t("billing:nextRenewal", {
+                      time: formatResetTime(
+                        new Date(info.subscription.renewsAt).toISOString(),
+                        locale
+                      ),
+                    })}
+                  </p>
+                )}
+              <p className="text-xs text-muted-foreground">
+                {subscriptionPlan &&
+                  t("billing:planPrice", {
+                    price: formatPrice(subscriptionPlan.price, locale),
+                  })}
+              </p>
+              {["past_due", "unpaid", "paused"].includes(
+                info.subscription.status
+              ) && (
+                <p role="status" className="text-sm text-destructive">
+                  {t("billing:paymentProblem")}
+                </p>
+              )}
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  info.management?.available
+                    ? "billing:manageHint"
+                    : "billing:portalUnavailable"
+                )}
+              </p>
+              {info.management?.available && (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    disabled={portal.isPending}
+                    onClick={() => portal.mutate({ action: "manage" })}
+                  >
+                    {t("billing:manageSubscription")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={portal.isPending}
+                    onClick={() => portal.mutate({ action: "payment" })}
+                  >
+                    {t("billing:updatePayment")}
+                  </Button>
+                </div>
+              )}
+            </section>
+          )}
+          {info.mode === "lemonsqueezy" && (
+            <Button
+              variant="outline"
+              disabled={refresh.isPending}
+              onClick={() => {
+                setNotice("");
+                refresh.mutate();
+              }}
+            >
+              {t("billing:refreshSubscription")}
+            </Button>
+          )}
+          {notice && (
+            <p role="status" className="text-sm">
+              {notice}
+            </p>
+          )}
+          <Link
+            href="/help?category=billing"
+            className="block text-sm text-primary underline"
+          >
+            {t("billing:paymentHelp")}
+          </Link>
           {nearLimit && (
             <p className="text-xs rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-100 border border-amber-400/50 px-3 py-2">
               {t(
@@ -150,25 +256,27 @@ export function BillingCard() {
             </p>
           )}
 
-          {info.mode === "lemonsqueezy" && upgrades.length > 0 && (
-            <div className="flex flex-col sm:flex-row gap-2 pt-1">
-              {upgrades.map(plan => (
-                <Button
-                  key={plan.id}
-                  className="flex-1"
-                  onClick={() =>
-                    window.open(checkoutUrl(plan.checkoutUrl)!, "_blank")
-                  }
-                >
-                  <Sparkles className="w-4 h-4 mr-1.5" />
-                  {t("billing:upgrade", {
-                    plan: contentText(plan.label, locale),
-                    price: formatPrice(plan.price, locale),
-                  })}
-                </Button>
-              ))}
-            </div>
-          )}
+          {info.mode === "lemonsqueezy" &&
+            !info.management?.checkoutBlocked &&
+            upgrades.length > 0 && (
+              <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                {upgrades.map(plan => (
+                  <Button
+                    key={plan.id}
+                    className="flex-1"
+                    onClick={() =>
+                      window.open(checkoutUrl(plan.checkoutUrl)!, "_blank")
+                    }
+                  >
+                    <Sparkles className="w-4 h-4 mr-1.5" />
+                    {t("billing:upgrade", {
+                      plan: contentText(plan.label, locale),
+                      price: formatPrice(plan.price, locale),
+                    })}
+                  </Button>
+                ))}
+              </div>
+            )}
           {info.mode === "free" && (
             <p className="text-xs text-muted-foreground">
               {t("billing:paidSubscriptionsAreNotAvailableYetAddYour")}

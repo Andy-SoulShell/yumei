@@ -31,10 +31,16 @@ export const memoryRouter = router({
       z.object({
         id: z.number().int().positive(),
         content: z.string().trim().min(1).max(8000),
+        expectedVersion: z.number().int().positive().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      await editMemory(ctx.user.id, input.id, input.content);
+      await editMemory(
+        ctx.user.id,
+        input.id,
+        input.content,
+        input.expectedVersion
+      );
       return { success: true };
     }),
   clear: protectedProcedure
@@ -58,9 +64,14 @@ export const memoryRouter = router({
 
   /** 按当前用户归属删除一条记忆。 */
   delete: protectedProcedure
-    .input(z.object({ id: z.number() }))
+    .input(
+      z.object({
+        id: z.number().int().positive(),
+        expectedVersion: z.number().int().positive().optional(),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
-      await deleteMemory(ctx.user.id, input.id);
+      await deleteMemory(ctx.user.id, input.id, input.expectedVersion);
       return { success: true };
     }),
 

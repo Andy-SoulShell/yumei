@@ -11,6 +11,7 @@ import { ChatHeader } from "@/features/chat/ChatHeader";
 import { ChatMessages } from "@/features/chat/ChatMessages";
 import { useChatController } from "@/features/chat/useChatController";
 import { ImageSubmissionRecovery } from "@/features/chat/ImageSubmissionRecovery";
+import { MemoryChatNotice } from "@/features/memory/MemoryChatNotice";
 export default function Chat() {
   const sitePolicy = useProductConfig();
   const state = useChatController();
@@ -90,6 +91,7 @@ export default function Chat() {
         girlfriend={girlfriend}
         footer={
           <>
+            <MemoryChatNotice />
             <div className="mx-3 max-h-40 overflow-y-auto sm:mx-4">
               <ImageSubmissionRecovery conversationId={conversationId} />
             </div>

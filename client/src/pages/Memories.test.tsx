@@ -16,19 +16,31 @@ const mock = vi.hoisted(() => ({
   options: {} as Record<string, any>,
   mutations: {} as Record<string, ReturnType<typeof vi.fn>>,
   refresh: vi.fn(),
+  navigate: vi.fn(),
+  openChat: vi.fn(),
+  origin: null as any,
+  search: "",
+  roleId: "7",
+  accountId: "memory-qa",
+  queryError: null as any,
   success: vi.fn(),
   error: vi.fn(),
 }));
 vi.mock("@/_core/hooks/useAuth", () => ({
-  useAuth: () => ({ isAuthenticated: true, loading: false }),
+  useAuth: () => ({
+    user: { id: mock.accountId },
+    isAuthenticated: true,
+    loading: false,
+  }),
 }));
 vi.mock("@/hooks/useCompanionChat", () => ({
-  useCompanionChat: () => ({ open: vi.fn(), pending: null }),
+  useCompanionChat: () => ({ open: mock.openChat, pending: null }),
 }));
 vi.mock("@/hooks/usePageBack", () => ({ usePageBack: () => vi.fn() }));
 vi.mock("wouter", () => ({
-  useParams: () => ({ id: "7" }),
-  useLocation: () => ["/memories/7", vi.fn()],
+  useParams: () => ({ id: mock.roleId }),
+  useSearch: () => mock.search,
+  useLocation: () => ["/memories/7", mock.navigate],
 }));
 vi.mock("@/lib/i18n", () => ({
   useI18n: () => ({
@@ -52,6 +64,9 @@ vi.mock("@/lib/trpc", () => {
   });
   return {
     trpc: {
+      conversation: {
+        get: { useQuery: () => ({ data: mock.origin, isLoading: false }) },
+      },
       girlfriend: {
         list: {
           useQuery: () => ({
@@ -65,6 +80,7 @@ vi.mock("@/lib/trpc", () => {
         list: {
           useQuery: () => ({
             data: mock.rows,
+            error: mock.queryError,
             isLoading: false,
             refetch: mock.refresh,
           }),
@@ -72,6 +88,7 @@ vi.mock("@/lib/trpc", () => {
         state: {
           useQuery: () => ({
             data: mock.state,
+            error: mock.queryError,
             isLoading: false,
             refetch: mock.refresh,
           }),
@@ -85,8 +102,18 @@ vi.mock("@/lib/trpc", () => {
       },
       useUtils: () => ({
         memory: {
-          list: { invalidate: mock.refresh },
-          state: { invalidate: mock.refresh },
+          list: {
+            invalidate: mock.refresh,
+            setData: (_input: unknown, updater: any) => {
+              mock.rows = updater(mock.rows);
+            },
+          },
+          state: {
+            invalidate: mock.refresh,
+            setData: (_input: unknown, updater: any) => {
+              mock.state = updater(mock.state);
+            },
+          },
         },
       }),
     },
@@ -109,6 +136,15 @@ beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   vi.clearAllMocks();
   mock.locale = "zh-CN";
+  mock.roleId = "7";
+  mock.accountId = "memory-qa";
+  mock.search = "";
+  mock.origin = null;
+  mock.queryError = null;
+  mock.openChat.mockResolvedValue(true);
+  vi.stubGlobal("requestAnimationFrame", (fn: () => void) => setTimeout(fn, 0));
+  vi.stubGlobal("cancelAnimationFrame", clearTimeout);
+  Element.prototype.scrollIntoView = vi.fn();
   mock.pending = {};
   mock.options = {};
   mock.mutations = {};
@@ -116,6 +152,7 @@ beforeEach(() => {
   mock.rows = [
     {
       id: 10,
+      contentVersion: 1,
       girlfriendId: 7,
       category: "event",
       content: "周四有面试",
@@ -167,6 +204,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
+  vi.unstubAllGlobals();
 });
 
 function button(label: string, surface: ParentNode = container) {
@@ -310,6 +348,9 @@ it("keeps the existing pause state when an update fails", async () => {
   ).toBe("false");
   expect(mock.success).not.toHaveBeenCalled();
   expect(mock.error).toHaveBeenCalledOnce();
+  await settle(() =>
+    container.querySelector<HTMLButtonElement>('[role="switch"]')!.click()
+  );
   mock.state = { ...mock.state, enabled: true };
   await act(async () => {
     await mock.options.setEnabled.onSuccess(
@@ -357,15 +398,27 @@ it("rejects an empty correction, retains it on failure and closes it only on suc
   );
   await fill("textarea", " 面试已经改到周五 ");
   await submit("form:has(textarea)");
+  expect(mock.mutations.edit).not.toHaveBeenCalled();
+  const dialog = document.querySelector('[role="alertdialog"]')!;
+  expect(dialog.textContent).toContain("周四有面试");
+  expect(dialog.textContent).toContain("面试已经改到周五");
+  await settle(() => button(t()("memoryFlow:confirmEdit"), dialog).click());
   expect(mock.mutations.edit).toHaveBeenCalledWith({
     id: 10,
     content: "面试已经改到周五",
+    expectedVersion: 1,
   });
   await act(async () => mock.options.edit.onError({ message: "offline" }));
   expect(container.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
     " 面试已经改到周五 "
   );
   expect(mock.success).not.toHaveBeenCalled();
+  await settle(() =>
+    button(
+      t()("memoryFlow:retry"),
+      document.querySelector('[role="alertdialog"]')!
+    ).click()
+  );
   mock.rows = [
     { ...mock.rows[0], content: "面试已经改到周五", sourceType: "user_edit" },
   ];
@@ -382,12 +435,13 @@ it("explains history retention in delete confirmation and retains the row when d
   await render();
   await settle(() => button(t()("memories:deleteMemory")).click());
   const dialog = document.querySelector('[role="alertdialog"]')!;
-  expect(dialog.textContent).toContain(
-    t()("memories:deleteConfirm", { content: "周四有面试" })
-  );
+  expect(dialog.textContent).toContain(t()("memoryFlow:impactHistory"));
   expect(mock.mutations.delete).not.toHaveBeenCalled();
-  await settle(() => button(t()("common:delete"), dialog).click());
-  expect(mock.mutations.delete).toHaveBeenCalledWith({ id: 10 });
+  await settle(() => button(t()("memoryFlow:confirmDelete"), dialog).click());
+  expect(mock.mutations.delete).toHaveBeenCalledWith({
+    id: 10,
+    expectedVersion: 1,
+  });
   await act(async () => mock.options.delete.onError({ message: "offline" }));
   expect(container.textContent).toContain("周四有面试");
   expect(mock.success).not.toHaveBeenCalled();
@@ -402,10 +456,10 @@ it("requires confirmation before forgetting all memories even when the list is e
   await settle(() => clear.click());
   const dialog = document.querySelector('[role="alertdialog"]')!;
   expect(dialog.textContent).toContain(
-    t()("memories:clearConfirm", { name: "小雨" })
+    t()("memoryFlow:clearScope", { name: "小雨" })
   );
   expect(mock.mutations.clear).not.toHaveBeenCalled();
-  await settle(() => button(t()("common:delete"), dialog).click());
+  await settle(() => button(t()("memoryFlow:confirmClear"), dialog).click());
   expect(mock.mutations.clear).toHaveBeenCalledWith({ girlfriendId: 7 });
   expect(mock.success).not.toHaveBeenCalled();
   await act(async () => {
@@ -429,7 +483,7 @@ it("keeps saved memories and recap when forgetting everything fails", async () =
   await render();
   await settle(() => button(t()("memories:clearAll")).click());
   const dialog = document.querySelector('[role="alertdialog"]')!;
-  await settle(() => button(t()("common:delete"), dialog).click());
+  await settle(() => button(t()("memoryFlow:confirmClear"), dialog).click());
   await act(async () => mock.options.clear.onError({ message: "offline" }));
   expect(container.textContent).toContain("周四有面试");
   expect(container.textContent).toContain("最近在准备面试。");
@@ -456,3 +510,211 @@ vi.mock("@/components/TimeZonePicker", () => ({
     />
   ),
 }));
+
+it("returns to the exact originating chat after correction instead of resuming the newest one", async () => {
+  mock.search = "conversation=81";
+  mock.origin = { id: 81, girlfriendId: 7 };
+  await render();
+  await settle(() => button(t()("memories:editMemory")).click());
+  await fill("textarea", "周五面试");
+  await submit("form:has(textarea)");
+  const dialog = document.querySelector('[role="alertdialog"]')!;
+  expect(dialog.textContent).toContain(t()("memoryFlow:impactContext"));
+  expect(dialog.textContent).toContain(
+    t()("memoryFlow:impactScope", { name: "小雨" })
+  );
+  await settle(() => button(t()("memoryFlow:confirmEdit"), dialog).click());
+  await act(async () => {
+    await mock.options.edit.onSuccess();
+  });
+  await render();
+  await settle(() => button(t()("memoryFlow:returnCurrent")).click());
+  expect(mock.navigate).toHaveBeenCalledExactlyOnceWith(
+    "/chat/81?memoryUpdated=1"
+  );
+  expect(mock.openChat).not.toHaveBeenCalled();
+});
+it("does not navigate into another character's chat from a changed return parameter", async () => {
+  mock.search = "conversation=81";
+  mock.origin = { id: 81, girlfriendId: 88 };
+  await render();
+  expect(container.textContent).toContain(t()("memoryFlow:returnUnavailable"));
+  await settle(() => button(t()("memoryFlow:returnLatest")).click());
+  expect(mock.navigate).not.toHaveBeenCalled();
+  expect(mock.openChat).toHaveBeenCalledExactlyOnceWith(7);
+});
+it("retains the confirmation and error result on failure and blocks duplicate submissions", async () => {
+  await render();
+  await settle(() => button(t()("memories:deleteMemory")).click());
+  const dialog = document.querySelector('[role="alertdialog"]')!;
+  await act(async () => {
+    button(t()("memoryFlow:confirmDelete"), dialog).click();
+    button(t()("memoryFlow:confirmDelete"), dialog).click();
+  });
+  expect(mock.mutations.delete).toHaveBeenCalledTimes(1);
+  expect(dialog.textContent).toContain(t()("memoryFlow:working"));
+  await act(async () => mock.options.delete.onError({ message: "offline" }));
+  expect(document.querySelector('[role="alertdialog"]')).not.toBeNull();
+  expect(dialog.querySelector('[role="alert"]')?.textContent).toBe(
+    t()("memoryFlow:failed")
+  );
+  await settle(() => button(t()("memoryFlow:retry"), dialog).click());
+  expect(mock.mutations.delete).toHaveBeenCalledTimes(2);
+  await act(async () => {
+    await mock.options.delete.onSuccess();
+  });
+  await render();
+  expect(mock.rows).toEqual([]);
+  expect(container.textContent).toContain(t()("memoryFlow:deleted"));
+});
+it("distinguishes a successful write from a refresh failure without resurrecting deleted content", async () => {
+  await render();
+  await settle(() => button(t()("memories:deleteMemory")).click());
+  await settle(() =>
+    button(
+      t()("memoryFlow:confirmDelete"),
+      document.querySelector('[role="alertdialog"]')!
+    ).click()
+  );
+  mock.refresh.mockRejectedValue(new Error("read failed"));
+  await act(async () => {
+    await mock.options.delete.onSuccess();
+  });
+  await render();
+  expect(mock.rows).toEqual([]);
+  expect(container.textContent).toContain(t()("memoryFlow:refreshFailed"));
+  expect(mock.success).toHaveBeenCalledOnce();
+  expect(mock.error).not.toHaveBeenCalled();
+  mock.refresh.mockResolvedValue(undefined);
+  await settle(() => button(t()("memoryFlow:refresh")).click());
+  expect(mock.mutations.delete).toHaveBeenCalledTimes(1);
+});
+it("keeps a correction visible when background refresh fails and protects leaving with unsaved input", async () => {
+  await render();
+  await settle(() => button(t()("memories:editMemory")).click());
+  await fill("textarea", "未保存的新内容");
+  mock.queryError = new Error("offline");
+  await render();
+  expect(container.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+    "未保存的新内容"
+  );
+  expect(container.textContent).toContain(t()("memoryFlow:stale"));
+  await settle(() => button(t()("memoryFlow:continue")).click());
+  const dialog = document.querySelector('[role="alertdialog"]')!;
+  expect(dialog.textContent).toContain(t()("memoryFlow:discardHelp"));
+  await settle(() => button(t()("memoryFlow:stay"), dialog).click());
+  expect(mock.openChat).not.toHaveBeenCalled();
+  expect(container.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+    "未保存的新内容"
+  );
+});
+it("isolates old mutation results after changing the character or account", async () => {
+  await render();
+  await settle(() => button(t()("memories:deleteMemory")).click());
+  await settle(() =>
+    button(
+      t()("memoryFlow:confirmDelete"),
+      document.querySelector('[role="alertdialog"]')!
+    ).click()
+  );
+  const oldSuccess = mock.options.delete.onSuccess;
+  mock.accountId = "other-account";
+  await render();
+  await act(async () => {
+    await oldSuccess();
+  });
+  expect(mock.rows).toHaveLength(1);
+  expect(mock.success).not.toHaveBeenCalled();
+  expect(container.textContent).not.toContain(t()("memoryFlow:deleted"));
+});
+it("searches and filters full memory cards without losing source information", async () => {
+  mock.rows.push({
+    ...mock.rows[0],
+    id: 11,
+    category: "fact",
+    content: "我住在上海",
+  });
+  await render();
+  await fill('input[aria-label="' + t()("memoryFlow:search") + '"]', "上海");
+  expect(container.querySelectorAll(".memory-card")).toHaveLength(1);
+  expect(container.querySelector(".memory-card")?.textContent).toContain(
+    "我住在上海"
+  );
+  await fill(
+    'input[aria-label="' + t()("memoryFlow:search") + '"]',
+    "不存在的关键词"
+  );
+  expect(container.textContent).toContain(t()("memoryFlow:noMatches"));
+  await settle(() => button(t()("memoryFlow:reset")).click());
+  expect(container.querySelectorAll(".memory-card")).toHaveLength(2);
+});
+it("keeps the correction accessible if a refresh removes the original row", async () => {
+  await render();
+  await settle(() => button(t()("memories:editMemory")).click());
+  await fill("textarea", "保留这个草稿");
+  mock.rows = [];
+  await render();
+  expect(container.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+    "保留这个草稿"
+  );
+  expect(container.textContent).toContain(t()("memoryFlow:gone"));
+  expect(button(t()("memoryFlow:editReview")).disabled).toBe(true);
+});
+it("requires review against the latest version while keeping the user's correction", async () => {
+  await render();
+  await settle(() => button(t()("memories:editMemory")).click());
+  await fill("textarea", "保留这个草稿");
+  mock.rows = [
+    { ...mock.rows[0], contentVersion: 2, content: "另一处更新的原记忆" },
+  ];
+  await render();
+  expect(button(t()("memoryFlow:editReview")).disabled).toBe(true);
+  await settle(() => button(t()("memoryFlow:useLatest")).click());
+  expect(container.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+    "保留这个草稿"
+  );
+  await submit("form:has(textarea)");
+  await settle(() =>
+    button(
+      t()("memoryFlow:confirmEdit"),
+      document.querySelector('[role="alertdialog"]')!
+    ).click()
+  );
+  expect(mock.mutations.edit).toHaveBeenCalledWith({
+    id: 10,
+    content: "保留这个草稿",
+    expectedVersion: 2,
+  });
+});
+it("allows returning immediately after write confirmation while list refresh is still pending", async () => {
+  mock.search = "conversation=81";
+  mock.origin = { id: 81, girlfriendId: 7 };
+  await render();
+  await settle(() => button(t()("memories:editMemory")).click());
+  await fill("textarea", "新的记忆");
+  await submit("form:has(textarea)");
+  await settle(() =>
+    button(
+      t()("memoryFlow:confirmEdit"),
+      document.querySelector('[role="alertdialog"]')!
+    ).click()
+  );
+  let finish!: () => void;
+  const reading = new Promise<void>(resolve => {
+    finish = resolve;
+  });
+  mock.refresh.mockReturnValue(reading);
+  mock.pending.edit = true;
+  let completion!: Promise<void>;
+  await act(async () => {
+    completion = mock.options.edit.onSuccess();
+  });
+  await render();
+  expect(button(t()("memoryFlow:returnCurrent")).disabled).toBe(false);
+  await settle(() => button(t()("memoryFlow:returnCurrent")).click());
+  expect(mock.navigate).toHaveBeenCalledWith("/chat/81?memoryUpdated=1");
+  await act(async () => {
+    finish();
+    await completion;
+  });
+});

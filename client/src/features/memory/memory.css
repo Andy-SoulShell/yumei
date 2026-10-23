@@ -1,0 +1,63 @@
+.memories-page .memory-text,
+.memory-confirmation .memory-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.memories-page .memory-details > summary {
+  list-style: none;
+}
+.memories-page .memory-details > summary::-webkit-details-marker {
+  display: none;
+}
+.memories-page .memory-details[open] > summary > svg {
+  transform: rotate(180deg);
+}
+.memories-page [data-slot="button"],
+.memory-confirmation [data-slot="button"] {
+  min-height: 44px;
+  height: auto;
+  white-space: normal;
+}
+.memories-page .memory-return {
+  max-width: 38%;
+  padding-inline: 10px;
+}
+.memories-page :is(input, select, textarea, [data-slot="select-trigger"]) {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+}
+/* WebKit 的原生单选菜单需要显式高度，单独设置 min-height 仍可能缩到文字高度。 */
+.memories-page select {
+  height: 44px;
+}
+.memories-page [data-slot="switch"]::after {
+  content: "";
+  position: absolute;
+  inset: -10px 0;
+}
+.memories-page .memory-result {
+  scroll-margin-top: 96px;
+}
+@media (max-width: 640px) {
+  .memories-page :is(input, select, textarea, [data-slot="select-trigger"]) {
+    font-size: 16px;
+  }
+  .memory-confirmation {
+    max-height: min(calc(100dvh - 24px), var(--dialog-available-height));
+    width: min(calc(100% - 24px), var(--dialog-width));
+    border-radius: 20px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .memories-page *,
+  .memory-confirmation {
+    transition-duration: 0s;
+    animation-duration: 0s;
+  }
+}
+
+.memories-page :is(p, h1, h2, h3),
+.memory-confirmation {
+  overflow-wrap: anywhere;
+}

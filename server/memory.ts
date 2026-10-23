@@ -1044,7 +1044,11 @@ async function requireOwnedRole(
   return role;
 }
 /** 用户删除会使所有正在运行的派生任务和旧原文上下文失效。 */
-export async function deleteMemory(userId: string, id: number) {
+export async function deleteMemory(
+  userId: string,
+  id: number,
+  expectedVersion?: number
+) {
   const db = (await getDb())!;
   const [owned] = await db
     .select()
@@ -1053,6 +1057,17 @@ export async function deleteMemory(userId: string, id: number) {
   if (!owned) return;
   await withUserTransaction(userId, async tx => {
     await requireOwnedRole(tx, userId, owned.girlfriendId);
+    const [current] = await tx
+      .select()
+      .from(memories)
+      .where(and(eq(memories.id, id), eq(memories.userId, userId)))
+      .for("update");
+    if (!current) return;
+    if (
+      expectedVersion !== undefined &&
+      current.contentVersion !== expectedVersion
+    )
+      throw new TRPCError({ code: "CONFLICT", message: "Memory has changed" });
     await invalidateMemoryDerived(tx, userId, owned.girlfriendId);
     await tx
       .delete(memories)
@@ -1060,7 +1075,12 @@ export async function deleteMemory(userId: string, id: number) {
   });
 }
 /** 编辑视为用户新的明确输入，清除旧消息归属及旧事件日期。 */
-export async function editMemory(userId: string, id: number, content: string) {
+export async function editMemory(
+  userId: string,
+  id: number,
+  content: string,
+  expectedVersion?: number
+) {
   const parsed = z
     .string()
     .trim()
@@ -1084,6 +1104,13 @@ export async function editMemory(userId: string, id: number, content: string) {
         message: "Memory is unavailable",
       });
     await requireOwnedRole(tx, userId, memory.girlfriendId);
+    // 回包丢失后的相同更正不再推进遗忘边界，避免重试清掉刚继续的聊天。
+    if (memory.content === parsed.data) return;
+    if (
+      expectedVersion !== undefined &&
+      memory.contentVersion !== expectedVersion
+    )
+      throw new TRPCError({ code: "CONFLICT", message: "Memory has changed" });
     const [preferences] = await tx
       .select()
       .from(companionPreferences)

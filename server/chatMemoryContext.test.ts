@@ -151,3 +151,27 @@ it("ends a queued turn covered by the new forgetting boundary before any provide
     "failed"
   );
 });
+
+it("uses corrected memory in the same chat's next request while keeping the old messages viewable", async () => {
+  const a = await seed();
+  await memory.editMemory(
+    a.userId,
+    a.stored.id,
+    "我的猫叫糯米。",
+    a.stored.contentVersion
+  );
+  const fetchMock = vi.fn(async (_url: unknown, _options: RequestInit) =>
+    reply("你的猫叫糯米。")
+  );
+  vi.stubGlobal("fetch", fetchMock);
+  const next = await a.send("我的猫现在叫什么？");
+  expect(next.status).toBe("succeeded");
+  const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+  expect(JSON.stringify(body)).toContain("糯米");
+  expect(JSON.stringify(body)).not.toContain("麻薯");
+  expect(
+    (await getConversationMessages(a.conversation.id)).some(item =>
+      item.content.includes("麻薯")
+    )
+  ).toBe(true);
+});

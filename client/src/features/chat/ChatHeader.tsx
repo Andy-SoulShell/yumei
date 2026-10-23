@@ -265,7 +265,11 @@ export function ChatHeader({
           className="h-8 w-8 sm:h-10 sm:w-10"
           title={t("common:memoriesAboutYou")}
           aria-label={t("common:memoriesAboutYou")}
-          onClick={() => setLocation(`/memories/${girlfriend.id}`)}
+          onClick={() =>
+            setLocation(
+              `/memories/${girlfriend.id}${currentConversationId ? `?conversation=${currentConversationId}` : ""}`
+            )
+          }
         >
           <BookHeart className="w-4 h-4 sm:w-5 sm:h-5" />
         </Button>
@@ -346,7 +350,11 @@ export function ChatHeader({
             </DropdownMenuSub>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onSelect={() => setLocation(`/memories/${girlfriend.id}`)}
+              onSelect={() =>
+                setLocation(
+                  `/memories/${girlfriend.id}${currentConversationId ? `?conversation=${currentConversationId}` : ""}`
+                )
+              }
             >
               <BookHeart />
               {t("common:memoriesAboutYou")}

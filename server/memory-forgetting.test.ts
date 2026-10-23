@@ -169,3 +169,65 @@ it("rejects memories without a real source and removes forgotten metadata with t
       .where(eq(memoryExtractionJobs.girlfriendId, a.gf.id))
   ).toEqual([]);
 });
+
+it("rejects stale correction and deletion versions without erasing the newer memory or resetting context", async () => {
+  const a = await seed();
+  const db = (await getDb())!;
+  const [before] = await memory.listMemories(a.userId, a.gf.id);
+  await memory.editMemory(
+    a.userId,
+    before.id,
+    "我家的猫叫豆豆。",
+    before.contentVersion
+  );
+  const [role] = await db
+    .select()
+    .from(girlfriends)
+    .where(eq(girlfriends.id, a.gf.id));
+  await expect(
+    memory.editMemory(
+      a.userId,
+      before.id,
+      "旧页面写入另一个名字。",
+      before.contentVersion
+    )
+  ).rejects.toMatchObject({ code: "CONFLICT" });
+  await expect(
+    memory.deleteMemory(a.userId, before.id, before.contentVersion)
+  ).rejects.toMatchObject({ code: "CONFLICT" });
+  expect((await memory.listMemories(a.userId, a.gf.id))[0].content).toBe(
+    "我家的猫叫豆豆。"
+  );
+  expect(
+    (await db.select().from(girlfriends).where(eq(girlfriends.id, a.gf.id)))[0]
+      .memoryEpoch
+  ).toBe(role.memoryEpoch);
+});
+it("treats a repeated successful correction as a no-op after chatting continues", async () => {
+  const a = await seed();
+  const db = (await getDb())!;
+  const [before] = await memory.listMemories(a.userId, a.gf.id);
+  await memory.editMemory(
+    a.userId,
+    before.id,
+    "我家的猫叫豆豆。",
+    before.contentVersion
+  );
+  await a.send("接下来聊聊周末的安排。");
+  const [role] = await db
+    .select()
+    .from(girlfriends)
+    .where(eq(girlfriends.id, a.gf.id));
+  await memory.editMemory(
+    a.userId,
+    before.id,
+    "我家的猫叫豆豆。",
+    before.contentVersion
+  );
+  const [after] = await db
+    .select()
+    .from(girlfriends)
+    .where(eq(girlfriends.id, a.gf.id));
+  expect(after.memoryEpoch).toBe(role.memoryEpoch);
+  expect(after.memoryForgottenThroughId).toBe(role.memoryForgottenThroughId);
+});

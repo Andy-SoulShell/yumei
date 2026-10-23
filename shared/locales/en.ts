@@ -1,6 +1,7 @@
 /** 英文基准语言包；key 与插值参数构成类型契约。 */
 export default {
   help: {
+    faq: "Common questions",
     title: "Help & support",
     intro:
       "For account, payment and technical questions. This is not an emergency support service.",

@@ -84,3 +84,18 @@ it("blocks deletion and email requests while automatic renewal is active", () =>
   expect(mock.send).not.toHaveBeenCalled();
   expect(mock.remove).not.toHaveBeenCalled();
 });
+
+it("accepts a confirmation link opened while settings are already mounted without deleting automatically", async () => {
+  act(() => root.render(<PrivacySettings />));
+  expect(document.querySelector('[role="alertdialog"]')).toBeNull();
+  await act(async () => {
+    history.pushState(null, "", "/settings#deleteToken=" + "b".repeat(48));
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  });
+  expect(document.querySelector('[role="alertdialog"]')).not.toBeNull();
+  expect(
+    (document.getElementById("delete-token") as HTMLInputElement).value
+  ).toBe("b".repeat(48));
+  expect(location.hash).toBe("");
+  expect(mock.remove).not.toHaveBeenCalled();
+});

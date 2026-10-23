@@ -45,12 +45,24 @@ export function PrivacySettings() {
     send = trpc.privacy.requestDeletion.useMutation(),
     remove = trpc.privacy.deleteAccount.useMutation();
   useEffect(() => {
-    if (window.location.hash.includes("deleteToken="))
+    const acceptLink = () => {
+      const proof = new URLSearchParams(window.location.hash.slice(1)).get(
+        "deleteToken"
+      );
+      if (proof === null) return;
+      if (/^[a-f0-9]{48}$/.test(proof)) {
+        setToken(proof);
+        setOpen(true);
+      }
       window.history.replaceState(
         window.history.state,
         "",
         window.location.pathname + window.location.search
       );
+    };
+    acceptLink();
+    window.addEventListener("hashchange", acceptLink);
+    return () => window.removeEventListener("hashchange", acceptLink);
   }, []);
   const exportData = async () => {
     setError("");

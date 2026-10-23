@@ -2,6 +2,7 @@
 import type { MessageCatalog } from "./types";
 export default {
   help: {
+    faq: "자주 묻는 질문",
     title: "도움말 및 고객 지원",
     intro: "계정, 결제 및 기술 문제를 문의하세요. 긴급 지원 서비스는 아닙니다.",
     paymentTitle: "결제와 구독",

@@ -23,19 +23,24 @@ export default function Help() {
     <article className="mx-auto max-w-2xl space-y-6 p-5 pb-24">
       <h1 className="text-2xl font-semibold">{t("help:title")}</h1>
       <p>{t("help:intro")}</p>
-      {(
-        [
-          ["paymentTitle", "paymentBody"],
-          ["dataTitle", "dataBody"],
-        ] as const
-      ).map(([title, body]) => (
-        <section key={title} className="space-y-2">
-          <h2 className="text-lg font-medium">{t(`help:${title}`)}</h2>
-          <p className="leading-relaxed text-muted-foreground">
-            {t(`help:${body}`)}
-          </p>
-        </section>
-      ))}
+      <details open={!user} className="space-y-4">
+        <summary className="cursor-pointer font-medium">
+          {t("help:faq")}
+        </summary>
+        {(
+          [
+            ["paymentTitle", "paymentBody"],
+            ["dataTitle", "dataBody"],
+          ] as const
+        ).map(([title, body]) => (
+          <section key={title} className="space-y-2">
+            <h2 className="text-lg font-medium">{t(`help:${title}`)}</h2>
+            <p className="leading-relaxed text-muted-foreground">
+              {t(`help:${body}`)}
+            </p>
+          </section>
+        ))}
+      </details>
       <div className="flex gap-4">
         <Link href="/settings" className="text-primary underline">
           {t("billing:planUsage")}

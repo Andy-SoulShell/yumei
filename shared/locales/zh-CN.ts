@@ -2,6 +2,7 @@
 import type { MessageCatalog } from "./types";
 export default {
   help: {
+    faq: "常见问题",
     title: "帮助与售后",
     intro: "处理账号、付款和技术问题；此处不提供紧急救助。",
     paymentTitle: "付款与订阅",

@@ -2,6 +2,7 @@
 import type { MessageCatalog } from "./types";
 export default {
   help: {
+    faq: "よくある質問",
     title: "ヘルプとサポート",
     intro:
       "アカウント、支払い、技術的な問題のお問い合わせ。緊急相談窓口ではありません。",

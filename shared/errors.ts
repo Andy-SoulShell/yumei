@@ -2,7 +2,17 @@
 export type BusinessErrorDetails =
   | { reason: "VIDEO_REJECTED"; code: VideoRejection }
   | { reason: "LEVEL_LOCKED"; requiredLevel: number; currentLevel: number }
-  | { reason: "UPGRADE_REQUIRED" };
+  | { reason: "UPGRADE_REQUIRED" }
+  | {
+      reason: "QUOTA_EXCEEDED";
+      meter: string;
+      period: "day" | "month";
+      limit: number;
+      resetAt: string;
+    }
+  | { reason: "RATE_LIMITED"; retryAt: string | null }
+  | { reason: "CONCURRENCY_LIMIT" }
+  | { reason: "FOLLOWUP_LIMIT" };
 
 /** 视频界面错误的语义标识，不依赖服务端诊断文案。 */
 export type VideoRejection =

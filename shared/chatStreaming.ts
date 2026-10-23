@@ -1,4 +1,5 @@
 /** 流式聊天使用的客户端与服务端快照契约，不依赖浏览器连接生命周期。 */
+import type { BusinessErrorDetails } from "./errors";
 import type { Message } from "../drizzle/schema";
 
 /** 一轮任务的可恢复状态，终态不会因重连重新生成。 */
@@ -30,11 +31,7 @@ export type ChatStreamError = {
   error: {
     code: string;
     message: string;
-    business?: {
-      reason: string;
-      requiredLevel?: number;
-      currentLevel?: number;
-    } | null;
+    business?: BusinessErrorDetails | null;
   };
   requestId?: string;
 };

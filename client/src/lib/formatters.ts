@@ -35,3 +35,14 @@ export function formatPrice(
   }).format(price.amount);
   return translate(periods[price.period], locale, { price: amount });
 }
+
+/** 同一个额度恢复时刻按设备时区显示，保留时区名称避免含糊的“明天”。 */
+export function formatResetTime(value: string, locale?: string) {
+  return new Intl.DateTimeFormat(locale, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZoneName: "short",
+  }).format(new Date(value));
+}

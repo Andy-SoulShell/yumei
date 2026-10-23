@@ -1,3 +1,5 @@
+import { i18n } from "@shared/i18n";
+import { formatResetTime } from "./formatters";
 import type { Translator } from "@shared/i18n";
 import type { BusinessErrorDetails } from "@shared/errors";
 
@@ -10,6 +12,8 @@ export function apiErrorMessage(
   t: Translator
 ) {
   const business = error.data?.business;
+  const usage = usageLimitMessage(business, t);
+  if (usage) return usage;
   if (business?.reason === "VIDEO_REJECTED") return t(`video:${business.code}`);
   if (business?.reason === "LEVEL_LOCKED")
     return t("selfie:poseLocked", {
@@ -19,4 +23,31 @@ export function apiErrorMessage(
   if (business?.reason === "UPGRADE_REQUIRED")
     return t("chat:yourPlanDoesNotIncludeThisFeatureView");
   return error.message;
+}
+
+/** 只把结构化的用量原因展示给用户，不猜测 429 的具体含义。 */
+export function usageLimitMessage(
+  business: BusinessErrorDetails | null | undefined,
+  t: Translator
+) {
+  if (business?.reason === "QUOTA_EXCEEDED")
+    return t(
+      business.meter === "chat"
+        ? "billing:chatQuotaExhausted"
+        : "billing:mediaQuotaExhausted",
+      { time: formatResetTime(business.resetAt, i18n.resolvedLanguage) }
+    );
+  if (business?.reason === "RATE_LIMITED")
+    return business.retryAt
+      ? t("billing:retryAfterSeconds", {
+          seconds: Math.max(
+            1,
+            Math.ceil((Date.parse(business.retryAt) - Date.now()) / 1000)
+          ),
+        })
+      : t("billing:actionUnavailable");
+  if (business?.reason === "CONCURRENCY_LIMIT")
+    return t("billing:concurrencyLimit");
+  if (business?.reason === "FOLLOWUP_LIMIT") return t("billing:followupLimit");
+  return null;
 }

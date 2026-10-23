@@ -12,3 +12,12 @@ export const METERS = {
   intimacyReason: (girlfriendId: number, reason: string) =>
     `intimacy:${girlfriendId}:${reason}`,
 } as const;
+
+/** 用量周期以 UTC 计量；界面将此绝对时刻转换为用户本地时间。 */
+export function quotaResetAt(period: "day" | "month", now = new Date()) {
+  const next = new Date(now);
+  next.setUTCHours(0, 0, 0, 0);
+  if (period === "day") next.setUTCDate(next.getUTCDate() + 1);
+  else next.setUTCFullYear(next.getUTCFullYear(), next.getUTCMonth() + 1, 1);
+  return next.toISOString();
+}

@@ -6,7 +6,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useTTS } from "@/hooks/useTTS";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { useChatInputDraft } from "@/hooks/useChatInputDraft";
-import { apiErrorMessage } from "@/lib/errors";
+import { apiErrorMessage, usageLimitMessage } from "@/lib/errors";
 import { useI18n } from "@/lib/i18n";
 import { trpc } from "@/lib/trpc";
 import { readDeviceValue, writeDeviceValue } from "@/lib/deviceStorage";
@@ -445,12 +445,14 @@ export function useChatController() {
     {
       accountId: user?.id,
       onAccepted: () => {
+        void utils.billing?.getInfo.invalidate();
         void refetchMessages();
       },
       onComplete: (snapshot, draft) => {
         showRelationship(snapshot);
         if (snapshot.safetyNotice) setShowCrisisAlert(true);
         void refreshConversation();
+        void utils.billing?.getInfo.invalidate();
         if (
           snapshot.status === "succeeded" &&
           (autoPlay || draft.transcriptionId || draft.replyWithVoice) &&
@@ -465,6 +467,23 @@ export function useChatController() {
       onError: error => {
         if (error instanceof ChatStreamRequestError) {
           const reason = error.detail?.business;
+          const usage = usageLimitMessage(reason, t);
+          if (usage) {
+            void utils.billing?.getInfo.invalidate();
+            toast.error(
+              usage,
+              reason?.reason === "QUOTA_EXCEEDED"
+                ? {
+                    duration: 10000,
+                    action: {
+                      label: t("billing:viewUsage"),
+                      onClick: () => setLocation("/settings"),
+                    },
+                  }
+                : undefined
+            );
+            return;
+          }
           if (reason?.reason === "UPGRADE_REQUIRED") {
             toast.error(t("chat:yourPlanDoesNotIncludeThisFeatureView"), {
               action: {
@@ -575,8 +594,8 @@ export function useChatController() {
             current: error.data.business.currentLevel,
           })
         );
-      } else if (error.data?.code === "TOO_MANY_REQUESTS") {
-        toast.error(t("chat:selfieQuotaReachedCheckYourPlanOrAdd"), {
+      } else if (usageLimitMessage(error.data?.business, t)) {
+        toast.error(usageLimitMessage(error.data?.business, t)!, {
           action: {
             label: t("chat:openSettings"),
             onClick: () => setLocation("/settings"),
@@ -606,8 +625,8 @@ export function useChatController() {
     },
     onError: error => {
       void selfieQuota.refetch();
-      if (error.data?.code === "TOO_MANY_REQUESTS") {
-        toast.error(t("chat:selfieQuotaReachedCheckYourPlanOrAdd"), {
+      if (usageLimitMessage(error.data?.business, t)) {
+        toast.error(usageLimitMessage(error.data?.business, t)!, {
           action: {
             label: t("chat:openSettings"),
             onClick: () => setLocation("/settings"),

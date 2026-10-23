@@ -985,6 +985,19 @@ export default {
       "「{{name}}」を削除しますか？ゴミ箱から{{days}}日以内なら復元できます。",
   },
   billing: {
+    chatQuotaExhausted:
+      "本日のメッセージ上限に達しました。{{time}} に回復します。",
+    mediaQuotaExhausted: "画像の利用上限に達しました。{{time}} に回復します。",
+    retryAfterSeconds:
+      "リクエストが多すぎます。{{seconds}} 秒後にお試しください。",
+    actionUnavailable: "この操作は現在利用できません。",
+    concurrencyLimit: "別の処理が進行中です。完了後にお試しください。",
+    followupLimit:
+      "追加メッセージの上限です。返信の完了を待つか、新しい会話を始めてください。",
+    viewUsage: "利用枠を確認",
+    chatRemaining: "残り {{count}} メッセージ",
+    resetsAt: "{{time}} に回復",
+
     planUsage: "プランと利用状況",
     selfHostedModeAllFeaturesUnlockedWithNo:
       "セルフホスト：すべての機能が利用可能で、利用量の計測はありません。",

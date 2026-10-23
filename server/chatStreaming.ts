@@ -1,3 +1,4 @@
+import { usageError } from "./_core/usageErrors";
 import { CHAT_INPUT_CAPACITY } from "../shared/const";
 /** 独立于浏览器连接的持久聊天任务、租约执行和分句结算。 */
 import { TRPCError } from "@trpc/server";
@@ -107,9 +108,10 @@ async function consumeRate(tx: DbTransaction, userId: string, limit: number) {
   const [row] = await tx.select().from(rateWindows).where(where).for("update");
   const requests = row.requests.filter(time => now - time < 60_000);
   if (requests.length >= limit)
-    throw new TRPCError({
-      code: "TOO_MANY_REQUESTS",
-      message: "Too many chat requests",
+    throw usageError({
+      reason: "RATE_LIMITED",
+      retryAt:
+        limit === 0 ? null : new Date(requests[0] + 60_000).toISOString(),
     });
   await tx
     .update(rateWindows)
@@ -154,11 +156,7 @@ async function requireFollowupCapacity(
     burst.filter(item => item.role === "user").length >=
       (await getPublishedProductConfig(tx)).runtime.chat.burstMessages
   )
-    throw new TRPCError({
-      code: "TOO_MANY_REQUESTS",
-      message:
-        "Follow-up context is full. Let the current reply finish or start a new conversation.",
-    });
+    throw usageError({ reason: "FOLLOWUP_LIMIT" });
 }
 
 /** 原子接收用户消息、消费转写、预留额度并停止旧轮；不持有外部调用事务。 */
@@ -265,10 +263,7 @@ export async function submitChatTurn(
         )
       );
     if (Number(count.count) >= policy.runtime.chat.userConcurrency)
-      throw new TRPCError({
-        code: "TOO_MANY_REQUESTS",
-        message: "Too many active conversations",
-      });
+      throw usageError({ reason: "CONCURRENCY_LIMIT" });
     await consumeRate(tx, user.id, policy.billing.rateLimits.chat);
     if (input.transcriptionId)
       await consumeTranscription(

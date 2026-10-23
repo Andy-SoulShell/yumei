@@ -1,3 +1,4 @@
+import { usageLimitMessage } from "@/lib/errors";
 import { PhotoViewer } from "@/components/PhotoViewer";
 import { downloadImage } from "@/lib/downloadImage";
 import { toast } from "sonner";
@@ -222,11 +223,12 @@ export function ChatMessages({
             </div>
             <div className="flex items-center gap-2 text-xs text-destructive">
               <span role="status">
-                {t(
-                  item.uncertain
-                    ? "chat:streamNetworkUnknown"
-                    : "chat:messageNotSent"
-                )}
+                {usageLimitMessage(item.error?.business, t) ??
+                  t(
+                    item.uncertain
+                      ? "chat:streamNetworkUnknown"
+                      : "chat:messageNotSent"
+                  )}
               </span>
               <Button
                 type="button"

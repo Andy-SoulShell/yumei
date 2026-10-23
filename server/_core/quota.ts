@@ -1,6 +1,9 @@
 /** 数据库共享的滑动请求窗口，以及每日、每月额度计量。 */
 
+import { BusinessRuleError } from "./businessError";
 import { TRPCError } from "@trpc/server";
+import { quotaResetAt } from "../../shared/quotas";
+import { usageError } from "./usageErrors";
 import { sql } from "drizzle-orm";
 import { rateWindows, usageMeters } from "../../drizzle/schema";
 import type {
@@ -21,11 +24,7 @@ export async function checkRateLimit(
   const policy = configuration ?? (await getPublishedProductConfig());
   const limit = policy.billing.rateLimits[action],
     now = Date.now();
-  if (limit === 0)
-    throw new TRPCError({
-      code: "TOO_MANY_REQUESTS",
-      message: "This action is currently disabled by the request limit",
-    });
+  if (limit === 0) throw usageError({ reason: "RATE_LIMITED", retryAt: null });
   await db.transaction(async tx => {
     await tx
       .insert(rateWindows)
@@ -39,9 +38,9 @@ export async function checkRateLimit(
       .for("update");
     const requests = row.requests.filter(time => now - time < 60_000);
     if (requests.length >= limit)
-      throw new TRPCError({
-        code: "TOO_MANY_REQUESTS",
-        message: `Too many requests. Please wait ${Math.ceil((requests[0] + 60_000 - now) / 1000)}s and try again.`,
+      throw usageError({
+        reason: "RATE_LIMITED",
+        retryAt: new Date(requests[0] + 60_000).toISOString(),
       });
     requests.push(now);
     await tx
@@ -171,6 +170,13 @@ export async function consumeDailyMeter(
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
       message: `Daily limit reached (${limit} ${what}/day). Resets in about ${hours}h.${upsellHint}`,
+      cause: new BusinessRuleError({
+        reason: "QUOTA_EXCEEDED",
+        meter,
+        period: "day",
+        limit,
+        resetAt: quotaResetAt("day"),
+      }),
     });
   }
   return result;
@@ -189,6 +195,13 @@ export async function consumeMonthlyMeter(
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
       message: `Monthly limit reached (${limit} ${what}/month). Resets on the 1st.${upsellHint}`,
+      cause: new BusinessRuleError({
+        reason: "QUOTA_EXCEEDED",
+        meter,
+        period: "month",
+        limit,
+        resetAt: quotaResetAt("month"),
+      }),
     });
   }
   return result;

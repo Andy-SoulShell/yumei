@@ -1,4 +1,4 @@
-import { formatPrice } from "@/lib/formatters";
+import { formatPrice, formatResetTime } from "@/lib/formatters";
 /** 展示当前登录用户的套餐、实际用量与可用升级入口。 */
 
 import { useI18n } from "@/lib/i18n";
@@ -106,6 +106,13 @@ export function BillingCard() {
                 </span>
               </div>
               <Progress value={chatPct ?? 0} />
+              {info.usage.chatResetsAt && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("billing:resetsAt", {
+                    time: formatResetTime(info.usage.chatResetsAt, locale),
+                  })}
+                </p>
+              )}
             </div>
           )}
           {info.usage.selfieLimit != null && !info.byok.selfie && (
@@ -121,6 +128,13 @@ export function BillingCard() {
                 </span>
               </div>
               <Progress value={selfiePct ?? 0} />
+              {info.usage.selfieResetsAt && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("billing:resetsAt", {
+                    time: formatResetTime(info.usage.selfieResetsAt, locale),
+                  })}
+                </p>
+              )}
             </div>
           )}
           {(info.byok.chat || info.byok.selfie) && (

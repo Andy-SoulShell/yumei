@@ -1,3 +1,5 @@
+import { formatResetTime } from "@/lib/formatters";
+import { i18n } from "@shared/i18n";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { VoiceRecordButton } from "@/components/VoiceRecordButton";
@@ -28,6 +30,8 @@ import { formatChatQuote, parseChatQuote } from "./chatQuote";
 import type { ChatController } from "./useChatController";
 type Props = Pick<
   ChatController,
+  | "billingInfo"
+  | "setLocation"
   | "maxMessageLength"
   | "handleSendMessage"
   | "setShowPoseDialog"
@@ -65,6 +69,8 @@ type Props = Pick<
 
 /** 紧凑输入区支持多行草稿；等待回复时仍可继续输入。 */
 export function ChatComposer({
+  billingInfo,
+  setLocation,
   maxMessageLength,
   handleSendMessage,
   setShowPoseDialog,
@@ -429,6 +435,55 @@ export function ChatComposer({
           )}
         </div>
       </Collapsible>
+      {billingInfo &&
+        billingInfo.mode !== "none" &&
+        !billingInfo.byok.chat &&
+        billingInfo.usage.chatLimit != null && (
+          <div
+            className="flex items-center justify-between gap-2 px-2 pt-1 text-xs text-muted-foreground"
+            role="status"
+          >
+            <span>
+              {t("billing:chatRemaining", {
+                count: Math.max(
+                  0,
+                  billingInfo.usage.chatLimit - billingInfo.usage.chatToday
+                ),
+              })}
+              {billingInfo.usage.chatResetsAt
+                ? ` · ${t("billing:resetsAt", { time: formatResetTime(billingInfo.usage.chatResetsAt, i18n.resolvedLanguage) })}`
+                : ""}
+            </span>
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="h-auto shrink-0 p-0 text-xs"
+              onClick={() => setLocation("/settings")}
+            >
+              {t("billing:viewUsage")}
+            </Button>
+          </div>
+        )}
+      {toolsOpen &&
+        (apiConfig?.imageProvider.configured === false ||
+          selfieRemaining === 0) && (
+          <p role="status" className="px-2 pt-1 text-xs text-muted-foreground">
+            {photoLabel}
+            {selfieRemaining === 0 && billingInfo?.usage.selfieResetsAt
+              ? ` · ${t("billing:resetsAt", { time: formatResetTime(billingInfo.usage.selfieResetsAt, i18n.resolvedLanguage) })}`
+              : ""}{" "}
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-xs"
+              onClick={() => setLocation("/settings")}
+            >
+              {t("billing:viewUsage")}
+            </Button>
+          </p>
+        )}
     </form>
   );
 }

@@ -969,6 +969,20 @@ export default {
       "“{{name}}” 님을 삭제할까요? {{days}}일 안에 휴지통에서 복원할 수 있어요.",
   },
   billing: {
+    chatQuotaExhausted:
+      "오늘의 메시지 한도를 모두 사용했습니다. {{time}}에 초기화됩니다.",
+    mediaQuotaExhausted:
+      "이미지 한도를 모두 사용했습니다. {{time}}에 초기화됩니다.",
+    retryAfterSeconds:
+      "요청이 너무 많습니다. {{seconds}}초 후 다시 시도하세요.",
+    actionUnavailable: "현재 이 작업을 사용할 수 없습니다.",
+    concurrencyLimit: "다른 작업이 진행 중입니다. 완료 후 다시 시도하세요.",
+    followupLimit:
+      "추가 메시지 한도에 도달했습니다. 답변이 끝날 때까지 기다리거나 새 대화를 시작하세요.",
+    viewUsage: "이용 한도 보기",
+    chatRemaining: "메시지 {{count}}개 남음",
+    resetsAt: "{{time}}에 초기화",
+
     planUsage: "요금제 및 사용량",
     selfHostedModeAllFeaturesUnlockedWithNo:
       "자체 호스팅: 모든 기능을 사용할 수 있으며 사용량을 집계하지 않아요.",

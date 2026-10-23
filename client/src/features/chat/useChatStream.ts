@@ -23,6 +23,7 @@ export type FailedStreamSubmission = {
   submission: ChatStreamSubmission;
   /** 未知网络结果必须复用 UUID；已明确拒绝的重试创建新请求。 */
   uncertain: boolean;
+  error?: ChatStreamError["error"];
 };
 export type ChatStreamTransport = {
   create: (submission: ChatStreamSubmission) => Promise<ChatTurnSnapshot>;
@@ -380,7 +381,17 @@ export function useChatStream(
         if (!isCurrent() || scope.current !== epoch) return null;
         const uncertain =
           !(error instanceof ChatStreamRequestError) || error.status >= 500;
-        setFailures(current => [...current, { submission, uncertain }]);
+        setFailures(current => [
+          ...current,
+          {
+            submission,
+            uncertain,
+            error:
+              error instanceof ChatStreamRequestError
+                ? error.detail
+                : undefined,
+          },
+        ]);
         if (!uncertain) {
           liveRequests.current.delete(submission.clientRequestId);
           updateChatStreamDrafts(

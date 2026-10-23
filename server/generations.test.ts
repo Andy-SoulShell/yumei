@@ -405,3 +405,28 @@ describe("generation settlement", () => {
     await expect(storage.storageRead(request.outputKey!)).rejects.toThrow();
   });
 });
+
+it("rejects a depleted reservation with its exact quota reason without charging again", async () => {
+  const { userId, conversation } = await seed();
+  await tryConsumeDailyMeter(userId, "chat", 1);
+  await expect(
+    reserveGeneration({
+      userId,
+      conversationId: conversation.id,
+      kind: "chat",
+      meter: { name: "chat", period: "day", limit: 1, what: "messages" },
+    })
+  ).rejects.toMatchObject({
+    code: "TOO_MANY_REQUESTS",
+    cause: {
+      details: {
+        reason: "QUOTA_EXCEEDED",
+        meter: "chat",
+        period: "day",
+        limit: 1,
+        resetAt: expect.stringMatching(/T00:00:00\.000Z$/),
+      },
+    },
+  });
+  expect(await getDailyMeter(userId, "chat")).toBe(1);
+});

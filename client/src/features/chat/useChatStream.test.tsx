@@ -544,3 +544,29 @@ it("clears persisted uncertainty when discovery confirms acceptance without repl
   ).toHaveLength(0);
   expect(complete).not.toHaveBeenCalled();
 });
+
+it("retains the structured rejection on the unsent message for an inline explanation", async () => {
+  const business = {
+    reason: "QUOTA_EXCEEDED" as const,
+    meter: "chat",
+    period: "day" as const,
+    limit: 30,
+    resetAt: "2026-10-24T00:00:00.000Z",
+  };
+  vi.mocked(transport.create).mockRejectedValueOnce(
+    new ChatStreamRequestError(429, {
+      code: "TOO_MANY_REQUESTS",
+      message: "TOO_MANY_REQUESTS",
+      business,
+    })
+  );
+  await render();
+  await act(async () => {
+    await hook.submit({ content: "请保留这条未发送的消息" });
+  });
+  expect(hook.failures[0]).toMatchObject({
+    uncertain: false,
+    error: { business },
+    submission: { content: "请保留这条未发送的消息" },
+  });
+});

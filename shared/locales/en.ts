@@ -984,6 +984,20 @@ export default {
       "Delete “{{name}}”? You can restore this companion from trash within {{days}} days.",
   },
   billing: {
+    chatQuotaExhausted:
+      "Your daily message allowance is used up. It resets at {{time}}.",
+    mediaQuotaExhausted:
+      "Your image allowance is used up. It resets at {{time}}.",
+    retryAfterSeconds: "Too many requests. Try again in {{seconds}} seconds.",
+    actionUnavailable: "This action is currently unavailable.",
+    concurrencyLimit:
+      "Another task is still running. Wait for it to finish before trying again.",
+    followupLimit:
+      "The follow-up limit has been reached. Let the current reply finish, or start a new conversation.",
+    viewUsage: "View allowance",
+    chatRemaining: "{{count}} messages remaining",
+    resetsAt: "Resets at {{time}}",
+
     planUsage: "Plan & usage",
     selfHostedModeAllFeaturesUnlockedWithNo:
       "Self-hosted mode: all features unlocked, with no quota tracking.",

@@ -1,3 +1,4 @@
+import { quotaResetAt } from "../../shared/quotas";
 import { CHAT_INPUT_CAPACITY } from "../../shared/const";
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
@@ -284,6 +285,7 @@ export const selfieRouter = router({
         limit: limits.dailySelfies,
         remaining: Math.max(0, limits.dailySelfies - used),
         period: "day" as const,
+        resetAt: quotaResetAt("day"),
       };
     }
     const limit = limits.monthlySelfies ?? 0;
@@ -294,6 +296,7 @@ export const selfieRouter = router({
       limit,
       remaining: Math.max(0, limit - used),
       period: "month" as const,
+      resetAt: quotaResetAt("month"),
     };
   }),
 

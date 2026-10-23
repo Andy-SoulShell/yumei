@@ -922,6 +922,16 @@ export default {
       "确定要删除「{{name}}」吗？她将被移入回收站，{{days}} 天内可以恢复。",
   },
   billing: {
+    chatQuotaExhausted: "今日聊天额度已用完，将于 {{time}} 恢复。",
+    mediaQuotaExhausted: "图片额度已用完，将于 {{time}} 恢复。",
+    retryAfterSeconds: "请求过于频繁，请在 {{seconds}} 秒后重试。",
+    actionUnavailable: "此操作暂未开放。",
+    concurrencyLimit: "已有任务正在进行，请等待完成后重试。",
+    followupLimit: "补充消息已到上限，请等待当前回复完成，或开始新对话。",
+    viewUsage: "查看额度",
+    chatRemaining: "剩余 {{count}} 条消息",
+    resetsAt: "{{time}} 恢复额度",
+
     planUsage: "订阅与用量",
     selfHostedModeAllFeaturesUnlockedWithNo:
       "自托管模式：全部功能已解锁，不计量。",

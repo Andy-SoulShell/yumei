@@ -1,3 +1,5 @@
+import { quotaResetAt } from "../shared/quotas";
+import { usageError } from "./_core/usageErrors";
 import { getPublishedProductConfig } from "./repositories/productConfig";
 import { getLevelByPoints } from "../shared/intimacy";
 import { shouldExtractMemories } from "../shared/memory";
@@ -121,9 +123,17 @@ export async function reserveGenerationInTransaction(
       period!
     );
     if (!result.allowed)
-      throw new TRPCError({
-        code: "TOO_MANY_REQUESTS",
-        message: `${input.meter.period === "day" ? "Daily" : "Monthly"} limit reached (${input.meter.limit} ${input.meter.what}).${input.meter.hint ?? ""}`,
+      throw usageError({
+        reason: "QUOTA_EXCEEDED",
+        meter: input.meter.name,
+        period: input.meter.period,
+        limit: input.meter.limit,
+        resetAt: quotaResetAt(
+          input.meter.period,
+          new Date(
+            `${period}${input.meter.period === "day" ? "" : "-01"}T00:00:00Z`
+          )
+        ),
       });
   }
   await tx.insert(generationRequests).values({

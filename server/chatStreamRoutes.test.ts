@@ -189,3 +189,41 @@ describe("chat HTTP boundaries", () => {
     expect(mocks.stop).not.toHaveBeenCalled();
   });
 });
+
+it("preserves public quota and rate reasons across HTTP without exposing diagnostic text", async () => {
+  const { TRPCError } = await import("@trpc/server");
+  const { BusinessRuleError } = await import("./_core/businessError");
+  const reasons = [
+    {
+      reason: "QUOTA_EXCEEDED" as const,
+      meter: "chat",
+      period: "day" as const,
+      limit: 30,
+      resetAt: "2026-10-24T00:00:00.000Z",
+    },
+    { reason: "RATE_LIMITED" as const, retryAt: "2026-10-23T12:00:20.000Z" },
+    { reason: "CONCURRENCY_LIMIT" as const },
+  ];
+  for (const details of reasons) {
+    mocks.submit.mockRejectedValueOnce(
+      new TRPCError({
+        code: "TOO_MANY_REQUESTS",
+        message: "private-provider-diagnostic",
+        cause: new BusinessRuleError(details),
+      })
+    );
+    const response = await fetch(base, {
+      method: "POST",
+      headers: csrfHeaders,
+      body: JSON.stringify({
+        clientRequestId,
+        conversationId: 1,
+        content: "你好",
+      }),
+    });
+    expect(response.status).toBe(429);
+    const body = await response.json();
+    expect(body.error.business).toEqual(details);
+    expect(JSON.stringify(body)).not.toContain("private-provider-diagnostic");
+  }
+});

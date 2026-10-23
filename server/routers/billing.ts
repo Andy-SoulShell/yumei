@@ -1,3 +1,4 @@
+import { quotaResetAt } from "../../shared/quotas";
 import { METERS } from "../../shared/quotas";
 import { keyProvider } from "../_core/keyProvider";
 import { getDailyMeter, getMonthlyMeter } from "../_core/quota";
@@ -35,6 +36,10 @@ export const billingRouter = router({
       limits,
       byok,
       usage: {
+        chatResetsAt: quotaResetAt("day"),
+        selfieResetsAt: quotaResetAt(
+          limits.dailySelfies !== null ? "day" : "month"
+        ),
         chatToday: chatUsed,
         chatLimit: limits.dailyMessages,
         selfiesUsed: selfieUsed,

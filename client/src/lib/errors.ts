@@ -11,6 +11,13 @@ export function apiErrorMessage(
   t: Translator
 ) {
   const business = error.data?.business;
+  if (business?.reason === "COMMERCE_REJECTED")
+    return t(`economy:${business.code}`);
+  if (business?.reason === "INSUFFICIENT_COINS")
+    return t("economy:insufficient", {
+      required: business.required,
+      balance: business.balance,
+    });
   const usage = usageLimitMessage(business, t);
   if (usage) return usage;
   if (business?.reason === "VIDEO_REJECTED") return t(`video:${business.code}`);
@@ -29,6 +36,11 @@ export function usageLimitMessage(
   business: BusinessErrorDetails | null | undefined,
   t: Translator
 ) {
+  if (business?.reason === "INSUFFICIENT_COINS")
+    return t("economy:insufficient", {
+      required: business.required,
+      balance: business.balance,
+    });
   if (business?.reason === "QUOTA_EXCEEDED")
     return t(
       business.meter === "chat"

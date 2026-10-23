@@ -1,6 +1,304 @@
 /** 与英文基准包保持相同 key 和插值参数。 */
 import type { MessageCatalog } from "./types";
 export default {
+  economy: {
+    profileUnavailable:
+      "このクリエイタープロフィールは利用できません。コミュニティで他の作品をご覧ください。",
+    publicProfile: "公開クリエイタープロフィールを見る",
+    publicCharacters: "公開キャラクター（{{count}}）",
+
+    verifyEmail: "チャージ・紹介特典・出金申請の前にメールを認証してください。",
+    verifyAction: "メールを認証",
+    checkoutUnavailable:
+      "現在チャージを利用できません。残高は変わっていません。",
+    referralInvalid: "紹介コードが無効です。確認して再試行してください。",
+    referralIneligible:
+      "紹介コードは登録後7日以内、初回チャージ前のみ連携できます。",
+    referralLinked: "このアカウントには別の紹介コードが連携済みです。",
+    handleTaken: "このクリエイターIDは使用済みです。別のIDを選んでください。",
+    profileRequired: "キャラクター公開前に公開プロフィールを保存してください。",
+    sourceChanged:
+      "元のキャラクターまたは公開制限が変更されました。確認して再試行してください。",
+    payoutMinimum: "出金可能な収益が最低金額に達していません。",
+    payoutPending: "前の出金申請は確認中です。",
+    payoutUnavailable:
+      "現在の残高では出金できません。更新して最新の金額を確認してください。",
+    reviewChanged:
+      "提出内容が更新されています。再読み込みして審査してください。",
+    publicationUnavailable:
+      "このキャラクターは公開されていません。別のキャラクターを選んでください。",
+    draftHint:
+      "未保存の入力はこのタブにアカウント別に保存されます。保存・提出で変更が反映されます。",
+    noPublications:
+      "公開履歴はありません。プロフィールを保存し、公開するキャラクターを選んでください。",
+    editPublication: "編集して再提出",
+    viewPublication: "コミュニティで見る",
+    updatePending: "更新の審査中も、承認済みのバージョンは公開を続けます。",
+    updateRejected:
+      "更新は差し戻されました。承認済みのバージョンは引き続き公開されます。",
+    createFirst: "最初のキャラクターを作成",
+    previewPublic: "公開される設定を確認",
+    payoutConfirm:
+      "{{amount}}の出金を申請しますか？支払い完了または差し戻しまで金額が確保されます。",
+    confirmPayout: "出金申請を確定",
+    paymentReference: "支払い参照番号：{{id}}",
+    pendingPayments: "確認待ちのチャージ",
+    awaitingPayment:
+      "支払いは未確認です。支払い済みの場合は後で更新してください。確認中に再度支払わないでください。",
+    resumeCheckout: "支払いを再開",
+    expiredCheckout:
+      "支払いリンクは期限切れです。未払いの場合は新たにチャージしてください。",
+    orderHistory: "支払い・返金履歴",
+    orderNumber: "注文 {{id}}",
+    refundSummary: "返金済み {{amount}} · {{count}}コイン回収",
+    copyInvite: "招待リンクをコピー",
+    copiedInvite: "招待リンクをコピーしました",
+    copyFailed:
+      "コピーできませんでした。リンクを選択して手動でコピーしてください。",
+    referral_pending:
+      "紹介コード連携済み。初回チャージ確認後に特典が届きます。",
+    referral_rewarded: "紹介特典を受け取りました。",
+    referral_revoked: "注文の返金により紹介特典が取り消されました。",
+    noMetering:
+      "現在このサイトでは従量課金を行っていません。生成時にコインは消費されません。",
+    moreActivity: "以前の履歴を読み込む",
+    unavailableSelection:
+      "選択した公開内容は利用できません。別のキャラクターを選んでください。",
+    paymentConfirmed: "確認済み",
+    paymentRefunded: "返金済み",
+    checkoutWaiting: "支払い確認待ち",
+    checkoutExpired: "期限切れ",
+    availableOrders:
+      "直近20件の確認済み注文です。それ以前の履歴は注文番号を添えてサポートにお問い合わせください。",
+
+    planCoins: "支払い済みの各契約期間に {{count}} ボーナスコイン",
+    mediaPrices: "メッセージ {{chat}} コイン・画像 {{image}} コイン",
+
+    coinsReturned: "{{count}} コインをウォレットに返還しました。",
+    coinsCharged: "このタスクで {{count}} コインを使用しました。",
+    coinsReserved: "{{count}} コインを確保しました。失敗時は自動返還します。",
+
+    wallet: "コインウォレット",
+    creator: "クリエイタースタジオ",
+    balance: "利用可能なコイン",
+    bonus: "ボーナス {{count}} コイン",
+    paid: "購入済み {{count}} コイン",
+    insufficient:
+      "必要なコインは {{required}}、残高は {{balance}} です。ウォレットでチャージしてください。",
+    cost: "{{count}} コインを使用",
+    costs:
+      "メッセージ {{chat}}・画像 {{image}}・動画 {{video}}・キャラクター作成 {{character}} コイン",
+    costPolicy:
+      "ボーナスコインから使用します。失敗や生成前のキャンセルは全額返還。返信が表示されたチャットは1回分のみ課金されます。",
+    legacy:
+      "現在はプランの回数制です。コイン有効化後は生成をコインで決済し、キャラクター数と機能の利用条件はプランに従います。",
+    recharge: "コインをチャージ",
+    pack: "{{count}} コイン",
+    purchase: "安全な決済へ",
+    notConfigured:
+      "チャージはまだ利用できません。しばらくしてからお試しください。",
+    paymentNotice:
+      "決済確認後に反映されます。ここに戻るだけでは決済完了になりません。注文の返金では対象コインが回収され、使用済み分は未精算残高になる場合があります。",
+    history: "最近のコイン履歴",
+    noHistory: "コイン履歴はまだありません",
+    refresh: "残高を更新",
+    referrals: "友達を招待",
+    referralPolicy:
+      "登録7日以内にコードを登録した友達が初回チャージを完了すると、あなたに {{reward}}、友達に {{invitee}} ボーナスコイン。返金時は特典を取り消します。",
+    inviteLink: "招待リンク",
+    referralCode: "招待コード",
+    claim: "招待コードを登録",
+    claimDone: "登録しました。初回チャージ確認後に特典が付与されます。",
+    invited: "登録済み {{pending}} 人・特典付与 {{rewarded}} 人",
+    saved: "保存しました",
+    error:
+      "完了できませんでした。入力内容は保持されています。再試行してください。",
+    profile: "公開クリエイタープロフィール",
+    profileHint:
+      "ここに入力した名前・紹介文・公開キャラクターのみ表示します。メール、個人チャット、記憶、声は公開しません。",
+    handle: "クリエイターID（英小文字・数字・アンダースコア）",
+    displayName: "公開表示名",
+    bio: "自己紹介",
+    save: "プロフィールを保存",
+    publish: "キャラクターを公開",
+    summary: "キャラクター紹介（公開）",
+    scenario: "開始シーン（公開）",
+    publishHint:
+      "名前、参考画像、性格、外見、趣味、シーンを公開し、他のユーザーがコピーを作成できます。送信・更新には審査が必要です。",
+    confirmRights:
+      "キャラクターは成人で、画像・資料の公開権利を持っていることを確認します",
+    submitReview: "審査に送信",
+    submitted: "審査に送信しました。承認後にコミュニティへ表示されます。",
+    publications: "自分の公開作品",
+    pending: "審査中",
+    published: "公開済み",
+    rejected: "却下",
+    unlisted: "公開停止",
+    unlist: "公開を停止",
+    unlistConfirm:
+      "公開停止後は新たにアクセスできません。作成済みの個人コピーは維持されます。",
+    earnings: "クリエイター収益",
+    earningsPolicy:
+      "他のユーザーが購入コインを使用すると {{percent}}% の収益。ボーナスコインと自己利用は対象外。{{days}} 日後に精算申請が可能になり、返金分は取り消されます。",
+    availableEarnings: "精算可能：{{amount}}",
+    heldEarnings: "保留中：{{amount}}",
+    payout: "精算を申請",
+    payoutHint:
+      "最低精算額は {{amount}}。申請後に運営が確認し、アカウントのメールで支払いを調整します。外部送金完了後に支払い済みになります。",
+    payoutRequested: "精算を申請しました",
+    requested: "支払い確認待ち",
+    payoutPaid: "支払い済み",
+    communityEmpty:
+      "承認済みのコミュニティキャラクターはまだありません。最初のキャラクターを公開しましょう。",
+    byCreator: "作者：{{name}}",
+    chat: "チャットを始める",
+    welcome: "登録ボーナス",
+    purchaseReason: "コイン購入",
+    spend_chat: "チャット",
+    spend_selfie: "画像生成",
+    spend_couple: "ツーショット生成",
+    spend_video: "動画生成",
+    spend_character: "キャラクター作成",
+    generation_refund: "生成コイン返還",
+    purchase_refund: "注文返金による調整",
+    referral_reward: "招待特典",
+    invitee_reward: "招待登録特典",
+    referral_reversal: "招待特典取消",
+    subscription_coins: "サブスクリプションコイン",
+  },
+
+  studio: {
+    branchDraftSaved:
+      "新しい会話を作成しました。メッセージは未送信で、下書きを保持しています。モデル設定やコイン残高を確認して送信してください。",
+
+    editMessage: "このメッセージを編集",
+    regenerateReply: "別の返信を試す",
+    branchHint:
+      "このメッセージから新しい会話を作り、元の履歴を保持します。新しい返信は現在の料金ルールで計算し、失敗時はコインを返還します。既存の記憶は引き続き使用され、記憶管理で修正できます。",
+    branchAndGenerate: "分岐して返信を生成",
+
+    invalidUpload: "サイズ制限内の画像を選択してください。",
+    videoUnavailable:
+      "動画生成はまだ有効になっていません。管理者へ連絡してください。",
+
+    dailyChats: "1日のメッセージ：{{count}}",
+    characterAllowance: "キャラクター枠：{{count}}",
+    dailyImages: "1日の画像：{{count}}",
+    monthlyImages: "月間の画像：{{count}}",
+    unlimited: "無制限",
+
+    saved: "アカウントに保存しました",
+    unsaved: "お気に入りから削除しました",
+    saveFailed: "保存できませんでした。再試行してください。",
+    sortLabel: "キャラクターの並び順",
+    sort_recommended: "おすすめ",
+    sort_newest: "新着順",
+    sort_name: "名前順",
+    sort_age: "年齢順",
+    searchPlaceholder: "名前・性格・興味のある話題を検索…",
+    anyStyle: "すべてのスタイル",
+    anyAge: "すべての年齢",
+    ageLabel: "成人キャラクターの年齢",
+    ageRange: "{{range}} 歳",
+    myFavorites: "お気に入り",
+    tagsLabel: "性格で絞り込む",
+    tag_all: "すべて",
+    tag_warm: "優しく寄り添う",
+    tag_playful: "遊び心いっぱい",
+    tag_direct: "率直",
+    tag_reserved: "静かで控えめ",
+    tag_gradual: "ゆっくり仲良く",
+    tag_lively: "積極的",
+    clearFilters: "絞り込みを解除",
+    favoritesError: "お気に入りを読み込めません。閲覧は続けられます。",
+    noFavorites: "お気に入りはまだありません",
+    noFavoritesHint: "ハートを押してキャラクターを保存しましょう。",
+    addFavorite: "{{name}}を保存",
+    removeFavorite: "{{name}}の保存を解除",
+    feed: "フィード",
+    community: "コミュニティ",
+    help: "ヘルプデスク",
+    safety: "安全とプライバシー",
+    upgrade: "プランと利用枠",
+    share: "キャラクターを共有",
+    copied: "リンクをコピーしました",
+    copyFailed: "コピーできません。下のリンクをコピーしてください。",
+    profile: "キャラクター紹介",
+    scenario: "会話プレビュー",
+    photos: "ポートレート",
+    remix: "このキャラを元に作成",
+    createTitle: "理想のキャラクターを作ろう",
+    createIntro:
+      "スタイルから始めましょう。選んだ内容はキャラクター設定に反映されます。",
+    step_style: "スタイル",
+    step_general: "基本",
+    step_face: "顔",
+    step_body: "体型",
+    step_details: "詳細",
+    step_review: "画像と作成",
+    next: "次へ",
+    previous: "戻る",
+    start: "作成を始める",
+    quickCreate: "クイック作成",
+    preview: "キャラクタープレビュー",
+    previewHint:
+      "参照画像は人物の一貫性に、外見の選択は今後の画像と設定に使われます。",
+    age: "年齢（18歳以上）",
+    hairColor: "髪の色",
+    eyeColor: "瞳の色",
+    hairStyle: "髪型",
+    bodyType: "体型",
+    height: "身長",
+    outfit: "服装スタイル",
+    customDetails: "その他の外見の詳細",
+    inherit: "参照画像に合わせる",
+    black: "黒",
+    brown: "茶色",
+    blonde: "金色",
+    silver: "銀色",
+    blue: "青",
+    green: "緑",
+    long: "ロング",
+    short: "ショート",
+    wavy: "ウェーブ",
+    ponytail: "ポニーテール",
+    slim: "スリム",
+    athletic: "アスリート体型",
+    curvy: "ふくよか",
+    average: "バランスのよい体型",
+    petite: "小柄",
+    tall: "長身",
+    casual: "カジュアル",
+    elegant: "エレガント",
+    sporty: "スポーティ",
+    fantasy: "ファンタジー",
+    reviewHint:
+      "画像と設定を確認して作成します。性格・声・詳細設定も変更できます。",
+    createContinue: "確認して作成",
+    imageStudio: "画像スタジオ",
+    imagePrompt: "シーンの説明",
+    imagePromptHint: "服装・ポーズ・場所・光・画風を入力…",
+    generateImage: "画像を生成",
+    studioEmpty: "想像を画像に",
+    studioEmptyHint:
+      "キャラクターとシーンを選ぶと、受付済みタスクの進行状況が表示されます。",
+    selectCharacter: "キャラクターを選択",
+    imageRefund:
+      "失敗時は予約した画像利用枠を返還します。外部サービスの費用は各社の規定に従います。",
+    imageUnavailable:
+      "画像生成はまだ設定されていません。下書きを保管するか管理者へ連絡してください。",
+    communityTitle: "物語はキャラクターから始まる",
+    communityIntro:
+      "公開キャラクターを探し、作成ツールを学び、自分だけのキャラを作りましょう。会話や作品は自動公開されません。",
+    communityFeatured: "出会いたいキャラクター",
+    communityGuide: "作成ガイド",
+    feedIntro: "スワイプで発見",
+    browseAll: "すべて見る",
+    chooseFirst: "先にキャラクターを選択してください",
+    accountSafe: "あなただけのスペース",
+    favoriteScope:
+      "お気に入りはアカウントに保存され、他の端末でも利用できます。",
+  },
   memoryFlow: {
     relearn:
       "記憶が有効な場合、新しいメッセージで再び話した情報は学習されることがあります。",

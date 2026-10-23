@@ -1,5 +1,308 @@
 /** 英文基准语言包；key 与插值参数构成类型契约。 */
 export default {
+  economy: {
+    profileUnavailable:
+      "This creator profile is unavailable. Browse other creators in the community.",
+    publicProfile: "View public creator profile",
+    publicCharacters: "Published characters ({{count}})",
+
+    verifyEmail:
+      "Verify your email before topping up, claiming rewards or requesting a payout.",
+    verifyAction: "Verify email",
+    checkoutUnavailable:
+      "Secure top-ups are currently unavailable. Your balance is unchanged.",
+    referralInvalid:
+      "This referral code is invalid. Check the code and try again.",
+    referralIneligible:
+      "Referral codes can only be linked within 7 days of registration, before your first top-up.",
+    referralLinked:
+      "A different referral code is already linked to this account.",
+    handleTaken: "This creator handle is already taken. Choose another.",
+    profileRequired:
+      "Save your public creator profile before publishing a character.",
+    sourceChanged:
+      "The source character or publishing limits changed. Review the source character and try again.",
+    payoutMinimum:
+      "Your available earnings have not reached the minimum payout.",
+    payoutPending: "Your previous payout request is still being reviewed.",
+    payoutUnavailable:
+      "A payout is not available for this balance. Refresh to check the latest amount.",
+    reviewChanged:
+      "This submission changed. Refresh before reviewing it again.",
+    publicationUnavailable:
+      "This character is no longer public. Choose another character.",
+    draftHint:
+      "Unsaved input stays in this tab for your account. Only Save or Submit publishes changes.",
+    noPublications:
+      "No publications yet. Save your profile, then choose a character to publish.",
+    editPublication: "Edit and resubmit",
+    viewPublication: "View in community",
+    updatePending:
+      "The current version stays public while your update is reviewed.",
+    updateRejected:
+      "Your update was returned for revision. The approved version remains public.",
+    createFirst: "Create your first character",
+    previewPublic: "Preview public character details",
+    payoutConfirm:
+      "Request {{amount}}? This amount will be reserved until the request is paid or rejected.",
+    confirmPayout: "Confirm payout request",
+    paymentReference: "Payment reference: {{id}}",
+    pendingPayments: "Top-ups awaiting confirmation",
+    awaitingPayment:
+      "Payment not confirmed yet. If you have paid, refresh later. Do not pay again while confirmation is pending.",
+    resumeCheckout: "Resume checkout",
+    expiredCheckout:
+      "This checkout has expired. Start a new top-up if no payment was made.",
+    orderHistory: "Payment and refund records",
+    orderNumber: "Order {{id}}",
+    refundSummary: "Refunded {{amount}} · {{count}} coins reclaimed",
+    copyInvite: "Copy invitation link",
+    copiedInvite: "Invitation link copied",
+    copyFailed: "Could not copy. Select and copy the link manually.",
+    referral_pending:
+      "Referral linked. Rewards arrive after the first verified paid top-up.",
+    referral_rewarded: "Referral rewards received.",
+    referral_revoked: "Referral rewards were reversed after the order refund.",
+    noMetering:
+      "This site currently has no usage metering. Generation does not spend coins.",
+    moreActivity: "Load older activity",
+    unavailableSelection:
+      "The selected publication is no longer available. You can browse other characters below.",
+    paymentConfirmed: "Confirmed",
+    paymentRefunded: "Refunded",
+    checkoutWaiting: "Awaiting confirmation",
+    checkoutExpired: "Expired",
+    availableOrders:
+      "Latest 20 confirmed orders. Contact support with the order number for older records.",
+
+    planCoins: "{{count}} bonus coins per paid subscription period",
+    mediaPrices: "{{chat}} coins per message · {{image}} per image",
+
+    coinsReturned: "{{count}} coins returned to your wallet.",
+    coinsCharged: "Charged {{count}} coins for this task.",
+    coinsReserved:
+      "Reserved {{count}} coins. They return automatically if this task fails.",
+
+    wallet: "Coin wallet",
+    creator: "Creator studio",
+    balance: "Available coins",
+    bonus: "Bonus coins {{count}}",
+    paid: "Purchased coins {{count}}",
+    insufficient:
+      "Not enough coins: this costs {{required}} and your balance is {{balance}}. Open your wallet to top up.",
+    cost: "Costs {{count}} coins",
+    costs:
+      "Coins per message {{chat}} · image {{image}} · video {{video}} · character {{character}}",
+    costPolicy:
+      "Bonus coins are spent first. Failed tasks and tasks cancelled before generation receive a full coin refund. Chat requests with a visible reply are charged once.",
+    legacy:
+      "This site currently uses plan quotas. When coins are enabled, generation uses coins while character slots and feature access remain part of your plan.",
+    recharge: "Top up coins",
+    pack: "{{count}} coins",
+    purchase: "Continue to secure checkout",
+    notConfigured: "Top-ups are not available yet. Please check back later.",
+    paymentNotice:
+      "Coins arrive after payment confirmation. Refresh to check your balance. Returning here does not confirm payment. Order refunds reclaim the corresponding coins; spent coins may create an amount to repay.",
+    history: "Recent coin activity",
+    noHistory: "No coin activity yet",
+    refresh: "Refresh balance",
+    referrals: "Invite friends",
+    referralPolicy:
+      "When a friend claims your code within 7 days of joining and makes their first paid top-up, you receive {{reward}} bonus coins and they receive {{invitee}}. Refunds reverse these rewards.",
+    inviteLink: "Invitation link",
+    referralCode: "Referral code",
+    claim: "Claim referral code",
+    claimDone:
+      "Code linked. Rewards arrive after your first paid top-up is confirmed.",
+    invited: "Linked {{pending}} · Rewarded {{rewarded}}",
+    saved: "Saved",
+    error:
+      "The action could not be completed. Your input is preserved; please retry.",
+    profile: "Public creator profile",
+    profileHint:
+      "Only this display name, bio and published characters become public. Your email, private chats, memories and voices stay private.",
+    handle: "Creator handle (lowercase letters, digits or underscores)",
+    displayName: "Public display name",
+    bio: "Bio",
+    save: "Save profile",
+    publish: "Publish a character",
+    summary: "Character summary (public)",
+    scenario: "Opening scenario (public)",
+    publishHint:
+      "Publishes the selected character’s name, reference image, personality, appearance, interests and scenario so others can create a copy. Submissions and updates require review.",
+    confirmRights:
+      "I confirm this character is an adult and I have the rights to publish this image and profile",
+    submitReview: "Submit for review",
+    submitted:
+      "Submitted for review. It will appear in the community after approval.",
+    publications: "My publications",
+    pending: "In review",
+    published: "Published",
+    rejected: "Rejected",
+    unlisted: "Unlisted",
+    unlist: "Unlist",
+    unlistConfirm:
+      "Unlisting prevents new access. Existing private copies remain available to their owners.",
+    earnings: "Creator earnings",
+    earningsPolicy:
+      "Earn {{percent}}% when others spend purchased coins on your characters. Bonus coins and self-use do not earn revenue. Earnings clear after {{days}} days; refunds reverse the corresponding earnings.",
+    availableEarnings: "Available: {{amount}}",
+    heldEarnings: "Pending clearance: {{amount}}",
+    payout: "Request payout",
+    payoutHint:
+      "Minimum payout {{amount}}. Operations will verify your request and contact your account email to arrange payment. It is marked paid only after the external payment is completed.",
+    payoutRequested: "Payout requested",
+    requested: "Awaiting payment review",
+    payoutPaid: "Paid",
+    communityEmpty:
+      "No approved community characters yet. Create and publish the first one.",
+    byCreator: "By {{name}}",
+    chat: "Start chatting",
+    welcome: "Welcome bonus",
+    purchaseReason: "Coin purchase",
+    spend_chat: "Chat",
+    spend_selfie: "Image generation",
+    spend_couple: "Couple photo",
+    spend_video: "Video generation",
+    spend_character: "Character creation",
+    generation_refund: "Generation refund",
+    purchase_refund: "Order refund adjustment",
+    referral_reward: "Referral reward",
+    invitee_reward: "Invitation reward",
+    referral_reversal: "Referral reward reversal",
+    subscription_coins: "Subscription coins",
+  },
+
+  studio: {
+    branchDraftSaved:
+      "Your new conversation is ready. The message was not submitted and your draft is preserved. Check the model service or coin balance, then send it.",
+
+    editMessage: "Edit this message",
+    regenerateReply: "Try another reply",
+    branchHint:
+      "Creates a new conversation from this message and preserves the original history. The new reply uses your current billing rules; failed generation returns coins. Existing character memories remain available and can be corrected in Memory.",
+    branchAndGenerate: "Branch and generate reply",
+
+    invalidUpload: "Choose an image within the upload limit.",
+    videoUnavailable: "Video generation is not enabled yet. Contact support.",
+
+    dailyChats: "Daily messages: {{count}}",
+    characterAllowance: "Character slots: {{count}}",
+    dailyImages: "Daily images: {{count}}",
+    monthlyImages: "Monthly images: {{count}}",
+    unlimited: "Unlimited",
+
+    saved: "Saved to your account",
+    unsaved: "Removed from favorites",
+    saveFailed: "Couldn't save. Please try again.",
+    sortLabel: "Sort characters",
+    sort_recommended: "Recommended",
+    sort_newest: "Recently listed",
+    sort_name: "Name A–Z",
+    sort_age: "Age",
+    searchPlaceholder: "Search a name, personality or interest…",
+    anyStyle: "Any style",
+    anyAge: "Any age",
+    ageLabel: "Adult character age",
+    ageRange: "{{range}} years",
+    myFavorites: "Favorites",
+    tagsLabel: "Filter by personality",
+    tag_all: "All",
+    tag_warm: "Warm & caring",
+    tag_playful: "Playful",
+    tag_direct: "Straightforward",
+    tag_reserved: "Quiet & thoughtful",
+    tag_gradual: "Slow burn",
+    tag_lively: "Outgoing",
+    clearFilters: "Clear filters",
+    favoritesError: "Favorites couldn't load. You can still browse.",
+    noFavorites: "No favorites yet",
+    noFavoritesHint: "Tap a heart to save a character to your account.",
+    addFavorite: "Save {{name}}",
+    removeFavorite: "Unsave {{name}}",
+    feed: "Feed",
+    community: "Community",
+    help: "Help desk",
+    safety: "Safety & privacy",
+    upgrade: "Plans & credits",
+    share: "Share character",
+    copied: "Character link copied",
+    copyFailed: "Couldn't copy. Copy the link below.",
+    profile: "About",
+    scenario: "Scenario",
+    photos: "Portrait",
+    remix: "Remix character",
+    createTitle: "Create your dream character",
+    createIntro:
+      "Start with a style. Every choice becomes part of your character.",
+    step_style: "Style",
+    step_general: "General",
+    step_face: "Face",
+    step_body: "Build",
+    step_details: "Details",
+    step_review: "Portrait & create",
+    next: "Next",
+    previous: "Back",
+    start: "Start creating",
+    quickCreate: "Quick create",
+    preview: "Character preview",
+    previewHint:
+      "The reference preserves identity. Appearance choices guide future images and character details.",
+    age: "Age (18+)",
+    hairColor: "Hair color",
+    eyeColor: "Eye color",
+    hairStyle: "Hair style",
+    bodyType: "Build",
+    height: "Height",
+    outfit: "Clothing style",
+    customDetails: "Other appearance details",
+    inherit: "Keep reference",
+    black: "Black",
+    brown: "Brown",
+    blonde: "Blonde",
+    silver: "Silver",
+    blue: "Blue",
+    green: "Green",
+    long: "Long",
+    short: "Short",
+    wavy: "Wavy",
+    ponytail: "Ponytail",
+    slim: "Slim",
+    athletic: "Athletic",
+    curvy: "Curvy",
+    average: "Balanced",
+    petite: "Petite",
+    tall: "Tall",
+    casual: "Casual",
+    elegant: "Elegant",
+    sporty: "Sporty",
+    fantasy: "Fantasy",
+    reviewHint:
+      "Review your portrait and details, then create. You can also adjust personality, voice and advanced settings.",
+    createContinue: "Review & create",
+    imageStudio: "Image studio",
+    imagePrompt: "Scene description",
+    imagePromptHint: "Describe clothing, pose, scene, lighting and style…",
+    generateImage: "Generate image",
+    studioEmpty: "Bring your ideas to life",
+    studioEmptyHint:
+      "Choose a character and describe a scene. Your accepted task will appear here.",
+    selectCharacter: "Choose character",
+    imageRefund:
+      "Failed tasks return the reserved product image credit. Provider charges follow the provider's terms.",
+    imageUnavailable:
+      "Image generation isn't configured yet. Keep your draft or contact support.",
+    communityTitle: "Every story starts with a character",
+    communityIntro:
+      "Meet published characters, explore creation tools, or create your own. Private chats and creations are never published automatically.",
+    communityFeatured: "Characters to discover",
+    communityGuide: "Creation guide",
+    feedIntro: "Swipe to discover",
+    browseAll: "Browse all",
+    chooseFirst: "Choose a character first",
+    accountSafe: "Your private space",
+    favoriteScope: "Favorites sync with your account across devices.",
+  },
   memoryFlow: {
     relearn:
       "When memory is enabled, information you mention again in new messages may be learned again.",

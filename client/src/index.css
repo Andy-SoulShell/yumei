@@ -53,6 +53,19 @@
   --safe-area-right: env(safe-area-inset-right, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-left: env(safe-area-inset-left, 0px);
+  --dialog-edge-top: max(16px, var(--safe-area-top));
+  --dialog-edge-bottom: max(16px, var(--safe-area-bottom));
+  --dialog-available-height: calc(
+    var(--app-height) - var(--dialog-edge-top) - var(--dialog-edge-bottom)
+  );
+  --dialog-width: calc(
+    100% - 2 * max(16px, var(--safe-area-left), var(--safe-area-right))
+  );
+  --dialog-center: calc(
+    var(--keyboard-viewport-top, 0px) +
+      (var(--app-height) + var(--dialog-edge-top) - var(--dialog-edge-bottom)) /
+      2
+  );
   --primary: var(--theme-primary, #b94a0a); /* 默认暖橙，按所选配色覆盖。 */
   --primary-foreground: var(--theme-primary-foreground, #fff);
   --sidebar-primary: var(--theme-primary, #b94a0a);

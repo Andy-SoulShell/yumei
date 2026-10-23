@@ -26,8 +26,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
         }}
         mobileOffset={{
           top: "calc(var(--keyboard-viewport-top, 0px) + var(--toast-header-offset, 0px) + max(12px, var(--safe-area-top)))",
-          left: 16,
-          right: 16,
+          left: "max(16px, var(--safe-area-left))",
+          right: "max(16px, var(--safe-area-right))",
         }}
         style={
           {

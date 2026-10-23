@@ -6,7 +6,7 @@ import { PageError } from "@/components/PageError";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Heart, Loader2 } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { useChatScrollAnchor } from "@/hooks/useChatScrollAnchor";
 
 import { ChatMessage } from "./ChatMessage";
@@ -43,7 +43,10 @@ type Props = Pick<
   | "generateSelfie"
   | "generateCouple"
   | "messagesEndRef"
-> & { girlfriend: NonNullable<ChatController["girlfriend"]> };
+> & {
+  girlfriend: NonNullable<ChatController["girlfriend"]>;
+  footer?: ReactNode;
+};
 
 /** 展示分页消息、图片和生成状态，并保留历史消息加载入口。 */
 export function ChatMessages({
@@ -77,6 +80,7 @@ export function ChatMessages({
   generateSelfie,
   generateCouple,
   messagesEndRef,
+  footer,
 }: Props) {
   const [viewing, setViewing] = useState<number | null>(null);
   const opener = useRef<HTMLButtonElement>(null);
@@ -330,6 +334,7 @@ export function ChatMessages({
           </div>
         )}
 
+        {footer}
         <div ref={messagesEndRef} />
       </div>
       <PhotoViewer

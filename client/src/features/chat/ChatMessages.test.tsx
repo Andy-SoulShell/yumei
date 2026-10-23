@@ -375,3 +375,23 @@ it("navigates a sent quote and only updates its row while history is loading", a
   await render();
   expect(button.disabled).toBe(false);
 });
+
+it("keeps chat notices inside scrollable history before the end anchor", async () => {
+  props.footer = (
+    <p role="status" data-notice="memory">
+      Memory changed; continue chatting.
+    </p>
+  );
+  await render();
+  const notice = container.querySelector('[data-notice="memory"]')!;
+  expect(notice.closest(".chat-messages")).not.toBeNull();
+  expect(notice.closest("[data-message-id]")).toBeNull();
+  const message = container.querySelector('[data-message-id="2"]')!;
+  expect(
+    message.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING
+  ).toBeTruthy();
+  expect(
+    notice.compareDocumentPosition(props.messagesEndRef.current!) &
+      Node.DOCUMENT_POSITION_FOLLOWING
+  ).toBeTruthy();
+});

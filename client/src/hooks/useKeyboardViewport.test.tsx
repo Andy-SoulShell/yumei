@@ -87,7 +87,7 @@ describe("软键盘视觉视口", () => {
     vi.stubGlobal("innerHeight", 480);
     resize(480);
     input.blur();
-    expect(height()).toBe("");
+    expect(height()).toBe("480px");
     viewport.dispatchEvent(new Event("resize"));
     input.focus();
     expect(height()).toBe("480px");
@@ -134,13 +134,15 @@ describe("软键盘视觉视口", () => {
     expect(top()).toBe("0px");
   });
 
-  it("没有输入焦点时不把窗口变化当成软键盘，失焦也清除临时高度", () => {
+  it("没有输入焦点时不进入键盘模式，已展开后失焦要等待可视区域恢复", () => {
     resize(450);
     expect(height()).toBe("");
     const input = container.querySelector("input")!;
     input.focus();
     expect(height()).toBe("450px");
     input.blur();
+    expect(height()).toBe("450px");
+    resize(800);
     expect(height()).toBe("");
     expect(top()).toBe("");
     expect(document.documentElement.hasAttribute("data-keyboard-open")).toBe(
@@ -173,4 +175,94 @@ describe("软键盘视觉视口", () => {
     expect(height()).toBe("");
     expect(top()).toBe("");
   });
+});
+
+it("带着安卓键盘横竖屏切换时保留键盘布局，关闭后恢复", () => {
+  container.querySelector("input")!.focus();
+  vi.stubGlobal("innerHeight", 480);
+  resize(480);
+  vi.stubGlobal("innerWidth", 800);
+  vi.stubGlobal("innerHeight", 180);
+  resize(180);
+  expect(height()).toBe("180px");
+  expect(document.documentElement.hasAttribute("data-keyboard-open")).toBe(
+    true
+  );
+  vi.stubGlobal("innerWidth", 390);
+  vi.stubGlobal("innerHeight", 480);
+  resize(480);
+  expect(height()).toBe("480px");
+  vi.stubGlobal("innerHeight", 800);
+  resize(800);
+  expect(height()).toBe("");
+});
+
+it("点击保存按钮后，键盘关闭动画中仍保留视觉视口的偏移", () => {
+  const input = container.querySelector("input")!;
+  input.focus();
+  viewport.offsetTop = 80;
+  resize(300);
+  input.blur();
+  expect(height()).toBe("300px");
+  expect(top()).toBe("80px");
+  viewport.offsetTop = 0;
+  resize(800);
+  expect(height()).toBe("");
+  expect(top()).toBe("");
+});
+
+it("缩小后将焦点滚入表单可见区，连续视口平移不会取消补偿或抢用户滚动", async () => {
+  const frames = new Map<number, FrameRequestCallback>();
+  let frameId = 0;
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    frames.set(++frameId, callback);
+    return frameId;
+  });
+  vi.stubGlobal("cancelAnimationFrame", (id: number) => frames.delete(id));
+  function ScrollForm() {
+    useKeyboardViewport();
+    return (
+      <div style={{ overflowY: "auto" }}>
+        <div className="page-toolbar" />
+        <input />
+      </div>
+    );
+  }
+  await act(async () => root.render(<ScrollForm />));
+  const scroller = container.firstElementChild as HTMLElement;
+  const input = container.querySelector("input")!;
+  Object.defineProperties(scroller, {
+    clientHeight: { value: 300 },
+    scrollHeight: { value: 900 },
+  });
+  const rect = (top: number, bottom: number) =>
+    ({ top, bottom, height: bottom - top }) as DOMRect;
+  vi.spyOn(scroller, "getBoundingClientRect").mockReturnValue(rect(0, 300));
+  vi.spyOn(
+    container.querySelector(".page-toolbar")!,
+    "getBoundingClientRect"
+  ).mockReturnValue(rect(0, 60));
+  const inputRect = vi
+    .spyOn(input, "getBoundingClientRect")
+    .mockReturnValue(rect(420, 464));
+  input.focus();
+  resize(300);
+  viewport.dispatchEvent(new Event("scroll"));
+  expect(frames.size).toBe(1);
+  for (const [id, frame] of Array.from(frames)) {
+    frames.delete(id);
+    frame(0);
+  }
+  expect(scroller.scrollTop).toBe(172);
+  inputRect.mockReturnValue(rect(100, 144));
+  resize(300);
+  for (const [id, frame] of Array.from(frames)) {
+    frames.delete(id);
+    frame(0);
+  }
+  expect(scroller.scrollTop).toBe(172);
+  inputRect.mockReturnValue(rect(500, 544));
+  viewport.dispatchEvent(new Event("scroll"));
+  expect(frames.size).toBe(0);
+  expect(scroller.scrollTop).toBe(172);
 });

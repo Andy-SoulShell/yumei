@@ -502,8 +502,8 @@
   min-width: 0;
   min-height: 44px;
   max-height: max(
-    68px,
-    min(164px, calc(var(--keyboard-viewport-height, 100dvh) * 0.28))
+    44px,
+    min(164px, calc(var(--keyboard-viewport-height, 100dvh) * 0.22))
   );
   resize: none;
   overflow-y: auto;
@@ -807,7 +807,10 @@
   padding-right: 56px;
 }
 .toaster [data-sonner-toast] {
-  max-height: max(120px, 35dvh);
+  max-height: min(
+    max(120px, 35dvh),
+    calc(var(--app-height) - max(12px, var(--safe-area-top)) - 12px)
+  );
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -2013,8 +2016,8 @@
 /* Portal 浮层也使用视觉视口，避免抽屉搜索和弹框按钮落到键盘后面。 */
 :root[data-keyboard-open] [data-slot="dialog-content"],
 :root[data-keyboard-open] [data-slot="alert-dialog-content"] {
-  top: calc(var(--keyboard-viewport-top) + var(--app-height) / 2);
-  max-height: calc(var(--app-height) - 32px);
+  top: var(--dialog-center);
+  max-height: var(--dialog-available-height);
 }
 :root[data-keyboard-open] .sheet-panel {
   max-height: var(--app-height);
@@ -2037,13 +2040,50 @@
     display: none;
   }
   :root[data-keyboard-open] .app-shell:not(.is-chat) .app-main {
+    padding-top: 0;
     padding-bottom: 16px;
+    scroll-padding-top: 76px;
     scroll-padding-bottom: 16px;
+  }
+  /* 输入时保留页面自己的操作栏，全局导航让出可用高度。 */
+  :root[data-keyboard-open] .app-shell:not(.is-chat) > .app-header {
+    display: none;
+  }
+  :root[data-keyboard-open] .app-shell:not(.is-chat) .app-workspace {
+    padding-top: var(--safe-area-top);
+  }
+  :root[data-keyboard-open] :is(.settings-page, .memories-page) textarea {
+    min-height: 64px;
+    max-height: max(
+      64px,
+      calc(var(--app-height) - var(--safe-area-top) - 104px)
+    );
   }
   :root[data-keyboard-open] .app-shell.is-chat > .app-header {
     display: none;
   }
   :root[data-keyboard-open] .app-shell.is-chat .chat-header {
-    padding-top: calc(8px + var(--safe-area-top));
+    min-height: 52px;
+    padding-top: calc(4px + var(--safe-area-top));
+    padding-bottom: 4px;
+  }
+  :root[data-keyboard-open] .chat-composer {
+    padding-block: 4px;
+    max-height: calc(var(--app-height) - var(--safe-area-top) - 60px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  :root[data-keyboard-open] .chat-messages {
+    padding-block: 4px;
+  }
+}
+
+/* 横放时仍使用手机输入字号，避免 iOS 聚焦表单后自动放大。 */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select,
+  [data-slot="select-trigger"] {
+    font-size: 16px;
   }
 }

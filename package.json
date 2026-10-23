@@ -29,7 +29,8 @@
     "ui:migrate": "pnpm dlx shadcn@4.22.1 migrate radix",
     "test:db:reset": "node scripts/test.mjs --reset",
     "test:settings": "vitest run --config vitest.settings.config.ts",
-    "test:memory": "vitest run --config vitest.memory.config.ts"
+    "test:memory": "vitest run --config vitest.memory.config.ts",
+    "test:acceptance": "vitest run --config vitest.acceptance.config.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1152.0",

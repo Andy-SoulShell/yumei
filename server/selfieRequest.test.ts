@@ -60,3 +60,68 @@ describe("explicit selfie requests", () => {
     });
   });
 });
+
+describe("four-language request consistency", () => {
+  it.each([
+    "自撮りを一枚送って",
+    "セルフィーを見せてください",
+    "あなたの写真を見たい",
+    "写真を送ってもらえる？",
+    "気軽な一枚で自撮りを撮って",
+    "セルフィーを生成して",
+    "셀카 한 장 보내줘",
+    "네 사진 보여줘",
+    "너의 사진을 보고 싶어",
+    "셀피를 생성해 주세요",
+    "사진 한 장 찍어줘",
+  ])("accepts an explicit Japanese or Korean request: %s", text => {
+    expect(detectSelfieRequest(text)).not.toBeNull();
+  });
+  it.each([
+    "自撮りは送らないで",
+    "セルフィーはいらない",
+    "自撮りを生成しないで",
+    "あなたの写真を見たくない",
+    "セルフィーの撮り方を説明して",
+    "『自撮りを送って』を英語に翻訳して",
+    "昨日自撮りを撮った",
+    "彼女が自撮りを送ってと言った",
+    "猫の写真を送って",
+    "셀카 보내지 마",
+    "셀카를 찍지 말아 줘",
+    "사진은 필요 없어",
+    "셀카를 생성하지 마세요",
+    "셀카 보내줘를 영어로 번역해줘",
+    "셀카 만드는 방법을 설명해줘",
+    "어제 셀카 찍었어",
+    "친구가 셀카 보내달라고 했어",
+    "고양이 사진을 보여줘",
+    "she said send me a selfie",
+  ])(
+    "keeps negation, quotation and meta discussion in ordinary chat: %s",
+    text => {
+      expect(detectSelfieRequest(text)).toBeNull();
+    }
+  );
+});
+it.each([
+  "don't use the Playful pose, send me a selfie",
+  "甘えん坊じゃなくて、気軽な一枚の自撮りを送って",
+  "애교 말고 가볍게 셀카 보내줘",
+])("does not select a negated pose in any supported language: %s", text => {
+  expect(detectSelfieRequest(text)).toEqual({ poseId: "casual" });
+});
+it.each([
+  "don't wear a hat, send me a selfie",
+  "帽子なしで自撮りを送って",
+  "모자 없이 셀카 보내줘",
+])("keeps appearance constraints distinct from refusing a photo: %s", text => {
+  expect(detectSelfieRequest(text)).not.toBeNull();
+});
+it.each([
+  "'send me a selfie'",
+  "I don't want you to send a selfie",
+  "do not generate a selfie",
+])("does not turn a quoted or refused request into generation: %s", text => {
+  expect(detectSelfieRequest(text)).toBeNull();
+});

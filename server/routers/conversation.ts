@@ -14,7 +14,11 @@ import {
   searchConversations,
 } from "../repositories/conversations";
 
+import { deleteConversation } from "../privacy";
 export const conversationRouter = router({
+  delete: protectedProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(({ ctx, input }) => deleteConversation(ctx.user.id, input.id)),
   /** 校验角色归属后复用最近会话，首次创建通过事务内角色行锁串行化。 */
   resume: protectedProcedure
     .input(

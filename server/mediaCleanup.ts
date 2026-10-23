@@ -13,7 +13,7 @@ import {
   users,
 } from "../drizzle/schema";
 import { log, providerErrorSummary } from "./_core/log";
-import { getDb, withUserTransaction, type DbTransaction } from "./database";
+import { getDb, type DbTransaction } from "./database";
 import { storageDelete } from "./storage";
 
 /** 检查用户头像、角色、相册和聊天消息是否仍引用媒体键。 */
@@ -141,9 +141,18 @@ export async function flushMediaDeletions(userId?: string): Promise<void> {
         return true;
       };
       // 官方上传来自独立管理会话，不存在对应的用户行；清理仍通过任务行锁互斥。
-      const claimed = task.key.startsWith("official-")
-        ? await db.transaction(claim)
-        : await withUserTransaction(task.userId, claim);
+      const claimed = await db.transaction(
+        async tx => {
+          // 注销账号已无用户行，仍需回收遗留对象；存在的账号继续使用同一用户锁。
+          await tx
+            .select({ id: users.id })
+            .from(users)
+            .where(eq(users.id, task.userId))
+            .for("update");
+          return claim(tx);
+        },
+        { isolationLevel: "read committed" }
+      );
       if (!claimed) continue;
       await storageDelete(task.key);
       await db.delete(mediaDeletions).where(eq(mediaDeletions.key, task.key));

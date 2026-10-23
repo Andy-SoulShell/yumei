@@ -1,6 +1,58 @@
 /** 与英文基准包保持相同 key 和插值参数。 */
 import type { MessageCatalog } from "./types";
 export default {
+  privacy: {
+    title: "隐私与数据",
+    intro: "管理你的会话、个人数据和账号。",
+    noticeTitle: "数据如何使用",
+    noticeBody:
+      "本站保存个人资料、会话、已保存的记忆、偏好和媒体。发起聊天、图片、转写或语音请求时，会将该请求需要的内容交给所选服务商处理；服务商按其自身规则处理数据。请勿提交不希望交给服务商的信息。",
+    retentionTitle: "保存与删除",
+    retentionBody:
+      "数据保留到你主动删除。回收站角色在配置的保留期内可恢复。永久删除后，文字数据立即不可用；媒体进入清理队列，失败会重试。第三方已处理的数据和你已下载的副本不在本站删除范围内，支付记录由支付平台管理。",
+    localTitle: "此设备上的数据",
+    localBody:
+      "普通表单草稿保存在当前标签页，已选文件仅在内存中。退出登录会清理本地草稿和私有媒体缓存。其他设备可能保留下载文件或浏览器缓存；共享设备请退出并自行清理。",
+    export: "下载我的数据（JSON）",
+    exportHelp:
+      "包含个人资料、角色、会话、记忆、偏好、音色参考和相册索引。媒体以链接形式提供，文件需另行下载，链接可能过期。不包含密码、API Key 或登录令牌。",
+    exportFailed: "下载失败，请重试。",
+    deleteConversation: "删除会话",
+    conversationWarning:
+      "永久删除这段会话、其中的相册媒体、从中提取的记忆、相关摘要和待发提醒。其他会话和角色保留。此操作无法撤销。",
+    conversationDeleted: "会话已删除。",
+    deleteAccount: "注销账号",
+    deleteWarning:
+      "将永久删除账号、全部角色（含回收站）、会话、记忆、私有音色参考、密钥和登录会话。剩余订阅时间将无法使用。建议先导出数据；此操作不代表申请退款。",
+    cancelFirst: "注销前需先取消自动续费。请管理订阅，完成后刷新本页。",
+    sendConfirmation: "发送注销确认邮件",
+    emailSent:
+      "确认链接已发送到已验证的账号邮箱。请在 15 分钟内打开链接，回到这里完成最终确认。仅打开邮件链接不会删除数据。",
+    emailLabel: "输入账号邮箱以确认",
+    tokenLabel: "注销确认码",
+    tokenHelp: "打开确认邮件中的链接，或粘贴链接中 deleteToken= 后的确认码。",
+    confirmLabel: "输入 DELETE 确认永久注销",
+    deleteFailed:
+      "注销未完成，请检查邮箱、确认码、有效期和订阅状态；必要时重新发送确认邮件。",
+    requestFailed: "确认邮件未能发送，请等待一分钟后重试。",
+    deleteEmailSubject: "确认注销 YUMEI 账号",
+    deleteEmailInstruction:
+      "你申请了注销账号。点击链接进入最终确认，仅打开链接不会删除数据。若不是本人操作，请忽略。",
+    deleteEmailAction: "查看注销确认",
+    receiptTitle: "账号删除进度",
+    accountRemoved: "账号和存储的文字数据已删除，所有登录会话已撤销。",
+    mediaPending:
+      "媒体仍在清理。已登记上传和进行中的任务需要收尾，失败的删除会重试。请保留此页查看进度。",
+    mediaComplete:
+      "媒体清理队列已完成。此状态不涵盖第三方处理记录或你已下载的副本。",
+    receiptMissing: "删除凭据不可用或已过期，进度凭据保留 30 天。",
+    checkStatus: "刷新删除进度",
+    backHome: "返回首页",
+    privacyLink: "隐私与数据",
+    helpLink: "帮助与售后",
+    uploadNotice:
+      "提交的图片或录音可能交给所选服务处理，上传前请查看数据说明。",
+  },
   video: {
     disabledError: "视频生成尚未启用。",
     inputError: "视频描述或时长超出当前限制。",

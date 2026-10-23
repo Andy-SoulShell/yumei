@@ -1,5 +1,61 @@
 /** 英文基准语言包；key 与插值参数构成类型契约。 */
 export default {
+  privacy: {
+    title: "Privacy & data",
+    intro: "Control your conversations and account data.",
+    noticeTitle: "How your data is used",
+    noticeBody:
+      "Your profile, conversations, saved memories, preferences and media are stored by this site. Content required for a request is sent to the selected AI, image, transcription or voice service. Those providers process it under their own policies. Avoid sharing information you do not want them to receive.",
+    retentionTitle: "Storage and deletion",
+    retentionBody:
+      "Data remains until you delete it. Characters in the trash remain recoverable for the configured retention period. Permanently deleted text becomes unavailable immediately; media is queued for deletion and failures are retried. Provider records and files you downloaded are outside this site’s deletion process. Payment records are managed by the payment provider.",
+    localTitle: "This device",
+    localBody:
+      "Ordinary form drafts are stored in this tab; selected files stay in memory. Signing out clears local drafts and private media caches. Other devices may retain downloaded files or browser caches; sign out and clear them on shared devices.",
+    export: "Download my data (JSON)",
+    exportHelp:
+      "Includes your profile, characters, conversations, memories, preferences, voice references and photo index. Media files are represented by links and must be downloaded separately; links can expire. Passwords, API keys and session tokens are excluded.",
+    exportFailed: "The download failed. Please try again.",
+    deleteConversation: "Delete conversation",
+    conversationWarning:
+      "Permanently delete this conversation, its media in the album, memories extracted from it, related summaries and pending reminders. Other conversations and your character remain. This cannot be undone.",
+    conversationDeleted: "Conversation deleted.",
+    deleteAccount: "Delete account",
+    deleteWarning:
+      "This permanently deletes your account, all characters (including trash), conversations, memories, private voice references, keys and sign-in sessions. Any unused subscription time is lost. Export your data first. This does not request a refund.",
+    cancelFirst:
+      "Automatic renewal must be cancelled before account deletion. Manage your subscription, then refresh this page.",
+    sendConfirmation: "Email deletion confirmation",
+    emailSent:
+      "A confirmation link has been sent to your verified email. Open it within 15 minutes, return here and confirm deletion. Nothing is deleted just by opening the email.",
+    emailLabel: "Enter your account email to confirm",
+    tokenLabel: "Deletion confirmation code",
+    tokenHelp:
+      "Open the link in your confirmation email, or paste the code after deleteToken= in that link.",
+    confirmLabel: "Type DELETE to permanently delete",
+    deleteFailed:
+      "Deletion could not be completed. Check the email, confirmation code, expiry and subscription status. Request a new email if needed.",
+    requestFailed: "The email could not be sent. Wait a minute and try again.",
+    deleteEmailSubject: "Confirm your YUMEI account deletion",
+    deleteEmailInstruction:
+      "You requested account deletion. This link opens the final confirmation; opening it does not delete anything. If you did not request this, ignore this email.",
+    deleteEmailAction: "Review account deletion",
+    receiptTitle: "Account deletion status",
+    accountRemoved:
+      "Your account and stored text data have been deleted. All sign-in sessions are revoked.",
+    mediaPending:
+      "Media cleanup is still pending. Queued uploads and in-progress tasks are being settled; failed deletions will be retried. Keep this page to check progress.",
+    mediaComplete:
+      "The media cleanup queue is complete. Third-party processing and copies you downloaded are not covered by this status.",
+    receiptMissing:
+      "This receipt is unavailable or expired. Status receipts are valid for 30 days.",
+    checkStatus: "Refresh deletion status",
+    backHome: "Back to home",
+    privacyLink: "Privacy & data",
+    helpLink: "Help & support",
+    uploadNotice:
+      "Images or audio you submit may be sent to the selected service. Read the data explanation before uploading.",
+  },
   video: {
     disabledError: "Video generation is not enabled.",
     inputError: "The description or duration exceeds the current limits.",

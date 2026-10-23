@@ -9,7 +9,8 @@ import { FALLBACK_LOCALE, type Locale } from "../../shared/locales";
 
 /** 一封认证邮件的收件人、主题、正文、用途与操作链接。 */
 
-type EmailPurpose = "magic-link" | "verification" | "reset-password";
+type EmailPurpose =
+  "magic-link" | "verification" | "reset-password" | "account-deletion";
 
 type SendArgs = {
   to: string;
@@ -167,6 +168,12 @@ function escapeHtml(value: string) {
 }
 
 const emailMessages = {
+  "account-deletion": {
+    subject: "privacy:deleteEmailSubject",
+    instruction: "privacy:deleteEmailInstruction",
+    action: "privacy:deleteEmailAction",
+    expiry: "email:expiry",
+  },
   "magic-link": {
     subject: "email:subject",
     instruction: "email:instruction",
@@ -249,4 +256,8 @@ export function sendVerificationEmail(args: AuthEmailArgs) {
 /** 发送十五分钟有效、单次使用的密码重置链接。 */
 export function sendPasswordResetEmail(args: AuthEmailArgs) {
   return sendAuthEmail("reset-password", args);
+}
+
+export function sendAccountDeletionEmail(args: AuthEmailArgs) {
+  return sendAuthEmail("account-deletion", args);
 }

@@ -20,6 +20,14 @@ export function valueUnits(path: string, currency?: string): ValueUnit[] {
   if (/Ms$/.test(key) || path === "intimacy.rules.voice_message.bonusThreshold")
     return timeUnits;
   if (/Bytes$/.test(key)) return sizeUnits;
+  if (path.startsWith("billing.economy.")) {
+    if (key.endsWith("Cents")) return unit("美分");
+    if (key === "creatorShareBps") return unit("基点");
+    if (key === "creatorHoldDays") return unit("天");
+    if (key === "coinsPerUsd")
+      return unit("历史迁移参数；新收益按订单实付金额结算");
+    return unit("金币");
+  }
   if (/Seconds$/.test(key)) return unit("秒");
   if (/Minutes$/.test(key)) return unit("分钟");
   if (/Days$/.test(key) || /^proactive\.frequencyDays\./.test(path))

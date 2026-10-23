@@ -35,6 +35,8 @@ export function authDismissUrl(returnTo: string) {
     "/explore",
     "/create",
     "/feed",
+    "/community",
+    "/upgrade",
     "/generate",
     "/help",
     "/privacy",

@@ -194,7 +194,23 @@ export function BillingCard() {
           >
             {t("billing:paymentHelp")}
           </Link>
-          {nearLimit && (
+          {info.economy && (
+            <div className="rounded-xl border p-4 text-sm space-y-3">
+              <p>
+                {t("economy:balance")}: {info.economy.balance}
+              </p>
+              <p>
+                {t("economy:planCoins", {
+                  count: info.economy.planCoins[info.tier] ?? 0,
+                })}
+              </p>
+              <p>{t("economy:costPolicy")}</p>
+              <Link className="underline" href="/wallet">
+                {t("economy:wallet")}
+              </Link>
+            </div>
+          )}
+          {!info.economy && nearLimit && (
             <p className="text-xs rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-100 border border-amber-400/50 px-3 py-2">
               {t(
                 info.mode === "lemonsqueezy" && upgrades.length > 0
@@ -204,7 +220,7 @@ export function BillingCard() {
             </p>
           )}
 
-          {info.usage.chatLimit != null && !info.byok.chat && (
+          {!info.economy && info.usage.chatLimit != null && !info.byok.chat && (
             <div>
               <div className="flex justify-between text-xs text-muted-foreground mb-1">
                 <span>{t("billing:messagesToday")}</span>
@@ -222,28 +238,30 @@ export function BillingCard() {
               )}
             </div>
           )}
-          {info.usage.selfieLimit != null && !info.byok.selfie && (
-            <div>
-              <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                <span>
-                  {info.usage.selfiePeriod === "day"
-                    ? t("billing:selfiesToday")
-                    : t("billing:selfiesThisMonth")}
-                </span>
-                <span>
-                  {info.usage.selfiesUsed} / {info.usage.selfieLimit}
-                </span>
+          {!info.economy &&
+            info.usage.selfieLimit != null &&
+            !info.byok.selfie && (
+              <div>
+                <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                  <span>
+                    {info.usage.selfiePeriod === "day"
+                      ? t("billing:selfiesToday")
+                      : t("billing:selfiesThisMonth")}
+                  </span>
+                  <span>
+                    {info.usage.selfiesUsed} / {info.usage.selfieLimit}
+                  </span>
+                </div>
+                <Progress value={selfiePct ?? 0} />
+                {info.usage.selfieResetsAt && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t("billing:resetsAt", {
+                      time: formatResetTime(info.usage.selfieResetsAt, locale),
+                    })}
+                  </p>
+                )}
               </div>
-              <Progress value={selfiePct ?? 0} />
-              {info.usage.selfieResetsAt && (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {t("billing:resetsAt", {
-                    time: formatResetTime(info.usage.selfieResetsAt, locale),
-                  })}
-                </p>
-              )}
-            </div>
-          )}
+            )}
           {(info.byok.chat || info.byok.selfie) && (
             <p className="text-xs text-muted-foreground">
               {t("billing:byok", {

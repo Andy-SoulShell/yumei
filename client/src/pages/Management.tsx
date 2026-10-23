@@ -1,3 +1,4 @@
+import { CommerceAdmin } from "@/features/management/CommerceAdmin";
 import { SupportInbox } from "@/features/management/SupportInbox";
 /** 单密码运营后台：直接调用既有管理 API 编辑草稿、校验并发布。 */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -1061,6 +1062,8 @@ export default function Management() {
         </Card>
       </div>
     );
+  if (routeLocation === "/admin/commerce")
+    return <CommerceAdmin onLogout={() => void signOut()} />;
   if (routeLocation === "/admin/support")
     return <SupportInbox onLogout={() => void signOut()} />;
   return (

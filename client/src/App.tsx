@@ -20,6 +20,11 @@ const MyCharacters = lazy(() => import("./pages/Home"));
 const Explore = lazy(() => import("./pages/Explore"));
 const CreateCharacter = lazy(() => import("./pages/CreateCharacter"));
 const Feed = lazy(() => import("./pages/Feed"));
+const CreatorProfile = lazy(() => import("./pages/CreatorProfile"));
+const Community = lazy(() => import("./pages/Community"));
+const Wallet = lazy(() => import("./pages/Wallet"));
+const Creator = lazy(() => import("./pages/Creator"));
+const Upgrade = lazy(() => import("./pages/Upgrade"));
 const Login = lazy(() => import("./pages/Login"));
 const Setup = lazy(() => import("./pages/Setup"));
 const Chat = lazy(() => import("./pages/Chat"));
@@ -100,6 +105,27 @@ function Router() {
           <Route path="/explore" component={Explore} />
           <Route path="/create" component={CreateCharacter} />
           <Route path="/feed" component={Feed} />
+          <Route path="/community" component={Community} />
+          <Route path="/u/:handle">
+            {params => <CreatorProfile handle={params.handle} />}
+          </Route>
+          <Route path="/upgrade" component={Upgrade} />
+          <Route path="/wallet">
+            <Authenticated>
+              <Wallet />
+            </Authenticated>
+          </Route>
+          <Route path="/creator">
+            <Authenticated>
+              <Creator />
+            </Authenticated>
+          </Route>
+          <Route path="/custom">
+            <Redirect to="/characters" replace />
+          </Route>
+          <Route path="/profile">
+            <Redirect to="/settings#account" replace />
+          </Route>
           <Route path="/characters">
             <Authenticated>
               <MyCharacters />

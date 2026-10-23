@@ -122,7 +122,7 @@ describe("grouped navigation and preferences", () => {
       )
     ).toEqual([
       ["/create"],
-      ["/explore", "/chats", "/generate", "/characters", "/feed"],
+      ["/explore", "/chats", "/generate", "/characters", "/feed", "/community"],
     ]);
     expect(
       Array.from(

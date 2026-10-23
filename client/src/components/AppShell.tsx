@@ -14,8 +14,10 @@ import {
   Plus,
   Settings,
   Film,
+  Users,
   Headphones,
   ShieldCheck,
+  Gem,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -133,7 +135,28 @@ export function AppShell({ children }: { children: ReactNode }) {
       icon: Film,
       active: location === "/feed",
     },
+    {
+      href: "/community",
+      label: t("studio:community"),
+      icon: Users,
+      active: location === "/community" || location.startsWith("/u/"),
+    },
   ];
+  if (user)
+    discoveryLinks.push(
+      {
+        href: "/wallet",
+        label: t("economy:wallet"),
+        icon: Gem,
+        active: location === "/wallet",
+      },
+      {
+        href: "/creator",
+        label: t("economy:creator"),
+        icon: Users,
+        active: location === "/creator",
+      }
+    );
   const navigation = (
     items: NavigationLink[],
     mobile = false,
@@ -190,6 +213,15 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
       <SidebarPreferences collapsed={collapsed} />
       <div className="sidebar-bottom">
+        <Link
+          href="/upgrade"
+          className="studio-upgrade"
+          title={collapsed ? t("studio:upgrade") : undefined}
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <Gem size={18} />
+          <span className="app-nav-label">{t("studio:upgrade")}</span>
+        </Link>
         <Link
           href="/settings"
           className={`app-nav-link ${location === "/settings" ? "is-active" : ""}`}

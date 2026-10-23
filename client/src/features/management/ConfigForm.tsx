@@ -43,6 +43,19 @@ export type FormSchema = {
   const?: unknown;
 };
 const labels: Record<string, string> = {
+  economy: "金币与创作者",
+  welcomeCoins: "首次赠币",
+  costs: "每次操作金币成本",
+  packs: "充值包",
+  priceCents: "价格（美分）",
+  variantId: "支付变体 ID",
+  planCoins: "各订阅套餐每个支付周期赠币",
+  referralReward: "邀请人奖励",
+  inviteeReward: "受邀人奖励",
+  creatorShareBps: "创作者分成（基点，2000=20%）",
+  creatorHoldDays: "收益待确认天数",
+  coinsPerUsd: "历史迁移换算参数（只读）",
+  minimumPayoutCents: "最低提现（美分）",
   video: "视频",
   maxVideoBytes: "视频文件上限（字节）",
   maxPromptChars: "描述字数上限",
@@ -583,7 +596,7 @@ export function ConfigForm({
   depth?: number;
   disabled?: boolean;
 } & FormOptions) {
-  disabled ||= schema?.readOnly ?? false;
+  disabled ||= (schema?.readOnly ?? false) || path.endsWith(".coinsPerUsd");
   disabled ||= path === "proactive.defaults.proactiveEnabled";
   const id = useId(),
     [newKey, setNewKey] = useState("");

@@ -60,6 +60,12 @@ export const settingsPanels: Record<SettingsSection, SettingsPanel[]> = {
       "分别控制每个用户每分钟可以发起的请求，0 表示禁止。",
       ["rateLimits"]
     ),
+    panel(
+      "economy",
+      "金币与创作者",
+      "切换金币计费，管理充值包、每次成本、邀请奖励和收益结算规则。启用后替代生成次数额度；角色数量及功能权益仍按套餐执行。",
+      ["economy"]
+    ),
   ],
   selfies: [
     {

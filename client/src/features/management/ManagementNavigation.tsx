@@ -1,4 +1,5 @@
 /** 桌面侧栏与手机抽屉共用管理入口、搜索和当前分区状态。 */
+import { Link } from "wouter";
 import { useId } from "react";
 import {
   Bell,
@@ -179,6 +180,12 @@ export function ManagementNavigation({
         )}
       </nav>
       <div className="admin-nav-footer">
+        <Link
+          href="/admin/commerce"
+          className="block px-3 py-3 text-sm underline"
+        >
+          社区审核与创作者结算
+        </Link>
         <ExperimentalGlassToggle compact />
       </div>
     </>

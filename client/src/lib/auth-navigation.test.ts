@@ -19,6 +19,7 @@ describe("authentication navigation", () => {
     "/",
     "/generate",
     "/create?resume=1",
+    "/community",
     "/?character=rin",
     "/explore?q=coffee&style=realistic&character=shiyu",
   ])("returns to the original public preview when dismissing %s", target =>

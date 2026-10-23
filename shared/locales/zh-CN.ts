@@ -335,6 +335,13 @@ export default {
       "确定要删除选中的 {{count}} 位女友吗？她们将被移入回收站，{{days}} 天内可以恢复。",
   },
   settings: {
+    voiceUsingSiteService: "使用站点提供的语音服务，无需填写 API Key。",
+    voiceUsingOwnService: "正在使用你自己的语音服务账号。",
+    voicePlanRequired: "此语音服务需要套餐支持，也可在下方使用自己的 API Key。",
+    voiceServiceUnavailable:
+      "站点尚未配置此语音服务，也可在下方使用自己的 API Key。",
+    voiceOwnKeyOptional: "使用自己的 API Key（可选）",
+
     omnivoiceCloned: "我的克隆音色",
     omnivoiceCloneTitle: "上传参考音频，克隆音色",
     omnivoiceCloneHint:

@@ -348,6 +348,15 @@ export default {
       "선택한 동반자 {{count}}명을 삭제할까요? {{days}}일 안에 휴지통에서 복원할 수 있어요.",
   },
   settings: {
+    voiceUsingSiteService:
+      "사이트에서 제공하는 음성 서비스를 사용합니다. API 키가 필요하지 않습니다.",
+    voiceUsingOwnService: "본인의 음성 서비스 계정을 사용 중입니다.",
+    voicePlanRequired:
+      "이 음성 서비스는 지원 요금제 또는 아래의 개인 API 키가 필요합니다.",
+    voiceServiceUnavailable:
+      "사이트에 이 음성 서비스가 설정되지 않았습니다. 아래에 개인 API 키를 추가할 수 있습니다.",
+    voiceOwnKeyOptional: "개인 API 키 사용 (선택)",
+
     omnivoiceCloned: "내 복제 음색",
     omnivoiceCloneTitle: "참조 오디오로 음색 복제",
     omnivoiceCloneHint:

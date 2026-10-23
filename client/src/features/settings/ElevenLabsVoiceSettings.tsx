@@ -1,3 +1,4 @@
+import { VoiceServiceAccess } from "./VoiceServiceAccess";
 import { useProductConfig } from "@/features/product/useProductConfig";
 import { KeyStatusIndicator } from "@/components/KeyStatusIndicator";
 import { PageError } from "@/components/PageError";
@@ -27,6 +28,7 @@ type Props = Pick<
   | "elevenlabsVoiceName"
   | "handleTestApiVoice"
   | "ttsGenerate"
+  | "hasUnsavedVoiceChanges"
 >;
 /** ElevenLabs 音色搜索、选择和试听。 */
 export function ElevenLabsVoiceSettings({
@@ -46,47 +48,50 @@ export function ElevenLabsVoiceSettings({
   elevenlabsVoiceName,
   handleTestApiVoice,
   ttsGenerate,
+  hasUnsavedVoiceChanges,
 }: Props) {
   const sitePolicy = useProductConfig();
   return (
     <div className="space-y-4 pt-2">
-      <div className="space-y-2">
-        <Label
-          htmlFor="elevenlabsKey"
-          className="flex items-center justify-between"
-        >
-          <span>{t("settings:elevenlabsAPIKey")}</span>
-          <KeyStatusIndicator
-            name="elevenlabs"
-            value={elevenlabsApiKey}
-            saved={apiConfig?.keys.elevenlabs?.isSet}
-          />
-        </Label>
-        <Input
-          id="elevenlabsKey"
-          type="password"
-          placeholder={t("settings:enterYourElevenLabsAPIKey")}
-          value={elevenlabsApiKey}
-          onChange={e => {
-            setElevenlabsApiKey(e.target.value);
-          }}
-        />
-        <p className="text-xs text-muted-foreground">
-          {t("settings:getAnAPIKey")}
-          <a
-            href={sitePolicy.raw?.site.links.elevenlabs}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline ml-1 inline-flex items-center gap-1"
+      <VoiceServiceAccess provider="elevenlabs" config={apiConfig}>
+        <div className="space-y-2">
+          <Label
+            htmlFor="elevenlabsKey"
+            className="flex items-center justify-between"
           >
-            {t("settings:elevenlabsIo")}
-            <ExternalLink className="w-3 h-3" />
-          </a>
-        </p>
-      </div>
+            <span>{t("settings:elevenlabsAPIKey")}</span>
+            <KeyStatusIndicator
+              name="elevenlabs"
+              value={elevenlabsApiKey}
+              saved={apiConfig?.keys.elevenlabs?.isSet}
+            />
+          </Label>
+          <Input
+            id="elevenlabsKey"
+            type="password"
+            placeholder={t("settings:enterYourElevenLabsAPIKey")}
+            value={elevenlabsApiKey}
+            onChange={e => {
+              setElevenlabsApiKey(e.target.value);
+            }}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t("settings:getAnAPIKey")}
+            <a
+              href={sitePolicy.raw?.site.links.elevenlabs}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline ml-1 inline-flex items-center gap-1"
+            >
+              {t("settings:elevenlabsIo")}
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </p>
+        </div>
+      </VoiceServiceAccess>
 
       {/* 加载状态 */}
-      {elevenlabsApiKey.length > 10 && elevenLabsLoading && (
+      {elevenLabsLoading && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
           <Loader2 className="w-4 h-4 animate-spin" />
           <span className="text-sm text-muted-foreground">
@@ -155,7 +160,7 @@ export function ElevenLabsVoiceSettings({
           variant="outline"
           size="sm"
           onClick={handleTestApiVoice}
-          disabled={ttsGenerate.isPending}
+          disabled={ttsGenerate.isPending || hasUnsavedVoiceChanges}
         >
           {ttsGenerate.isPending ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />

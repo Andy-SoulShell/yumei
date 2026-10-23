@@ -355,6 +355,15 @@ export default {
       "選択した{{count}}人を削除しますか？ゴミ箱から{{days}}日以内なら復元できます。",
   },
   settings: {
+    voiceUsingSiteService:
+      "サイトの音声サービスを利用します。APIキーは不要です。",
+    voiceUsingOwnService: "ご自身の音声サービスアカウントを利用しています。",
+    voicePlanRequired:
+      "この音声サービスには対象プラン、またはご自身のAPIキーが必要です。",
+    voiceServiceUnavailable:
+      "サイトの音声サービスは未設定です。下でご自身のAPIキーを追加できます。",
+    voiceOwnKeyOptional: "自分のAPIキーを使う（任意）",
+
     omnivoiceCloned: "自分のクローン音声",
     omnivoiceCloneTitle: "参照音声から声をクローン",
     omnivoiceCloneHint:

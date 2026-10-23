@@ -51,7 +51,8 @@ export function useProviderCatalogs(
   });
 
   // ElevenLabs 声音列表
-  const elevenLabsReady = !!apiConfig?.keys.elevenlabs.isSet;
+  const elevenLabsReady =
+    apiConfig?.voiceProviders?.elevenlabs.available === true;
 
   const {
     data: elevenLabsData,
@@ -64,7 +65,8 @@ export function useProviderCatalogs(
   });
 
   // Fish Audio 模型列表
-  const fishAudioReady = !!apiConfig?.keys["fish-audio"].isSet;
+  const fishAudioReady =
+    apiConfig?.voiceProviders?.fishaudio.available === true;
 
   const {
     data: fishAudioData,

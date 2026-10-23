@@ -193,7 +193,7 @@ export function VoiceSettings(state: Props) {
         {ttsProvider === "omnivoice" && <OmniVoiceSettings {...state} />}
 
         {/* 语音配置保存生效按钮 */}
-        {ttsProvider !== "browser" && (
+        {(ttsProvider !== "browser" || hasUnsavedVoiceChanges) && (
           <div className="pt-3">
             <Button
               className="w-full"

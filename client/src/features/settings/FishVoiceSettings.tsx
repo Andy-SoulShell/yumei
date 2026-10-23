@@ -1,3 +1,4 @@
+import { VoiceServiceAccess } from "./VoiceServiceAccess";
 import { useProductConfig } from "@/features/product/useProductConfig";
 import { KeyStatusIndicator } from "@/components/KeyStatusIndicator";
 import { PageError } from "@/components/PageError";
@@ -26,6 +27,7 @@ type Props = Pick<
   | "fishAudioModelName"
   | "handleTestApiVoice"
   | "ttsGenerate"
+  | "hasUnsavedVoiceChanges"
 >;
 /** Fish Audio 模型搜索、选择和试听。 */
 export function FishVoiceSettings({
@@ -45,47 +47,50 @@ export function FishVoiceSettings({
   fishAudioModelName,
   handleTestApiVoice,
   ttsGenerate,
+  hasUnsavedVoiceChanges,
 }: Props) {
   const sitePolicy = useProductConfig();
   return (
     <div className="space-y-4 pt-2">
-      <div className="space-y-2">
-        <Label
-          htmlFor="fishAudioKey"
-          className="flex items-center justify-between"
-        >
-          <span>{t("settings:fishAudioAPIKey")}</span>
-          <KeyStatusIndicator
-            name="fish-audio"
-            value={fishAudioApiKey}
-            saved={apiConfig?.keys["fish-audio"]?.isSet}
-          />
-        </Label>
-        <Input
-          id="fishAudioKey"
-          type="password"
-          placeholder={t("settings:enterYourFishAudioAPIKey")}
-          value={fishAudioApiKey}
-          onChange={e => {
-            setFishAudioApiKey(e.target.value);
-          }}
-        />
-        <p className="text-xs text-muted-foreground">
-          {t("settings:getAnAPIKey")}
-          <a
-            href={sitePolicy.raw?.site.links.fishaudio}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline ml-1 inline-flex items-center gap-1"
+      <VoiceServiceAccess provider="fishaudio" config={apiConfig}>
+        <div className="space-y-2">
+          <Label
+            htmlFor="fishAudioKey"
+            className="flex items-center justify-between"
           >
-            {t("settings:fishAudio")}
-            <ExternalLink className="w-3 h-3" />
-          </a>
-        </p>
-      </div>
+            <span>{t("settings:fishAudioAPIKey")}</span>
+            <KeyStatusIndicator
+              name="fish-audio"
+              value={fishAudioApiKey}
+              saved={apiConfig?.keys["fish-audio"]?.isSet}
+            />
+          </Label>
+          <Input
+            id="fishAudioKey"
+            type="password"
+            placeholder={t("settings:enterYourFishAudioAPIKey")}
+            value={fishAudioApiKey}
+            onChange={e => {
+              setFishAudioApiKey(e.target.value);
+            }}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t("settings:getAnAPIKey")}
+            <a
+              href={sitePolicy.raw?.site.links.fishaudio}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline ml-1 inline-flex items-center gap-1"
+            >
+              {t("settings:fishAudio")}
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </p>
+        </div>
+      </VoiceServiceAccess>
 
       {/* 加载状态 */}
-      {fishAudioApiKey.length > 10 && fishAudioLoading && (
+      {fishAudioLoading && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
           <Loader2 className="w-4 h-4 animate-spin" />
           <span className="text-sm text-muted-foreground">
@@ -136,7 +141,7 @@ export function FishVoiceSettings({
           variant="outline"
           size="sm"
           onClick={handleTestApiVoice}
-          disabled={ttsGenerate.isPending}
+          disabled={ttsGenerate.isPending || hasUnsavedVoiceChanges}
         >
           {ttsGenerate.isPending ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />

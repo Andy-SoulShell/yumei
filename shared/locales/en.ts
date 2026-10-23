@@ -352,6 +352,15 @@ export default {
       "Delete the {{count}} selected companions? You can restore them from trash within {{days}} days.",
   },
   settings: {
+    voiceUsingSiteService:
+      "Using the voice service provided by this site. No API key needed.",
+    voiceUsingOwnService: "Using your own voice service account.",
+    voicePlanRequired:
+      "This voice service requires an eligible plan, or your own API key below.",
+    voiceServiceUnavailable:
+      "This site has not configured this voice service. You can add your own API key below.",
+    voiceOwnKeyOptional: "Use your own API key (optional)",
+
     omnivoiceCloned: "My cloned voice",
     omnivoiceCloneTitle: "Clone a voice from reference audio",
     omnivoiceCloneHint:

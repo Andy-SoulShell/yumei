@@ -4,7 +4,7 @@ import { TRPCError } from "@trpc/server";
 import axios from "axios";
 import { z } from "zod";
 import { resolveChatModel, resolveChatProvider } from "../_core/chatProvider";
-import { getTierLimits } from "../billing";
+import { getTierLimits, isBillingEnforced } from "../billing";
 import {
   resolveImageProvider,
   imageGenerationModel,
@@ -29,12 +29,29 @@ export const apiConfigRouter = router({
     const chatProvider = await resolveChatProvider(ctx.user.id, policy);
     const { limits } = await getTierLimits(ctx.user.id, policy);
     const imageProvider = await resolveImageProvider(ctx.user.id, policy);
+    const describeVoice = async (provider: "elevenlabs" | "fishaudio") => {
+      const key = await keyProvider.resolve(
+        { userId: ctx.user.id },
+        provider === "elevenlabs" ? "elevenlabs" : "fish-audio"
+      );
+      const configured = Boolean(key.value);
+      const allowed =
+        !isBillingEnforced(policy) ||
+        key.source === "user" ||
+        limits.ttsProviders.includes(provider);
+      return { configured, allowed, available: configured && allowed };
+    };
+    const [elevenlabs, fishaudio] = await Promise.all([
+      describeVoice("elevenlabs"),
+      describeVoice("fishaudio"),
+    ]);
     return {
       // null when the user hasn't saved preferences yet — frontend
       // treats that as "use defaults".
       preferences: config ?? null,
       defaults: { ttsProvider: policy.experience.playback.defaultProvider },
       keys,
+      voiceProviders: { elevenlabs, fishaudio },
       chatProvider: {
         name: chatProvider.name,
         model: resolveChatModel(

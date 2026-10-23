@@ -381,6 +381,7 @@ export async function getMessagePage(
 ): Promise<
   (Message & {
     generationKind?: (typeof generationRequests.$inferSelect)["kind"] | null;
+    durableImage?: boolean;
   })[]
 > {
   const db = await getDb();
@@ -389,6 +390,10 @@ export async function getMessagePage(
     .select({
       ...getTableColumns(messages),
       generationKind: generationRequests.kind,
+      durableImage:
+        sql<boolean>`(${generationRequests.imageTask} IS NOT NULL)`.mapWith(
+          Boolean
+        ),
     })
     .from(messages)
     .leftJoin(

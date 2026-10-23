@@ -380,6 +380,11 @@ export const runtimeConfigSchema = z
     image: z
       .object({
         comfyuiTimeoutMs: integer(1000, 3600000),
+        // 旧快照读取时补齐任务调度默认值；保存后随发布配置维护。
+        schedulerMs: integer(100, 60000).default(1000),
+        localConcurrency: integer(1, 16).default(2),
+        userConcurrency: integer(1, 20).default(3),
+        batchSize: integer(1, 100).default(20),
         comfyuiRequestTimeoutMs: integer(100, 120000),
         comfyuiPollMs: integer(10, 30000),
         cancelTimeoutMs: integer(100, 30000),

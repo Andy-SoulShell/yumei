@@ -19,7 +19,10 @@ import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
 
 /** 读取当前用户自拍并展示相册网格，将下载与删除反馈同步到查询缓存。 */
-export default function Gallery() {
+export default function Gallery({
+  embedded = false,
+  onGenerate,
+}: { embedded?: boolean; onGenerate?: () => void } = {}) {
   const goBack = usePageBack("/generate");
   const { t } = useI18n();
   const [, setLocation] = useLocation();
@@ -52,31 +55,33 @@ export default function Gallery() {
   return (
     <div className="gallery-page min-h-full bg-background">
       {/* 顶部导航栏 */}
-      <header className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 page-toolbar sticky top-0 z-10">
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={t("setup:back")}
-          onClick={goBack}
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <h1 className="text-lg font-semibold flex-1">
-          {t("common:photoGallery")}
-        </h1>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={t("common:toggleDisplayMode")}
-          onClick={toggleTheme}
-        >
-          {theme === "light" ? (
-            <Moon className="w-5 h-5" />
-          ) : (
-            <Sun className="w-5 h-5" />
-          )}
-        </Button>
-      </header>
+      {!embedded && (
+        <header className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 page-toolbar sticky top-0 z-10">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={t("setup:back")}
+            onClick={goBack}
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-lg font-semibold flex-1">
+            {t("common:photoGallery")}
+          </h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={t("common:toggleDisplayMode")}
+            onClick={toggleTheme}
+          >
+            {theme === "light" ? (
+              <Moon className="w-5 h-5" />
+            ) : (
+              <Sun className="w-5 h-5" />
+            )}
+          </Button>
+        </header>
+      )}
 
       {/* 画廊内容 */}
       <div className="p-2 sm:p-4 max-w-4xl mx-auto pb-8">
@@ -92,7 +97,11 @@ export default function Gallery() {
             <h2 className="text-xl font-semibold mb-2">
               {t("gallery:noSelfiesYet")}
             </h2>
-            <Button onClick={() => setLocation("/generate")}>
+            <Button
+              onClick={() =>
+                onGenerate ? onGenerate() : setLocation("/generate?view=create")
+              }
+            >
               {t("explore:generateAction")}
             </Button>
           </div>

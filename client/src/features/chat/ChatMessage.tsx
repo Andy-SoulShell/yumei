@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ChatMessageMenu } from "./ChatMessageMenu";
 import { ChatQuoteCard } from "./ChatQuoteCard";
 import { VideoMessage } from "./VideoMessage";
+import { ImageTaskCard } from "./ImageTaskCard";
 import { parseChatQuote } from "./chatQuote";
 import type { ChatController } from "./useChatController";
 
@@ -37,6 +38,7 @@ function sameMessage(a: Props["msg"], b: Props["msg"]) {
     a.content === b.content &&
     a.imageUrl === b.imageUrl &&
     a.generationKind === b.generationKind &&
+    a.durableImage === b.durableImage &&
     a.generationStatus === b.generationStatus &&
     left.length === right.length &&
     left.every(
@@ -84,6 +86,23 @@ export const ChatMessage = memo(function ChatMessage({
 }: Props) {
   const quote =
     msg.role === "user" && !msg.imageUrl ? parseChatQuote(msg.content) : null;
+  if (msg.role === "assistant" && msg.durableImage && msg.generationRequestId)
+    return (
+      <div
+        data-message-id={msg.id}
+        data-message-role={msg.role}
+        tabIndex={-1}
+        className="flex gap-3 outline-none"
+      >
+        <Avatar className="size-8 shrink-0">
+          <AvatarImage src={companionImage || undefined} alt={companionName} />
+          <AvatarFallback>{companionName[0]}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 w-80 max-w-[85%]">
+          <ImageTaskCard requestId={msg.generationRequestId} inChat />
+        </div>
+      </div>
+    );
   if (
     msg.role === "assistant" &&
     msg.generationKind === "video" &&

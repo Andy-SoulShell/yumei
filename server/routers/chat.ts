@@ -9,6 +9,10 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { generateConversationSelfie } from "../selfieGeneration";
 import { validateTranscription } from "../transcriptions";
 import { ensureAgeConfirmed } from "./guards";
+import { acceptImageTask } from "../imageTasks";
+import { getDb } from "../database";
+import { messages } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 export const chatRouter = router({
   /** 图片意图独立结算；普通文字只通过持久流式任务接收。 */
@@ -18,6 +22,7 @@ export const chatRouter = router({
         conversationId: z.number().int().positive(),
         content: z.string().trim().min(1).max(CHAT_INPUT_CAPACITY),
         transcriptionId: z.string().uuid().optional(),
+        clientRequestId: z.string().uuid().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -38,6 +43,38 @@ export const chatRouter = router({
           code: "BAD_REQUEST",
           message: "Text messages must use the streaming chat endpoint.",
         });
+      }
+      if (input.clientRequestId) {
+        const task = await acceptImageTask(
+          ctx.user,
+          {
+            clientRequestId: input.clientRequestId,
+            conversationId: input.conversationId,
+            userContext: input.content,
+            generationMode: "reference",
+            poseId: selfieRequest.poseId,
+          },
+          { content: input.content, transcriptionId: input.transcriptionId }
+        );
+        const rows = await (await getDb())!
+          .select()
+          .from(messages)
+          .where(eq(messages.generationRequestId, task.id));
+        const userMessage = rows.find(row => row.role === "user");
+        const assistantMessage = rows.find(row => row.role === "assistant");
+        if (!userMessage || !assistantMessage)
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Image conversation unavailable",
+          });
+        return {
+          userMessage,
+          assistantMessage,
+          safetyNotice: false,
+          imageGeneration: "queued" as const,
+          relationship: null,
+          task,
+        };
       }
       await checkRateLimit(ctx.user.id, "chat", policy);
       if (input.transcriptionId)

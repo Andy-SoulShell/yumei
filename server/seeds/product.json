@@ -2251,6 +2251,10 @@
     },
     "image": {
       "comfyuiTimeoutMs": 600000,
+      "schedulerMs": 1000,
+      "localConcurrency": 2,
+      "userConcurrency": 3,
+      "batchSize": 20,
       "comfyuiRequestTimeoutMs": 30000,
       "comfyuiPollMs": 1000,
       "cancelTimeoutMs": 5000,

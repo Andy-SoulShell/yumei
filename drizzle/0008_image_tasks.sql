@@ -1,0 +1,1 @@
+ALTER TABLE `generationRequests` ADD `imageTask` json;

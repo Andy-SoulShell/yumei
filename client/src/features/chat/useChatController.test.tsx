@@ -145,13 +145,13 @@ vi.mock("@/lib/trpc", () => {
       },
       selfie: {
         quota: query({ unlimited: true }),
-        generate: {
+        createTask: {
           useMutation: (options: any) => {
             mock.options.selfie = options;
             return { mutate: mock.selfie, isPending: mock.imagePending };
           },
         },
-        generateCouple: mutation("couple", mock.couple),
+        createCoupleTask: mutation("couple", mock.couple),
       },
       billing: { getInfo: query({ mode: "none" }) },
       useUtils: () => ({
@@ -392,7 +392,10 @@ it("retains failed media requests separately and retries without consuming the n
   expect(controller.message).toBe("正在写的下一条");
   expect(controller.failedMessages).toEqual([media]);
   await act(async () => controller.retryMessage(controller.failedMessages[0]));
-  expect(mock.send).toHaveBeenLastCalledWith(media);
+  expect(mock.send).toHaveBeenLastCalledWith({
+    ...media,
+    clientRequestId: expect.any(String),
+  });
   expect(controller.message).toBe("正在写的下一条");
   await act(async () => {
     await mock.options.send.onSuccess({}, media);
@@ -427,6 +430,7 @@ it("stops text and audio before dispatching selfie requests", async () => {
   expect(mock.streamStop).toHaveBeenCalledOnce();
   expect(mock.stopAudio).toHaveBeenCalledOnce();
   expect(mock.send).toHaveBeenCalledWith({
+    clientRequestId: expect.any(String),
     conversationId: 42,
     content: "给我发一张自拍",
   });
@@ -511,8 +515,14 @@ it("uses chat content for photo progress and success without success popups", as
   await act(async () => controller.handleSelectPose("casual", "reference"));
   expect(mock.selfie).toHaveBeenCalled();
   await act(async () => {
-    await mock.options.selfie.onSuccess({});
-    await mock.options.couple.onSuccess({});
+    await mock.options.selfie.onSuccess(
+      {},
+      { clientRequestId: "accepted-image" }
+    );
+    await mock.options.couple.onSuccess(
+      {},
+      { clientRequestId: "accepted-couple" }
+    );
     await mock.options.send.onSuccess(
       { imageGeneration: "completed" },
       variables
@@ -527,6 +537,7 @@ it("passes the complete current composer text to image generation", async () => 
   await act(async () => controller.setMessage(userContext));
   await act(async () => controller.handleSelectPose("sweet_smile", "text"));
   expect(mock.selfie).toHaveBeenCalledWith({
+    clientRequestId: expect.any(String),
     conversationId: expect.any(Number),
     userContext,
     poseId: "sweet_smile",

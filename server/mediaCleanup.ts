@@ -42,6 +42,20 @@ async function hasReferences(
     .where(eq(selfies.imageKey, key))
     .limit(1);
   if (photo) return true;
+  const [imageInput] = await db
+    .select({ id: generationRequests.id })
+    .from(generationRequests)
+    .where(
+      and(
+        eq(generationRequests.status, "pending"),
+        or(
+          eq(generationRequests.temporaryKey, key),
+          sql`JSON_CONTAINS(JSON_EXTRACT(${generationRequests.imageTask}, '$.references[*].key'), JSON_QUOTE(${key}))`
+        )
+      )
+    )
+    .limit(1);
+  if (imageInput) return true;
   const [video] = await db
     .select({ id: generationRequests.id })
     .from(generationRequests)

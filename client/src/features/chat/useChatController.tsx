@@ -8,6 +8,11 @@ import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { useChatInputDraft } from "@/hooks/useChatInputDraft";
 import { apiErrorMessage, usageLimitMessage } from "@/lib/errors";
 import { useI18n } from "@/lib/i18n";
+import {
+  beginImageSubmission,
+  finishImageSubmission,
+  isImageSubmissionUncertain,
+} from "@/lib/imageSubmissions";
 import { trpc } from "@/lib/trpc";
 import { readDeviceValue, writeDeviceValue } from "@/lib/deviceStorage";
 import { detectSelfieRequest } from "@shared/selfieRequest";
@@ -27,6 +32,7 @@ import { toast } from "sonner";
 import { useLocation, useParams, useSearch } from "wouter";
 
 type FailedChatMessage = {
+  clientRequestId?: string;
   conversationId: number;
   content: string;
   transcriptionId?: string;
@@ -155,6 +161,10 @@ export function useChatController() {
   const [showPoseDialog, setShowPoseDialog] = useState(
     () => new URLSearchParams(search).get("selfie") === "1"
   );
+  useEffect(() => {
+    if (conversationId && new URLSearchParams(search).get("selfie") === "1")
+      setLocation(`/chat/${conversationId}`, { replace: true });
+  }, [conversationId, search, setLocation]);
 
   const { data: apiConfig } = trpc.apiConfig.get.useQuery();
 
@@ -370,6 +380,9 @@ export function useChatController() {
       scrollToBottom();
     },
     onSuccess: async (data, variables) => {
+      if (variables.clientRequestId)
+        finishImageSubmission(user?.id, variables.clientRequestId);
+      if (!isCurrentScope()) return;
       setFailedMessages(current =>
         current.filter(
           item =>
@@ -381,7 +394,7 @@ export function useChatController() {
       await refreshConversation();
       if (data.imageGeneration) {
         await selfieQuota.refetch();
-        if (data.imageGeneration !== "completed") {
+        if (data.imageGeneration === "failed") {
           toast.error(t("chat:selfieGenerationFailedNoQuotaWasChargedDetails"));
           return;
         }
@@ -405,6 +418,14 @@ export function useChatController() {
       }
     },
     onError: (error, variables) => {
+      if (!isCurrentScope()) return;
+      if (variables.clientRequestId && isImageSubmissionUncertain(error)) {
+        void refetchMessages();
+        toast.error(t("works:submissionUnknown"));
+        return;
+      }
+      if (variables.clientRequestId)
+        finishImageSubmission(user?.id, variables.clientRequestId);
       // 失败消息留在对话中，可单独重试；不覆盖用户正在写的下一条。
       setFailedMessages(current =>
         current.some(
@@ -578,15 +599,24 @@ export function useChatController() {
     ? Infinity
     : (selfieQuota.data?.remaining ?? null);
 
-  const generateSelfie = trpc.selfie.generate.useMutation({
-    onSuccess: async data => {
+  const generateSelfie = trpc.selfie.createTask.useMutation({
+    onSuccess: async (data, variables) => {
+      finishImageSubmission(user?.id, variables.clientRequestId);
+      if (!isCurrentScope()) return;
       showRelationship(data);
       await refreshConversation();
       await selfieQuota.refetch();
       // 触发自拍亲密度经验值
     },
-    onError: error => {
+    onError: (error, variables) => {
+      if (!isCurrentScope()) return;
       void selfieQuota.refetch();
+      if (isImageSubmissionUncertain(error)) {
+        void refetchMessages();
+        toast.error(t("works:submissionUnknown"));
+        return;
+      }
+      finishImageSubmission(user?.id, variables.clientRequestId);
       if (error.data?.business?.reason === "LEVEL_LOCKED") {
         toast.error(
           t("selfie:poseLocked", {
@@ -617,14 +647,23 @@ export function useChatController() {
   });
 
   // 合照生成
-  const generateCouple = trpc.selfie.generateCouple.useMutation({
-    onSuccess: async data => {
+  const generateCouple = trpc.selfie.createCoupleTask.useMutation({
+    onSuccess: async (data, variables) => {
+      finishImageSubmission(user?.id, variables.clientRequestId);
+      if (!isCurrentScope()) return;
       showRelationship(data);
       await refreshConversation();
       await selfieQuota.refetch();
     },
-    onError: error => {
+    onError: (error, variables) => {
+      if (!isCurrentScope()) return;
       void selfieQuota.refetch();
+      if (isImageSubmissionUncertain(error)) {
+        void refetchMessages();
+        toast.error(t("works:submissionUnknown"));
+        return;
+      }
+      finishImageSubmission(user?.id, variables.clientRequestId);
       if (usageLimitMessage(error.data?.business, t)) {
         toast.error(usageLimitMessage(error.data?.business, t)!, {
           action: {
@@ -721,6 +760,18 @@ export function useChatController() {
           failed.transcriptionId || failed.replyWithVoice
         );
         sendMediaMessage.mutate({
+          clientRequestId:
+            failed.clientRequestId ??
+            beginImageSubmission(user?.id, {
+              conversationId: failed.conversationId,
+              kind: "chat",
+              input: {
+                conversationId: failed.conversationId,
+                userContext: failed.content,
+                generationMode: "reference",
+              },
+              transcriptionId: failed.transcriptionId,
+            }),
           conversationId: failed.conversationId,
           content: failed.content,
           transcriptionId: failed.transcriptionId,
@@ -762,6 +813,16 @@ export function useChatController() {
             draft.transcriptionId || draft.replyWithVoice
           );
           sendMediaMessage.mutate({
+            clientRequestId: beginImageSubmission(user?.id, {
+              conversationId: currentConversationId,
+              kind: "chat",
+              input: {
+                conversationId: currentConversationId,
+                userContext: draft.content,
+                generationMode: "reference",
+              },
+              transcriptionId: draft.transcriptionId,
+            }),
             content: draft.content,
             transcriptionId: draft.transcriptionId,
             conversationId: currentConversationId,
@@ -789,6 +850,7 @@ export function useChatController() {
       sendMediaMessage,
       isCurrentScope,
       scrollToBottom,
+      user?.id,
     ]
   );
   const handleStopGeneration = async () => {
@@ -847,11 +909,19 @@ export function useChatController() {
     }
     stop();
     if (!(await chatStream.stop()) || !isCurrentScope()) return;
-    generateSelfie.mutate({
+    const input = {
       conversationId: currentConversationId,
       userContext: message.trim(),
       poseId,
       generationMode,
+    };
+    generateSelfie.mutate({
+      ...input,
+      clientRequestId: beginImageSubmission(user?.id, {
+        conversationId: currentConversationId,
+        kind: "selfie",
+        input,
+      }),
     });
   };
 
@@ -866,10 +936,23 @@ export function useChatController() {
       stop();
       if (!(await chatStream.stop()) || !isCurrentScope()) return;
       generateCouple.mutate({
+        clientRequestId: beginImageSubmission(
+          user?.id,
+          {
+            conversationId: currentConversationId!,
+            kind: "couple",
+            input: {
+              conversationId: currentConversationId!,
+              userContext: message.trim(),
+              generationMode: "reference",
+            },
+          },
+          base64
+        ),
         conversationId: currentConversationId!,
         userPhotoBase64: base64,
         userPhotoMimeType: file.type,
-        userContext: message.trim() || undefined,
+        userContext: message.trim(),
       });
     };
     reader.onerror = () => {

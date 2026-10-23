@@ -33,6 +33,11 @@ vi.mock("@/_core/hooks/useAuth", () => ({
 }));
 vi.mock("@/lib/trpc", () => ({
   trpc: {
+    selfie: {
+      quota: {
+        useQuery: () => ({ data: { unlimited: true }, refetch: mock.refetch }),
+      },
+    },
     productConfig: {
       get: {
         useQuery: (_input: unknown, options: unknown) => {

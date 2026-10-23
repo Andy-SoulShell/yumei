@@ -10,6 +10,7 @@ import { ChatComposer } from "@/features/chat/ChatComposer";
 import { ChatHeader } from "@/features/chat/ChatHeader";
 import { ChatMessages } from "@/features/chat/ChatMessages";
 import { useChatController } from "@/features/chat/useChatController";
+import { ImageSubmissionRecovery } from "@/features/chat/ImageSubmissionRecovery";
 export default function Chat() {
   const sitePolicy = useProductConfig();
   const state = useChatController();
@@ -83,41 +84,51 @@ export default function Chat() {
         onClose={() => setShowLevelUp(false)}
       />
 
-      {/* 消息列表 */}
-      <ChatMessages {...state} girlfriend={girlfriend} />
+      {/* 提示随消息区滚动，横屏键盘下不挤占输入和发送区域。 */}
+      <ChatMessages
+        {...state}
+        girlfriend={girlfriend}
+        footer={
+          <>
+            <div className="mx-3 max-h-40 overflow-y-auto sm:mx-4">
+              <ImageSubmissionRecovery conversationId={conversationId} />
+            </div>
 
-      {/* / SB 243：危机干预资源提示（由 shared/safety.ts 提供检测结果） */}
-      {showCrisisAlert && (
-        <div className="mx-3 sm:mx-4 mb-2 rounded-lg border border-amber-400/50 bg-amber-50 dark:bg-amber-950/40 px-3 py-2.5 text-xs sm:text-sm text-amber-900 dark:text-amber-100 flex items-start gap-2">
-          <Heart className="w-4 h-4 mt-0.5 shrink-0" />
-          <div className="flex-1">
-            <p className="font-medium">
-              {t("chat:youAreNotAloneSomeoneIsHereTo")}
-            </p>
-            <p className="mt-0.5 opacity-90">
-              {t("chat:china400161999524HoursUSCanada")}
-              <a
-                href={sitePolicy.raw?.site.links.support}
-                target="_blank"
-                rel="noreferrer"
-                className="underline"
-              >
-                {t("common:findahelplineCom")}
-              </a>
-            </p>
-          </div>
-          <Button
-            variant="plain"
-            size="none"
-            type="button"
-            className="opacity-60 hover:opacity-100 shrink-0"
-            onClick={() => setShowCrisisAlert(false)}
-            aria-label={t("chat:dismiss")}
-          >
-            ✕
-          </Button>
-        </div>
-      )}
+            {/* / SB 243：危机干预资源提示（由 shared/safety.ts 提供检测结果） */}
+            {showCrisisAlert && (
+              <div className="mx-3 sm:mx-4 mb-2 rounded-lg border border-amber-400/50 bg-amber-50 dark:bg-amber-950/40 px-3 py-2.5 text-xs sm:text-sm text-amber-900 dark:text-amber-100 flex items-start gap-2">
+                <Heart className="w-4 h-4 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="font-medium">
+                    {t("chat:youAreNotAloneSomeoneIsHereTo")}
+                  </p>
+                  <p className="mt-0.5 opacity-90">
+                    {t("chat:china400161999524HoursUSCanada")}
+                    <a
+                      href={sitePolicy.raw?.site.links.support}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline"
+                    >
+                      {t("common:findahelplineCom")}
+                    </a>
+                  </p>
+                </div>
+                <Button
+                  variant="plain"
+                  size="none"
+                  type="button"
+                  className="opacity-60 hover:opacity-100 shrink-0"
+                  onClick={() => setShowCrisisAlert(false)}
+                  aria-label={t("chat:dismiss")}
+                >
+                  ✕
+                </Button>
+              </div>
+            )}
+          </>
+        }
+      />
 
       {/* 输入框 */}
       <ChatComposer {...state} girlfriend={girlfriend} />

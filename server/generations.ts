@@ -97,7 +97,7 @@ export type ReserveGenerationInput = {
 export async function reserveGenerationInTransaction(
   tx: DbTransaction,
   input: ReserveGenerationInput,
-  id = crypto.randomUUID()
+  id: string = crypto.randomUUID()
 ): Promise<string> {
   const role = await requireGenerationConversation(
     tx,
@@ -209,21 +209,41 @@ export async function refundGenerationInTransaction(
 export async function cleanupGenerationMedia(
   tx: DbTransaction,
   request: typeof generationRequests.$inferSelect,
-  failed: boolean
+  failed: boolean,
+  temporaryRetentionMs = 0
 ) {
   for (const key of [request.temporaryKey, failed ? request.outputKey : null]) {
     if (key)
       await tx
         .insert(mediaDeletions)
-        .values({ key, userId: request.userId, availableAt: new Date() })
-        .onDuplicateKeyUpdate({ set: { key, availableAt: new Date() } });
+        .values({
+          key,
+          userId: request.userId,
+          availableAt: new Date(
+            Date.now() +
+              (key === request.temporaryKey ? temporaryRetentionMs : 0)
+          ),
+        })
+        .onDuplicateKeyUpdate({
+          set: {
+            key,
+            availableAt: new Date(
+              Date.now() +
+                (key === request.temporaryKey ? temporaryRetentionMs : 0)
+            ),
+          },
+        });
   }
 }
 
 /** 幂等标记失败并返还原周期预留，重复补偿不会再次扣减计量。 */
 export async function failGeneration(
   id: string,
-  userId: string
+  userId: string,
+  options?: {
+    leaseToken?: string;
+    imageFailure?: import("../shared/imageTasks").ImageTask["failure"];
+  }
 ): Promise<void> {
   await withUserTransaction(userId, async tx => {
     const [request] = await tx
@@ -236,21 +256,47 @@ export async function failGeneration(
         )
       )
       .for("update");
-    if (!request || request.status !== "pending") return;
+    if (
+      !request ||
+      request.status !== "pending" ||
+      (options?.leaseToken && request.leaseToken !== options.leaseToken)
+    )
+      return;
     if (request.turnStatus) {
       await settleChatTurnInTransaction(tx, request, "failed");
       return;
     }
     await refundGenerationInTransaction(tx, request);
-    await cleanupGenerationMedia(tx, request, true);
-    if (request.kind === "video")
+    const imageTask = request.imageTask
+      ? structuredClone(request.imageTask)
+      : null;
+    if (imageTask) {
+      imageTask.failure =
+        options?.imageFailure ??
+        (imageTask.phase === "submitting" ? "unconfirmed" : "timeout");
+      if (request.temporaryKey && imageTask.failure !== "unconfirmed")
+        imageTask.retryUntil =
+          Date.now() +
+          (await getPublishedProductConfig(tx)).runtime.maintenance
+            .stagedRetentionMs;
+    }
+    await cleanupGenerationMedia(
+      tx,
+      request,
+      true,
+      imageTask?.retryUntil ? imageTask.retryUntil - Date.now() : 0
+    );
+    if (request.kind === "video" || imageTask)
       await tx
         .update(messages)
         .set({ generationStatus: "failed" })
         .where(eq(messages.generationRequestId, request.id));
     await tx
       .update(generationRequests)
-      .set({ status: "failed" })
+      .set({
+        status: "failed",
+        ...(imageTask ? { imageTask, leaseToken: null, leaseUntil: null } : {}),
+      })
       .where(eq(generationRequests.id, id));
   });
 }
@@ -447,10 +493,13 @@ export async function completeImageGeneration(
   userId: string,
   image: Omit<InsertSelfie, "userId" | "girlfriendId" | "messageId">,
   chatContent?: string,
-  label = "自拍照片"
+  label = "自拍照片",
+  leaseToken?: string
 ) {
   return withUserTransaction(userId, async tx => {
     const request = await pendingRequest(tx, id, userId);
+    if (leaseToken && request.leaseToken !== leaseToken)
+      throw new TRPCError({ code: "CONFLICT", message: "Image lease changed" });
     const role = await requireGenerationConversation(
       tx,
       userId,
@@ -475,22 +524,59 @@ export async function completeImageGeneration(
       generationRequestId: id,
       generationStatus: "succeeded" as const,
     };
+    const [acceptedUserMessage] =
+      request.imageTask && request.userMessageId
+        ? await tx
+            .select()
+            .from(messages)
+            .where(eq(messages.id, request.userMessageId))
+        : [];
     const userMessage =
-      chatContent === undefined
+      acceptedUserMessage ??
+      (chatContent === undefined
         ? undefined
         : await insertGenerationMessage(tx, {
             ...common,
             role: "user",
             content: chatContent,
-          });
-    const message = await insertGenerationMessage(tx, {
+          }));
+    const imageMessage = {
       ...common,
-      role: "assistant",
+      role: "assistant" as const,
       content: `[${label}]`,
       imageUrl: image.imageUrl,
       imageKey: image.imageKey,
       selfieMode: image.mode,
-    });
+    };
+    if (request.imageTask && request.assistantMessageId)
+      await tx
+        .update(messages)
+        .set(imageMessage)
+        .where(
+          and(
+            eq(messages.id, request.assistantMessageId),
+            eq(messages.generationRequestId, id)
+          )
+        );
+    const message =
+      request.imageTask && request.assistantMessageId
+        ? (
+            await tx
+              .select()
+              .from(messages)
+              .where(eq(messages.id, request.assistantMessageId))
+          )[0]
+        : await insertGenerationMessage(tx, imageMessage);
+    if (request.imageTask)
+      await tx
+        .update(messages)
+        .set({ generationStatus: "succeeded" })
+        .where(eq(messages.generationRequestId, id));
+    if (request.imageTask)
+      await tx
+        .update(conversations)
+        .set({ updatedAt: new Date() })
+        .where(eq(conversations.id, request.conversationId));
     const [result] = await tx.insert(selfies).values({
       ...image,
       userId,
@@ -522,7 +608,10 @@ export async function completeImageGeneration(
     await cleanupGenerationMedia(tx, request, false);
     await tx
       .update(generationRequests)
-      .set({ status: "succeeded" })
+      .set({
+        status: "succeeded",
+        ...(request.imageTask ? { leaseToken: null, leaseUntil: null } : {}),
+      })
       .where(eq(generationRequests.id, id));
     return {
       selfie,

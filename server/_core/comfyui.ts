@@ -39,16 +39,21 @@ export async function buildImageWorkflow(
     mode: ImageGenerationMode;
     prompt: string;
     references?: string[];
+    spec?: ProductConfig["models"]["image"]["workflows"]["text"];
+    prefix?: string;
   },
   configuration?: ProductConfig
 ): Promise<Workflow> {
-  const policy = configuration ?? (await getPublishedProductConfig());
-  const spec = policy.models.image.workflows[params.mode];
+  const spec =
+    params.spec ??
+    (configuration ?? (await getPublishedProductConfig())).models.image
+      .workflows[params.mode];
   const workflow: Workflow = structuredClone(spec.nodes);
   const encoder = spec.promptNode;
   workflow[encoder].inputs.prompt = params.prompt;
   workflow[spec.seedNode].inputs.seed = randomInt(0, 2 ** 48 - 1);
-  workflow[spec.outputNode].inputs.filename_prefix = `yumei/${randomUUID()}`;
+  workflow[spec.outputNode].inputs.filename_prefix =
+    params.prefix ?? `yumei/${randomUUID()}`;
   if (params.mode === "reference") {
     if (!params.references?.length)
       throw new Error("参考图生图需要至少一张参考图");

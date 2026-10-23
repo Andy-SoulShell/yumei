@@ -36,8 +36,48 @@ import {
 import { generateConversationSelfie } from "../selfieGeneration";
 import { storagePut } from "../storage";
 import { ensureAgeConfirmed } from "./guards";
+import {
+  imageTaskInputSchema,
+  coupleTaskInputSchema,
+} from "../../shared/imageTasks";
+import {
+  acceptImageTask,
+  findImageTask,
+  getImageTask,
+  listImageTasks,
+  retryImageTask,
+} from "../imageTasks";
 
 export const selfieRouter = router({
+  createTask: protectedProcedure
+    .input(imageTaskInputSchema)
+    .mutation(({ ctx, input }) => acceptImageTask(ctx.user, input)),
+  createCoupleTask: protectedProcedure
+    .input(coupleTaskInputSchema)
+    .mutation(({ ctx, input }) => acceptImageTask(ctx.user, input)),
+  task: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .query(({ ctx, input }) => getImageTask(ctx.user.id, input.id)),
+  findTask: protectedProcedure
+    .input(z.object({ clientRequestId: z.string().uuid() }))
+    .query(({ ctx, input }) =>
+      findImageTask(ctx.user.id, input.clientRequestId)
+    ),
+  tasks: protectedProcedure
+    .input(
+      z.object({
+        conversationId: z.number().int().positive().optional(),
+        cursor: z
+          .object({ createdAt: z.date(), id: z.string().uuid() })
+          .optional(),
+        limit: z.number().int().min(1).max(50).optional(),
+        filter: z.enum(["all", "active", "completed", "failed"]).optional(),
+      })
+    )
+    .query(({ ctx, input }) => listImageTasks(ctx.user.id, input)),
+  retryTask: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(({ ctx, input }) => retryImageTask(ctx.user, input.id)),
   /** 由相机入口生成图片，复用聊天自拍的归属、姿势及计量检查。 */
   generate: protectedProcedure
     .input(

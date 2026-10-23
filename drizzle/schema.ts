@@ -760,6 +760,9 @@ export const generationRequests = mysqlTable(
     kind: mysqlEnum("kind", ["chat", "selfie", "couple", "video"]).notNull(),
     /** 视频输入、固定工作流及远端任务身份，供服务重启后恢复。 */
     videoTask: json("videoTask").$type<import("../shared/video").VideoTask>(),
+    /** 图片输入快照与远端任务编号，用于刷新、重连及进程恢复。 */
+    imageTask:
+      json("imageTask").$type<import("../shared/imageTasks").ImageTask>(),
     contextEpoch: int("contextEpoch"),
     status: mysqlEnum("status", ["pending", "succeeded", "failed", "cancelled"])
       .default("pending")

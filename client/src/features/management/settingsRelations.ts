@@ -861,12 +861,23 @@ export const taskFieldGroups: Partial<
     image: [
       group(
         "图片生成和下载各等多久",
-        "fal 与 ComfyUI 各用自己的生成时限；生成成功后还要下载图片。",
+        "图片任务有总等待上限；fal 单次请求及结果下载另设超时。",
         [
           "image.falTimeoutMs",
           "image.comfyuiTimeoutMs",
           "image.downloadTimeoutMs",
         ]
+      ),
+      group(
+        "图片后台任务与并发",
+        "任务保存在数据库，刷新和离开后继续。限制每个账号待完成的任务以及本机同时执行的步骤。",
+        [
+          "image.schedulerMs",
+          "image.localConcurrency",
+          "image.userConcurrency",
+          "image.batchSize",
+        ],
+        true
       ),
       group(
         "结果和额度预留",

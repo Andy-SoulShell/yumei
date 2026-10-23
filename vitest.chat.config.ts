@@ -13,6 +13,7 @@ export default defineConfig({
       "client/src/hooks/useChatInputDraft.test.tsx",
       "client/src/hooks/useChatScrollAnchor.test.tsx",
       "client/src/lib/chatStreamDrafts.test.ts",
+      "client/src/lib/imageSubmissions.test.ts",
       "client/src/lib/copyText.test.ts",
     ],
   },

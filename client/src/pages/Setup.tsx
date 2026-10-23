@@ -54,7 +54,7 @@ export default function Setup() {
     isUploadingAvatar,
   } = state;
 
-  if ((isEditing && editLoading) || state.presetLoading)
+  if ((isEditing && editLoading) || state.presetLoading || state.draftLoading)
     return (
       <div className="flex min-h-full items-center justify-center">
         <Loader2
@@ -78,6 +78,27 @@ export default function Setup() {
 
   return (
     <div className="min-h-full bg-background app-surface p-3 sm:p-4">
+      <AlertDialog
+        open={state.pendingPreset !== undefined}
+        onOpenChange={open => {
+          if (!open) state.setPendingPreset(undefined);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("setup:replaceDraftTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("setup:replaceDraftDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common:cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={state.confirmPresetChange}>
+              {t("setup:replaceDraftConfirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <div className="max-w-2xl mx-auto py-4 sm:py-8">
         <Button variant="ghost" className="mb-4" onClick={goBack}>
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -95,6 +116,32 @@ export default function Setup() {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {state.draftRestored && (
+              <p
+                role="status"
+                className="mb-4 rounded-lg bg-primary/5 p-3 text-sm"
+              >
+                {t("setup:draftRestored")}
+              </p>
+            )}
+            {state.draftFileWarning && (
+              <p
+                role="alert"
+                className="mb-4 text-sm text-amber-700 dark:text-amber-300"
+              >
+                {t("setup:draftFilesNeedReselect")}
+                {(isEditing || presetId) && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="h-auto p-0"
+                    onClick={state.discardMissingDraftFiles}
+                  >
+                    {t("setup:keepExistingDraftImages")}
+                  </Button>
+                )}
+              </p>
+            )}
             <form onSubmit={handleSubmit}>
               <fieldset disabled={isPending} className="space-y-6">
                 {!isEditing && (

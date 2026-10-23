@@ -863,6 +863,18 @@ export default {
     "categories.relationship": "ふたりの関係",
   },
   setup: {
+    draftRestored:
+      "未保存のキャラクター設定を復元しました。編集を続けられます。",
+    draftFilesNeedReselect:
+      "テキストは復元しました。再読み込み前の未アップロード画像を選び直してください。",
+    replaceDraftTitle: "未保存の設定を置き換えますか？",
+    replaceDraftDescription:
+      "プリセットを変更すると、設定、会話例、声と参考写真が置き換わります。",
+    replaceDraftConfirm: "プリセットで置き換える",
+    keepExistingDraftImages: "既存の画像を使う",
+    confirmAvatarFirst:
+      "保存前にアバターのアップロードを確認するか、選択を取り消してください。",
+
     roleVoiceCloneAndBind: "クローンしてこのキャラクターに設定",
     roleVoiceCloneAndSelect: "クローンして音声を選択",
     roleVoiceCloneBound:

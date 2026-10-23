@@ -1,3 +1,5 @@
+import { useAuth } from "@/_core/hooks/useAuth";
+import { formDraftKey } from "@/lib/formDrafts";
 import { useProductConfig } from "@/features/product/useProductConfig";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useProviderKeyDrafts } from "@/hooks/useProviderKeyDrafts";
@@ -17,6 +19,7 @@ import { useProviderCatalogs } from "./useProviderCatalogs";
 /** 页面查询、草稿与操作流程；展示组件只消费此状态。 */
 export function useSettingsController() {
   const product = useProductConfig();
+  const { user } = useAuth();
   const { t, locale } = useI18n();
 
   const [, setLocation] = useLocation();
@@ -68,7 +71,8 @@ export function useSettingsController() {
       replyLanguage: "",
       replyLengthLimit: "",
     },
-    remotePreferences
+    remotePreferences,
+    formDraftKey(user?.id, "reply-and-service-settings")
   );
 
   const setKeyMutation = trpc.apiConfig.setKey.useMutation();

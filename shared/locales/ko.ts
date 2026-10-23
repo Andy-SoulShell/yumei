@@ -848,6 +848,18 @@ export default {
     "categories.relationship": "우리 사이",
   },
   setup: {
+    draftRestored:
+      "저장하지 않은 캐릭터 설정을 복원했습니다. 계속 편집할 수 있습니다.",
+    draftFilesNeedReselect:
+      "텍스트를 복원했습니다. 새로고침 전 업로드하지 않은 이미지를 다시 선택해 주세요.",
+    replaceDraftTitle: "저장하지 않은 설정을 바꿀까요?",
+    replaceDraftDescription:
+      "프리셋을 변경하면 현재 설정, 대화 예시, 음성 선택 및 참고 사진이 바뀝니다.",
+    replaceDraftConfirm: "프리셋으로 바꾸기",
+    keepExistingDraftImages: "기존 이미지 사용",
+    confirmAvatarFirst:
+      "캐릭터 저장 전에 아바타 업로드를 확인하거나 선택을 취소해 주세요.",
+
     roleVoiceCloneAndBind: "복제 후 이 캐릭터에 지정",
     roleVoiceCloneAndSelect: "복제 후 음색 선택",
     roleVoiceCloneBound:

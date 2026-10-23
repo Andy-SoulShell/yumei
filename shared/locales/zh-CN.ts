@@ -808,6 +808,15 @@ export default {
     "categories.relationship": "我们之间",
   },
   setup: {
+    draftRestored: "已恢复未保存的角色资料，可以继续编辑。",
+    draftFilesNeedReselect: "文字已恢复，请重新选择刷新前尚未上传的图片。",
+    replaceDraftTitle: "替换未保存的角色资料？",
+    replaceDraftDescription:
+      "切换预设会替换当前资料、对话示例、音色选择和参考照片。",
+    replaceDraftConfirm: "使用预设替换",
+    keepExistingDraftImages: "继续使用原有图片",
+    confirmAvatarFirst: "请先确认上传头像，或取消头像选择，再保存角色。",
+
     roleVoiceCloneAndBind: "克隆并绑定此角色",
     roleVoiceCloneAndSelect: "克隆并选择音色",
     roleVoiceCloneBound: "音色已克隆并绑定，聊天朗读将使用该声音。",

@@ -863,6 +863,18 @@ export default {
     "categories.relationship": "Our relationship",
   },
   setup: {
+    draftRestored:
+      "Your unsaved character details have been restored. You can continue editing.",
+    draftFilesNeedReselect:
+      "Your text is restored. Reselect any pending images lost when this tab was reloaded.",
+    replaceDraftTitle: "Replace unsaved character details?",
+    replaceDraftDescription:
+      "Changing the preset replaces your current details, examples, voice selection and reference photo.",
+    replaceDraftConfirm: "Replace with preset",
+    keepExistingDraftImages: "Use the existing images",
+    confirmAvatarFirst:
+      "Confirm the avatar upload or cancel it before saving the character.",
+
     roleVoiceCloneAndBind: "Clone and bind to this character",
     roleVoiceCloneAndSelect: "Clone and select voice",
     roleVoiceCloneBound:

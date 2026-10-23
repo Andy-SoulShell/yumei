@@ -43,3 +43,42 @@ it("preserves dirty fields across key refreshes and acknowledges only the submit
     await act(async () => root.unmount());
   }
 });
+
+it("restores only unsaved fields per account and removes them after a successful save", async () => {
+  const { formDraftKey, clearFormDrafts, readFormDraft } =
+    await import("@/lib/formDrafts");
+  clearFormDrafts();
+  const defaults = { prompt: "", model: "" };
+  let remote = { prompt: "saved", model: "server-model" };
+  let key = formDraftKey("a", "settings");
+  let draft!: ReturnType<typeof useSettingsDraft<typeof defaults>>;
+  function Probe() {
+    draft = useSettingsDraft(defaults, remote, key);
+    return null;
+  }
+  let root = createRoot(document.createElement("div"));
+  const render = () => act(async () => root.render(<Probe />));
+  try {
+    await render();
+    await act(async () => draft.field("prompt")[1]("unsaved"));
+    await act(async () => root.unmount());
+    root = createRoot(document.createElement("div"));
+    remote = { ...remote, model: "new-server-model" };
+    await render();
+    expect(draft.value).toEqual({
+      prompt: "unsaved",
+      model: "new-server-model",
+    });
+    key = formDraftKey("b", "settings");
+    await render();
+    expect(draft.value.prompt).toBe("saved");
+    key = formDraftKey("a", "settings");
+    await render();
+    expect(draft.value.prompt).toBe("unsaved");
+    await act(async () => draft.acknowledge(["prompt"], { ...draft.value }));
+    expect(readFormDraft(key)).toBeNull();
+  } finally {
+    await act(async () => root.unmount());
+    clearFormDrafts();
+  }
+});

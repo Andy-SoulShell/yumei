@@ -1,3 +1,4 @@
+import { clearFormDrafts } from "@/lib/formDrafts";
 // @vitest-environment jsdom
 /** 从真实设置控制器验证跨分区保存和保存期间继续编辑。 */
 vi.mock("@/features/product/useProductConfig", async () => {
@@ -17,6 +18,9 @@ const state = vi.hoisted(() => ({
   saveKey: vi.fn(),
   savePreferences: vi.fn(),
   invalidate: vi.fn(),
+}));
+vi.mock("@/_core/hooks/useAuth", () => ({
+  useAuth: () => ({ user: { id: "settings-qa" } }),
 }));
 vi.mock("@/lib/i18n", () => ({
   useI18n: () => ({ t: (key: string) => key, locale: "zh" }),
@@ -57,6 +61,8 @@ vi.mock("@/lib/trpc", () => ({
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   localStorage.clear();
+  sessionStorage.clear();
+  clearFormDrafts();
   vi.clearAllMocks();
   state.config = {
     chatProvider: { name: "openrouter", configured: false },
@@ -200,6 +206,24 @@ it("acknowledges the submitted prompt without clearing edits made during that re
     );
     expect(probe.current.globalPrompt).toBe("edited during save");
     expect(probe.current.hasUnsavedAiChanges).toBe(true);
+  } finally {
+    await probe.unmount();
+  }
+});
+
+it("never includes API keys in persisted ordinary settings drafts", async () => {
+  const { readFormDraft, formDraftKey } = await import("@/lib/formDrafts");
+  const probe = await mount();
+  try {
+    await act(async () => {
+      probe.current.setGlobalPrompt("保留普通设置");
+      probe.current.setFalApiKey("private-do-not-persist-key");
+    });
+    const record = readFormDraft(
+      formDraftKey("settings-qa", "reply-and-service-settings")
+    );
+    expect(record).toEqual({ globalPrompt: "保留普通设置" });
+    expect(JSON.stringify(record)).not.toContain("private-do-not-persist-key");
   } finally {
     await probe.unmount();
   }

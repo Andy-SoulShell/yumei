@@ -1,3 +1,4 @@
+import { clearFormDrafts } from "@/lib/formDrafts";
 import { DEFAULT_COMPANION_BEHAVIOR } from "../../../../server/testProductConfig";
 // @vitest-environment jsdom
 /** 编辑中刷新、头像操作和清空字段均不得破坏用户草稿。 */
@@ -30,6 +31,7 @@ vi.mock("@/features/product/useProductConfig", async () => {
   return { useProductConfig: () => ({ raw: productFixture }) };
 });
 const mock = vi.hoisted(() => ({
+  userId: "setup-qa",
   discoveryData: undefined as any,
   discoveryLoading: false,
   discoveryError: null as Error | null,
@@ -50,6 +52,9 @@ vi.mock("wouter", () => ({
   useLocation: () => ["/setup/1", mock.navigate],
   useParams: () => ({ id: mock.editId }),
   useSearch: () => mock.search,
+}));
+vi.mock("@/_core/hooks/useAuth", () => ({
+  useAuth: () => ({ user: { id: mock.userId } }),
 }));
 vi.mock("@/lib/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: mock.error } }));
@@ -90,6 +95,8 @@ let remount: () => Promise<void>;
 beforeEach(async () => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   vi.clearAllMocks();
+  clearFormDrafts();
+  mock.userId = "setup-qa";
   mock.discoveryData = undefined;
   mock.discoveryLoading = false;
   mock.discoveryError = null;
@@ -301,8 +308,12 @@ it("replaces behavior with each chosen preset and resets it for a custom charact
   await act(async () =>
     controller.handleSelectPreset(getCharacterPreset("rin")!)
   );
+  expect(controller.pendingPreset?.id).toBe("rin");
+  expect(controller.behavior).toEqual(getPresetBehavior("xiaotao"));
+  await act(async () => controller.confirmPresetChange());
   expect(controller.behavior).toEqual(getPresetBehavior("rin"));
   await act(async () => controller.handleSelectPreset(null));
+  await act(async () => controller.confirmPresetChange());
   expect(controller.presetId).toBeNull();
   expect(controller.behavior).toEqual(DEFAULT_COMPANION_BEHAVIOR);
 });
@@ -387,4 +398,107 @@ it("initializes an asynchronously loaded preset once and preserves subsequent fo
   };
   await render();
   expect(controller.name).toBe("用户正在编辑的名字");
+});
+
+it("restores ordinary character fields and incomplete examples after leaving and returning", async () => {
+  await act(async () => {
+    controller.setName("回来继续编辑");
+    controller.setCustomPrompt("还没保存的提示词");
+    controller.setBehavior(v => ({
+      ...v,
+      examples: [{ user: "", assistant: "未完成示例" }],
+    }));
+  });
+  await remount();
+  expect(controller.name).toBe("回来继续编辑");
+  expect(controller.customPrompt).toBe("还没保存的提示词");
+  expect(controller.behavior.examples).toEqual([
+    { user: "", assistant: "未完成示例" },
+  ]);
+  expect(controller.draftRestored).toBe(true);
+  mock.userId = "another-account";
+  await remount();
+  expect(controller.name).toBe("原名");
+  expect(controller.draftRestored).toBe(false);
+  mock.userId = "setup-qa";
+  await remount();
+  expect(controller.name).toBe("回来继续编辑");
+});
+it("restores a new preset draft even when the preset arrives asynchronously", async () => {
+  mock.editId = undefined;
+  mock.search = "preset=xiaotao";
+  await remount();
+  await act(async () => controller.setName("自定义小桃"));
+  mock.discoveryLoading = true;
+  await remount();
+  expect(controller.draftLoading).toBe(true);
+  mock.discoveryLoading = false;
+  await render();
+  expect(controller.name).toBe("自定义小桃");
+  expect(controller.presetId).toBe("xiaotao");
+});
+it("keeps selected images in tab memory and warns before a document reload", async () => {
+  mock.editId = undefined;
+  mock.search = "preset=xiaotao";
+  await remount();
+  const file = new File(["image"], "draft.png", { type: "image/png" });
+  await act(async () => {
+    controller.setImageFile(file);
+    controller.setName("图片草稿");
+  });
+  const unload = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(unload);
+  expect(unload.defaultPrevented).toBe(true);
+  await remount();
+  expect(controller.imageFile).toBe(file);
+  expect(controller.name).toBe("图片草稿");
+  expect(controller.draftFileWarning).toBe(false);
+  const { writeDraftFile, formDraftKey } = await import("@/lib/formDrafts");
+  writeDraftFile(
+    formDraftKey("setup-qa", "character-new:xiaotao"),
+    "reference",
+    null
+  );
+  await remount();
+  expect(controller.draftFileWarning).toBe(true);
+  expect(controller.name).toBe("图片草稿");
+  await act(async () =>
+    controller.handleSubmit({ preventDefault() {} } as any)
+  );
+  expect(mock.create).not.toHaveBeenCalled();
+});
+it("clears a saved draft so later edits start from the saved server data", async () => {
+  await act(async () => controller.setName("新保存的名字"));
+  await act(async () => mock.options[0].onSuccess());
+  mock.roles = [{ ...mock.roles[0], name: "新保存的名字" }];
+  await remount();
+  expect(controller.name).toBe("新保存的名字");
+  expect(controller.draftRestored).toBe(false);
+  expect(controller.hasUnsavedChanges).toBe(false);
+});
+it("can cancel a preset replacement without losing the current draft", async () => {
+  mock.editId = undefined;
+  mock.search = "preset=xiaotao";
+  await remount();
+  await act(async () => controller.setName("不要覆盖这个名字"));
+  await act(async () =>
+    controller.handleSelectPreset(getCharacterPreset("rin")!)
+  );
+  expect(controller.name).toBe("不要覆盖这个名字");
+  expect(controller.pendingPreset?.id).toBe("rin");
+  await act(async () => controller.setPendingPreset(undefined));
+  await remount();
+  expect(controller.name).toBe("不要覆盖这个名字");
+});
+
+it("does not erase a newer draft when an earlier save finishes", async () => {
+  await act(async () => controller.setName("已提交的名字"));
+  await act(async () =>
+    controller.handleSubmit({ preventDefault() {} } as any)
+  );
+  await act(async () => controller.setName("保存期间继续编辑的名字"));
+  await act(async () => mock.options[0].onSuccess());
+  expect(mock.navigate).not.toHaveBeenCalled();
+  await remount();
+  expect(controller.name).toBe("保存期间继续编辑的名字");
 });

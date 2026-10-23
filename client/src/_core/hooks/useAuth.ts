@@ -1,3 +1,4 @@
+import { clearFormDrafts } from "@/lib/formDrafts";
 /** 统一读取当前用户、处理退出及可选的未登录跳转。 */
 
 import { trpc } from "@/lib/trpc";
@@ -36,6 +37,7 @@ export function useAuth(options?: UseAuthOptions) {
       queryClient.clear();
       utils.auth.me.setData(undefined, null);
       clearChatStreamDrafts();
+      clearFormDrafts();
       await clearPrivateMediaCaches().catch(() => {});
     },
   });
@@ -51,6 +53,7 @@ export function useAuth(options?: UseAuthOptions) {
         queryClient.clear();
         utils.auth.me.setData(undefined, null);
         clearChatStreamDrafts();
+        clearFormDrafts();
         await clearPrivateMediaCaches().catch(() => {});
         return;
       }

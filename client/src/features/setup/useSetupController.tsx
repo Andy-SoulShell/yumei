@@ -1,3 +1,14 @@
+import { useAuth } from "@/_core/hooks/useAuth";
+import {
+  formDraftKey,
+  formDraftEpoch,
+  readFormDraft,
+  readDraftFile,
+  writeDraftFile,
+  writeFormDraft,
+  removeFormDraft,
+} from "@/lib/formDrafts";
+import { readCharacterDraft, type CharacterDraft } from "./characterDraft";
 import { characterFieldsError } from "@shared/experienceConfig";
 import { useProductConfig } from "@/features/product/useProductConfig";
 import { acceptsUpload, uploadDescription } from "@shared/operationalConfig";
@@ -25,6 +36,7 @@ import { useLocation, useParams, useSearch } from "wouter";
 export function useSetupController() {
   const { t } = useI18n();
   const product = useProductConfig();
+  const { user } = useAuth();
   const trashDays = product.raw
     ? product.raw.runtime.maintenance.companionTrashRetentionMs / 86400000
     : "";
@@ -37,7 +49,29 @@ export function useSetupController() {
   const editId = params.id ? Number(params.id) : null;
 
   const validEditId = editId !== null && Number.isInteger(editId) && editId > 0;
-  const initializedEdit = useRef<number | null>(null);
+  const initializedDraftKey = useRef<string | null>(null);
+  const baselineDraft = useRef<CharacterDraft | null>(null);
+  const draftCleared = useRef(false);
+  const draftEpoch = useRef(formDraftEpoch());
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const submittedDraft = useRef<{
+    key: string | null;
+    text: string;
+    reference: File | null;
+    avatar: File | null;
+  } | null>(null);
+  const [hydratedDraftKey, setHydratedDraftKey] = useState<string | null>(null);
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [draftFileWarning, setDraftFileWarning] = useState(false);
+  const [pendingPreset, setPendingPreset] = useState<
+    CharacterPreset | null | undefined
+  >(undefined);
   const submissionBusy = useRef(false);
   const [isReadingImage, setIsReadingImage] = useState(false);
   const [isCloningVoice, setIsCloningVoice] = useState(false);
@@ -46,8 +80,15 @@ export function useSetupController() {
   const characters =
     discovery.data?.characters.filter(item => item.listed) ?? [];
   const requestedPresetId = new URLSearchParams(search).get("preset") || "";
-  const initializedPreset = useRef<string | null>(null);
+  const draftKey = formDraftKey(
+    user?.id,
+    params.id
+      ? `character-edit:${params.id}`
+      : `character-new:${requestedPresetId || "custom"}`
+  );
 
+  const currentDraftKey = useRef(draftKey);
+  currentDraftKey.current = draftKey;
   const initialPreset = !editId
     ? characters.find(item => item.id === requestedPresetId)
     : undefined;
@@ -83,7 +124,14 @@ export function useSetupController() {
   );
   const [behaviorError, setBehaviorError] = useState(false);
 
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFile, setImageFileState] = useState<File | null>(null);
+  const setImageFile = useCallback(
+    (file: File | null) => {
+      setImageFileState(file);
+      writeDraftFile(draftKey, "reference", file);
+    },
+    [draftKey]
+  );
 
   const [presetId, setPresetId] = useState<string | null>(
     initialPreset?.id || null
@@ -102,26 +150,15 @@ export function useSetupController() {
 
   const [showPromptPreview, setShowPromptPreview] = useState(false);
 
-  // 预设查询异步完成后仅初始化一次，后台刷新不能覆盖表单中的未保存修改。
-  useEffect(() => {
-    if (
-      editId ||
-      !requestedPresetId ||
-      !initialPreset ||
-      initializedPreset.current === requestedPresetId
-    )
-      return;
-    initializedPreset.current = requestedPresetId;
-    setPresetId(initialPreset.id);
-    setName(initialPreset.name);
-    setPersonality(initialPreset.personality);
-    setAppearance(initialPreset.appearance);
-    setInterests(initialPreset.interests);
-    setBehavior(structuredClone(initialPreset.behavior));
-  }, [editId, requestedPresetId, initialPreset, setBehavior]);
-
   // 头像相关状态
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarFile, setAvatarFileState] = useState<File | null>(null);
+  const setAvatarFile = useCallback(
+    (file: File | null) => {
+      setAvatarFileState(file);
+      writeDraftFile(draftKey, "avatar", file);
+    },
+    [draftKey]
+  );
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
@@ -146,29 +183,141 @@ export function useSetupController() {
   // 获取全局提示词配置
   const { data: apiConfig } = trpc.apiConfig.get.useQuery();
 
-  // 编辑模式：加载已有数据
+  // 仅在当前账号和表单首次就绪时合并草稿；后台刷新不覆盖编辑。
   useEffect(() => {
-    if (editId && girlfriends) {
-      const gf = girlfriends.find(g => g.id === editId);
-      if (gf && initializedEdit.current !== editId) {
-        initializedEdit.current = editId;
-        setName(gf.name);
-        setPersonality(gf.personality);
-        setAppearance(gf.appearance);
-        setInterests(gf.interests || "");
-        if (gf.behavior || product.raw)
-          setBehavior(
-            gf.behavior ??
-              structuredClone(product.raw!.characters.defaultBehavior)
-          );
-        setExistingImageUrl(gf.referenceImageUrl);
-        setCustomPrompt(gf.customPrompt || "");
-        setOmnivoiceVoiceId(gf.omnivoiceVoiceId || "");
-        setExistingAvatarUrl(gf.avatarUrl || null);
-        if (gf.customPrompt) setShowCustomPrompt(true);
-      }
+    if (!draftKey || !product.raw || initializedDraftKey.current === draftKey)
+      return;
+    const role = validEditId
+      ? girlfriends?.find(g => g.id === editId)
+      : undefined;
+    if (params.id && !role) return;
+    if (!params.id && requestedPresetId && !initialPreset) return;
+    const base: CharacterDraft = {
+      name: role?.name ?? initialPreset?.name ?? "",
+      personality: role?.personality ?? initialPreset?.personality ?? "",
+      appearance: role?.appearance ?? initialPreset?.appearance ?? "",
+      interests: role?.interests ?? initialPreset?.interests ?? "",
+      customPrompt: role?.customPrompt ?? "",
+      omnivoiceVoiceId: role?.omnivoiceVoiceId ?? "",
+      presetId: role ? null : (initialPreset?.id ?? null),
+      behavior: structuredClone(
+        role?.behavior ??
+          initialPreset?.behavior ??
+          product.raw.characters.defaultBehavior
+      ),
+      pendingFiles: false,
+    };
+    const restored = readCharacterDraft(draftKey);
+    const value = restored ?? base;
+    initializedDraftKey.current = draftKey;
+    draftEpoch.current = formDraftEpoch();
+    baselineDraft.current = base;
+    draftCleared.current = false;
+    setName(value.name);
+    setPersonality(value.personality);
+    setAppearance(value.appearance);
+    setInterests(value.interests);
+    setCustomPrompt(value.customPrompt);
+    setOmnivoiceVoiceId(value.omnivoiceVoiceId);
+    setPresetId(value.presetId);
+    setBehaviorDraft(value.behavior);
+    setShowCustomPrompt(Boolean(value.customPrompt));
+    setPendingPreset(undefined);
+    setDraftRestored(Boolean(restored));
+    setExistingImageUrl(role?.referenceImageUrl ?? null);
+    setExistingAvatarUrl(role?.avatarUrl ?? null);
+    const reference = readDraftFile(draftKey, "reference"),
+      avatar = readDraftFile(draftKey, "avatar");
+    setImageFileState(reference);
+    setAvatarFileState(avatar);
+    setImagePreview(null);
+    setAvatarPreview(null);
+    setDraftFileWarning(
+      Boolean(restored?.pendingFiles && !reference && !avatar)
+    );
+    for (const [file, setPreview] of [
+      [reference, setImagePreview],
+      [avatar, setAvatarPreview],
+    ] as const) {
+      if (!file) continue;
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (initializedDraftKey.current === draftKey)
+          setPreview(String(reader.result));
+      };
+      reader.readAsDataURL(file);
     }
-  }, [editId, girlfriends, product.raw, setBehavior]);
+    setHydratedDraftKey(draftKey);
+  }, [
+    draftKey,
+    product.raw,
+    validEditId,
+    girlfriends,
+    editId,
+    params.id,
+    requestedPresetId,
+    initialPreset,
+  ]);
+
+  const draft: CharacterDraft | undefined = behavior
+    ? {
+        name,
+        personality,
+        appearance,
+        interests,
+        customPrompt,
+        omnivoiceVoiceId,
+        presetId,
+        behavior,
+        pendingFiles: Boolean(imageFile || avatarFile || draftFileWarning),
+      }
+    : undefined;
+  const draftText = draft ? JSON.stringify(draft) : "";
+  const hasUnsavedChanges = Boolean(
+    draft &&
+    baselineDraft.current &&
+    draftText !== JSON.stringify(baselineDraft.current)
+  );
+  useEffect(() => {
+    if (
+      !draftKey ||
+      hydratedDraftKey !== draftKey ||
+      draftCleared.current ||
+      draftEpoch.current !== formDraftEpoch() ||
+      !draftText
+    )
+      return;
+    if (draftText === JSON.stringify(baselineDraft.current))
+      removeFormDraft(draftKey);
+    else writeFormDraft(draftKey, JSON.parse(draftText));
+  }, [draftKey, hydratedDraftKey, draftText]);
+  useEffect(() => {
+    if (!imageFile && !avatarFile) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [imageFile, avatarFile]);
+  const clearDraft = () => {
+    const saved = submittedDraft.current ?? {
+      key: draftKey,
+      text: draftText,
+      reference: imageFile,
+      avatar: avatarFile,
+    };
+    const stored = readFormDraft(saved.key);
+    const unchanged = !stored || JSON.stringify(stored) === saved.text;
+    if (unchanged) removeFormDraft(saved.key);
+    for (const kind of ["reference", "avatar"] as const)
+      if (readDraftFile(saved.key, kind) === saved[kind])
+        writeDraftFile(saved.key, kind, null);
+    const canLeave =
+      mounted.current && currentDraftKey.current === saved.key && unchanged;
+    if (canLeave) draftCleared.current = true;
+    return canLeave;
+  };
 
   const utils = trpc.useUtils();
 
@@ -177,7 +326,9 @@ export function useSetupController() {
       submissionBusy.current = false;
     },
     onSuccess: async () => {
+      const canLeave = clearDraft();
       await utils.girlfriend.invalidate();
+      if (!canLeave) return;
       toast.success(t("setup:companionCreated"));
       setLocation("/characters");
     },
@@ -195,7 +346,9 @@ export function useSetupController() {
       submissionBusy.current = false;
     },
     onSuccess: async () => {
+      const canLeave = clearDraft();
       await utils.girlfriend.invalidate();
+      if (!canLeave) return;
       toast.success(t("setup:companionUpdated"));
       // 触发编辑资料亲密度经验值
 
@@ -227,6 +380,10 @@ export function useSetupController() {
 
   const deleteGirlfriend = trpc.girlfriend.delete.useMutation({
     onSuccess: () => {
+      removeFormDraft(draftKey);
+      writeDraftFile(draftKey, "reference", null);
+      writeDraftFile(draftKey, "avatar", null);
+      draftCleared.current = true;
       toast.success(
         t("common:movedToTrashYouCanRestoreItWithin", { days: trashDays })
       );
@@ -275,6 +432,7 @@ export function useSetupController() {
         return;
       }
       setImageFile(file);
+      setDraftFileWarning(false);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -283,7 +441,7 @@ export function useSetupController() {
     }
   };
 
-  const handleSelectPreset = (preset: CharacterPreset | null) => {
+  const applyPreset = (preset: CharacterPreset | null) => {
     setPresetId(preset?.id || null);
     setName(preset?.name || "");
     setPersonality(preset?.personality || "");
@@ -300,6 +458,18 @@ export function useSetupController() {
     setImageFile(null);
     setImagePreview(null);
     if (imageInputRef.current) imageInputRef.current.value = "";
+  };
+
+  const handleSelectPreset = (preset: CharacterPreset | null) => {
+    if (preset?.id === presetId || (!preset && !presetId)) return;
+    if (hasUnsavedChanges) setPendingPreset(preset);
+    else applyPreset(preset);
+  };
+  const confirmPresetChange = () => {
+    if (pendingPreset === undefined) return;
+    applyPreset(pendingPreset);
+    setPendingPreset(undefined);
+    setDraftFileWarning(false);
   };
 
   // 头像选择处理
@@ -321,6 +491,7 @@ export function useSetupController() {
     }
 
     setAvatarFile(file);
+    setDraftFileWarning(false);
     const reader = new FileReader();
     reader.onloadend = () => {
       setAvatarPreview(reader.result as string);
@@ -368,6 +539,14 @@ export function useSetupController() {
       !product.raw
     )
       return;
+    if (draftFileWarning) {
+      toast.error(t("setup:draftFilesNeedReselect"));
+      return;
+    }
+    if (avatarFile) {
+      toast.error(t("setup:confirmAvatarFirst"));
+      return;
+    }
     const fields = { name, personality, appearance };
     const invalid = Object.entries(fields).find(([, value]) => !value.trim());
     if (invalid) {
@@ -405,6 +584,13 @@ export function useSetupController() {
     }
     setBehaviorError(false);
 
+    if (draft) writeFormDraft(draftKey, draft);
+    submittedDraft.current = {
+      key: draftKey,
+      text: draftText,
+      reference: imageFile,
+      avatar: avatarFile,
+    };
     if (editId) {
       submissionBusy.current = true;
       // 编辑模式
@@ -491,6 +677,20 @@ export function useSetupController() {
 
   const displayAvatar = avatarPreview || existingAvatarUrl;
   return {
+    draftLoading:
+      !editError &&
+      !discovery.error &&
+      Boolean(draftKey) &&
+      hydratedDraftKey !== draftKey &&
+      !(params.id && girlfriends && !girlfriends.some(g => g.id === editId)) &&
+      !(requestedPresetId && discovery.data && !initialPreset),
+    draftRestored,
+    draftFileWarning,
+    discardMissingDraftFiles: () => setDraftFileWarning(false),
+    hasUnsavedChanges,
+    pendingPreset,
+    setPendingPreset,
+    confirmPresetChange,
     characterLimits: product.raw?.characters.limits,
     trashDays,
     uploads,

@@ -4,12 +4,15 @@ import { eq } from "drizzle-orm";
 import express from "express";
 import { once } from "node:events";
 import { createServer } from "node:http";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { mediaDeletions } from "../../drizzle/schema";
 import { getDb } from "../database";
 import { storagePut } from "../storage";
 import { registerFileRoutes } from "./files";
 
+// 范围与参数测试仅替换身份授权；另有真实归属及 HTTP 隔离回归。
+vi.mock("../mediaAuthorization", () => ({ canReadMedia: async () => true }));
+vi.mock("./auth", () => ({ getSessionUser: async () => null }));
 const app = express();
 registerFileRoutes(app);
 app.get("/healthz", (_req, res) => res.json({ ok: true }));

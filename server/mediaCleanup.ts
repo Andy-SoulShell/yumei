@@ -11,6 +11,7 @@ import {
   selfies,
   voiceTranscriptions,
   users,
+  verifications,
 } from "../drizzle/schema";
 import { log, providerErrorSummary } from "./_core/log";
 import { getDb, type DbTransaction } from "./database";
@@ -69,9 +70,16 @@ export async function isMediaPendingDeletion(key: string): Promise<boolean> {
     .select()
     .from(mediaDeletions)
     .where(eq(mediaDeletions.key, key));
+  if (!pending) return false;
+  const [owner] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.id, pending.userId))
+    .limit(1);
   return (
-    !!pending &&
-    (pending.deleting || pending.availableAt.getTime() <= Date.now()) &&
+    ((!owner && !key.startsWith("official-")) ||
+      pending.deleting ||
+      pending.availableAt.getTime() <= Date.now()) &&
     !(await hasReferences(db, key))
   );
 }
@@ -211,6 +219,17 @@ export function startMediaCleanupScheduler(): () => void {
         await db
           .delete(voiceTranscriptions)
           .where(lte(voiceTranscriptions.expiresAt, new Date()));
+        await db
+          .delete(verifications)
+          .where(
+            and(
+              lte(verifications.expiresAt, new Date()),
+              or(
+                sql`${verifications.identifier} LIKE 'account-deletion:%'`,
+                sql`${verifications.identifier} LIKE 'deletion-receipt:%'`
+              )
+            )
+          );
         await db
           .delete(rateWindows)
           .where(

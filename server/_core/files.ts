@@ -1,3 +1,5 @@
+import { getSessionUser } from "./auth";
+import { canReadMedia } from "../mediaAuthorization";
 /** 通过存储键提供媒体访问，本地流式返回，S3 签名有效期读取发布配置。 */
 
 import type { Express, Request, Response } from "express";
@@ -44,7 +46,7 @@ export function parseByteRange(header: string, size: number) {
 }
 
 /**
- * 注册不要求会话的媒体读取路由，持有完整文件地址即可读取。
+ * 官方素材公开；个人媒体通过真实会话及资源归属校验后才可读取。
  *
  * @remarks Express 已解码参数，此处不重复解码；存储和读取异常统一返回错误响应。
  */
@@ -59,7 +61,13 @@ export function registerFileRoutes(app: Express) {
       res.setHeader("Cache-Control", "private, no-store");
       const download = req.query.download === "1";
       if (download) res.setHeader("Content-Disposition", "attachment");
-      if (await isMediaPendingDeletion(key)) {
+      const user = key.startsWith("official-")
+        ? null
+        : await getSessionUser(req);
+      if (
+        !(await canReadMedia(key, user?.id)) ||
+        (await isMediaPendingDeletion(key))
+      ) {
         res.status(404).json({ error: "File not found" });
         return;
       }

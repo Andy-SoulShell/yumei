@@ -2,8 +2,8 @@
 import { getPublishedProductConfig } from "./repositories/productConfig";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { mediaDeletions } from "../drizzle/schema";
-import { getDb, withUserTransaction, type DbTransaction } from "./database";
+import { mediaDeletions, users } from "../drizzle/schema";
+import { getDb, type DbTransaction } from "./database";
 import { storagePut } from "./storage";
 
 /** 普通上传按发布规则预留回收时间；临时播放音频可指定保留时长。 */
@@ -20,16 +20,27 @@ export async function putStagedMedia(
     retentionMs ??
     (await getPublishedProductConfig()).runtime.maintenance.stagedRetentionMs;
   // 先登记再上传；注销后不能启动新上传，进行中的上传在完成后再次确认归属。
-  const register = (tx: DbTransaction | typeof db) =>
-    tx
-      .insert(mediaDeletions)
-      .values({ key, userId, availableAt: new Date(Date.now() + retention) });
-  if (key.startsWith("official-")) await register(db);
-  else await withUserTransaction(userId, register);
+  const assertOwner = async () => {
+    if (key.startsWith("official-")) return;
+    const [owner] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (!owner)
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User no longer exists",
+      });
+  };
+  // 默认角色的工厂可能已持有用户锁，归属检查使用只读查询，不能再次申请同一行锁。
+  await assertOwner();
+  await db
+    .insert(mediaDeletions)
+    .values({ key, userId, availableAt: new Date(Date.now() + retention) });
   const result = await storagePut(key, data, mimeType);
   try {
-    if (!key.startsWith("official-"))
-      await withUserTransaction(userId, async () => {});
+    await assertOwner();
   } catch (error) {
     const { queueMediaDeletion } = await import("./mediaCleanup");
     await queueMediaDeletion(userId, [key]);

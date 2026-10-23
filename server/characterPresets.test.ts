@@ -1,3 +1,4 @@
+import { createTestUser } from "./testFixtures";
 import { stubProductConfig } from "./testProductConfig";
 /** 覆盖内置预设、图片读取及套餐数量约束。 */
 
@@ -14,7 +15,8 @@ const caller = appRouter.createCaller({
 } as any);
 const profile = { name: "自定义名字", personality: "温柔", appearance: "黑发" };
 
-beforeEach(() => {
+beforeEach(async () => {
+  await createTestUser("preset-test-user");
   stubProductConfig("billing.mode", "none");
   vi.spyOn(storage, "storagePut").mockImplementation(async key => ({
     key,
